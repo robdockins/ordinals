@@ -28,6 +28,9 @@ Definition ord_le (x y:Ord) : Prop :=
   | ord A f => forall a:A, ord_lt (f a) y
   end.
 
+Definition ord_eq (x y:Ord) : Prop :=
+  ord_le x y /\ ord_le y x.
+
 (** Characteristic equation for less-than *)
 Lemma ord_lt_unfold x y :
   ord_lt x y =
@@ -158,8 +161,7 @@ Lemma ord_lt_acc : forall x y,  ord_le y x -> Acc ord_lt y.
 Proof.
   induction x; intros.
   rename y into z.
-  constructor. intro y.
-  intros ?.
+  constructor. intros y ?.
   assert (ord_lt y (ord A o)).
   { apply ord_lt_le_trans with z; auto. }
 
@@ -191,9 +193,10 @@ Definition succOrd (x:Ord) : Ord := ord unit (fun _ => x).
 Definition lubOrd (x y:Ord) : Ord :=
   match x, y with
   | ord A f, ord B g =>
-    ord (A+B) (sum_rect _ f g)
+    ord (A+B) (fun ab => match ab with inl a => f a | inr b => g b end)
   end.
 Definition limOrd {A:Type} (f:A -> Ord) := ord A f.
+
 
 (** Zero is the least ordinal.
   *)
@@ -247,7 +250,7 @@ Proof.
   destruct x; destruct y; simpl.
   intros.
   rewrite ord_lt_unfold.
-  exists (inl a). simpl.
+  exists (inl a).
   apply ord_le_refl.
 Qed.
 
@@ -257,7 +260,7 @@ Proof.
   destruct x; destruct y; simpl.
   intros.
   rewrite ord_lt_unfold.
-  exists (inr a). simpl.
+  exists (inr a).
   apply ord_le_refl.
 Qed.
 
@@ -289,7 +292,7 @@ Proof.
   apply lub_le1.
 Qed.
 
-Lemma lub_le_trans1 : forall x y z,
+Lemma lub_le_assoc1 : forall x y z,
     ord_le (lubOrd x (lubOrd y z)) (lubOrd (lubOrd x y) z).
 Proof.
   intros.
@@ -304,7 +307,7 @@ Proof.
   apply lub_le2.
 Qed.
 
-Lemma sum_le_trans2 : forall x y z,
+Lemma lub_le_assoc2 : forall x y z,
     ord_le (lubOrd (lubOrd x y) z) (lubOrd x (lubOrd y z)).
 Proof.
   intros.
@@ -330,7 +333,8 @@ Proof.
   apply lub_le2.
 Qed.
 
-(**  The lub of successors is less-or-equal to the successor of the lub.
+
+(**  The lub of successors is le the successor of the lub.
   *)
 Lemma succ_lub x y :
  ord_le (lubOrd (succOrd x) (succOrd y)) (succOrd (lubOrd x y)).
@@ -341,6 +345,7 @@ Proof.
   apply succ_monotone'.
   apply lub_le2.
 Qed.
+
 
 (** The limit ordinal is strictly above all the ordinals in
   * the collection defined by "f".  Moreover it is the smallest
@@ -358,6 +363,310 @@ Proof.
   intros. rewrite ord_le_unfold.
   simpl. auto.
 Qed.
+
+(** The "natural" ordinal addition function as defined by Hessenberg.
+  * This ordinal operation is commutative, associative and absorbs zero.
+  * It is also strictly monotone in both of its arguments.
+  *
+  * Morover, it is the smallest binary operation on ordinals which is strictly monotone
+  * in both of its arguments.
+  *)
+Fixpoint addOrd (x:Ord) : Ord -> Ord :=
+  fix inner (y:Ord) : Ord :=
+    match x, y with
+    | ord A f, ord B g =>
+      ord (A+B) (fun ab =>
+                 match ab with
+                 | inl a => addOrd (f a) y
+                 | inr b => inner (g b)
+                 end
+                )
+    end.
+
+Lemma addOrd_unfold (x y:Ord) :
+  addOrd x y =
+  match x, y with
+  | ord A f, ord B g =>
+    lubOrd (limOrd (fun a => addOrd (f a) y))
+           (limOrd (fun b => addOrd x (g b)))
+  end.
+Proof.
+  destruct x; destruct y; auto.
+Qed.
+
+Global Opaque addOrd.
+
+Lemma addOrd_le1 x y : ord_le x (addOrd x y).
+Proof.
+  induction x.
+  destruct y.
+  rewrite addOrd_unfold.
+  rewrite ord_le_unfold; intros.
+  rewrite ord_lt_unfold.
+  simpl.
+  exists (inl a).
+  auto.
+Qed.
+
+Lemma addOrd_le2 x y : ord_le y (addOrd x y).
+Proof.
+  induction y.
+  destruct x.
+  rewrite addOrd_unfold.
+  rewrite ord_le_unfold; intros.
+  rewrite ord_lt_unfold.
+  exists (inr a).
+  apply H.
+Qed.
+
+Lemma addOrd_zero1 x : ord_le (addOrd x zeroOrd) x.
+Proof.
+  induction x.
+  rewrite addOrd_unfold.
+  rewrite ord_le_unfold; simpl; intros.
+  destruct a; intuition.
+  rewrite ord_lt_unfold.
+  exists a.
+  auto.
+Qed.
+
+Lemma addOrd_zero2 x : ord_le x (addOrd x zeroOrd).
+Proof.
+  induction x.
+  rewrite addOrd_unfold.
+  simpl.
+  rewrite ord_le_unfold; simpl; intros.
+  rewrite ord_lt_unfold.
+  exists (inl a).
+  auto.
+Qed.
+
+Lemma addOrd_comm x y : ord_le (addOrd x y) (addOrd y x).
+Proof.
+  revert y.
+  induction x.
+  intro y. revert A o H.
+  induction y; intros.
+  rewrite ord_le_unfold. rewrite addOrd_unfold.
+  simpl; intros.
+  destruct a.
+  - rewrite ord_lt_unfold.
+    rewrite addOrd_unfold.
+    exists (inr a); auto.
+  - rewrite ord_lt_unfold.
+    rewrite addOrd_unfold.
+    exists (inl a).
+    apply H. auto.
+Qed.
+
+Lemma addOrd_assoc1 : forall x y z,  ord_le (addOrd x (addOrd y z)) (addOrd (addOrd x y) z).
+Proof.
+  induction x. induction y. induction z.
+  rewrite ord_le_unfold.
+  rewrite addOrd_unfold.
+  rewrite addOrd_unfold.
+  simpl.
+  intros.
+  rewrite ord_lt_unfold.
+  rewrite addOrd_unfold.
+  rewrite addOrd_unfold.
+  simpl.
+  destruct a as [a | [b|c]].
+  - exists (inl (inl a)).
+    generalize (H a (ord A0 o0) (ord A1 o1)).
+    rewrite (addOrd_unfold (ord A0 o0) (ord A1 o1)).
+    auto.
+  - exists (inl (inr b)).
+    apply H0.
+  - exists (inr c).
+    apply H1.
+Qed.
+
+Lemma addOrd_assoc2 : forall x y z, ord_le (addOrd (addOrd x y) z) (addOrd x (addOrd y z)).
+Proof.
+  induction x. induction y. induction z.
+  rewrite ord_le_unfold.
+  rewrite addOrd_unfold.
+  rewrite addOrd_unfold.
+  simpl; intros.
+  rewrite ord_lt_unfold.
+  rewrite addOrd_unfold.
+  rewrite addOrd_unfold.
+  simpl.
+  destruct a as [[a |b]|c].
+  - exists (inl a).
+    apply H.
+  - exists (inr (inl b)).
+    apply H0.
+  - exists (inr (inr c)).
+    apply H1.
+Qed.
+
+Lemma addOrd_cancel :
+  forall x y z, ord_lt (addOrd x z) (addOrd y z) -> ord_lt x y.
+Proof.
+  induction x. induction y. induction z.
+  rewrite ord_lt_unfold.
+  rewrite addOrd_unfold.
+  rewrite ord_lt_unfold.
+  simpl.
+  intros [[a|b] ?].
+  - exists a.
+    rewrite ord_le_unfold. intros.
+    rewrite ord_le_unfold in H2.
+    rewrite addOrd_unfold in H2.
+    specialize (H2 (inl a0)).
+    simpl in H2.
+    eapply H. apply H2.
+  - rewrite ord_le_unfold in H2.
+    rewrite addOrd_unfold in H2.
+    specialize (H2 (inr b)).
+    simpl in H2.
+    apply H1 in H2.
+    rewrite ord_lt_unfold in H2.
+    auto.
+Qed.
+
+Lemma addOrd_monotone_le :
+  forall x y z1 z2, ord_le x y -> ord_le z1 z2 -> ord_le (addOrd x z1) (addOrd y z2).
+Proof.
+  induction x. destruct y. induction z1. destruct z2.
+  intros.
+  rewrite ord_le_unfold.
+  rewrite addOrd_unfold.
+  simpl.
+  intros [a|b].
+  - rewrite ord_le_unfold in H1.
+    specialize (H1 a).
+    rewrite ord_lt_unfold.
+    rewrite addOrd_unfold.
+    simpl.
+    rewrite ord_lt_unfold in H1.
+    destruct H1 as [b Hb].
+    exists (inl b).
+    apply H; auto.
+  - rewrite ord_le_unfold in H2.
+    specialize (H2 b).
+    rewrite ord_lt_unfold.
+    rewrite addOrd_unfold.
+    rewrite ord_lt_unfold in H2.
+    simpl.
+    destruct H2 as [a Ha].
+    exists (inr a).
+    apply H0; auto.
+Qed.
+
+
+Lemma addOrd_monotone_lt :
+  forall x y z1 z2, (ord_lt x y -> ord_le z1 z2 -> ord_lt (addOrd x z1) (addOrd y z2)) /\
+                    (ord_le x y -> ord_lt z1 z2 -> ord_lt (addOrd x z1) (addOrd y z2)).
+Proof.
+  induction x. induction y. induction z1. destruct z2.
+  rename H into Hx.
+  rename H0 into Hy.
+  rename H1 into Hz1.
+  split; intros.
+  - rewrite ord_lt_unfold in H.
+    destruct H as [a Ha].
+    rewrite ord_lt_unfold.
+    rewrite addOrd_unfold.
+    simpl.
+    exists (inl a).
+    rewrite ord_le_unfold.
+    rewrite addOrd_unfold.
+    simpl.
+    intros.
+    destruct a0.
+    + rewrite ord_le_unfold in Ha; auto.
+      destruct (Hx a0 (o0 a) (ord A1 o1) (ord A2 o2)); auto.
+    + rewrite ord_le_unfold in H0.
+      specialize (H0 a0).
+      apply Hy; auto.
+  - rewrite ord_lt_unfold in H0.
+    destruct H0 as [q Hq].
+    rewrite ord_lt_unfold.
+    rewrite addOrd_unfold.
+    simpl.
+    exists (inr q).
+    rewrite ord_le_unfold.
+    rewrite addOrd_unfold.
+    simpl.
+    intros.
+    destruct a.
+    + rewrite ord_le_unfold in H.
+      specialize (H a).
+      destruct (Hx a (ord A0 o0) (ord A1 o1) (o2 q)).
+      auto.
+    + rewrite ord_le_unfold in Hq.
+      specialize (Hq a).
+      destruct (Hz1 a (o2 q)).
+      auto.
+Qed.
+
+Lemma addOrd_monotone_lt1 :
+  forall x y z, ord_lt x y -> ord_lt (addOrd x z) (addOrd y z).
+Proof.
+  intros.
+  destruct (addOrd_monotone_lt x y z z).
+  apply H0; auto.
+  apply ord_le_refl.
+Qed.
+
+Lemma addOrd_monotone_lt2 :
+  forall x y z, ord_lt x y -> ord_lt (addOrd z x) (addOrd z y).
+Proof.
+  intros.
+  destruct (addOrd_monotone_lt z z x y).
+  apply H1; auto.
+  apply ord_le_refl.
+Qed.
+
+Lemma addOrd_least (f:Ord -> Ord -> Ord)
+  (Hmono1 : forall a b c, ord_lt a b -> ord_lt (f a c) (f b c))
+  (Hmono2 : forall a b c, ord_lt a b -> ord_lt (f c a) (f c b))
+  :
+  (forall x y, ord_le (addOrd x y) (f x y)).
+Proof.
+  induction x. induction y.
+  rewrite ord_le_unfold.
+  rewrite addOrd_unfold.
+  simpl.
+  intros [a|b].
+  - eapply ord_le_lt_trans.
+    apply H.
+    apply Hmono1.
+    rewrite ord_lt_unfold.
+    exists a. apply ord_le_refl.
+  - eapply ord_le_lt_trans.
+    apply H0.
+    apply Hmono2.
+    rewrite ord_lt_unfold.
+    exists b. apply ord_le_refl.
+Qed.
+
+Lemma addOrd_succ x y : ord_eq (addOrd (succOrd x) y) (succOrd (addOrd x y)).
+Proof.
+  split.
+  - induction y.
+    rewrite ord_le_unfold.
+    rewrite addOrd_unfold.
+    simpl.
+    intro ua.
+    rewrite ord_lt_unfold. simpl.
+    exists tt.
+    destruct ua as [u|a].
+    + apply ord_le_refl.
+    + eapply ord_le_trans.
+      apply H.
+      apply succ_least.
+      apply addOrd_monotone_lt2.
+      apply limit_lt.
+  - apply succ_least.
+    apply addOrd_monotone_lt1.
+    apply succ_lt.
+Qed.
+
+
 
 (** A structure of types together with ordinal measures.
   *)
@@ -435,6 +744,9 @@ Fixpoint natOrdSize (x:nat) :=
 
 Canonical Structure NatOrdSize : OrdSize
   := MkOrdSize nat natOrdSize.
+
+Definition omega : Ord :=
+  ord nat natOrdSize.
 
 
 (* Lists of ordinal-sized types have an ordinal size.
@@ -609,7 +921,7 @@ Inductive asdf : nat -> Set :=
 with
 qwerty : nat -> Set :=
 | emptyQwerty : qwerty 0
-| someQwerty  : forall n, qwerty n -> (forall m, asdf m) -> qwerty n.
+| someQwerty  : forall n, qwerty n -> (forall m, asdf m) -> qwerty (S n).
 
 Fixpoint asdf_size n (x:asdf n) : Ord :=
   match x with
@@ -618,7 +930,7 @@ Fixpoint asdf_size n (x:asdf n) : Ord :=
 with qwerty_size n (x:qwerty n) : Ord :=
   match x with
   | emptyQwerty => zeroOrd
-  | someQwerty n x y => lubOrd (qwerty_size n x) (depOrd asdf_size y)
+  | someQwerty n x y => succOrd (lubOrd (qwerty_size n x) (depOrd asdf_size y))
   end.
 
 Canonical Structure AsdfOrdSize n :=
@@ -627,7 +939,9 @@ Canonical Structure QwertyOrdSize n :=
   MkOrdSize (qwerty n) (qwerty_size n).
 
 Goal forall n a b c f,
-  f n <> mkAsdf _ [a; b; someQwerty _ c f].
+  f (S n) <> mkAsdf _ [a; b; someQwerty _ c f].
 Proof.
-  ord_crush.
+  intros; apply size_discriminate.
+  subterm_trans (someQwerty n c f).
+  subterm_trans [someQwerty n c f].
 Qed.
