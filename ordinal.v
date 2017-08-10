@@ -13,7 +13,8 @@ Open Scope list.
 Inductive Ord : Type :=
 | ord : forall (A:Type), (A -> Ord) -> Ord.
 
-Definition ordIdx (x:Ord) : Type := match x with ord A _ => A end.
+Definition ordIdx (x:Ord) : Type :=
+  match x with ord A _ => A end.
 
 Definition ordSet (x:Ord) : ordIdx x -> Ord :=
   match x as x' return ordIdx x' -> Ord with
@@ -61,10 +62,10 @@ Global Opaque ord_le ord_lt.
 Lemma ord_lt_le : forall b a,
   ord_lt a b -> ord_le a b.
 Proof.
-  induction b. intros.
+  induction b as [B g]. intros.
   rewrite ord_lt_unfold in H0. simpl in *.
   destruct H0 as [b ?].
-  destruct a.
+  destruct a as [A f].
   rewrite ord_le_unfold in *.
   intros.
   specialize (H0 a).
@@ -94,38 +95,34 @@ Lemma ord_trans :
 Proof.
   induction b as [B g].
   intros.
-  repeat split.
-  - intros.
-    rewrite ord_le_unfold.
+  repeat split; intros.
+  - rewrite ord_le_unfold.
     rewrite ord_le_unfold in H0.
-    destruct a as [A f]. intros.
-    specialize (H0 a).
+    intro ai.
+    specialize (H0 ai).
     rewrite ord_lt_unfold in H0.
-    destruct H0 as [b ?].
+    destruct H0 as [bi ?].
     rewrite ord_le_unfold in H1.
-    specialize (H1 b).
-    specialize (H b (f a) c); intuition.
-  - intros.
-    rewrite ord_lt_unfold.
+    specialize (H1 bi).
+    specialize (H bi (a ai) c); intuition.
+  - rewrite ord_lt_unfold.
     rewrite ord_lt_unfold in H1.
-    destruct c as [C h]. destruct H1 as [c ?].
-    exists c.
+    destruct H1 as [ci ?].
+    exists ci.
     rewrite ord_le_unfold in H1.
     rewrite ord_le_unfold.
     rewrite ord_le_unfold in H0.
-    destruct a as [A f].
-    intros a.
-    specialize (H0 a).
+    intros ai.
+    specialize (H0 ai).
     rewrite ord_lt_unfold in H0.
-    destruct H0 as [b ?].
-    specialize (H1 b).
-    specialize (H b (f a) (h c)); intuition.
-  - intros.
-    rewrite ord_lt_unfold in H0.
-    destruct H0 as [b ?].
+    destruct H0 as [bi ?].
+    specialize (H1 bi).
+    specialize (H bi (a ai) (c ci)); intuition.
+  - rewrite ord_lt_unfold in H0.
+    destruct H0 as [bi ?].
     rewrite ord_le_unfold in H1.
-    specialize (H1 b).
-    destruct (H b a c); intuition.
+    specialize (H1 bi).
+    destruct (H bi a c); intuition.
 Qed.
 
 (** Less-equal is transitive.
@@ -162,15 +159,13 @@ Qed.
   *)
 Lemma ord_lt_acc : forall x y,  ord_le y x -> Acc ord_lt y.
 Proof.
-  induction x as [A f]; intros.
-  rename y into z.
-  constructor. intros y ?.
-  assert (ord_lt y (ord A f)).
+  induction x as [A f]; intros z Hz.
+  constructor. intros y Hy.
+  assert (Hyx : (ord_lt y (ord A f))).
   { apply ord_lt_le_trans with z; auto. }
 
-  destruct y.
-  rewrite ord_lt_unfold in H2.
-  destruct H2 as [b ?].
+  rewrite ord_lt_unfold in Hyx.
+  destruct Hyx as [b ?].
   apply (H b).
   auto.
 Qed.
@@ -204,7 +199,6 @@ Definition supOrd {A:Type} (f:A -> Ord) :=
   ord (sigT (fun a => ordIdx (f a)))
       (fun ai => ordSet (f (projT1 ai)) (projT2 ai)).
 
-
 (** Zero is the least ordinal.
   *)
 Lemma zero_least : forall o, ord_le zeroOrd o.
@@ -218,29 +212,25 @@ Qed.
   * Moreover, it is the smallest ordinal which is strictly above its
   * argument.
   *)
-Lemma succ_monotone : forall a b, ord_lt a b -> ord_lt (succOrd a) (succOrd b).
+Lemma succ_monotone_lt : forall a b, ord_lt a b -> ord_lt (succOrd a) (succOrd b).
 Proof.
   intros.
-  rewrite ord_lt_unfold. simpl.
-  exists tt.
-  rewrite ord_le_unfold. simpl.
-  auto.
+  rewrite ord_lt_unfold. simpl. exists tt.
+  rewrite ord_le_unfold. simpl. auto.
 Qed.
 
-Lemma succ_monotone' : forall a b, ord_le a b -> ord_le (succOrd a) (succOrd b).
+Lemma succ_monotone_le : forall a b, ord_le a b -> ord_le (succOrd a) (succOrd b).
 Proof.
   intros.
-  rewrite ord_le_unfold. simpl.
-  intro.
-  rewrite ord_lt_unfold. simpl.
-  exists tt.
+  rewrite ord_le_unfold. simpl; intros _.
+  rewrite ord_lt_unfold. simpl. exists tt.
   auto.
 Qed.
 
 Lemma succ_lt : forall o, ord_lt o (succOrd o).
 Proof.
-  intros. rewrite ord_lt_unfold. simpl.
-  exists tt. apply ord_le_refl.
+  intros.
+  rewrite ord_lt_unfold. simpl. exists tt. apply ord_le_refl.
 Qed.
 
 Lemma succ_least : forall x y, ord_lt x y -> ord_le (succOrd x) y.
@@ -254,9 +244,10 @@ Qed.
 Lemma lub_le1 : forall x y, ord_le x (lubOrd x y).
 Proof.
   intros. rewrite ord_le_unfold.
-  destruct x; destruct y; simpl.
   intros.
+  destruct x; destruct y; simpl.
   rewrite ord_lt_unfold.
+  simpl.
   exists (inl a).
   apply ord_le_refl.
 Qed.
@@ -347,9 +338,9 @@ Lemma succ_lub x y :
  ord_le (lubOrd (succOrd x) (succOrd y)) (succOrd (lubOrd x y)).
 Proof.
   apply lub_least.
-  apply succ_monotone'.
+  apply succ_monotone_le.
   apply lub_le1.
-  apply succ_monotone'.
+  apply succ_monotone_le.
   apply lub_le2.
 Qed.
 
@@ -446,6 +437,23 @@ Proof.
   destruct H as [amax Hamax].
   rewrite ord_lt_unfold. simpl. exists amax.
   apply sup_least. auto.
+Qed.
+
+Lemma sup_succ_lim : forall A (f:A -> Ord),
+  ord_eq (limOrd f) (supOrd (fun a:A => succOrd (f a))).
+Proof.
+  intros.
+  split.
+  - apply limit_least. intros.
+    rewrite ord_lt_unfold.
+    simpl.
+    exists (existT _ i tt).
+    simpl.
+    apply ord_le_refl.
+  - apply sup_least.
+    intros.
+    apply succ_least.
+    apply limit_lt.
 Qed.
 
 
@@ -653,7 +661,6 @@ Proof.
     apply H0; auto.
 Qed.
 
-
 Lemma addOrd_monotone_lt :
   forall x y z1 z2, (ord_lt x y -> ord_le z1 z2 -> ord_lt (addOrd x z1) (addOrd y z2)) /\
                     (ord_le x y -> ord_lt z1 z2 -> ord_lt (addOrd x z1) (addOrd y z2)).
@@ -732,13 +739,11 @@ Proof.
   - eapply ord_le_lt_trans.
     apply H.
     apply Hmono1.
-    rewrite ord_lt_unfold.
-    exists a. apply ord_le_refl.
+    apply limit_lt.
   - eapply ord_le_lt_trans.
     apply H0.
     apply Hmono2.
-    rewrite ord_lt_unfold.
-    exists b. apply ord_le_refl.
+    apply limit_lt.
 Qed.
 
 Lemma addOrd_succ x y : ord_eq (addOrd (succOrd x) y) (succOrd (addOrd x y)).
@@ -820,6 +825,34 @@ Proof.
   apply lub_le2.
 Qed.
 
+Lemma add_trans1 x y z : ord_le x y -> ord_le x (addOrd y z).
+Proof.
+  intros.
+  apply ord_le_trans with y; auto.
+  apply addOrd_le1.
+Qed.
+
+Lemma add_trans1' x y z : ord_lt x y -> ord_lt x (addOrd y z).
+Proof.
+  intros.
+  apply ord_lt_le_trans with y; auto.
+  apply addOrd_le1.
+Qed.
+
+Lemma add_trans2 x y z : ord_le x z -> ord_le x (addOrd y z).
+Proof.
+  intros.
+  apply ord_le_trans with z; auto.
+  apply addOrd_le2.
+Qed.
+
+Lemma add_trans2' x y z : ord_lt x z -> ord_lt x (addOrd y z).
+Proof.
+  intros.
+  apply ord_lt_le_trans with z; auto.
+  apply addOrd_le2.
+Qed.
+
 Hint Unfold ordSize : ord.
 Hint Resolve
      limit_lt lub_le1 lub_le2
@@ -827,6 +860,8 @@ Hint Resolve
      succ_trans
      succ_trans'
      lub_trans1 lub_trans2
+     add_trans1 add_trans2
+     add_trans1' add_trans2'
      ord_lt_le ord_le_refl : ord.
 
 (* Natural numbers have an ordinal size.
@@ -848,11 +883,48 @@ Definition listOrd {A} (f:A -> Ord) : list A -> Ord :=
   fix listOrd (l:list A) : Ord :=
   match l with
   | [] => zeroOrd
-  | x::xs => succOrd (lubOrd (f x) (listOrd xs))
+  | x::xs => succOrd (addOrd (f x) (listOrd xs))
   end.
 
 Canonical Structure ListOrdSize (A:OrdSize) : OrdSize :=
     MkOrdSize (list A) (listOrd (ordSize A)).
+
+Lemma listAdd (A:OrdSize) (xs ys:list A) :
+  ord_eq (ordSize _ (xs ++ ys)) (addOrd (ordSize _ xs) (ordSize _ ys)).
+Proof.
+  induction xs; simpl.
+  - destruct (addOrd_zero (listOrd (ordSize A) ys)).
+    split.
+    eapply ord_le_trans. apply H.
+    apply addOrd_comm.
+    eapply ord_le_trans. apply addOrd_comm.
+    apply H0.
+  - split.
+    + apply ord_le_trans with (succOrd (addOrd (ordSize A a)
+                                (addOrd (ordSize (ListOrdSize A) xs) (ordSize (ListOrdSize A) ys)))).
+      * apply succ_monotone_le.
+        apply addOrd_monotone_le.
+        auto with ord.
+        destruct IHxs; auto.
+      * eapply ord_le_trans.
+        apply addOrd_succ.
+        eapply ord_le_trans.
+        apply addOrd_assoc1.
+        apply addOrd_monotone_le; auto with ord.
+        apply addOrd_succ.
+    + apply ord_le_trans with (succOrd (addOrd (ordSize A a)
+                                (addOrd (ordSize (ListOrdSize A) xs) (ordSize (ListOrdSize A) ys)))).
+      * eapply ord_le_trans.
+        apply addOrd_succ.
+        apply succ_monotone_le.
+        apply addOrd_assoc2.
+      * apply succ_monotone_le.
+        apply addOrd_monotone_le.
+        auto with ord.
+        destruct IHxs; auto.
+Qed.
+
+
 
 (** Basic lemmas about constructors for nat and list *)
 Lemma S_lt : forall x:nat, x ◃ S x.
@@ -871,6 +943,42 @@ Proof.
 Qed.
 
 Hint Resolve head_lt tail_lt : ord.
+
+Lemma app_lt1 : forall (A:OrdSize) (xs ys:list A), ys <> [] ->  xs ◃ xs ++ ys.
+Proof.
+  intros. simpl.
+  apply ord_le_lt_trans with (addOrd (listOrd (ordSize A) xs) zeroOrd).
+  apply addOrd_zero.
+  apply ord_lt_le_trans with (addOrd (listOrd (ordSize A) xs) (listOrd (ordSize A) ys)).
+  - apply addOrd_monotone_lt2.
+    destruct ys.
+    + elim H; auto.
+    + simpl.
+      eapply ord_le_lt_trans.
+      apply zero_least.
+      apply succ_lt.
+  - apply (listAdd A xs ys).
+Qed.
+
+Lemma app_lt2 : forall (A:OrdSize) (xs ys:list A), xs <> [] -> ys ◃ xs ++ ys.
+Proof.
+  intros. simpl.
+  apply ord_le_lt_trans with (addOrd zeroOrd (listOrd (ordSize A) ys)).
+  eapply ord_le_trans.
+  apply addOrd_zero.
+  apply addOrd_comm.
+
+  apply ord_lt_le_trans with (addOrd (listOrd (ordSize A) xs) (listOrd (ordSize A) ys)).
+  - apply addOrd_monotone_lt1.
+    destruct xs.
+    + elim H; auto.
+    + simpl.
+      eapply ord_le_lt_trans.
+      apply zero_least.
+      apply succ_lt.
+  - apply (listAdd A xs ys).
+Qed.
+
 
 Lemma In_lt : forall (A:OrdSize) (x:A) l, In x l -> x ◃ l.
 Proof.
@@ -936,6 +1044,7 @@ Goal forall x:nat, x <> S (S (S (S x))).
 Proof.
   ord_crush.
 Qed.
+
 
 Goal forall (a b c:nat) x, x <> a::b::c::x.
 Proof.
@@ -1023,7 +1132,7 @@ Fixpoint asdf_size n (x:asdf n) : Ord :=
 with qwerty_size n (x:qwerty n) : Ord :=
   match x with
   | emptyQwerty => zeroOrd
-  | someQwerty n x y => succOrd (lubOrd (qwerty_size n x) (depOrd asdf_size y))
+  | someQwerty n x y => succOrd (addOrd (qwerty_size n x) (depOrd asdf_size y))
   end.
 
 Canonical Structure AsdfOrdSize n :=
@@ -1034,7 +1143,5 @@ Canonical Structure QwertyOrdSize n :=
 Goal forall n a b c f,
   f (S n) <> mkAsdf _ [a; b; someQwerty _ c f].
 Proof.
-  intros; apply size_discriminate.
-  subterm_trans (someQwerty n c f).
-  subterm_trans [someQwerty n c f].
+  ord_crush.
 Qed.
