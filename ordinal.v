@@ -13,6 +13,15 @@ Open Scope list.
 Inductive Ord : Type :=
 | ord : forall (A:Type), (A -> Ord) -> Ord.
 
+Definition ordIdx (x:Ord) : Type := match x with ord A _ => A end.
+
+Definition ordSet (x:Ord) : ordIdx x -> Ord :=
+  match x as x' return ordIdx x' -> Ord with
+  | ord A f => f
+  end.
+
+Coercion ordIdx : Ord >-> Sortclass.
+Coercion ordSet : Ord >-> Funclass.
 
 (** We define less-than and less-equal essentially by mutual
   * recursion on the structure of ordinals.
@@ -33,22 +42,16 @@ Definition ord_eq (x y:Ord) : Prop :=
 
 (** Characteristic equation for less-than *)
 Lemma ord_lt_unfold x y :
-  ord_lt x y =
-  match y with
-  | ord B g => exists b:B, ord_le x (g b)
-  end.
+  ord_lt x y = exists b:y, ord_le x (y b).
 Proof.
   destruct x; destruct y; simpl; auto.
 Qed.
 
 (** Characteristic equation for less-equal *)
 Lemma ord_le_unfold x y :
-  ord_le x y =
-  match x with
-  | ord A f => forall a:A, ord_lt (f a) y
-  end.
+  ord_le x y = forall a:x, ord_lt (x a) y.
 Proof.
-  reflexivity.
+  destruct x; destruct y; simpl; auto.
 Qed.
 
 Global Opaque ord_le ord_lt.
@@ -59,7 +62,7 @@ Lemma ord_lt_le : forall b a,
   ord_lt a b -> ord_le a b.
 Proof.
   induction b. intros.
-  rewrite ord_lt_unfold in H0.
+  rewrite ord_lt_unfold in H0. simpl in *.
   destruct H0 as [b ?].
   destruct a.
   rewrite ord_le_unfold in *.
@@ -89,34 +92,34 @@ Lemma ord_trans :
     (ord_le a b -> ord_lt b c -> ord_lt a c) /\
     (ord_lt a b -> ord_le b c -> ord_lt a c).
 Proof.
-  induction b.
+  induction b as [B g].
   intros.
   repeat split.
   - intros.
     rewrite ord_le_unfold.
     rewrite ord_le_unfold in H0.
-    destruct a. intros.
+    destruct a as [A f]. intros.
     specialize (H0 a).
     rewrite ord_lt_unfold in H0.
     destruct H0 as [b ?].
     rewrite ord_le_unfold in H1.
     specialize (H1 b).
-    specialize (H b (o0 a) c); intuition.
+    specialize (H b (f a) c); intuition.
   - intros.
     rewrite ord_lt_unfold.
     rewrite ord_lt_unfold in H1.
-    destruct c. destruct H1 as [b ?].
-    exists b.
+    destruct c as [C h]. destruct H1 as [c ?].
+    exists c.
     rewrite ord_le_unfold in H1.
     rewrite ord_le_unfold.
     rewrite ord_le_unfold in H0.
-    destruct a.
+    destruct a as [A f].
     intros a.
     specialize (H0 a).
     rewrite ord_lt_unfold in H0.
-    destruct H0 as [c ?].
-    specialize (H1 c).
-    specialize (H c (o1 a) (o0 b)); intuition.
+    destruct H0 as [b ?].
+    specialize (H1 b).
+    specialize (H b (f a) (h c)); intuition.
   - intros.
     rewrite ord_lt_unfold in H0.
     destruct H0 as [b ?].
@@ -159,10 +162,10 @@ Qed.
   *)
 Lemma ord_lt_acc : forall x y,  ord_le y x -> Acc ord_lt y.
 Proof.
-  induction x; intros.
+  induction x as [A f]; intros.
   rename y into z.
   constructor. intros y ?.
-  assert (ord_lt y (ord A o)).
+  assert (ord_lt y (ord A f)).
   { apply ord_lt_le_trans with z; auto. }
 
   destruct y.
@@ -191,12 +194,15 @@ Qed.
 Definition zeroOrd : Ord := ord False (False_rect _).
 Definition succOrd (x:Ord) : Ord := ord unit (fun _ => x).
 Definition oneOrd := succOrd zeroOrd.
+Definition limOrd {A:Type} (f:A -> Ord) := ord A f.
 Definition lubOrd (x y:Ord) : Ord :=
   match x, y with
   | ord A f, ord B g =>
     ord (A+B) (fun ab => match ab with inl a => f a | inr b => g b end)
   end.
-Definition limOrd {A:Type} (f:A -> Ord) := ord A f.
+Definition supOrd {A:Type} (f:A -> Ord) :=
+  ord (sigT (fun a => ordIdx (f a)))
+      (fun ai => ordSet (f (projT1 ai)) (projT2 ai)).
 
 
 (** Zero is the least ordinal.
@@ -269,18 +275,18 @@ Lemma lub_least x y z :
   ord_le x z -> ord_le y z -> ord_le (lubOrd x y) z.
 Proof.
   repeat rewrite ord_le_unfold.
-  destruct x; destruct y; simpl; intros.
+  destruct x as [A f]; destruct y as [B g]; simpl; intros.
   rewrite ord_lt_unfold.
-  destruct z; simpl.
-  destruct a.
+  destruct z as [C h]; simpl.
+  destruct a as [a|b].
   - specialize (H a).
     rewrite ord_lt_unfold in H.
-    destruct H as [b ?]. exists b.
+    destruct H as [c ?]. exists c.
     simpl. auto.
-  - specialize (H0 a).
+  - specialize (H0 b).
     rewrite ord_lt_unfold in H0.
-    destruct H0 as [b ?].
-    exists b. simpl. auto.
+    destruct H0 as [c ?].
+    exists c. simpl. auto.
 Qed.
 
 (** lubOrd is a commutative, associative operator
@@ -348,6 +354,33 @@ Proof.
 Qed.
 
 
+(** The sup ordinal is nonstrictly above all the ordinals in the
+  * collection defined by "f".  Morover it is it the smallest such.
+  *)
+Lemma sup_le : forall A (f:A -> Ord) a, ord_le (f a) (supOrd f).
+Proof.
+  intros.
+  rewrite ord_le_unfold.
+  intro b.
+  rewrite ord_lt_unfold.
+  exists (@existT A (fun a => ordIdx (f a)) a b).
+  simpl.
+  apply ord_le_refl.
+Qed.
+
+Lemma sup_least : forall A (f:A -> Ord) z,
+    (forall a, ord_le (f a) z) -> ord_le (supOrd f) z.
+Proof.
+  intros.
+  rewrite ord_le_unfold.
+  simpl; intros.
+  destruct a as [a b]. simpl.
+  specialize (H a).
+  rewrite ord_le_unfold in H.
+  specialize (H b).
+  auto.
+Qed.
+
 (** The limit ordinal is strictly above all the ordinals in
   * the collection defined by "f".  Moreover it is the smallest
   * such.
@@ -364,6 +397,57 @@ Proof.
   intros. rewrite ord_le_unfold.
   simpl. auto.
 Qed.
+
+Lemma sup_lim : forall A (f:A -> Ord),
+  ord_le (supOrd f) (limOrd f).
+Proof.
+  intros.
+  apply sup_least.
+  intros.
+  apply ord_lt_le.
+  apply limit_lt.
+Qed.
+
+Lemma lim_sup : forall A (f:A -> Ord),
+  ord_le (limOrd f) (succOrd (supOrd f)).
+Proof.
+  intros.
+  apply limit_least. intro a.
+  apply ord_le_lt_trans with (supOrd f).
+  apply sup_le.
+  apply succ_lt.
+Qed.
+
+Definition hasMaxElement A (f:A -> Ord) :=
+  exists a, forall a', ord_le (f a') (f a).
+
+Definition ascendingSet A (f:A -> Ord) :=
+  forall a, exists a', ord_lt (f a) (f a').
+
+Lemma ascending_sup_lim : forall A (f:A -> Ord),
+  ascendingSet A f ->
+  ord_eq (limOrd f) (supOrd f).
+Proof.
+  intros.
+  split; [ | apply sup_lim ].
+  apply limit_least. intro a.
+  destruct (H a) as [a' ?].
+  apply ord_lt_le_trans with (f a'); auto.
+  apply sup_le.
+Qed.
+
+Lemma succ_sup_lim : forall A (f:A -> Ord),
+  hasMaxElement A f ->
+  ord_eq (limOrd f) (succOrd (supOrd f)).
+Proof.
+  intros.
+  split; [ apply lim_sup |].
+  apply succ_least.
+  destruct H as [amax Hamax].
+  rewrite ord_lt_unfold. simpl. exists amax.
+  apply sup_least. auto.
+Qed.
+
 
 (** The "natural" ordinal addition function as defined by Hessenberg.
   * This ordinal operation is commutative, associative and absorbs zero.
@@ -430,7 +514,7 @@ Proof.
     rewrite ord_le_unfold; simpl; intros.
     rewrite ord_lt_unfold.
     exists (inl a).
-    auto.
+    apply H.
   - induction x.
     rewrite addOrd_unfold.
     rewrite ord_le_unfold; simpl; intros.
@@ -451,6 +535,7 @@ Proof.
   destruct a.
   - rewrite ord_lt_unfold.
     rewrite addOrd_unfold.
+    simpl.
     exists (inr a); auto.
   - rewrite ord_lt_unfold.
     rewrite addOrd_unfold.
@@ -474,11 +559,12 @@ Proof.
   rewrite ord_lt_unfold.
   rewrite addOrd_unfold.
   rewrite addOrd_unfold.
-  simpl.
+  simpl in *.
   destruct a as [a | [b|c]].
   - exists (inl (inl a)).
     generalize (H a (ord A0 o0) (ord A1 o1)).
     rewrite (addOrd_unfold (ord A0 o0) (ord A1 o1)).
+    simpl.
     auto.
   - exists (inl (inr b)).
     apply H0.
@@ -754,9 +840,7 @@ Fixpoint natOrdSize (x:nat) :=
 Canonical Structure NatOrdSize : OrdSize
   := MkOrdSize nat natOrdSize.
 
-Definition omega : Ord :=
-  ord nat natOrdSize.
-
+Definition omega : Ord := limOrd natOrdSize.
 
 (* Lists of ordinal-sized types have an ordinal size.
  *)
