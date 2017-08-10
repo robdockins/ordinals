@@ -190,6 +190,7 @@ Qed.
 (** Ordinal operators *)
 Definition zeroOrd : Ord := ord False (False_rect _).
 Definition succOrd (x:Ord) : Ord := ord unit (fun _ => x).
+Definition oneOrd := succOrd zeroOrd.
 Definition lubOrd (x y:Ord) : Ord :=
   match x, y with
   | ord A f, ord B g =>
@@ -396,6 +397,7 @@ Qed.
 
 Global Opaque addOrd.
 
+
 Lemma addOrd_le1 x y : ord_le x (addOrd x y).
 Proof.
   induction x.
@@ -419,29 +421,26 @@ Proof.
   apply H.
 Qed.
 
-Lemma addOrd_zero1 x : ord_le (addOrd x zeroOrd) x.
+Lemma addOrd_zero x : ord_eq x (addOrd x zeroOrd).
 Proof.
-  induction x.
-  rewrite addOrd_unfold.
-  rewrite ord_le_unfold; simpl; intros.
-  destruct a; intuition.
-  rewrite ord_lt_unfold.
-  exists a.
-  auto.
+  split.
+  - induction x.
+    rewrite addOrd_unfold.
+    simpl.
+    rewrite ord_le_unfold; simpl; intros.
+    rewrite ord_lt_unfold.
+    exists (inl a).
+    auto.
+  - induction x.
+    rewrite addOrd_unfold.
+    rewrite ord_le_unfold; simpl; intros.
+    destruct a; intuition.
+    rewrite ord_lt_unfold.
+    exists a.
+    auto.
 Qed.
 
-Lemma addOrd_zero2 x : ord_le x (addOrd x zeroOrd).
-Proof.
-  induction x.
-  rewrite addOrd_unfold.
-  simpl.
-  rewrite ord_le_unfold; simpl; intros.
-  rewrite ord_lt_unfold.
-  exists (inl a).
-  auto.
-Qed.
-
-Lemma addOrd_comm x y : ord_le (addOrd x y) (addOrd y x).
+Lemma addOrd_comm_le x y : ord_le (addOrd x y) (addOrd y x).
 Proof.
   revert y.
   induction x.
@@ -457,6 +456,11 @@ Proof.
     rewrite addOrd_unfold.
     exists (inl a).
     apply H. auto.
+Qed.
+
+Lemma addOrd_comm x y : ord_eq (addOrd x y) (addOrd y x).
+Proof.
+  split; apply addOrd_comm_le; auto.
 Qed.
 
 Lemma addOrd_assoc1 : forall x y z,  ord_le (addOrd x (addOrd y z)) (addOrd (addOrd x y) z).
@@ -500,6 +504,13 @@ Proof.
     apply H0.
   - exists (inr (inr c)).
     apply H1.
+Qed.
+
+Lemma addOrd_assoc : forall x y z,  ord_eq (addOrd x (addOrd y z)) (addOrd (addOrd x y) z).
+Proof.
+  intros; split.
+  apply addOrd_assoc1.
+  apply addOrd_assoc2.
 Qed.
 
 Lemma addOrd_cancel :
@@ -665,8 +676,6 @@ Proof.
     apply addOrd_monotone_lt1.
     apply succ_lt.
 Qed.
-
-
 
 (** A structure of types together with ordinal measures.
   *)
