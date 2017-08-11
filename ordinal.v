@@ -876,6 +876,85 @@ Proof.
     apply succ_lt.
 Qed.
 
+(** * An ordinal multiplication *)
+
+Fixpoint mulOrd (x:Ord) (y:Ord) : Ord :=
+  match y with
+  | ord B g => supOrd (fun b:B => addOrd (mulOrd x (g b)) x)
+  end.
+
+Lemma mulOrd_monotone_le : forall y x z, ord_le y z -> ord_le (mulOrd x y) (mulOrd x z).
+Proof.
+  induction y as [B g Hy].
+  intros.
+  destruct x as [A f]; simpl in *.
+  apply sup_least. intro b. simpl.
+  rewrite ord_le_unfold in H.
+  specialize (H b).
+  simpl in H.
+  rewrite ord_lt_unfold in H.
+  destruct H as [q ?].
+  specialize (Hy b).
+  destruct (g b) as [R r]. simpl.
+  generalize (Hy (ord A f) (z q) H).
+  simpl.
+  intros.
+  destruct z as [Z z]; simpl in *.
+  eapply ord_le_trans.
+  2: apply (sup_le _ _ q).
+  simpl.
+  apply addOrd_monotone_le; auto.
+  apply ord_le_refl.
+Qed.
+
+
+Lemma mulOrd_zero : forall x, ord_le (mulOrd x zeroOrd) zeroOrd.
+Proof.
+  destruct x as [A f]. simpl.
+  rewrite ord_le_unfold. simpl. intuition.
+  destruct a. elim x.
+Qed.
+
+Lemma mulOrd_succ : forall x y, ord_eq (mulOrd x (succOrd y)) (addOrd (mulOrd x y) x).
+Proof.
+  intros.
+  split.
+  - simpl.
+    rewrite ord_le_unfold. simpl; intros.
+    destruct a as [u q].
+    simpl.
+    rewrite ord_lt_unfold. exists q.
+    apply ord_le_refl.
+  - simpl.
+    rewrite ord_le_unfold.
+    simpl; intros.
+    rewrite ord_lt_unfold.
+    simpl.
+    exists (existT _ tt a). simpl.
+    apply ord_le_refl.
+Qed.
+
+Lemma mulOrd_limit : forall x y,
+    limitOrdinal y ->
+    ord_eq (mulOrd x y) (supOrd (fun b:y => mulOrd x (y b))).
+Proof.
+  destruct y as [B g]; simpl; intros.
+  split.
+  - apply sup_least. intro b.
+    destruct (H b) as [b' Hb'].
+    eapply ord_le_trans.
+    2: apply (sup_le _ _ b'). simpl.
+    apply ord_le_trans with (mulOrd x (succOrd (g b))).
+    destruct (mulOrd_succ x (g b)); auto.
+    apply mulOrd_monotone_le.
+    apply succ_least.
+    auto.
+  - apply sup_least. intro b.
+    eapply ord_le_trans.
+    2: apply (sup_le _ _ b). simpl.
+    apply addOrd_le1.
+Qed.
+
 
 (*  The notation "x ◃ y" indicates that "x" has a strictly smaller ordinal measure
     than "y".  Note that "x" and "y" do not need to have the same type.
