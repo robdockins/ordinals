@@ -8,6 +8,9 @@ Open Scope list.
 
 Unset Printing Records.
 
+Delimit Scope ord_scope with ord.
+Open Scope ord_scope.
+
 (** Ordinals, represented as Type-indexed trees
   * of potentially infinite width, but finite depth.
   *)
@@ -33,16 +36,26 @@ Definition ord_le (x y:Ord) : Prop :=
 Definition ord_eq (x y:Ord) : Prop :=
   ord_le x y /\ ord_le y x.
 
+Print "<=".
+
+Notation "x > y" := (ord_lt y x) : ord_scope.
+Notation "x < y" := (ord_lt x y) : ord_scope.
+Notation "x >= y" := (ord_le y x) : ord_scope.
+Notation "x <= y" := (ord_le x y) : ord_scope.
+Notation "x ≥ y" := (ord_le y x) (at level 70, no associativity) : ord_scope.
+Notation "x ≤ y" := (ord_le x y) (at level 70, no associativity) : ord_scope.
+Notation "x ≈ y" := (ord_eq x y) (at level 70, no associativity) : ord_scope.
+
 (** Characteristic equation for less-than *)
 Lemma ord_lt_unfold x y :
-  ord_lt x y = exists b:y, ord_le x (y b).
+  x < y = exists b:y, x ≤ y b.
 Proof.
   destruct x; destruct y; simpl; auto.
 Qed.
 
 (** Characteristic equation for less-equal *)
 Lemma ord_le_unfold x y :
-  ord_le x y = forall a:x, ord_lt (x a) y.
+  x ≤ y = forall a:x, x a < y.
 Proof.
   destruct x; destruct y; simpl; auto.
 Qed.
@@ -52,7 +65,7 @@ Global Opaque ord_le ord_lt.
 (** Less-than implies less-equal
   *)
 Lemma ord_lt_le : forall b a,
-  ord_lt a b -> ord_le a b.
+  a < b -> a ≤ b.
 Proof.
   induction b as [B g]. intros.
   rewrite ord_lt_unfold in H0. simpl in *.
@@ -67,7 +80,7 @@ Qed.
 
 (** Less-equal is a reflexive relation
   *)
-Lemma ord_le_refl x : ord_le x x.
+Lemma ord_le_refl x : x ≤ x.
 Proof.
   induction x as [A f].
   rewrite ord_le_unfold.
@@ -81,9 +94,9 @@ Qed.
   *)
 Lemma ord_trans :
   forall b a c,
-    (ord_le a b -> ord_le b c -> ord_le a c) /\
-    (ord_le a b -> ord_lt b c -> ord_lt a c) /\
-    (ord_lt a b -> ord_le b c -> ord_lt a c).
+    (a ≤ b -> b ≤ c -> a ≤ c) /\
+    (a ≤ b -> b < c -> a < c) /\
+    (a < b -> b ≤ c -> a < c).
 Proof.
   induction b as [B g].
   intros.
@@ -120,14 +133,14 @@ Qed.
 (** Less-equal is transitive.
   *)
 Lemma ord_le_trans a b c :
-    ord_le a b -> ord_le b c -> ord_le a c.
+    a ≤ b -> b ≤ c -> a ≤ c.
 Proof.
   intros. destruct (ord_trans b a c); intuition.
 Qed.
 
 (** Less-than is transitive *)
 Lemma ord_lt_trans a b c :
-    ord_lt a b -> ord_lt b c -> ord_lt a c.
+    a < b -> b < c -> a < c.
 Proof.
   intros. destruct (ord_trans b a c); intuition.
   apply H2.
@@ -136,20 +149,20 @@ Qed.
 
 (** Less-equal preserves less-than *)
 Lemma ord_lt_le_trans a b c :
-  ord_lt a b -> ord_le b c -> ord_lt a c.
+  a < b -> b ≤ c -> a < c.
 Proof.
   intros. destruct (ord_trans b a c); intuition.
 Qed.
 
 Lemma ord_le_lt_trans a b c :
-  ord_le a b -> ord_lt b c -> ord_lt a c.
+  a ≤ b -> b < c -> a < c.
 Proof.
   intros. destruct (ord_trans b a c); intuition.
 Qed.
 
 (** The less-than ordering on ordinals is well-founded.
   *)
-Lemma ord_lt_acc : forall x y,  ord_le y x -> Acc ord_lt y.
+Lemma ord_lt_acc : forall x y,  y ≤ x -> Acc ord_lt y.
 Proof.
   induction x as [A f]; intros z Hz.
   constructor. intros y Hy.
@@ -171,7 +184,7 @@ Defined.
 
 (** The less-than order is irreflexive, a simple corollary of well-foundedness.
   *)
-Corollary ord_lt_irreflexive : forall x, ord_lt x x -> False.
+Corollary ord_lt_irreflexive : forall x, x < x -> False.
 Proof.
   induction x using (well_founded_induction ord_lt_wf).
   firstorder.
@@ -187,6 +200,9 @@ Definition lubOrd (x y:Ord) : Ord :=
   | ord A f, ord B g =>
     ord (A+B) (fun ab => match ab with inl a => f a | inr b => g b end)
   end.
+
+Notation "x ⊔ y" := (lubOrd x y) (at level 55, right associativity) : ord_scope.
+
 Definition supOrd {A:Type} (f:A -> Ord) :=
   ord (sigT (fun a => ordCarrier (f a)))
       (fun ai => ordSize (f (projT1 ai)) (projT2 ai)).
@@ -196,6 +212,7 @@ Fixpoint glbOrd (x y:Ord) : Ord :=
   | ord A f, ord B g =>
     ord (A*B) (fun ab => glbOrd (f (fst ab)) (g (snd ab)))
   end.
+Notation "x ⊓ y" := (glbOrd x y) (at level 55, right associativity) : ord_scope.
 
 Definition predOrd (x:Ord) : Ord :=
   match x with
@@ -203,10 +220,10 @@ Definition predOrd (x:Ord) : Ord :=
   end.
 
 Definition hasMaxElement A (f:A -> Ord) :=
-  exists a, forall a', ord_le (f a') (f a).
+  exists a, forall a', f a ≥ f a'.
 
 Definition ascendingSet A (f:A -> Ord) :=
-  forall a, exists a', ord_lt (f a) (f a').
+  forall a, exists a', f a < f a'.
 
 Definition successorOrdinal (x:Ord) :=
   match x with
@@ -232,14 +249,14 @@ Qed.
   * Moreover, it is the smallest ordinal which is strictly above its
   * argument.
   *)
-Lemma succ_monotone_lt : forall a b, ord_lt a b -> ord_lt (succOrd a) (succOrd b).
+Lemma succ_monotone_lt : forall a b, a < b -> succOrd a < succOrd b.
 Proof.
   intros.
   rewrite ord_lt_unfold. simpl. exists tt.
   rewrite ord_le_unfold. simpl. auto.
 Qed.
 
-Lemma succ_monotone_le : forall a b, ord_le a b -> ord_le (succOrd a) (succOrd b).
+Lemma succ_monotone_le : forall a b, a ≤ b -> succOrd a ≤ succOrd b.
 Proof.
   intros.
   rewrite ord_le_unfold. simpl; intros _.
@@ -247,13 +264,13 @@ Proof.
   auto.
 Qed.
 
-Lemma succ_lt : forall o, ord_lt o (succOrd o).
+Lemma succ_lt : forall o, o < succOrd o.
 Proof.
   intros.
   rewrite ord_lt_unfold. simpl. exists tt. apply ord_le_refl.
 Qed.
 
-Lemma succ_least : forall x y, ord_lt x y -> ord_le (succOrd x) y.
+Lemma succ_least : forall x y, x < y -> succOrd x ≤ y.
 Proof.
   intros.
   rewrite ord_le_unfold. simpl; auto.
@@ -262,7 +279,7 @@ Qed.
 (** The supremum ordinal is nonstrictly above all the ordinals in the
   * collection defined by "f".  Morover it is it the smallest such.
   *)
-Lemma sup_le : forall A (f:A -> Ord) a, ord_le (f a) (supOrd f).
+Lemma sup_le : forall A (f:A -> Ord) a, f a ≤ supOrd f.
 Proof.
   intros.
   rewrite ord_le_unfold.
@@ -274,7 +291,7 @@ Proof.
 Qed.
 
 Lemma sup_least : forall A (f:A -> Ord) z,
-    (forall a, ord_le (f a) z) -> ord_le (supOrd f) z.
+    (forall a, f a ≤ z) -> supOrd f ≤ z.
 Proof.
   intros.
   rewrite ord_le_unfold.
@@ -290,14 +307,14 @@ Qed.
   * the collection defined by "f".  Moreover it is the smallest
   * such.
   *)
-Lemma limit_lt : forall A (f:A -> Ord) i, ord_lt (f i) (limOrd f).
+Lemma limit_lt : forall A (f:A -> Ord) i, f i < limOrd f.
 Proof.
   intros. rewrite ord_lt_unfold. simpl.
   exists i. apply ord_le_refl.
 Qed.
 
 Lemma limit_least : forall A (f:A -> Ord) z,
-  (forall i, ord_lt (f i) z) -> ord_le (limOrd f) z.
+  (forall i, f i < z) -> limOrd f ≤ z.
 Proof.
   intros. rewrite ord_le_unfold.
   simpl. auto.
@@ -310,7 +327,7 @@ Qed.
   * When f has a maximal element, lim f = succ (sup f)
   *)
 Lemma sup_lim : forall A (f:A -> Ord),
-  ord_le (supOrd f) (limOrd f).
+  supOrd f ≤ limOrd f.
 Proof.
   intros.
   apply sup_least.
@@ -320,7 +337,7 @@ Proof.
 Qed.
 
 Lemma lim_sup : forall A (f:A -> Ord),
-  ord_le (limOrd f) (succOrd (supOrd f)).
+  limOrd f ≤ succOrd (supOrd f).
 Proof.
   intros.
   apply limit_least. intro a.
@@ -330,7 +347,7 @@ Proof.
 Qed.
 
 Lemma sup_succ_lim : forall A (f:A -> Ord),
-  ord_eq (limOrd f) (supOrd (fun a:A => succOrd (f a))).
+  limOrd f ≈ supOrd (fun a:A => succOrd (f a)).
 Proof.
   intros.
   split.
@@ -348,7 +365,7 @@ Qed.
 
 Lemma ascending_sup_lim : forall A (f:A -> Ord),
   ascendingSet A f ->
-  ord_eq (limOrd f) (supOrd f).
+  limOrd f ≈ supOrd f.
 Proof.
   intros.
   split; [ | apply sup_lim ].
@@ -360,7 +377,7 @@ Qed.
 
 Lemma succ_sup_lim : forall A (f:A -> Ord),
   hasMaxElement A f ->
-  ord_eq (limOrd f) (succOrd (supOrd f)).
+  limOrd f ≈ succOrd (supOrd f).
 Proof.
   intros.
   split; [ apply lim_sup |].
@@ -374,7 +391,7 @@ Qed.
   * all the ordinals (strictly) below y.
   *)
 Lemma pred_le y :
-  forall x, ord_lt x y -> ord_le x (predOrd y).
+  forall x, x < y -> x ≤ predOrd y.
 Proof.
   intros.
   rewrite ord_lt_unfold in H.
@@ -392,8 +409,8 @@ Proof.
 Qed.
 
 Lemma pred_least y z :
-  (forall x, ord_lt x y -> ord_le x z) ->
-  ord_le (predOrd y) z.
+  (forall x, x < y -> x ≤ z) ->
+  predOrd y ≤ z.
 Proof.
   intros.
   rewrite ord_le_unfold.
@@ -405,7 +422,7 @@ Proof.
   apply H0.
 Qed.
 
-Lemma pred_zero : ord_eq zeroOrd (predOrd zeroOrd).
+Lemma pred_zero : zeroOrd ≈ predOrd zeroOrd.
 Proof.
   split.
   - apply zero_least.
@@ -415,7 +432,7 @@ Proof.
     destruct H. destruct x0.
 Qed.
 
-Lemma pred_successor x : successorOrdinal x -> ord_lt (predOrd x) x.
+Lemma pred_successor x : successorOrdinal x -> predOrd x < x.
 Proof.
   destruct x as [A f]; simpl; intros.
   rewrite ord_lt_unfold.
@@ -424,7 +441,7 @@ Proof.
   exists a. apply sup_least. auto.
 Qed.
 
-Lemma pred_limit x : limitOrdinal x -> ord_eq x (predOrd x).
+Lemma pred_limit x : limitOrdinal x -> x ≈ predOrd x.
 Proof.
   intros.
   split.
@@ -441,7 +458,7 @@ Proof.
     apply ord_lt_le.
 Qed.
 
-Lemma pred_succ x : ord_eq x (predOrd (succOrd x)).
+Lemma pred_succ x : x ≈ predOrd (succOrd x).
 Proof.
   split.
   - apply pred_le. apply succ_lt.
@@ -450,7 +467,7 @@ Proof.
     destruct H. auto.
 Qed.
 
-Lemma succ_pred x : ord_le x (succOrd (predOrd x)).
+Lemma succ_pred x : x ≤ succOrd (predOrd x).
 Proof.
   rewrite ord_le_unfold. intros.
   rewrite ord_lt_unfold. simpl. exists tt.
@@ -459,7 +476,7 @@ Proof.
   apply ord_le_refl.
 Qed.
 
-Lemma succ_pred' x : successorOrdinal x -> ord_eq x (succOrd (predOrd x)).
+Lemma succ_pred' x : successorOrdinal x -> x ≈ succOrd (predOrd x).
 Proof.
   intros.
   split.
@@ -469,7 +486,7 @@ Qed.
 
 (** glb is the greatest lower bound of its arguments.
  *)
-Lemma glb_le1 : forall x y, ord_le (glbOrd x y) x.
+Lemma glb_le1 : forall x y, x ⊓ y ≤ x.
 Proof.
   induction x as [A f Hx]. destruct y as [B g]. simpl.
   rewrite ord_le_unfold; simpl.
@@ -478,7 +495,7 @@ Proof.
   exists a. apply Hx.
 Qed.
 
-Lemma glb_le2 : forall y x, ord_le (glbOrd x y) y.
+Lemma glb_le2 : forall y x, x ⊓ y ≤ y.
 Proof.
   induction y as [B g Hy]. destruct x as [A f]. simpl.
   rewrite ord_le_unfold; simpl.
@@ -487,7 +504,7 @@ Proof.
   exists b. apply Hy.
 Qed.
 
-Lemma glb_greatest : forall z x y, ord_le z x -> ord_le z y -> ord_le z (glbOrd x y).
+Lemma glb_greatest : forall z x y, z ≤ x -> z ≤ y -> z ≤ x ⊓ y.
 Proof.
   induction z as [C h Hz]; simpl; intros.
   rewrite ord_le_unfold; simpl; intro c.
@@ -511,7 +528,7 @@ Qed.
 
 (** lub is the least upper bound of its arguments.
   *)
-Lemma lub_le1 : forall x y, ord_le x (lubOrd x y).
+Lemma lub_le1 : forall x y, x ≤ x ⊔ y.
 Proof.
   intros. rewrite ord_le_unfold.
   intros.
@@ -522,7 +539,7 @@ Proof.
   apply ord_le_refl.
 Qed.
 
-Lemma lub_le2 : forall x y, ord_le y (lubOrd x y).
+Lemma lub_le2 : forall x y, y ≤ x ⊔ y.
 Proof.
   intros. rewrite ord_le_unfold.
   destruct x; destruct y; simpl.
@@ -533,7 +550,7 @@ Proof.
 Qed.
 
 Lemma lub_least x y z :
-  ord_le x z -> ord_le y z -> ord_le (lubOrd x y) z.
+  x ≤ z -> y ≤ z -> x ⊔ y ≤ z.
 Proof.
   repeat rewrite ord_le_unfold.
   destruct x as [A f]; destruct y as [B g]; simpl; intros.
@@ -552,7 +569,7 @@ Qed.
 
 (** lubOrd is a commutative, associative operator
   *)
-Lemma lub_le_comm : forall x y, ord_le (lubOrd x y) (lubOrd y x).
+Lemma lub_le_comm : forall x y, x ⊔ y ≤ y ⊔ x.
 Proof.
   intros.
   apply lub_least.
@@ -561,7 +578,7 @@ Proof.
 Qed.
 
 Lemma lub_le_assoc1 : forall x y z,
-    ord_le (lubOrd x (lubOrd y z)) (lubOrd (lubOrd x y) z).
+    x ⊔ (y ⊔ z) ≤ (x ⊔ y) ⊔ z.
 Proof.
   intros.
   apply lub_least.
@@ -576,7 +593,7 @@ Proof.
 Qed.
 
 Lemma lub_le_assoc2 : forall x y z,
-    ord_le (lubOrd (lubOrd x y) z) (lubOrd x (lubOrd y z)).
+    (x ⊔ y) ⊔ z ≤ x ⊔ (y ⊔ z).
 Proof.
   intros.
   apply lub_least.
@@ -591,7 +608,7 @@ Proof.
 Qed.
 
 Lemma lubOrd_monotone a b c d :
-  ord_le a c -> ord_le b d -> ord_le (lubOrd a b) (lubOrd c d).
+  a ≤ c -> b ≤ d -> a ⊔ b ≤ c ⊔ d.
 Proof.
   intros.
   apply lub_least.
@@ -605,7 +622,7 @@ Qed.
 (**  The lub of successors is le the successor of the lub.
   *)
 Lemma succ_lub x y :
- ord_le (lubOrd (succOrd x) (succOrd y)) (succOrd (lubOrd x y)).
+ succOrd x ⊔ succOrd y ≤ succOrd (x ⊔ y).
 Proof.
   apply lub_least.
   apply succ_monotone_le.
@@ -621,12 +638,11 @@ Definition foldOrd (z:Ord) (s:Ord -> Ord) : Ord -> Ord :=
     | ord A f => lubOrd z (supOrd (fun i:A => s (foldOrd (f i))))
     end.
 
-
 Lemma foldOrd_least z s (q:Ord -> Ord)
-      (Hz : forall x, ord_le z (q x))
-      (Hmono : forall x y, ord_le x y -> ord_le (s x) (s y))
-      (Hsq : forall (x:Ord) (i:x), ord_le (s (q (x i))) (q x)) :
-      (forall x, ord_le (foldOrd z s x) (q x)).
+      (Hz : forall x, z ≤ q x)
+      (Hmono : forall x y, x ≤ y -> s x ≤ s y)
+      (Hsq : forall (x:Ord) (i:x), s (q (x i)) ≤ (q x)) :
+      (forall x, foldOrd z s x ≤ q x).
 Proof.
   induction x as [A f Hx].
   simpl.
@@ -639,7 +655,7 @@ Proof.
 Qed.
 
 Lemma foldOrd_unfold z s (x:Ord) i :
-  ord_le (s (foldOrd z s (x i))) (foldOrd z s x).
+  s (foldOrd z s (x i)) ≤ foldOrd z s x.
 Proof.
   destruct x as [A f]. simpl.
   eapply ord_le_trans; [ | apply lub_le2 ].
@@ -647,15 +663,15 @@ Proof.
   apply ord_le_refl.
 Qed.
 
-Lemma foldOrd_above_z z s x : ord_le z (foldOrd z s x).
+Lemma foldOrd_above_z z s x : z ≤ foldOrd z s x.
 Proof.
   destruct x as [A f]; simpl.
   apply lub_le1.
 Qed.
 
 Lemma foldOrd_monotone_le z s : forall x y,
-    (forall a b, ord_le a b -> ord_le (s a) (s b)) ->
-    ord_le x y -> ord_le (foldOrd z s x) (foldOrd z s y).
+    (forall a b, a ≤ b -> s a ≤ s b) ->
+    x ≤ y -> foldOrd z s x ≤ foldOrd z s y.
 Proof.
   induction x as [A f Hx]. simpl; intros.
   apply lub_least.
@@ -674,8 +690,8 @@ Proof.
 Qed.
 
 Lemma mono_lt_increasing f :
-  (forall x y, ord_lt x y -> ord_lt (f x) (f y)) ->
-  forall a, ord_le a (f a).
+  (forall x y, x < y -> f x < f y) ->
+  forall a, a ≤ f a.
 Proof.
   intro Hmono.
   induction a as [B g Ha].
@@ -686,7 +702,7 @@ Proof.
   apply limit_lt.
 Qed.
 
-Lemma foldOrd_zero z s : ord_eq (foldOrd z s zeroOrd) z.
+Lemma foldOrd_zero z s : foldOrd z s zeroOrd ≈ z.
 Proof.
   split.
   - simpl.
@@ -697,9 +713,9 @@ Proof.
 Qed.
 
 Lemma foldOrd_monotone_lt z s : forall x y,
-    (forall a, ord_le z a -> ord_lt a (s a)) ->
-    (forall a b, ord_le a b -> ord_le (s a) (s b)) ->
-    ord_lt x y -> ord_lt (foldOrd z s x) (foldOrd z s y).
+    (forall a, z ≤ a -> a < s a) ->
+    (forall a b, a ≤ b -> s a ≤ s b) ->
+    x < y -> foldOrd z s x < foldOrd z s y.
 Proof.
   intros x y. revert x.
   destruct y as [B g]; simpl; intros.
@@ -713,8 +729,8 @@ Proof.
 Qed.
 
 Lemma foldOrd_succ z s x :
-  (forall q, ord_le z q -> ord_le z (s q)) ->
-  ord_eq (foldOrd z s (succOrd x)) (s (foldOrd z s x)).
+  (forall q, z ≤ q -> z ≤ s q) ->
+  foldOrd z s (succOrd x) ≈ s (foldOrd z s x).
 Proof.
   split.
   - simpl.
@@ -732,8 +748,8 @@ Qed.
 
 Lemma foldOrd_limit z s x :
   limitOrdinal x ->
-  (forall a b, ord_le a b -> ord_le (s a) (s b)) ->
-  ord_eq (foldOrd z s x) (supOrd (fun i:x => foldOrd z s (x i))).
+  (forall a b, a ≤ b -> s a ≤ s b) ->
+  foldOrd z s x ≈ supOrd (fun i:x => foldOrd z s (x i)).
 Proof.
   intros.
   split.
@@ -761,7 +777,7 @@ Proof.
 Qed.
 
 Definition strongly_continuous (s:Ord -> Ord) :=
-  forall A (f:A -> Ord) (a0:A), ord_le (s (supOrd f)) (supOrd (fun i:A => s (f i))).
+  forall A (f:A -> Ord) (a0:A), s (supOrd f) ≤ supOrd (fun i:A => s (f i)).
 
 Lemma foldOrd_strongly_continuous z s :
   strongly_continuous (foldOrd z s).
@@ -799,18 +815,20 @@ Fixpoint addOrd (x:Ord) : Ord -> Ord :=
                 )
     end.
 
+Notation "a ⊕ b" := (addOrd a b) (at level 45, right associativity) : ord_scope.
+
 Lemma addOrd_unfold (x y:Ord) :
-  addOrd x y =
-    lubOrd (limOrd (fun a:x => addOrd (x a) y))
-           (limOrd (fun b:y => addOrd x (y b))).
+  x ⊕ y =
+    (limOrd (fun a:x => x a ⊕ y))
+    ⊔
+    (limOrd (fun b:y => x ⊕ y b)).
 Proof.
   destruct x; destruct y; auto.
 Qed.
 
 Global Opaque addOrd.
 
-
-Lemma addOrd_le1 x y : ord_le x (addOrd x y).
+Lemma addOrd_le1 x y : x ≤ x ⊕ y.
 Proof.
   induction x as [A f Hx].
   destruct y as [B g].
@@ -822,7 +840,7 @@ Proof.
   auto.
 Qed.
 
-Lemma addOrd_le2 x y : ord_le y (addOrd x y).
+Lemma addOrd_le2 x y : y ≤ x ⊕ y.
 Proof.
   induction y as [A f Hx].
   destruct x as [B g].
@@ -833,8 +851,7 @@ Proof.
   apply Hx.
 Qed.
 
-
-Lemma addOrd_zero x : ord_eq x (addOrd x zeroOrd).
+Lemma addOrd_zero x : x ≈ x ⊕ zeroOrd.
 Proof.
   split.
   - induction x as [A f].
@@ -853,7 +870,7 @@ Proof.
     auto.
 Qed.
 
-Lemma addOrd_comm_le x y : ord_le (addOrd x y) (addOrd y x).
+Lemma addOrd_comm_le x y : x ⊕ y ≤ y ⊕ x.
 Proof.
   revert y.
   induction x as [A f Hx].
@@ -872,12 +889,12 @@ Proof.
     apply Hy. auto.
 Qed.
 
-Lemma addOrd_comm x y : ord_eq (addOrd x y) (addOrd y x).
+Lemma addOrd_comm x y : x ⊕ y ≈ y ⊕ x.
 Proof.
   split; apply addOrd_comm_le; auto.
 Qed.
 
-Lemma addOrd_assoc1 : forall x y z,  ord_le (addOrd x (addOrd y z)) (addOrd (addOrd x y) z).
+Lemma addOrd_assoc1 : forall x y z,  x ⊕ (y ⊕ z) ≤ (x ⊕ y) ⊕ z.
 Proof.
   induction x as [A f]. induction y as [B g]. induction z as [C h].
   rewrite ord_le_unfold.
@@ -899,7 +916,7 @@ Proof.
     apply H1.
 Qed.
 
-Lemma addOrd_assoc2 : forall x y z, ord_le (addOrd (addOrd x y) z) (addOrd x (addOrd y z)).
+Lemma addOrd_assoc2 : forall x y z, (x ⊕ y) ⊕ z ≤ x ⊕ (y ⊕ z). 
 Proof.
   induction x. induction y. induction z.
   rewrite ord_le_unfold.
@@ -919,7 +936,7 @@ Proof.
     apply H1.
 Qed.
 
-Lemma addOrd_assoc : forall x y z,  ord_eq (addOrd x (addOrd y z)) (addOrd (addOrd x y) z).
+Lemma addOrd_assoc : forall x y z,  x ⊕ (y ⊕ z) ≈ (x ⊕ y) ⊕ z.
 Proof.
   intros; split.
   apply addOrd_assoc1.
@@ -927,7 +944,7 @@ Proof.
 Qed.
 
 Lemma addOrd_cancel :
-  forall x y z, ord_lt (addOrd x z) (addOrd y z) -> ord_lt x y.
+  forall x y z, addOrd x z < addOrd y z -> x < y.
 Proof.
   induction x as [A f]. induction y as [B g]. induction z as [C h].
   rewrite ord_lt_unfold.
@@ -952,7 +969,7 @@ Proof.
 Qed.
 
 Lemma addOrd_monotone_le :
-  forall x y z1 z2, ord_le x y -> ord_le z1 z2 -> ord_le (addOrd x z1) (addOrd y z2).
+  forall x y z1 z2, x ≤ y -> z1 ≤ z2 -> x ⊕ z1 ≤ y ⊕ z2.
 Proof.
   induction x as [A f]. destruct y as [B g]. induction z1 as [C h]. destruct z2.
   intros.
@@ -981,8 +998,8 @@ Proof.
 Qed.
 
 Lemma addOrd_monotone_lt :
-  forall x y z1 z2, (ord_lt x y -> ord_le z1 z2 -> ord_lt (addOrd x z1) (addOrd y z2)) /\
-                    (ord_le x y -> ord_lt z1 z2 -> ord_lt (addOrd x z1) (addOrd y z2)).
+  forall x y z1 z2, (x < y -> z1 ≤ z2 -> x ⊕ z1 < y ⊕ z2) /\
+                    (x ≤ y -> z1 < z2 -> x ⊕ z1 < y ⊕ z2).
 Proof.
   induction x as [A f Hx].
   induction y as [B g Hy].
@@ -1027,7 +1044,7 @@ Proof.
 Qed.
 
 Lemma addOrd_monotone_lt1 :
-  forall x y z, ord_lt x y -> ord_lt (addOrd x z) (addOrd y z).
+  forall x y z, x < y -> x ⊕ z < y ⊕ z.
 Proof.
   intros.
   destruct (addOrd_monotone_lt x y z z).
@@ -1036,7 +1053,7 @@ Proof.
 Qed.
 
 Lemma addOrd_monotone_lt2 :
-  forall x y z, ord_lt x y -> ord_lt (addOrd z x) (addOrd z y).
+  forall x y z, x < y -> z ⊕ x < z ⊕ y.
 Proof.
   intros.
   destruct (addOrd_monotone_lt z z x y).
@@ -1045,10 +1062,10 @@ Proof.
 Qed.
 
 Lemma addOrd_least (f:Ord -> Ord -> Ord)
-  (Hmono1 : forall a b c, ord_lt a b -> ord_lt (f a c) (f b c))
-  (Hmono2 : forall a b c, ord_lt a b -> ord_lt (f c a) (f c b))
+  (Hmono1 : forall a b c, a < b -> f a c < f b c)
+  (Hmono2 : forall a b c, a < b -> f c a < f c b)
   :
-  (forall x y, ord_le (addOrd x y) (f x y)).
+  (forall x y, x ⊕ y ≤ f x y).
 Proof.
   induction x as [A fa].
   induction y as [B g].
@@ -1066,7 +1083,7 @@ Proof.
     apply limit_lt.
 Qed.
 
-Lemma addOrd_succ x y : ord_eq (addOrd (succOrd x) y) (succOrd (addOrd x y)).
+Lemma addOrd_succ x y : addOrd (succOrd x) y ≈ succOrd (addOrd x y).
 Proof.
   split.
   - induction y as [B g Hy].
@@ -1088,23 +1105,23 @@ Proof.
     apply succ_lt.
 Qed.
 
-
 (** * An ordinal multiplication *)
 
 Fixpoint mulOrd (x:Ord) (y:Ord) : Ord :=
     match y with
-    | ord B g => supOrd (fun b:B => addOrd (mulOrd x (g b)) x)
+    | ord B g => supOrd (fun b:B => mulOrd x (g b) ⊕ x)
     end.
 
+Notation "x ⊗ y" := (mulOrd x y) (at level 43, right associativity) : ord_scope.
+
 Lemma mulOrd_unfold (x:Ord) (y:Ord) :
-  mulOrd x y =
-  supOrd (fun i:y => addOrd (mulOrd x (y i)) x).
+  x ⊗ y =
+  supOrd (fun i:y => (mulOrd x (y i)) ⊕ x).
 Proof.
   destruct y; auto.
 Qed.
 
-
-Lemma mulOrd_monotone_le1 : forall z x y, ord_le x y -> ord_le (mulOrd x z) (mulOrd y z).
+Lemma mulOrd_monotone_le1 : forall z x y, x ≤ y -> mulOrd x z ≤ mulOrd y z.
 Proof.
   induction z as [C h Hz].
   simpl; intros.
@@ -1113,8 +1130,7 @@ Proof.
   apply addOrd_monotone_le; auto.
 Qed.
 
-
-Lemma mulOrd_monotone_le2 : forall y x z, ord_le y z -> ord_le (mulOrd x y) (mulOrd x z).
+Lemma mulOrd_monotone_le2 : forall y x z, y ≤ z -> mulOrd x y ≤ mulOrd x z.
 Proof.
   induction y as [B g Hy].
   intros.
@@ -1134,9 +1150,10 @@ Proof.
   apply ord_le_refl.
 Qed.
 
-Lemma mulOrd_monotone_lt2 : forall x y z, ord_lt zeroOrd x ->
-                                   ord_lt y z ->
-                                   ord_lt (mulOrd x y) (mulOrd x z).
+Lemma mulOrd_monotone_lt2 : forall x y z,
+    zeroOrd < x ->
+    y < z ->
+    x ⊗ y < x ⊗ z.
 Proof.
   intros x y [C h] Hx H.
   rewrite (mulOrd_unfold x (ord C h)).
@@ -1150,14 +1167,13 @@ Proof.
   - apply addOrd_monotone_lt2. auto.
 Qed.
 
-
-Lemma mulOrd_zero : forall x, ord_le (mulOrd x zeroOrd) zeroOrd.
+Lemma mulOrd_zero : forall x, x ⊗ zeroOrd ≤ zeroOrd.
 Proof.
   destruct x as [A f]. simpl.
   rewrite ord_le_unfold. simpl. intros [[] _].
 Qed.
 
-Lemma mulOrd_succ : forall x y, ord_eq (mulOrd x (succOrd y)) (addOrd (mulOrd x y) x).
+Lemma mulOrd_succ : forall x y, x ⊗ (succOrd y) ≈ (x ⊗ y) ⊕ x.
 Proof.
   intros.
   split.
@@ -1173,7 +1189,7 @@ Proof.
     apply ord_le_refl.
 Qed.
 
-Lemma mulOrd_one : forall x, ord_eq (mulOrd x oneOrd) x.
+Lemma mulOrd_one : forall x, mulOrd x oneOrd ≈ x.
 Proof.
   split.
   - eapply ord_le_trans; [ apply mulOrd_succ |].
@@ -1186,7 +1202,10 @@ Proof.
     eapply addOrd_monotone_le; [ apply zero_least | apply ord_le_refl ].
 Qed.
 
-Lemma mulOrd_positive : forall x y, ord_lt zeroOrd x -> ord_lt zeroOrd y -> ord_lt zeroOrd (mulOrd x y).
+Lemma mulOrd_positive : forall x y,
+    zeroOrd < x ->
+    zeroOrd < y ->
+    zeroOrd < x ⊗ y.
 Proof.
   intros.
   rewrite ord_lt_unfold.
@@ -1209,7 +1228,7 @@ Qed.
 
 Lemma mulOrd_limit : forall x y,
     limitOrdinal y ->
-    ord_eq (mulOrd x y) (supOrd (fun b:y => mulOrd x (y b))).
+    x ⊗ y ≈ supOrd (fun b:y => x ⊗ (y b)).
 Proof.
   destruct y as [B g]; simpl; intros.
   split.
@@ -1242,7 +1261,7 @@ Qed.
 (** * An ordinal exponentiation *)
 
 Definition expOrd (x y:Ord) : Ord :=
-  foldOrd oneOrd (fun a => mulOrd a x) y.
+  foldOrd oneOrd (fun a => a ⊗ x) y.
 
 Lemma expOrd_unfold x y :
   expOrd x y =
@@ -1251,7 +1270,7 @@ Proof.
   destruct y; simpl; auto.
 Qed.
 
-Lemma expOrd_nonzero x y : ord_lt zeroOrd (expOrd x y).
+Lemma expOrd_nonzero x y : zeroOrd < expOrd x y.
 Proof.
   destruct y as [B g]. simpl.
   rewrite ord_lt_unfold. simpl.
@@ -1259,12 +1278,12 @@ Proof.
   apply zero_least.
 Qed.
 
-Lemma expOrd_zero x : ord_eq (expOrd x zeroOrd) oneOrd.
+Lemma expOrd_zero x : expOrd x zeroOrd ≈ oneOrd.
 Proof.
   apply foldOrd_zero.
 Qed.
 
-Lemma expOrd_succ x y : ord_lt zeroOrd x -> ord_eq (expOrd x (succOrd y)) (mulOrd (expOrd x y) x).
+Lemma expOrd_succ x y : zeroOrd < x -> expOrd x (succOrd y) ≈ (expOrd x y) ⊗ x.
 Proof.
   intros.
   apply foldOrd_succ.
@@ -1274,13 +1293,18 @@ Proof.
   rewrite ord_le_unfold in H0. apply (H0 tt). auto.
 Qed.
 
-Lemma expOrd_monotone_le a : forall x y, ord_le x y -> ord_le (expOrd a x) (expOrd a y).
+Lemma expOrd_monotone_le a : forall x y,
+    x ≤ y ->
+    expOrd a x ≤ expOrd a y.
 Proof.
   intros. apply foldOrd_monotone_le; auto.
   intros; apply mulOrd_monotone_le1; auto.
 Qed.
 
-Lemma expOrd_monotone_lt a (Ha : ord_lt oneOrd a) : forall y x, ord_lt x y -> ord_lt (expOrd a x) (expOrd a y).
+Lemma expOrd_monotone_lt a (Ha : oneOrd < a) :
+  forall y x,
+    x < y ->
+    expOrd a x < expOrd a y.
 Proof.
   intros.
   apply foldOrd_monotone_lt; auto.
@@ -1301,14 +1325,17 @@ Proof.
   - apply mulOrd_monotone_le1.
 Qed.
 
-Lemma expOrd_limit x y (Hx:ord_lt oneOrd x) : limitOrdinal y -> ord_eq (expOrd x y) (supOrd (fun b:y => expOrd x (y b))).
+Lemma expOrd_limit x y (Hx:oneOrd < x) :
+  limitOrdinal y ->
+  expOrd x y ≈ (supOrd (fun b:y => expOrd x (y b))).
 Proof.
   intros.
   apply foldOrd_limit; auto.
   apply mulOrd_monotone_le1.
 Qed.
 
-Lemma expOrd_continuous x (Hx:ord_lt oneOrd x) A (f:A -> Ord) (a0:A) : ord_le (expOrd x (supOrd f)) (supOrd (fun a => expOrd x (f a))).
+Lemma expOrd_continuous x (Hx:ord_lt oneOrd x) :
+  strongly_continuous (expOrd x).
 Proof.
   apply foldOrd_strongly_continuous; auto.
 Qed.
@@ -1319,7 +1346,6 @@ Record normal_function (f:Ord -> Ord) :=
   ; normal_monotone_lt : forall x y, ord_lt x y -> ord_lt (f x) (f y)
   ; normal_continuous  : strongly_continuous f
   }.
-
 
 (** * Fixpoints of normal functions *)
 Section normal_fixpoints.
@@ -1411,12 +1437,12 @@ Fixpoint natOrdSize (x:nat) :=
   | S n => succOrd (natOrdSize n)
   end.
 
-Canonical Structure Omega : Ord :=
+Canonical Structure ω : Ord :=
   ord nat natOrdSize.
 
-Definition powOmega (x:Ord) : Ord := expOrd Omega x.
+Definition powOmega (x:Ord) : Ord := expOrd ω x.
 
-Lemma omega_gt1 : ord_lt oneOrd Omega.
+Lemma omega_gt1 : ord_lt oneOrd ω.
 Proof.
   rewrite ord_lt_unfold.
   exists 1. simpl.
@@ -1427,12 +1453,12 @@ Lemma powOmega_normal : normal_function powOmega.
 Proof.
   apply NormalFunction.
   + apply expOrd_monotone_le.
-  + intros; apply (expOrd_monotone_lt Omega omega_gt1 y x); auto.
-  + red; intros A f a0; apply (expOrd_continuous Omega omega_gt1 A f a0).
+  + intros; apply (expOrd_monotone_lt ω omega_gt1 y x); auto.
+  + red; intros A f a0; apply (expOrd_continuous ω omega_gt1 A f a0).
 Qed.
 
 Lemma normal_lub f x y  (Hf:normal_function f) :
-  ord_le (f (lubOrd x y)) (lubOrd (f x) (f y)).
+  f (x ⊔ y) ≤ (f x) ⊔ (f y).
 Proof.
   apply ord_le_trans with (f (supOrd (fun b:bool => if b then x else y))).
   - apply normal_monotone_le; auto.
@@ -1444,23 +1470,22 @@ Proof.
     intros [|]; [ apply lub_le1 | apply lub_le2 ].
 Qed.
 
-Definition epsilon0 := normal_fix powOmega zeroOrd.
+Definition ε₀ := normal_fix powOmega zeroOrd.
 
-Lemma epsilon_fixpoint : ord_le (expOrd Omega epsilon0) epsilon0.
+Lemma epsilon_fixpoint : ε₀ ≈ expOrd ω ε₀.
 Proof.
-  intros. unfold epsilon0.
-  apply (normal_fixpoint _ powOmega_normal).
+  intros. unfold ε₀. apply (normal_fixpoint _ powOmega_normal).
 Qed.
 
 (** * Lexicographic orders, encoded as ordinals *)
 
 Definition lex (alpha:Ord) (x y:Ord) :=
-  addOrd (mulOrd alpha x) y.
+  (alpha ⊗ x) ⊕ y.
 
 Lemma lex1 alpha x x' y y' :
-  ord_lt x x' ->
-  ord_lt y alpha ->
-  ord_lt (lex alpha x y) (lex alpha x' y').
+  x < x' ->
+  y < alpha ->
+  lex alpha x y < lex alpha x' y'.
 Proof.
   unfold lex; intros.
   apply ord_lt_le_trans with (addOrd (mulOrd alpha (succOrd x)) y').
@@ -1473,9 +1498,9 @@ Proof.
 Qed.
 
 Lemma lex2 alpha x x' y y' :
-  ord_le x x' ->
-  ord_lt y y' ->
-  ord_lt (lex alpha x y) (lex alpha x' y').
+  x ≤ x' ->
+  y < y' ->
+  lex alpha x y < lex alpha x' y'.
 Proof.
   unfold lex; intros.
   eapply ord_le_lt_trans with (addOrd (mulOrd alpha x') y).
@@ -1499,7 +1524,7 @@ Section wf_ord.
 
   Definition wf_ord (a:A) : Ord := mk_wf_ord a (Hwf a).
 
-  Lemma wf_ord_lt : forall a a', R a' a -> ord_lt (wf_ord a') (wf_ord a).
+  Lemma wf_ord_lt : forall a a', R a' a -> wf_ord a' < wf_ord a.
   Proof.
     unfold wf_ord. intros a a'.
     generalize (Hwf a'). revert a'.
@@ -1514,14 +1539,14 @@ Section wf_ord.
     apply H; auto.
   Qed.
 
-  Lemma wf_ord_lt_trans : forall a a', clos_trans _ R a' a -> ord_lt (wf_ord a') (wf_ord a).
+  Lemma wf_ord_lt_trans : forall a a', clos_trans _ R a' a -> wf_ord a' < wf_ord a.
   Proof.
     intros; induction H.
     - apply wf_ord_lt; auto.
     - eapply ord_lt_trans; eauto.
   Qed.
 
-  Lemma wf_ord_le_trans : forall a a', clos_refl_trans _ R a' a -> ord_le (wf_ord a') (wf_ord a).
+  Lemma wf_ord_le_trans : forall a a', clos_refl_trans _ R a' a -> wf_ord a' ≤ wf_ord a.
   Proof.
     intros; induction H.
     - apply ord_lt_le; apply wf_ord_lt; auto.
@@ -1535,8 +1560,7 @@ End wf_ord.
 Definition ord_measure (o:Ord) := Acc ord_lt o.
 
 
-
-Definition Ack_measure (m:nat) (n:nat) := ord_measure (lex Omega (natOrdSize m) (natOrdSize n)).
+Definition Ack_measure (m:nat) (n:nat) := ord_measure (lex ω (natOrdSize m) (natOrdSize n)).
 
 Program Fixpoint Ackdef (m:nat) (n:nat) {HM : Ack_measure m n} {struct HM}: nat :=
   match m, n with
@@ -1573,13 +1597,11 @@ Defined.
 Definition Ack m n := @Ackdef m n (ord_lt_wf _).
 
 
-
-
 (*  The notation "x ◃ y" indicates that "x" has a strictly smaller ordinal measure
     than "y".  Note that "x" and "y" do not need to have the same type.
  *)
-Notation "x ◃ y" := (ord_lt (ordSize _ x) (ordSize _ y)) (at level 80, no associativity).
-Notation "x ⊴ y" := (ord_le (ordSize _ x) (ordSize _ y)) (at level 80, no associativity).
+Notation "x ◃ y" := (ordSize _ x < ordSize _ y)%ord (at level 80, no associativity).
+Notation "x ⊴ y" := (ordSize _ x ≤ ordSize _ y)%ord (at level 80, no associativity).
 
 
 Lemma subterm_trans : forall {A B C:Ord} (x:A) (y:B) (z:C),
@@ -1594,56 +1616,56 @@ Proof.
   apply (ord_lt_irreflexive _ H).
 Qed.
 
-Lemma succ_trans x y : ord_le x y -> ord_lt x (succOrd y).
+Lemma succ_trans x y : x ≤ y -> x < succOrd y.
 Proof.
   intros.
   rewrite ord_lt_unfold.
   simpl. exists tt. auto.
 Qed.
 
-Lemma succ_trans' x y : ord_le x y -> ord_le x (succOrd y).
+Lemma succ_trans' x y : x ≤ y -> x ≤ succOrd y.
 Proof.
   intros.
   apply ord_lt_le.
   apply succ_trans; auto.
 Qed.
 
-Lemma lub_trans1 x y z : ord_le x y -> ord_le x (lubOrd y z).
+Lemma lub_trans1 x y z : x ≤ y -> x ≤ y ⊔ z.
 Proof.
   intros.
   apply ord_le_trans with y; auto.
   apply lub_le1.
 Qed.
 
-Lemma lub_trans2 x y z : ord_le x z -> ord_le x (lubOrd y z).
+Lemma lub_trans2 x y z : x ≤ z -> x ≤ y ⊔ z.
 Proof.
   intros.
   apply ord_le_trans with z; auto.
   apply lub_le2.
 Qed.
 
-Lemma add_trans1 x y z : ord_le x y -> ord_le x (addOrd y z).
+Lemma add_trans1 x y z : x ≤ y -> x ≤ y ⊕ z.
 Proof.
   intros.
   apply ord_le_trans with y; auto.
   apply addOrd_le1.
 Qed.
 
-Lemma add_trans1' x y z : ord_lt x y -> ord_lt x (addOrd y z).
+Lemma add_trans1' x y z : x < y -> x < y ⊕ z.
 Proof.
   intros.
   apply ord_lt_le_trans with y; auto.
   apply addOrd_le1.
 Qed.
 
-Lemma add_trans2 x y z : ord_le x z -> ord_le x (addOrd y z).
+Lemma add_trans2 x y z : x ≤ z -> x ≤ y ⊕ z.
 Proof.
   intros.
   apply ord_le_trans with z; auto.
   apply addOrd_le2.
 Qed.
 
-Lemma add_trans2' x y z : ord_lt x z -> ord_lt x (addOrd y z).
+Lemma add_trans2' x y z : x < z -> x < y ⊕ z.
 Proof.
   intros.
   apply ord_lt_le_trans with z; auto.
@@ -1675,7 +1697,7 @@ Canonical Structure ListOrd (A:Ord) : Ord :=
   ord (list A) (listOrd (ordSize A)).
 
 Lemma listAdd (A:Ord) (xs ys:list A) :
-  ord_eq (ordSize _ (xs ++ ys)) (addOrd (ordSize _ xs) (ordSize _ ys)).
+  (ordSize _ (xs ++ ys)) ≈ ordSize _ xs ⊕ ordSize _ ys.
 Proof.
   induction xs; simpl.
   - destruct (addOrd_zero (listOrd (ordSize A) ys)).
