@@ -6,17 +6,58 @@ Require Import Setoid.
 Require Import Morphisms.
 Require Import Coq.Program.Basics.
 
+Require Import ClassicalFacts.
+
 Import ListNotations.
 Open Scope list.
 
 Unset Printing Records.
 
+(** Constructive type-theoretic ordinals.
+    
+In this development, I attempt to reconstruct enough of classical
+ordinal theory to both be useful.
+
+My first (and primary) goal was for these ordinals to represent a
+practical proof techinque for, e.g., constructing termination measures
+of recursive programs and building acyclicity proofs invovling
+complicated data structures.
+
+My secondary goal was to climb the first part of the way into
+"Cantor's attic" by constructing the Veblen hierarchy, the
+Feferman-Shütte ordinal Γ₀, and perhaps up to the small Veblen ordinal
+(SVO), which is formed as the limit of the extended Veblen functions
+on finitely-many variables.
+
+Regarding the first goal, I believe this effort has been quite
+successful. Some examples of using ordinals for these purposes
+is given a the end of this file.
+
+On the second goal, the result is a bit more mixed.  Development
+proceeds smoothly up through computing the ε numbers with no problems.
+The definition of the Vebeln functions and many of their properties
+likewise goes through without much trouble.  However, it has remained
+stubbornly difficult to find a proof that the Veblen functions are
+inflationary in their first argument, a property necessary to
+show that they have fixpoints.  More details follow.
+*)
+
+
 Delimit Scope ord_scope with ord.
 Open Scope ord_scope.
 
-(** Ordinals, represented as Type-indexed trees
-  * of potentially infinite width, but finite depth.
-  *)
+(** * Ordinals, represented as Type-indexed trees of potentially
+      infinite width, but finite depth.
+  
+   Note we do not restrict ourselves here to countably-wide trees,
+   which (I believe) would give us the countable ordinals instead.
+   This might make some of the development more managable, but make
+   them less convenient.
+
+   The current definition allows us to view ordinals both as objects
+   of their own interest, but also as a collection of canonical
+   structures that assign a distingushed way to measure the size of
+   values.  *)
 Inductive Ord : Type :=
   ord { ordCarrier :> Type
       ; ordSize :> ordCarrier -> Ord
@@ -28,7 +69,9 @@ Add Printing Coercion sz.
 
 
 (** We define less-than and less-equal essentially by mutual
-  * recursion on the structure of ordinals.
+    recursion on the structure of ordinals. The ordering
+    relation has an elegant game semantics flavor, defined
+    by the quantifier nesting structure.
   *)
 Fixpoint ord_lt (x y:Ord) {struct x}: Prop :=
   match x, y with
@@ -51,6 +94,20 @@ Notation "x <= y" := (ord_le x y) : ord_scope.
 Notation "x ≥ y" := (ord_le y x) (at level 70, no associativity) : ord_scope.
 Notation "x ≤ y" := (ord_le x y) (at level 70, no associativity) : ord_scope.
 Notation "x ≈ y" := (ord_eq x y) (at level 70, no associativity) : ord_scope.
+
+
+(** A "complete" ordinal is one which is directed, in an order-theoretic
+    sense, and for which all it's subordinals are also complete.
+  
+    This is a technical property that appears necessary in some later proofs.
+    In a classical seetting all ordinals would have this property.
+  *)
+Fixpoint complete (x:Ord) : Prop :=
+  match x with
+  | ord A f =>
+    (forall a1 a2, exists a', f a1 <= f a' /\ f a2 <= f a') /\
+    (forall a, complete (f a))
+  end.
 
 (*  The notation "x ◃ y" indicates that "x" has a strictly smaller ordinal measure
     than "y".  Note that "x" and "y" do not need to have the same type.
@@ -75,6 +132,7 @@ Proof.
 Qed.
 
 Global Opaque ord_le ord_lt.
+
 
 (** Less-than implies less-equal
   *)
@@ -119,7 +177,6 @@ Proof.
 Qed.
 
 Hint Resolve ord_lt_le ord_le_refl index_lt index_le : ord.
-
 
 (** These various transitivity-releated facts need to
     be proved simultaneuously.
@@ -190,6 +247,23 @@ Proof.
   intros. destruct (ord_trans b a c); intuition.
 Qed.
 
+Lemma ord_le_intro x y :
+  (forall a, a < x -> a < y) -> x <= y.
+Proof.
+  intros.
+  rewrite ord_le_unfold; intro a.
+  apply H; auto with ord.
+Qed.
+
+Lemma ord_le_elim x y :
+  x <= y ->
+  (forall a, a < x -> a < y).
+Proof.
+  intros.
+  apply ord_lt_le_trans with x; auto.
+Qed.
+
+
 (** The less-than ordering on ordinals is well-founded.
   *)
 Lemma ord_lt_acc : forall x y,  y ≤ x -> Acc ord_lt y.
@@ -205,21 +279,21 @@ Proof.
   auto.
 Defined.
 
-Lemma ord_lt_wf : well_founded ord_lt.
+Theorem ord_lt_wf : well_founded ord_lt.
 Proof.
   red; intros.
   apply ord_lt_acc with a.
   apply ord_le_refl.
 Defined.
 
+(* The workhorse for proving properties about ordinals. *)
 Definition ordinal_induction
   : forall P : Ord -> Set,
      (forall x : Ord, (forall y : Ord, y < x -> P y) -> P x) ->
      (forall a : Ord, P a)
   := well_founded_induction ord_lt_wf.
 
-(** The less-than order is irreflexive, a simple corollary of well-foundedness.
-  *)
+(** The less-than order is irreflexive, a simple corollary of well-foundedness. *)
 Corollary ord_lt_irreflexive : forall x, x < x -> False.
 Proof.
   induction x using ordinal_induction.
@@ -291,38 +365,14 @@ Proof.
 Qed.
 
 
-(** Ordinal operators *)
-Definition zeroOrd : Ord := ord False (False_rect _).
-Definition succOrd (x:Ord) : Ord := ord unit (fun _ => x).
-Definition oneOrd := succOrd zeroOrd.
-Definition limOrd {A:Type} (f:A -> Ord) := ord A f.
-Definition lubOrd (x y:Ord) : Ord :=
-  match x, y with
-  | ord A f, ord B g =>
-    ord (A+B) (fun ab => match ab with inl a => f a | inr b => g b end)
-  end.
-Notation "x ⊔ y" := (lubOrd x y) (at level 55, right associativity) : ord_scope.
+(** * Definitions of zero, limit, and successor ordinals.
 
-Definition supOrd {A:Type} (f:A -> Ord) :=
-  ord (sigT (fun a => ordCarrier (f a)))
-      (fun ai => ordSize (f (projT1 ai)) (projT2 ai)).
-
-Fixpoint glbOrd (x y:Ord) : Ord :=
-  match x, y with
-  | ord A f, ord B g =>
-    ord (A*B) (fun ab => glbOrd (f (fst ab)) (g (snd ab)))
-  end.
-Notation "x ⊓ y" := (glbOrd x y) (at level 55, right associativity) : ord_scope.
-
-Definition boundedSup (β:Ord) (f:Ord -> Ord) : Ord :=
-  match β with
-  | ord B g => supOrd (fun i => f (g i))
-  end.
-
-Definition predOrd (x:Ord) : Ord :=
-  match x with
-  | ord A f => supOrd f
-  end.
+    In a classical setting, we would show that all ordinals 
+    fall into one of these three classes. Without the excluded
+    middle, we cannot prove this.  However, we can show that these
+    classes are mutually exclusive and demonstrate some properties
+    that they have.
+ *)
 
 Definition hasMaxElement A (f:A -> Ord) :=
   exists a, forall a', f a ≥ f a'.
@@ -330,31 +380,127 @@ Definition hasMaxElement A (f:A -> Ord) :=
 Definition ascendingSet A (f:A -> Ord) :=
   forall a, exists a', f a < f a'.
 
-Definition successorOrdinal (x:Ord) :=
+Definition zeroOrdinal (x:Ord) : Prop :=
+  match x with
+  | ord A f => A -> False
+  end.
+
+Definition successorOrdinal (x:Ord) : Prop :=
   match x with
   | ord A f => hasMaxElement A f
   end.
 
-Definition limitOrdinal (x:Ord) :=
+Definition limitOrdinal (x:Ord) : Prop :=
   match x with
   | ord A f => (exists a:A, True) /\ ascendingSet A f
   end.
 
-(** Zero is the least ordinal.
+Lemma hasMax_ascending_contradiction A f : hasMaxElement A f -> ascendingSet A f -> False.
+Proof.
+  intros.
+  destruct H as [a Ha].
+  destruct (H0 a) as [a' Ha'].
+  apply ord_lt_irreflexive with (f a').
+  apply ord_le_lt_trans with (f a); auto.
+Qed.  
+
+(** An ordinal cannot be both zero and a successor *)
+Lemma zero_not_successor : forall x, zeroOrdinal x -> successorOrdinal x -> False.
+Proof.
+  intros [A f]; simpl; intros Hz Hsucc.
+  destruct Hsucc as [a Ha]; auto.
+Qed.
+
+(** An ordinal cannot be both zero and a limit *)
+Lemma zero_not_limit : forall x, zeroOrdinal x -> limitOrdinal x -> False.
+Proof.
+  intros [A f]; simpl; intros Hz [Hnz _].
+  destruct Hnz as [a ?]; auto.
+Qed.
+
+(** An ordinal cannot be both a successor and a limit *)
+Lemma successor_not_limit : forall x, successorOrdinal x -> limitOrdinal x -> False.
+Proof.
+  intros [A f]; simpl; intros Hsucc [_ Hlim].
+  apply (hasMax_ascending_contradiction A f); auto.
+Qed.
+
+
+(** * Ordinal operators *)
+
+
+(** The zero ordinal, which is indexed by the empty type False *)
+Definition zeroOrd : Ord := ord False (False_rect _).
+
+(** The successor ordinal, which is indexed by the unit type *)
+Definition succOrd (x:Ord) : Ord := ord unit (fun _ => x).
+
+Definition oneOrd := succOrd zeroOrd.
+
+Definition limOrd {A:Type} (f:A -> Ord) := ord A f.
+
+(** The binary upper bound of two ordinals is constructed using a sum type
+   over the indices of the two incomming ordinals *)
+Definition lubOrd (x y:Ord) : Ord :=
+  match x, y with
+  | ord A f, ord B g =>
+    ord (A+B) (fun ab => match ab with inl a => f a | inr b => g b end)
+  end.
+Notation "x ⊔ y" := (lubOrd x y) (at level 55, right associativity) : ord_scope.
+
+(** The supremum of a collection of ordinals is indexed by a sigma type. *)
+Definition supOrd {A:Type} (f:A -> Ord) :=
+  ord (sigT (fun a => ordCarrier (f a)))
+      (fun ai => ordSize (f (projT1 ai)) (projT2 ai)).
+
+(** The binary greatest lower bound of two ordinals is indexed by a pair, and
+   we essentially simultaneously play the game represented by the two ordinals.
   *)
-Lemma zero_least : forall o, ord_le zeroOrd o.
+Fixpoint glbOrd (x y:Ord) : Ord :=
+  match x, y with
+  | ord A f, ord B g =>
+    ord (A*B) (fun ab => glbOrd (f (fst ab)) (g (snd ab)))
+  end.
+Notation "x ⊓ y" := (glbOrd x y) (at level 55, right associativity) : ord_scope.
+
+(** It does not appear to be possible to construct the infimum of an infinite
+    collection of ordinals. This would essentially compute the least ordinal
+    among a collection.  One is tempted to make the index type of this ordinal
+    a dependent function (representing an element of each of the index sets of
+    the collection; but I have not been able to figure out how to make it work.
+ *)
+
+
+(** We can constructed the supremum of the image of a function on ordinals,
+    when applied to all the ordinals strictly below β.
+  *)
+Definition boundedSup (β:Ord) (f:Ord -> Ord) : Ord :=
+  match β with
+  | ord B g => supOrd (fun i => f (g i))
+  end.
+
+(** The predecessor of an ordinal is the supremum of all the ordinals
+    strictly below it.  This function is stationary on limit ordinals
+    (and zero) but undoes the action of a successor.
+  *)
+Definition predOrd (x:Ord) : Ord :=
+  match x with
+  | ord A f => supOrd f
+  end.
+
+(** Zero is the least ordinal. *)
+Lemma zero_least : forall o, zeroOrd ≤ o.
 Proof.
   intros. rewrite ord_le_unfold.
   simpl. intros. elim a.
 Qed.
 
 (** Succ is a monotone operator with respetct to both lt and le, and
-  * which is strictly above its argument.
+  * is strictly above its argument.
   *
   * Moreover, it is the smallest ordinal which is strictly above its
   * argument.
   *)
-
 Lemma succ_lt : forall o, o < succOrd o.
 Proof.
   intros.
@@ -406,7 +552,7 @@ Proof.
   intros; apply succ_congruence; auto.
 Qed.
 
-(** The supremum ordinal is nonstrictly above all the ordinals in the
+(** The supremum is nonstrictly above all the ordinals in the
   * collection defined by "f".  Morover it is it the smallest such.
   *)
 Lemma sup_le : forall A (f:A -> Ord) a, f a ≤ supOrd f.
@@ -473,11 +619,11 @@ Qed.
 Hint Resolve limit_lt sup_le : ord.
 
 (** Supremum and limit are closely related operations.
-  * We always have: sup f <= lim f <= succ (sup f).
-  * Moreover: lim f = sup (succ . f)
-  * When f is an ascending set, lim f = sup f
-  * When f has a maximal element, lim f = succ (sup f)
-  *)
+  We always have: sup f <= lim f <= succ (sup f).
+  Moreover: lim f = sup (succ . f)
+  When f is an ascending set, lim f = sup f
+  When f has a maximal element, lim f = succ (sup f)
+*)
 Lemma sup_lim : forall A (f:A -> Ord),
   supOrd f ≤ limOrd f.
 Proof.
@@ -555,7 +701,10 @@ Proof.
     red; intros; apply H.
 Qed.
 
-
+(** Provided f is a monotone function, boundedSup β f
+    is an upper bound of f α whenever a < β.  Moreover, it
+    is the smallest ordinal with this property.
+  *)
 Lemma boundedSup_le β (f:Ord -> Ord) :
   (forall x y, x ≤ y -> f x ≤ f y) ->
   forall x, x < β -> f x ≤ boundedSup β f.
@@ -569,7 +718,7 @@ Proof.
   apply Hmono. apply Hb.
 Qed.
 
-Lemma boundedSub_least β (f:Ord -> Ord) z :
+Lemma boundedSup_least β (f:Ord -> Ord) z :
   (forall x, x < β -> f x ≤ z) ->
   boundedSup β f ≤ z.
 Proof.
@@ -578,6 +727,337 @@ Proof.
   intros. apply H.
   apply (index_lt (ord B g)).
 Qed.
+
+
+(** Any zero ordinal is equal to the distinguished zeroOrd *)
+Lemma ord_isZero z : zeroOrdinal z <-> z ≈ zeroOrd.
+Proof.
+  split.
+  - intro. split.
+    + destruct z as [Z f].
+      rewrite ord_le_unfold. intro a; elim (H a).
+    + apply zero_least.
+  - repeat intro.
+    destruct z as [Z f].
+    simpl. intro a.
+    destruct H as [H1 H2].
+    rewrite ord_le_unfold in H1.
+    generalize (H1 a).
+    rewrite ord_lt_unfold.
+    simpl; intros [[] _].
+Qed.
+
+(** Any successor ordinal is equal to some application of succOrd. *)
+Lemma ord_isSucc x : successorOrdinal x <-> exists o, x ≈ succOrd o.
+Proof.
+  split.
+  - intros.
+    destruct x as [A f].
+    destruct H as [a Ha].
+    exists (f a).
+    split.
+    + rewrite ord_le_unfold. simpl; intro a'.
+      apply ord_le_lt_trans with (f a); auto.
+      apply succ_lt.
+    + apply succ_least.
+      apply (index_lt (ord A f)).
+  - intros [o Ho].
+    destruct Ho as [Ho1 Ho2].
+    destruct x as [A f].
+    simpl. hnf.
+    rewrite ord_le_unfold in Ho2.
+    specialize (Ho2 tt).
+    rewrite ord_lt_unfold in Ho2.
+    destruct Ho2 as [a Ha].
+    exists a. simpl in Ha.
+    intros.
+    rewrite ord_le_unfold in Ho1.
+    specialize (Ho1 a'). rewrite ord_lt_unfold in Ho1.
+    destruct Ho1 as [z Hz]. simpl in *.
+    transitivity o; auto.
+Qed.
+
+Lemma ord_isLimit β : limitOrdinal β -> β ≈ boundedSup β (fun a => a).
+Proof.
+  destruct β as [B g]; simpl.
+  intros [_ Hb].
+  rewrite <- ascending_sup_lim; auto.
+  reflexivity.
+Qed.
+
+
+Lemma ord_isLimit' β : zeroOrd < β -> β ≈ boundedSup β (fun a => a) -> limitOrdinal β.
+Proof.
+  destruct β as [B g]; simpl.
+  intros H Heq ; split.
+  - rewrite ord_lt_unfold in H.
+    destruct H as [b ?].
+    exists b; auto.
+  - red. intro a.
+    destruct Heq as [Hle1 Hle2]. 
+    rewrite ord_le_unfold in Hle1.
+    generalize (Hle1 a).
+    simpl; intros.
+    rewrite ord_lt_unfold in H0.
+    destruct H0 as [a' ?]. simpl in *.
+    destruct a'. simpl in *.
+    exists x.
+    rewrite ord_lt_unfold. exists o. auto.
+Qed.
+
+
+(** Although our goal here is to develop a constructive presentation of ordinals, it is
+    notetheless useful to note that some of the usual expected properties of ordinals
+    do in fact hold if we assume the excluded middle.
+  *)
+Module classical_ordinal_facts.
+  Section classic.
+  Hypothesis EM : excluded_middle.
+
+  Lemma ord_swizzle (x y:Ord) :
+    (~(x ≤ y) -> y < x) /\
+    (~(x < y) -> y <= x).
+  Proof.
+    revert y.
+    induction x using ordinal_induction. rename H into Hindx.
+    induction y using ordinal_induction. rename H into Hindy.
+    split.
+    * rewrite ord_le_unfold.
+      intros.
+      destruct (EM (exists a, ~x a < y)).
+      2: { elim H; intros.
+           destruct (EM (x a < y)); auto.
+           elim H0; eauto. }
+      clear H.
+      destruct H0 as [a Ha].
+      destruct (EM (y <= x a)); auto.
+      rewrite ord_lt_unfold. exists a. auto.
+      destruct (Hindx (x a) (index_lt x a) y).
+      rewrite ord_lt_unfold. exists a. intuition.
+
+    * intros.
+      rewrite ord_le_unfold. intro a.
+      destruct (Hindy (y a) (index_lt y a)).
+      apply H0.
+      intro.
+      apply H.
+      rewrite ord_lt_unfold. exists a. auto.
+  Qed.
+
+  (** Classicaly, ordinals form a total order. *)
+  Theorem order_total (x y:Ord) : x ≤ y \/ y < x.
+  Proof.
+    destruct (EM (x ≤ y)); auto.
+    right.
+    destruct (ord_swizzle x y); intuition.
+  Qed.
+
+  Theorem order_trichotomy (x y:Ord) : x < y \/ x ≈ y \/ x > y.
+  Proof.
+    unfold ord_eq.
+    destruct (order_total x y); auto.
+    destruct (order_total y x); auto.
+  Qed.
+
+  Lemma max_or_ascending A (f:A -> Ord) :
+    hasMaxElement A f \/ ascendingSet A f.
+  Proof.
+    destruct (EM (hasMaxElement A f)); auto.
+    right; hnf; intros.
+    destruct (EM (exists a', f a < f a')); auto.
+    elim H. exists a. intros a'.
+    destruct (order_total (f a') (f a)); firstorder.
+  Qed.
+
+  (** Classicaly, ordinals must either be a zero, successor or limit ordinal. *)
+  Theorem ordinal_discriminate (x:Ord) :
+    zeroOrdinal x \/ successorOrdinal x \/ limitOrdinal x.
+  Proof.
+    destruct x as [A f]; simpl.
+    destruct (max_or_ascending A f); auto.
+    destruct (EM (exists a:A, True)); intuition.
+    left; intro a.
+    elim H0. exists a; auto.
+  Qed.
+
+  (** Classical ordinals form a total order, so every ordinal is complete. *)
+  Theorem ord_complete (x:Ord) : complete x.
+  Proof.
+    induction x as [A f]; simpl; intuition.
+    + destruct (order_total (f a1) (f a2)).
+      * exists a2. split; auto with ord.
+      * exists a1. split; auto with ord.
+  Qed.
+
+  (** Classicaly, we can provide a more traditional induction principle for ordinals
+      that has cases for the three classes of ordinal.
+    *)
+  Lemma classical_ordinal_induction (P:Ord -> Prop) :
+    (forall x y, x ≈ y -> P x -> P y) ->
+    P zeroOrd ->
+    (forall o, P o -> P (succOrd o)) ->
+    (forall x, (forall a, a < x -> P a) -> limitOrdinal x -> P x) ->
+    forall x, P x.
+  Proof.
+    intros Heq Hzero Hsucc Hlimit.
+    induction x using ordinal_induction. rename H into Hind.
+    destruct (ordinal_discriminate x) as [H|[H|H]].
+    - apply Heq with zeroOrd.
+      symmetry. apply ord_isZero; auto.
+      apply Hzero.
+    - rewrite ord_isSucc in H.
+      destruct H as [o Ho].
+      apply Heq with (succOrd o).
+      symmetry; auto.
+      apply Hsucc.
+      apply Hind.
+      apply ord_lt_le_trans with (succOrd o).
+      apply succ_lt.
+      destruct Ho; auto.
+    - apply Hlimit; auto.
+  Qed.
+
+  End classic.
+End classical_ordinal_facts.
+
+Fixpoint smallerOrd (x:Ord) : Type :=
+  match x with
+  | ord A f =>
+    @sigT A (fun a =>
+    @sigT Type (fun X => X -> smallerOrd (f a)))
+  end.
+
+Fixpoint smallerOrdtoOrd (x:Ord) : smallerOrd x -> Ord :=
+  match x as x' return smallerOrd x' -> Ord with
+  | ord A f => fun z =>
+    match z with
+    existT _ a (existT _ X g) => ord X (fun x => smallerOrdtoOrd (f a) (g x))
+    end
+  end.
+
+Require Import Coq.Logic.IndefiniteDescription.
+
+
+Lemma enoughSmallerOrds (x:Ord) :
+  forall y, y < x -> exists a:smallerOrd x, y ≈ smallerOrdtoOrd x a.
+Proof.
+  induction x as [A f]; simpl; intros y Hy.
+  rewrite ord_lt_unfold in Hy.
+  destruct Hy as [a Ha].
+  simpl in *.
+  destruct y as [X g].
+  rewrite ord_le_unfold in Ha. simpl in Ha.
+  assert (forall x:X, exists b:smallerOrd (f a), g x ≈ smallerOrdtoOrd (f a) b).
+  intros.
+  destruct (H a (g x)) as [b Hb]; auto.
+  assert (exists (h: X -> smallerOrd (f a)), forall x, g x ≈ smallerOrdtoOrd (f a) (h x)).
+  + apply (functional_choice (fun x b => g x ≈ smallerOrdtoOrd (f a) b) H0).
+  + destruct H1 as [h ?].
+    exists (existT _ a (existT _ X h)).
+    split.
+    * rewrite ord_le_unfold. simpl; intros.
+      rewrite ord_lt_unfold. simpl. exists a0.
+      apply H1.
+    * rewrite ord_le_unfold. simpl; intros.
+      rewrite ord_lt_unfold. simpl. exists a0.
+      apply H1.
+Qed.
+
+
+
+Lemma asdf (x:Ord) : ord _ (smallerOrdtoOrd x) ≤ x.
+Proof.
+  induction x as [A f]; simpl.
+  rewrite ord_le_unfold. simpl. intros [a [X g]].
+  rewrite ord_lt_unfold. exists a. simpl.
+  transitivity (limOrd (smallerOrdtoOrd (f a))); auto.
+  rewrite ord_le_unfold. simpl; intro x.
+  rewrite ord_lt_unfold. simpl. exists (g x).
+  reflexivity.
+Qed.
+
+Lemma asdf2 (x:Ord) : x ≤ limOrd (smallerOrdtoOrd x).
+Proof.
+  destruct x as [A f].
+  rewrite ord_le_unfold. intros a.
+  destruct (enoughSmallerOrds (ord A f) (f a)) as [q Hq].
+  apply (index_lt (ord A f)).
+  destruct Hq.
+  apply ord_le_lt_trans with (smallerOrdtoOrd (ord A f) q); [ auto | ].
+  apply limit_lt.
+Qed.
+
+
+intros [[a [X g]] x]. simpl in *.
+  rewrite ord_lt_unfold. exists a. simpl.
+  transitivity (supOrd (smallerOrdtoOrd (f a))); auto.
+  rewrite <- (sup_le _ _ (g x)).
+
+
+Fixpoint ord_path (x:Ord) : Type :=
+  match x with
+  | ord A f => @sigT A (fun a => option (ord_path (f a)))
+  end.
+
+Fixpoint ord_path_to_ord (x:Ord) : ord_path x -> Ord :=
+  match x as x' return ord_path x' -> Ord with
+  | ord A f =>
+    fun p =>
+      match p with
+      | existT _ a None      => f a
+      | existT _ a (Some p') => ord_path_to_ord (f a) p'
+      end
+  end.
+
+Lemma enough_ord_paths y :
+  (forall x, x < y -> exists p, x <= ord_path_to_ord y p).
+Proof.
+  induction y as [B g].
+  simpl; intros.
+  rewrite ord_lt_unfold in H0.
+  destruct H0 as [b Hb].
+  exists (existT _ b None). auto.
+Qed.
+
+
+Lemma enough_ord_paths' y (EM:excluded_middle) :
+  (forall x, x < y -> exists p, x >= ord_path_to_ord y p).
+Proof.
+  induction y as [B g].
+  simpl; intros.
+  rewrite ord_lt_unfold in H0.
+  destruct H0 as [b Hb].
+  simpl in *.
+  destruct (classical_ordinal_facts.order_total EM (g b) x).
+  exists (existT _ b None). auto.
+  destruct (H b x H0) as [p ?].
+  exists (existT _ b (Some p)). auto.
+  
+
+
+  - intros.
+    simpl in *.
+    destruct (H b).
+    destruct (H1 x Hb) as [a [p ?]].
+    
+
+    exists (existT _ b p).
+
+
+
+(** We can constructed the supremum of the image of a function on ordinals,
+    when applied to all the ordinals strictly below β.
+  *)
+Fixpoint boundedSup' (β:Ord) (f:Ord -> Ord) : Ord :=
+  match β with
+  | ord B g => supOrd (fun i => 
+
+
+
+f (boundedSup (g i) f))
+  end.
+
+
 
 (** Functions into sized types have sizes defined by nontrivial
     limit ordinals.
@@ -592,8 +1072,7 @@ Definition depOrd {A:Type} {B:A -> Type} (sz : forall a:A, B a -> Ord) (f:forall
 Canonical Structure DepOrd (A:Type) (B:A -> Ord) :=
   ord (forall a:A, B a) (@depOrd A B (fun x => ordSize (B x))).
 
-(** Functions have larger ordinal size than each of their points.
- *)
+(** Functions have larger ordinal size than each of their points. *)
 Lemma fun_lt : forall A (B:Ord) (f:A -> B) i, f i ◃ f.
 Proof.
   simpl; intros.
@@ -894,12 +1373,13 @@ Proof.
 Qed.
 
 
+
 (** * Definitions by transfinite recursion.
   *)
 Definition foldOrd (z:Ord) (s:Ord -> Ord) : Ord -> Ord :=
   fix foldOrd (x:Ord) : Ord :=
     match x with
-    | ord A f => lubOrd z (supOrd (fun i:A => s (foldOrd (f i))))
+    | ord A f => z ⊔ supOrd (fun i => s (foldOrd (f i)))
     end.
 
 Lemma foldOrd_least z s (q:Ord -> Ord)
@@ -955,12 +1435,10 @@ Lemma mono_lt_increasing f :
   forall a, a ≤ f a.
 Proof.
   intro Hmono.
-  induction a as [B g Ha].
-  rewrite ord_le_unfold. intro b. simpl.
-  apply ord_le_lt_trans with (f (g b)).
-  apply Ha.
-  apply Hmono.
-  apply limit_lt.
+  induction a using ordinal_induction.
+  apply ord_le_intro.
+  intros z Hz.
+  rewrite (H z); auto.
 Qed.
 
 Lemma foldOrd_zero z s : foldOrd z s zeroOrd ≈ z.
@@ -1010,7 +1488,7 @@ Qed.
 Lemma foldOrd_limit z s x :
   limitOrdinal x ->
   (forall a b, a ≤ b -> s a ≤ s b) ->
-  foldOrd z s x ≈ supOrd (fun i:x => foldOrd z s (x i)).
+  foldOrd z s x ≈ boundedSup x (foldOrd z s).
 Proof.
   intros.
   split.
@@ -1030,7 +1508,7 @@ Proof.
       apply ord_le_refl.
       apply foldOrd_monotone_le; auto.
       apply succ_least. auto.
-  - apply sup_least. intro a.
+  - apply boundedSup_least. intros a Ha.
     apply foldOrd_monotone_le; auto with ord.
 Qed.
 
@@ -1603,7 +2081,6 @@ Proof.
     rewrite ord_le_unfold in H1. specialize (H1 tt).
     rewrite ord_le_unfold in H0. specialize (H0 tt).
     simpl in *.
-
     eapply ord_lt_le_trans; [ | apply (sup_le _ _ q)]. simpl.
     apply ord_le_lt_trans with (addOrd zeroOrd a0).
     + eapply ord_le_trans; [ | apply addOrd_comm ].
@@ -1615,7 +2092,7 @@ Qed.
 
 Lemma expOrd_limit x y (Hx:oneOrd < x) :
   limitOrdinal y ->
-  expOrd x y ≈ (supOrd (fun b:y => expOrd x (y b))).
+  expOrd x y ≈ boundedSup y (expOrd x).
 Proof.
   intros.
   apply foldOrd_limit; auto.
@@ -1748,6 +2225,35 @@ Fixpoint natOrdSize (x:nat) :=
 
 Canonical Structure ω : Ord :=
   ord nat natOrdSize.
+
+Lemma omega_limit : limitOrdinal ω.
+Proof.
+  simpl. split.
+  - exists 0; auto.
+  - hnf; intros.
+    exists (S a).
+    simpl.
+    apply succ_lt.
+Qed.
+
+Lemma omega_least : forall x,
+  limitOrdinal x -> ω <= x.
+Proof.
+  intros.
+  destruct x as [A f]; simpl in *.
+  rewrite ord_le_unfold.
+  simpl; intro.
+  destruct H as [[q _] H].
+  rewrite ord_lt_unfold; simpl.
+  induction a; simpl.
+  - exists q. apply zero_least.
+  - destruct IHa as [r Hr].
+    destruct (H r) as [s Hs].
+    exists s.
+    apply succ_least.
+    apply ord_le_lt_trans with (f r); auto.
+Qed.
+
 
 Definition powOmega (x:Ord) : Ord := expOrd ω x.
 
@@ -1900,6 +2406,113 @@ Proof.
     apply normal_prefixpoint; auto.
 Qed.
 
+Lemma enum_fixpoints_strictly_increasing f :
+  normal_function f ->
+  forall x, x < f x -> x < enum_fixpoints f x.
+Proof.
+  intros.
+  eapply ord_lt_le_trans. apply H0.
+  rewrite enum_are_fixpoints; auto.
+  apply normal_monotone; auto.
+  apply normal_increasing. apply enum_fixpoints_normal; auto.
+Qed.
+
+
+Lemma enum_fixpoints_complete f (Hn:normal_function f) (EM:excluded_middle) :
+  forall x, f x ≤ x -> exists i, enum_fixpoints f i ≈ x.
+Proof.
+  induction x using ordinal_induction.
+  intros.
+  destruct (EM (exists y, y < x /\ f y ≤ y)).
+  - 
+
+
+destruct H1 as [y [??]].
+    
+
+
+  - exists zeroOrd.
+    rewrite enum_fixpoints_zero; auto.
+    split.
+    + apply normal_fix_least; auto.
+      apply zero_least.
+    + destruct (classical_ordinal_facts.order_total EM x (normal_fix f zeroOrd)); auto.
+      elim H1.
+      exists (normal_fix f zeroOrd); split; auto.
+      apply normal_prefixpoint; auto.
+   
+
+  destruct (classical_ordinal_facts.ordinal_discriminate EM x) as [Hx|[Hx|Hx]].
+  - intro. exists zeroOrd.
+    rewrite enum_fixpoints_zero; auto.
+    split.
+    + apply normal_fix_least; auto.
+      apply zero_least.
+    + rewrite ord_le_unfold. intro a.
+      destruct x as [B g].
+      elim (Hx a).
+  - intros.
+    destruct x as [B g].
+    simpl in Hx.
+    destruct Hx as [b Hb].
+    
+
+
+
+*)    
+
+
+Program Fixpoint inv_enum f (x:Ord) (H:Acc ord_lt x) : Ord :=
+  match x of
+  | ord B g => 
+
+
+  boundedSup x (fun y => supOrd (fun (Hfp : y ≤ f y) => inv_enum f y _)).
+Next Obligation.
+  
+
+
+Fixpoint inv_enum f (x:Ord) : Ord :=
+  match x with
+  | ord B g => ord { b:B | f (g b) ≤ g b } (fun b' => inv_enum f (g (proj1_sig b'))) 
+  end.
+
+Lemma enum_fixpoints_complete1 f (Hn:normal_function f) (Hinc: forall x y, x < y -> f x < f y) :
+  forall x, f x ≤ x -> enum_fixpoints f (inv_enum f x) <= x.
+Proof.
+  induction x as [B g]; simpl. intros.
+  apply normal_fix_least; auto.
+  rewrite ord_le_unfold. simpl.
+  intros [b Hb]. simpl.
+  apply ord_le_lt_trans with (g b); auto.
+  apply (index_lt (ord B g)).
+Qed.
+
+Lemma enum_fixpoints_complete f (Hn:normal_function f) (Hinc: forall x y, x < y -> f x < f y) :
+  forall x, f x ≤ x -> x <= enum_fixpoints f (inv_enum f x).
+Proof.
+  induction x as [B g]; simpl. intros.
+  rewrite ord_le_unfold. intro b; simpl.
+  rewrite <- normal_fix_above.  
+  
+
+
+    set (b' := normal_fix f (g b)).
+    assert (Hb' : f b' ≤ b').
+    apply normal_prefixpoint; auto.
+    assert (b' <= (ord B g)).
+    unfold b'.
+    apply normal_fix_least; auto.
+    apply (index_le (ord B g)).
+
+    
+
+
+unfold normal_fix. simpl.
+    apply sup_least. intro n.
+    
+
+
 Add Parametric Morphism f (Hf:normal_function f) : (enum_fixpoints f)
   with signature ord_le ++> ord_le  as enum_fixpoint_le_mor.
 Proof.
@@ -1932,7 +2545,6 @@ Proof.
   destruct x; auto.
 Qed.
 
-
 Lemma veblen_normal (x:Ord) : normal_function (veblen x).
 Proof.
   induction x as [A f Hx]; simpl.
@@ -1962,6 +2574,28 @@ Proof.
       rewrite <- lub_le2.
       rewrite <- (sup_le _ _ i).
       auto with ord.
+Qed.
+
+Lemma veblen_monotone_first (x y z:Ord) :
+  x ≤ y -> veblen x z ≤ veblen y z.
+Proof.
+  revert y z. induction x as [A f Hx]; simpl; intros.
+  apply lub_least.
+  - destruct y; simpl.
+    apply lub_le1.
+  - apply sup_least. intro a.
+    destruct y as [B g]; simpl.
+    rewrite <- lub_le2.
+    rewrite ord_le_unfold in H.
+    specialize (H a).
+    rewrite ord_lt_unfold in H.
+    simpl in H.
+    destruct H as [b ?].
+    rewrite <- (sup_le _ _ b).
+    apply enum_fixpoints_func_mono.
+    + apply veblen_normal.
+    + apply veblen_normal.
+    + intros. apply Hx. auto.
 Qed.
 
 Lemma veblen_unroll_nonzero (x:Ord) (y:Ord) :
@@ -2013,6 +2647,39 @@ Proof.
     auto with ord.
 Qed.
 
+Lemma veblen_limit x y :
+  limitOrdinal x ->
+  veblen x y ≈ boundedSup x (fun a => veblen a y).
+Proof.
+  destruct x as [A f]; simpl in *.
+  intros [[a _] HA]. 
+  split.
+  - apply lub_least.
+    + rewrite <- (sup_le _ _ a).
+      rewrite veblen_unroll.
+      apply lub_le1.
+    + apply sup_least; intro a'.
+      destruct (HA a') as [a'' ?].
+      rewrite <- (sup_le _ _ a'').
+      rewrite ord_lt_unfold in H.
+      destruct H as [q ?].
+      rewrite (veblen_unroll (f a'')).
+      rewrite <- lub_le2.
+      rewrite <- (sup_le _ _ q).
+      apply enum_fixpoints_func_mono.
+      apply veblen_normal.
+      apply veblen_normal.
+      intros; apply veblen_monotone_first; auto.
+  - apply sup_least. intro a'.
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ a').
+    rewrite enum_are_fixpoints.
+    apply normal_monotone. apply veblen_normal.
+    apply normal_increasing. apply enum_fixpoints_normal.
+    apply veblen_normal.
+    apply veblen_normal.
+Qed.
+
 Lemma veblen_one x :
   veblen oneOrd x ≈ ε x.
 Proof.
@@ -2028,27 +2695,22 @@ Proof.
   - intro. apply veblen_zero.
 Qed.
 
-Lemma veblen_monotone_first (x y z:Ord) :
-  x ≤ y -> veblen x z ≤ veblen y z.
+
+Add Parametric Morphism : veblen
+  with signature ord_le ++> ord_le ++> ord_le as veblen_le_mor.
 Proof.
-  revert y z. induction x as [A f Hx]; simpl; intros.
-  apply lub_least.
-  - destruct y; simpl.
-    apply lub_le1.
-  - apply sup_least. intro a.
-    destruct y as [B g]; simpl.
-    rewrite <- lub_le2.
-    rewrite ord_le_unfold in H.
-    specialize (H a).
-    rewrite ord_lt_unfold in H.
-    simpl in H.
-    destruct H as [b ?].
-    rewrite <- (sup_le _ _ b).
-    apply enum_fixpoints_func_mono.
-    + apply veblen_normal.
-    + apply veblen_normal.
-    + intros. apply Hx. auto.
+  intros.
+  apply ord_le_trans with (veblen x y0).
+  apply normal_monotone; auto. apply veblen_normal.
+  apply veblen_monotone_first; auto.
 Qed.
+
+Add Parametric Morphism : veblen
+  with signature ord_eq ==> ord_eq ==> ord_eq as veblen_eq_mor.
+Proof.
+  unfold ord_eq; intuition; apply veblen_le_mor; auto.
+Qed.
+
 
 Lemma veblen_continuous_first y :
   strongly_continuous (fun x => veblen x y).
@@ -2066,21 +2728,6 @@ Proof.
   rewrite <- lub_le2.
   rewrite <- (sup_le _ _ q).
   auto with ord.
-Qed.
-
-Add Parametric Morphism : veblen
-  with signature ord_le ++> ord_le ++> ord_le as veblen_le_mor.
-Proof.
-  intros.
-  apply ord_le_trans with (veblen x y0).
-  apply normal_monotone; auto. apply veblen_normal.
-  apply veblen_monotone_first; auto.
-Qed.
-
-Add Parametric Morphism : veblen
-  with signature ord_eq ==> ord_eq ==> ord_eq as veblen_eq_mor.
-Proof.
-  unfold ord_eq; intuition; apply veblen_le_mor; auto.
 Qed.
 
 Lemma veblen_exp_prefixpoint b x :
@@ -2147,71 +2794,271 @@ Proof.
 Qed.
 
 
-Lemma veblen_lt_prefixpoint (a b x:Ord) :
+Lemma veblen_lt_prefixpoint (a b x:Ord) (Hc: complete b) : 
   a < b -> veblen a (veblen b x) ≤ veblen b x.
 Proof.
+  revert a x Hc.
+  induction b using ordinal_induction. rename H into Hind.
   intros.
   rewrite (veblen_unroll a).
   apply lub_least.
   - apply veblen_exp_prefixpoint.
     eapply ord_le_lt_trans with a; auto.
     apply zero_least.
-  - apply sup_least.
-    intros q.
-    assert (zeroOrd < b).
-    { apply ord_le_lt_trans with a; auto.
-      apply zero_least.
-    }
+  - apply sup_least; intro q.
+    rewrite (veblen_unroll b) at 1.
+    rewrite normal_lub.
+    2: { apply enum_fixpoints_normal. apply veblen_normal. }
+    apply lub_least.
+    + generalize H. intro Hb.
+      rewrite ord_lt_unfold in Hb.
+      destruct Hb as [z1 Hz].
+      rewrite (veblen_unroll b).
+      rewrite <- lub_le2.
+      rewrite <- (sup_le _ _ z1).
+      rewrite (enum_are_fixpoints (veblen (b z1))).
+      assert (a q < b z1).
+      rewrite <- Hz.
+      apply index_lt.
+      rewrite ord_lt_unfold in H0.
+      destruct H0 as [m Hm].
+      rewrite (veblen_unroll (b z1)) at 1.
+      rewrite <- lub_le2.
+      rewrite <- (sup_le _ _ m).
+      transitivity (enum_fixpoints (veblen (a q)) (enum_fixpoints (veblen (b z1)) x)).
+      apply enum_fixpoints_monotone_le.
+      apply veblen_normal.
+      rewrite (enum_are_fixpoints (veblen (b z1))).
+      rewrite (veblen_unroll (b z1)).
+      rewrite <- lub_le1.
+      apply normal_monotone. apply powOmega_normal.
+      apply normal_increasing. apply enum_fixpoints_normal. apply veblen_normal.
+      apply veblen_normal.
+      apply (enum_fixpoints_func_mono (veblen (a q)) (veblen (b z1 m))).
+      apply veblen_normal.
+      apply veblen_normal.
+      intros.
+      apply veblen_monotone_first. auto.
+      apply veblen_normal.
+      
+    + generalize H. intro Hb.
+      rewrite ord_lt_unfold in Hb.
+      destruct Hb as [z1 Hz].
+      rewrite (enum_fixpoints_cont (veblen (a q)) (veblen_normal (a q)) b (fun i => enum_fixpoints (veblen (b i)) x) z1).
+      apply sup_least. intro z2.
+      assert (Hz' : exists z', b z1 <= b z' /\ b z2 <= b z').
+      { destruct b as [B g]; simpl in *.
+        destruct Hc as [Hc _].
+        apply (Hc z1 z2). }
+      destruct Hz' as [z' [Hz1 Hz2]].
+      rewrite (veblen_unroll b).
+      rewrite <- lub_le2.
+      rewrite <- (sup_le _ _ z').
+      rewrite (enum_are_fixpoints (veblen (b z'))).
+      assert (a q < b z').
+      rewrite <- Hz1.
+      rewrite <- Hz.
+      apply index_lt.
+      rewrite ord_lt_unfold in H0.
+      destruct H0 as [m Hm].
+      rewrite (veblen_unroll (b z')).
+      rewrite <- lub_le2.
+      rewrite <- (sup_le _ _ m).
+      etransitivity.
+      apply enum_fixpoints_monotone_le.
+      apply veblen_normal.
+      apply (enum_fixpoints_func_mono (veblen (b z2)) (veblen (b z'))).
+      apply veblen_normal.
+      apply veblen_normal.
+      intros.
+      apply veblen_monotone_first. auto.
+      apply (enum_fixpoints_func_mono (veblen (a q)) (veblen (b z' m))).
+      apply veblen_normal.
+      apply veblen_normal.
+      intros.
+      apply veblen_monotone_first. auto.
+      apply veblen_normal.
+Qed.
 
-    rewrite (veblen_unroll_nonzero b x) at 2; auto.
-    apply ord_le_trans with
-        (enum_fixpoints (fun z => supOrd (fun a0 => veblen (b a0) z)) x).
-    + rewrite (enum_are_fixpoints (fun z => supOrd (fun a0 => veblen (b a0) z))).
-      * rewrite ord_lt_unfold in H.
-        destruct H as [b0 ?].
-        apply enum_least.
-        ** apply veblen_normal.
-        ** rewrite <- (sup_le _ _ b0) at 2.
-           apply veblen_le_mor.
-           *** rewrite <- H.
-               apply ord_lt_le.
-               apply index_lt.
-           *** apply sup_least. intros b'.
-               eapply ord_le_trans; [|   apply (enum_are_fixpoints (fun z => supOrd (fun a0 => veblen (b a0) z)))].
-               **** rewrite <- (sup_le _ _ b').
-                    auto with ord.
-               **** apply normal_veblen_sup; auto.
-        ** intros.
-           rewrite <- (sup_le _ _ b0).
-           rewrite (veblen_unroll).
-           rewrite <- lub_le2.
-           rewrite ord_le_unfold in H.
-           generalize (H q). intros.
-           rewrite ord_lt_unfold in H2.
-           destruct H2 as [z ?].
-           rewrite <- (sup_le _ _ z).
-           eapply ord_le_lt_trans.
-           *** eapply (enum_fixpoints_func_mono _ (veblen ((b b0) z))).
-               **** apply veblen_normal.
-               **** apply veblen_normal.
-               **** intros. apply veblen_monotone_first. auto.
-           *** apply enum_fixpoints_monotone_lt.
-               **** apply veblen_normal.
-               **** eapply ord_lt_le_trans.
-                    ***** apply H1.
-                    ***** rewrite veblen_unroll_nonzero; auto.
-                          apply sup_least. intros.
-                          apply enum_fixpoints_func_mono.
-                          ****** apply veblen_normal.
-                          ****** apply normal_veblen_sup; auto.
-                          ****** intros. rewrite <- (sup_le _ _ a0). auto with ord.
-      * apply normal_veblen_sup; auto.
-    + admit. (* !!! plausible, but not at all obvious *)
+Lemma veblen_lt_fixpoint (a b x:Ord) (Hc: complete b) : 
+  a < b -> veblen a (veblen b x) ≈ veblen b x.
+Proof.
+  intros; split.
+  apply veblen_lt_prefixpoint; auto.
+  rewrite (veblen_unroll b x).
+  apply lub_least.
+  etransitivity; [ apply (normal_increasing (veblen a) (veblen_normal a)) | ].
+  apply normal_monotone. apply veblen_normal.
+  apply lub_le1.
+  apply sup_least.
+  intro z.
+  etransitivity; [ apply (normal_increasing (veblen a) (veblen_normal a)) | ].
+  apply normal_monotone. apply veblen_normal.
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ z).
+  reflexivity.
+Qed.
+
+Lemma veblen_asdf a :
+  veblen a zeroOrd < normal_fix (veblen a) zeroOrd.
+Proof.
+  
+
+Qed.
+
+
+Lemma veblen_increasing_first :
+  forall x, x ≤ veblen x zeroOrd.
+Proof.
+  induction x using ordinal_induction.
+  apply ord_le_intro.
+  intros a Ha.
+  rewrite veblen_unroll_nonzero.
+  2:{ apply ord_le_lt_trans with a; auto with ord. apply zero_least. }
+  rewrite ord_lt_unfold in Ha.
+  destruct Ha as [b Hb].
+  rewrite Hb.
+  apply ord_lt_le_trans with (enum_fixpoints (veblen (x b)) zeroOrd).
+  2: { rewrite <- (sup_le _ _ b). reflexivity. }
+  apply ord_lt_le_trans with (normal_fix (veblen (x b)) zeroOrd).
+  2: { rewrite enum_fixpoints_zero. reflexivity. apply veblen_normal. }
+  apply ord_le_lt_trans with (veblen (x b) zeroOrd).
+  { apply H. apply index_lt. }
+  apply veblen_asdf.
+Qed.
+
+Lemma veblen_monotone_lt (EM:excluded_middle) a : forall x y,
+  x < y -> veblen a x < veblen a y.
+Proof.
+  induction a using (classical_ordinal_facts.classical_ordinal_induction EM).
+  - intros.
+    apply ord_le_lt_trans with (veblen a1 x).
+    apply veblen_monotone_first. destruct H; auto.
+    apply ord_lt_le_trans with (veblen a1 y).
+    apply IHa1; auto.
+    apply veblen_monotone_first. destruct H; auto.
+  - intros.
+    rewrite veblen_zero.
+    rewrite veblen_zero.
+    apply expOrd_monotone_lt; auto.
+    apply omega_gt1.
+  - intros.
+    rewrite veblen_succ.
+    rewrite veblen_succ.
+    apply enum_fixpoints_monotone_lt; auto.
+    apply veblen_normal.
+  - simpl; intros.
+    
+    revert x H1.
+    induction y using (classical_ordinal_facts.classical_ordinal_induction EM).
+    + admit. (* easy *)
+    + admit. (* easy *)
+    + admit. (* hard *)
+
+
+    + intros.
+      destruct y as [Y fy].
+      apply ord_lt_le_trans with (supOrd (fun i => veblen a (fy i))).
+      * 
+
+
+
+
+        
+
+      * apply sup_least. intro i.
+        apply normal_monotone. apply veblen_normal.
+        apply (index_le (ord Y fy)).
+Qed.
+
+
+
+
+      
+    rewrite (veblen_limit a x); auto.
+    rewrite (veblen_limit a y); auto.
+    destruct a as [A f].
+    simpl.
+
+    
+
+
+    
+    assert (forall a, exists b, veblen (f a) x <= b /\ b < veblen (f a) y).
+    { intros a.
+      assert (veblen (f a) x < veblen (f a) y).
+      { apply H; auto. apply (index_lt (ord A f)). }
+      rewrite ord_lt_unfold in H2.
+      destruct H2 as [b Hb].
+      exists (veblen (f a) y b); split; auto.
+      apply index_lt.
+    }
+    assert (exists g, forall a:A, veblen (f a) x <= (g a) /\ g a < veblen (f a) y).
+    { admit. (* axiom of choice *) }
+    destruct H3 as [g Hg].
+    
+
+
+    assert (supOrd g < supOrd (fun i => veblen (f i) y)).
+    
+    
+               
+
+
+
+    
+    (** !! What do ?!? **)
+
 Admitted.
 
-Lemma veblen_increasing_first x y :
-  x ≤ veblen x y.
-Abort. (* ???? *)
+    
+Lemma veblen_increasing_first (EM:excluded_middle) :
+  forall x, x ≤ veblen x zeroOrd.
+Proof.
+  induction x using (classical_ordinal_facts.classical_ordinal_induction EM).
+  - rewrite <- H at 1.
+    rewrite IHx1.
+    apply veblen_monotone_first. destruct H; auto.
+  - apply zero_least.
+  - rewrite veblen_succ.
+    apply succ_least.
+    eapply ord_le_lt_trans; [ apply IHx | ].
+    apply ord_lt_le_trans with (veblen x (enum_fixpoints (veblen x) zeroOrd)).
+    apply veblen_monotone_lt; auto.
+    apply enum_fixpoints_strictly_increasing. apply veblen_normal.
+    apply ord_lt_le_trans with (expOrd ω zeroOrd).
+    apply expOrd_nonzero.
+    rewrite veblen_unroll.
+    apply lub_le1.
+    apply enum_are_fixpoints.
+    apply veblen_normal.
+  - rewrite veblen_limit; auto.
+    rewrite (ord_isLimit x) at 1; auto.
+    destruct x as [X f]; unfold boundedSup.
+    apply sup_least. intro a.
+    rewrite H. 2 : { apply (index_lt (ord X f)). }
+    rewrite <- (sup_le _ _ a).
+    reflexivity.
+Qed.
+
+Theorem veblen_normal_first (EM:excluded_middle) :
+  normal_function (fun a => veblen a zeroOrd).
+Proof.
+  constructor.
+  - intros. apply veblen_monotone_first; auto.
+  - intros. apply veblen_increasing_first; auto.
+  - intros. apply veblen_continuous_first; auto.
+Qed.
+
+
+Definition Γ a := enum_fixpoints (fun a => veblen a zeroOrd) a.
+
+Theorem Gamma_fixpoints (EM:excluded_middle) : forall a, Γ a ≈ veblen (Γ a) zeroOrd.
+Proof.
+  intro a. unfold Γ.
+  apply enum_are_fixpoints.
+  apply veblen_normal_first; auto.
+Qed.
 
 
 (** * Lexicographic orders, encoded as ordinals *)
