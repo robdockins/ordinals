@@ -8,7 +8,7 @@ Unset Printing Records.
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 
-(** * Definitions by transfinite recursion.
+(** * Definitions by transfinite primitive recursion.
   *)
 Definition foldOrd (z:Ord) (s:Ord -> Ord) : Ord -> Ord :=
   fix foldOrd (x:Ord) : Ord :=
@@ -150,7 +150,7 @@ Qed.
 
 Lemma foldOrd_complete z s :
   complete z ->
-  (forall x, 0 < s x) ->
+  (forall x, z <= x -> 0 < s x) ->
   z <= s z ->
   (forall x y, x <= y -> s x <= s y) ->
   (forall o, complete o -> complete (s o)) ->
@@ -211,7 +211,7 @@ Proof.
     + left. exact (inhabits (inl z)).
     + destruct Hx2 as [[x]|Hx2].
       * assert (zeroOrd < s (foldOrd (ord Z h) s (f x))).
-        apply Hs0.
+        { apply Hs0. apply foldOrd_above_z. }
         rewrite ord_lt_unfold in H.
         destruct H as [q Hq].
         left.
@@ -226,317 +226,103 @@ Proof.
     apply Hc3.
 Qed.
 
-(** The "natural" ordinal addition function as defined by Hessenberg.
-  * This ordinal operation is commutative, associative and absorbs zero.
-  * It is also strictly monotone in both of its arguments.
-  *
-  * Morover, it is the smallest binary operation on ordinals which is strictly monotone
-  * in both of its arguments.
-  *)
-Fixpoint addOrd (x:Ord) : Ord -> Ord :=
-  fix inner (y:Ord) : Ord :=
-    match x, y with
-    | ord A f, ord B g =>
-      ord (A+B) (fun ab =>
-                 match ab with
-                 | inl a => addOrd (f a) y
-                 | inr b => inner (g b)
-                 end
-                )
-    end.
+(** * Ordinal addition *)
 
-Notation "a ⊕ b" := (addOrd a b) (at level 45, right associativity) : ord_scope.
+Definition addOrd (x y:Ord) := foldOrd x succOrd y.
 
-Lemma addOrd_unfold (x y:Ord) :
-  x ⊕ y =
-    (limOrd (fun a:x => x a ⊕ y))
-    ⊔
-    (limOrd (fun b:y => x ⊕ y b)).
+Notation "x + y" := (addOrd x y) : ord_scope.
+
+Lemma addOrd_le1 x y : x ≤ x + y.
 Proof.
-  destruct x; destruct y; auto.
+  destruct y as [B g].
+  simpl.
+  apply lub_le1.
 Qed.
 
-Global Opaque addOrd.
-
-Lemma addOrd_le1 x y : x ≤ x ⊕ y.
+Lemma addOrd_le2 x y : y ≤ x + y.
 Proof.
-  induction x as [A f Hx].
-  destruct y as [B g].
-  rewrite addOrd_unfold.
-  rewrite ord_le_unfold; intros.
-  rewrite ord_lt_unfold.
+  induction y as [B g Hy].
+  destruct x as [A f].
   simpl.
-  exists (inl a).
+  rewrite ord_le_unfold; intro b. simpl.
+  rewrite ord_lt_unfold. simpl.
+  exists (inr (existT _ b tt)).
+  simpl.
   auto.
 Qed.
 
-Lemma addOrd_le2 x y : y ≤ x ⊕ y.
-Proof.
-  induction y as [A f Hx].
-  destruct x as [B g].
-  rewrite addOrd_unfold.
-  rewrite ord_le_unfold; intros.
-  rewrite ord_lt_unfold.
-  exists (inr a).
-  apply Hx.
-Qed.
-
-Lemma addOrd_zero x : x ≈ x ⊕ 0.
+Lemma addOrd_zero_r x : x ≈ x + 0.
 Proof.
   split.
-  - induction x as [A f].
-    rewrite addOrd_unfold.
-    simpl.
-    rewrite ord_le_unfold; simpl; intros.
-    rewrite ord_lt_unfold.
-    exists (inl a).
-    apply H.
-  - induction x as [A f].
-    rewrite addOrd_unfold.
-    rewrite ord_le_unfold; simpl; intros.
-    destruct a; intuition.
-    rewrite ord_lt_unfold.
-    exists a.
-    auto.
+  - simpl.
+    apply lub_le1.
+  - simpl.
+    apply lub_least.
+    reflexivity.
+    apply sup_least. intros [].
 Qed.
 
-Lemma addOrd_comm_le x y : x ⊕ y ≤ y ⊕ x.
+Lemma addOrd_zero_l x : x ≈ 0 + x.
 Proof.
-  revert y.
-  induction x as [A f Hx].
-  intro y. revert A f Hx.
-  induction y as [B g Hy]; intros.
-  rewrite ord_le_unfold. rewrite addOrd_unfold.
-  simpl; intros.
-  destruct a.
-  - rewrite ord_lt_unfold.
-    rewrite addOrd_unfold.
-    simpl.
-    exists (inr a); auto.
-  - rewrite ord_lt_unfold.
-    rewrite addOrd_unfold.
-    exists (inl b).
-    apply Hy. auto.
-Qed.
-
-Lemma addOrd_comm x y : x ⊕ y ≈ y ⊕ x.
-Proof.
-  split; apply addOrd_comm_le; auto.
-Qed.
-
-Lemma addOrd_assoc1 : forall x y z,  x ⊕ (y ⊕ z) ≤ (x ⊕ y) ⊕ z.
-Proof.
-  induction x as [A f]. induction y as [B g]. induction z as [C h].
-  rewrite ord_le_unfold.
-  rewrite addOrd_unfold.
-  rewrite addOrd_unfold.
-  simpl.
-  intros.
-  rewrite ord_lt_unfold.
-  rewrite addOrd_unfold.
-  rewrite addOrd_unfold.
-  simpl in *.
-  destruct a as [a|[b|c]].
-  - exists (inl (inl a)).
-    generalize (H a (ord B g) (ord C h)).
-    rewrite (addOrd_unfold (ord B g) (ord C h)); simpl; auto.
-  - exists (inl (inr b)).
-    apply H0.
-  - exists (inr c).
-    apply H1.
-Qed.
-
-Lemma addOrd_assoc2 : forall x y z, (x ⊕ y) ⊕ z ≤ x ⊕ (y ⊕ z).
-Proof.
-  induction x as [A f].
-  induction y as [B g].
-  induction z as [C h].
-  rewrite ord_le_unfold.
-  rewrite addOrd_unfold.
-  rewrite addOrd_unfold.
-  simpl; intros.
-  rewrite ord_lt_unfold.
-  rewrite addOrd_unfold.
-  rewrite addOrd_unfold.
-  simpl.
-  destruct a as [[a|b]|c].
-  - exists (inl a).
-    apply H.
-  - exists (inr (inl b)).
-    apply H0.
-  - exists (inr (inr c)).
-    apply H1.
-Qed.
-
-Lemma addOrd_assoc : forall x y z,  x ⊕ (y ⊕ z) ≈ (x ⊕ y) ⊕ z.
-Proof.
-  intros; split.
-  apply addOrd_assoc1.
-  apply addOrd_assoc2.
-Qed.
-
-Lemma addOrd_cancel :
-  forall x y z, addOrd x z < addOrd y z -> x < y.
-Proof.
-  induction x as [A f].
-  induction y as [B g].
-  induction z as [C h].
-  rewrite ord_lt_unfold.
-  rewrite addOrd_unfold.
-  rewrite ord_lt_unfold.
-  simpl.
-  intros [[b|c] ?].
-  - exists b.
-    rewrite ord_le_unfold. intros.
-    rewrite ord_le_unfold in H2.
-    rewrite addOrd_unfold in H2.
-    specialize (H2 (inl a)).
-    simpl in H2.
-    eapply H. apply H2.
-  - rewrite ord_le_unfold in H2.
-    rewrite addOrd_unfold in H2.
-    specialize (H2 (inr c)).
-    simpl in H2.
-    apply H1 in H2.
-    rewrite ord_lt_unfold in H2.
-    auto.
+  induction x as  [X f Hx].
+  split; simpl.
+  - rewrite ord_le_unfold.
+    simpl; intro x.
+    rewrite ord_lt_unfold; simpl.
+    exists (inr (existT _ x tt)).
+    simpl. apply Hx.
+  - rewrite ord_le_unfold.
+    simpl; intros [[]|[x []]]. simpl.
+    rewrite ord_lt_unfold; simpl.
+    exists x.
+    apply Hx.
 Qed.
 
 Lemma addOrd_monotone :
-  forall x y z1 z2, x ≤ y -> z1 ≤ z2 -> x ⊕ z1 ≤ y ⊕ z2.
+  forall x y z1 z2, x ≤ y -> z1 ≤ z2 -> x + z1 ≤ y + z2.
 Proof.
-  induction x as [A f]. destruct y as [B g]. induction z1 as [C h]. destruct z2.
-  intros.
-  rewrite ord_le_unfold.
-  rewrite addOrd_unfold.
-  simpl.
-  intros [a|c].
-  - rewrite ord_le_unfold in H1.
-    specialize (H1 a).
-    rewrite ord_lt_unfold.
-    rewrite addOrd_unfold.
-    simpl.
-    rewrite ord_lt_unfold in H1.
-    destruct H1 as [b Hb].
-    exists (inl b).
+  induction z1 as [C h]. destruct z2 as [D i].
+  simpl; intros.
+  apply lub_least.
+  + rewrite <- lub_le1. auto.
+  + rewrite <- lub_le2.
+    apply sup_least; intro c.
+    destruct (ord_le_subord _ _ H1 c) as [d Hd]. simpl in *.
+    rewrite <- (sup_le _ _ d).
+    apply succ_monotone_le.
     apply H; auto.
-  - rewrite ord_le_unfold in H2.
-    specialize (H2 c).
-    rewrite ord_lt_unfold.
-    rewrite addOrd_unfold.
-    rewrite ord_lt_unfold in H2.
-    simpl.
-    destruct H2 as [a Ha].
-    exists (inr a).
-    apply H0; auto.
 Qed.
 
-Lemma addOrd_increasing_both :
-  forall x y z1 z2, (x < y -> z1 ≤ z2 -> x ⊕ z1 < y ⊕ z2) /\
-                    (x ≤ y -> z1 < z2 -> x ⊕ z1 < y ⊕ z2).
-Proof.
-  induction x as [A f Hx].
-  induction y as [B g Hy].
-  induction z1 as [C h Hz1].
-  destruct z2 as [D i].
-  split; intros.
-  - rewrite ord_lt_unfold in H.
-    destruct H as [a Ha].
-    rewrite ord_lt_unfold.
-    rewrite addOrd_unfold.
-    simpl.
-    exists (inl a).
-    rewrite ord_le_unfold.
-    rewrite addOrd_unfold.
-    simpl.
-    intros.
-    destruct a0.
-    + rewrite ord_le_unfold in Ha; auto.
-      destruct (Hx a0 (g a) (ord C h) (ord D i)); auto.
-    + rewrite ord_le_unfold in H0.
-      specialize (H0 c).
-      apply Hy; auto.
-  - rewrite ord_lt_unfold in H0.
-    destruct H0 as [q Hq].
-    rewrite ord_lt_unfold.
-    rewrite addOrd_unfold.
-    simpl.
-    exists (inr q).
-    rewrite ord_le_unfold.
-    rewrite addOrd_unfold.
-    simpl.
-    intros.
-    destruct a as [a|c].
-    + rewrite ord_le_unfold in H.
-      specialize (H a).
-      destruct (Hx a (ord B g) (ord C h) (i q)).
-      auto.
-    + rewrite ord_le_unfold in Hq.
-      specialize (Hq c).
-      destruct (Hz1 c (i q)).
-      auto.
-Qed.
-
-Lemma addOrd_increasing1 :
-  forall x y z, x < y -> x ⊕ z < y ⊕ z.
+Lemma addOrd_increasing :
+  forall x y z, x < y -> z + x < z + y.
 Proof.
   intros.
-  destruct (addOrd_increasing_both x y z z).
-  apply H0; auto.
-  apply ord_le_refl.
+  unfold addOrd.
+  apply foldOrd_increasing.
+  - intros. apply succ_lt.
+  - apply succ_monotone_le.
+  - auto.
 Qed.
 
-Lemma addOrd_increasing2 :
-  forall x y z, x < y -> z ⊕ x < z ⊕ y.
+Lemma addOrd_continuous x :
+  strongly_continuous (addOrd x).
 Proof.
-  intros.
-  destruct (addOrd_increasing_both z z x y).
-  apply H1; auto.
-  apply ord_le_refl.
+  unfold addOrd.
+  apply foldOrd_strongly_continuous.
 Qed.
 
-Lemma addOrd_least (f:Ord -> Ord -> Ord)
-  (Hmono1 : forall a b c, a < b -> f a c < f b c)
-  (Hmono2 : forall a b c, a < b -> f c a < f c b)
-  :
-  (forall x y, x ⊕ y ≤ f x y).
+Lemma addOrd_complete x y :
+  complete x -> complete y -> complete (x + y).
 Proof.
-  induction x as [A fa].
-  induction y as [B g].
-  rewrite ord_le_unfold.
-  rewrite addOrd_unfold.
-  simpl.
-  intros [a|b].
-  - eapply ord_le_lt_trans; [ apply H | auto with ord ].
-  - eapply ord_le_lt_trans; [ apply H0 | auto with ord ].
-Qed.
-
-Lemma addOrd_succ x y : succOrd x ⊕ y ≈ succOrd (x ⊕ y).
-Proof.
-  split.
-  - induction y as [B g Hy].
-    rewrite ord_le_unfold.
-    rewrite addOrd_unfold.
-    simpl.
-    intro ua.
-    rewrite ord_lt_unfold. simpl.
-    exists tt.
-    destruct ua as [u|a].
-    + apply ord_le_refl.
-    + rewrite Hy.
-      apply succ_least.
-      apply addOrd_increasing2; auto with ord.
-  - apply succ_least.
-    apply addOrd_increasing1.
+  intros. unfold addOrd.
+  apply foldOrd_complete; auto.
+  - intros.
+    apply ord_le_lt_trans with x0.
+    apply zero_least.
     apply succ_lt.
-Qed.
-
-Lemma addOrd_succ2 x y : x ⊕ succOrd y ≈ succOrd (x ⊕ y).
-Proof.
-  rewrite addOrd_comm.
-  rewrite addOrd_succ.
-  rewrite addOrd_comm.
-  reflexivity.
+  - apply ord_lt_le. apply succ_lt.
+  - intros; apply succ_monotone_le; auto.
+  - apply succ_complete.
 Qed.
 
 Add Parametric Morphism : addOrd with signature
@@ -546,21 +332,11 @@ Proof.
 Qed.
 
 Add Parametric Morphism : addOrd with signature
-    ord_lt ++> ord_le ++> ord_lt as addOrd_lt_mor1.
-Proof.
-  intros.
-  eapply ord_lt_le_trans.
-  apply addOrd_increasing1; eauto.
-  apply addOrd_monotone; auto.
-  reflexivity.
-Qed.
-
-Add Parametric Morphism : addOrd with signature
     ord_le ++> ord_lt ++> ord_lt as addOrd_lt_mor2.
 Proof.
   intros.
   eapply ord_lt_le_trans.
-  apply addOrd_increasing2; eauto.
+  apply addOrd_increasing; eauto.
   apply addOrd_monotone; auto.
   reflexivity.
 Qed.
@@ -571,24 +347,23 @@ Proof.
   intros; split; apply addOrd_le_mor; solve [apply H|apply H0].
 Qed.
 
-
-(** * An ordinal multiplication *)
+(** * Ordinal multiplication *)
 
 Fixpoint mulOrd (x:Ord) (y:Ord) : Ord :=
     match y with
-    | ord B g => supOrd (fun b:B => mulOrd x (g b) ⊕ x)
+    | ord B g => supOrd (fun b:B => mulOrd x (g b) + x)
     end.
 
-Notation "x ⊗ y" := (mulOrd x y) (at level 43, right associativity) : ord_scope.
+Notation "x * y" := (mulOrd x y) : ord_scope.
 
 Lemma mulOrd_unfold (x:Ord) (y:Ord) :
-  x ⊗ y =
-  supOrd (fun i:y => x ⊗ (y i) ⊕ x).
+  x * y =
+  supOrd (fun i:y => x * (y i) + x).
 Proof.
   destruct y; auto.
 Qed.
 
-Lemma mulOrd_monotone1 : forall z x y, x ≤ y -> x ⊗ z ≤ y ⊗ z.
+Lemma mulOrd_monotone1 : forall z x y, x ≤ y -> x * z ≤ y * z.
 Proof.
   induction z as [C h Hz].
   simpl; intros.
@@ -597,7 +372,7 @@ Proof.
   apply addOrd_monotone; auto.
 Qed.
 
-Lemma mulOrd_monotone2 : forall y x z, y ≤ z -> x ⊗ y ≤ x ⊗ z.
+Lemma mulOrd_monotone2 : forall y x z, y ≤ z -> x * y ≤ x * z.
 Proof.
   induction y as [B g Hy].
   intros.
@@ -613,14 +388,22 @@ Proof.
   intros.
   rewrite (mulOrd_unfold (ord A f) z).
   rewrite <- (sup_le _ _ q).
-  apply addOrd_monotone; auto.
-  apply ord_le_refl.
+  simpl.
+  apply lub_least.
+  - rewrite <- lub_le1.
+    apply Hy. auto.
+  - rewrite <- lub_le2.
+    apply sup_least; intro i.
+    rewrite <- (sup_le _ _ i).
+    apply succ_monotone_le.
+    apply addOrd_monotone; auto.
+    reflexivity.
 Qed.
 
 Lemma mulOrd_increasing2 : forall x y z,
-    zeroOrd < x ->
+    0 < x ->
     y < z ->
-    x ⊗ y < x ⊗ z.
+    x * y < x * z.
 Proof.
   intros x y [C h] Hx H.
   rewrite (mulOrd_unfold x (ord C h)).
@@ -630,11 +413,27 @@ Proof.
   rewrite <- (sup_le _ _ c).
   apply ord_le_lt_trans with (mulOrd x (h c)); [ apply mulOrd_monotone2 ; assumption | ].
   apply ord_le_lt_trans with (addOrd (mulOrd x (h c)) zeroOrd).
-  - apply addOrd_zero.
-  - apply addOrd_increasing2. auto.
+  - apply addOrd_zero_r.
+  - apply addOrd_increasing. auto.
 Qed.
 
-Lemma mulOrd_zero : forall x, x ⊗ zeroOrd ≈ zeroOrd.
+Add Parametric Morphism : mulOrd with signature
+    ord_le ++> ord_le ++> ord_le as mulOrd_le_mor.
+Proof.
+  intros.
+  apply ord_le_trans with (x * y0).
+  apply mulOrd_monotone2; auto.
+  apply mulOrd_monotone1; auto.
+Qed.
+
+Add Parametric Morphism : mulOrd with signature
+    ord_eq ==> ord_eq ==> ord_eq as mulOrd_eq_mor.
+Proof.
+  unfold ord_eq; intuition; apply mulOrd_le_mor; auto.
+Qed.
+
+
+Lemma mulOrd_zero_r : forall x, x * 0 ≈ 0.
 Proof.
   intros; split.
   - destruct x as [A f]. simpl.
@@ -642,28 +441,37 @@ Proof.
   - apply zero_least.
 Qed.
 
-Lemma mulOrd_succ : forall x y, x ⊗ (succOrd y) ≈ (x ⊗ y) ⊕ x.
+Lemma mulOrd_zero_l : forall x, 0 * x ≈ 0.
+Proof.
+  induction x as [X f Hx].
+  split; simpl.
+  - apply sup_least; intro x.
+    apply lub_least.
+    apply Hx.
+    apply sup_least; intros [].
+  - apply zero_least.
+Qed.
+
+Lemma mulOrd_succ : forall x y, x * (succOrd y) ≈ (x * y) + x.
 Proof.
   intros; split; simpl.
   - apply sup_least; auto with ord.
   - rewrite <- (sup_le _ _ tt); auto with ord.
 Qed.
 
-Lemma mulOrd_one : forall x, mulOrd x oneOrd ≈ x.
+Lemma mulOrd_one : forall x, mulOrd x 1 ≈ x.
 Proof.
   intro.
-  unfold oneOrd.
   rewrite mulOrd_succ.
-  rewrite mulOrd_zero.
-  rewrite addOrd_comm.
-  rewrite <- addOrd_zero.
-  reflexivity.
+  rewrite mulOrd_zero_r.
+  symmetry.
+  apply addOrd_zero_l.
 Qed.
 
 Lemma mulOrd_positive : forall x y,
     zeroOrd < x ->
     zeroOrd < y ->
-    zeroOrd < x ⊗ y.
+    zeroOrd < x * y.
 Proof.
   intros.
   destruct x as [A f].
@@ -675,15 +483,16 @@ Proof.
   destruct H0 as [b _].
   simpl in *.
   rewrite <- (sup_le _ _ b).
-  rewrite addOrd_unfold.
   rewrite <- lub_le2.
-  rewrite ord_lt_unfold. exists a.
+  rewrite <- (sup_le _ _ a).
+  rewrite ord_lt_unfold. simpl.
+  exists tt.
   apply zero_least.
 Qed.
 
 Lemma mulOrd_limit : forall x y,
     limitOrdinal y ->
-    x ⊗ y ≈ supOrd (fun b:y => x ⊗ (y b)).
+    x * y ≈ supOrd (fun b:y => x * (y b)).
 Proof.
   destruct y as [B g]; simpl; intros.
   split.
@@ -711,30 +520,59 @@ Proof.
   apply ord_le_refl.
 Qed.
 
-Add Parametric Morphism : mulOrd with signature
-    ord_le ++> ord_le ++> ord_le as mulOrd_le_mor.
+Lemma mulOrd_complete x y : complete x -> complete y -> complete (x * y).
 Proof.
-  intros.
-  apply ord_le_trans with (x ⊗ y0).
-  apply mulOrd_monotone2; auto.
-  apply mulOrd_monotone1; auto.
+  induction y as [Y g Hy]; simpl; intros Hx [Hy1 [Hy2 Hy3]].
+  repeat split.
+  - intros [y1 q1] [y2 q2]; simpl.
+    destruct (Hy1 y1 y2) as [y' [Hy'1 Hy'2]].
+    assert (Hgy1 :  x * g y1 + x <= x * g y' + x).
+    { apply addOrd_monotone; auto.
+      apply mulOrd_monotone2; auto.
+      reflexivity. }
+    assert (Hgy2 : x * g y2 + x <= x * g y' + x).
+    { apply addOrd_monotone; auto.
+      apply mulOrd_monotone2; auto.
+      reflexivity. }
+    destruct (ord_le_subord _ _ Hgy1 q1) as [q1' Hq1].
+    destruct (ord_le_subord _ _ Hgy2 q2) as [q2' Hq2].
+    assert (Hc : complete (x * g y' + x)).
+    { apply addOrd_complete; auto. }
+    destruct (complete_directed _ Hc q1' q2') as [q' [Hq'1 Hq'2]].
+    exists (existT _ y' q'). simpl; split; auto.
+    + etransitivity; [ apply Hq1 | apply Hq'1 ].
+    + etransitivity; [ apply Hq2 | apply Hq'2 ].
+  - destruct Hy2 as [[y] | Hy2].
+    + destruct (complete_zeroDec x); auto.
+      * right.
+        intros [[y' q]].
+        assert (x * g y' + x <= 0).
+        { rewrite H. rewrite mulOrd_zero_l. rewrite <- addOrd_zero_l. reflexivity. }
+        destruct (ord_le_subord _ _ H0 q) as [[] _].
+      * rewrite ord_lt_unfold in H.
+        destruct H as [q _].
+        left.
+        assert (x <= x * g y + x).
+        rewrite (addOrd_zero_l x) at 1.
+        apply addOrd_monotone; auto with ord.
+        apply zero_least.
+        destruct (ord_le_subord _ _ H q) as [q' ?].
+        exact (inhabits (existT _ y q')).
+    + right. intros [[y q]].
+      elim Hy2. exact (inhabits y).
+  - simpl; intros [y q]. simpl.
+    apply complete_subord.
+    apply addOrd_complete; auto.
 Qed.
 
-Add Parametric Morphism : mulOrd with signature
-    ord_eq ==> ord_eq ==> ord_eq as mulOrd_eq_mor.
-Proof.
-  unfold ord_eq; intuition; apply mulOrd_le_mor; auto.
-Qed.
-
-
-(** * An ordinal exponentiation *)
+(** * Ordinal exponentiation *)
 
 Definition expOrd (x y:Ord) : Ord :=
-  foldOrd oneOrd (fun a => a ⊗ x) y.
+  foldOrd 1 (fun a => a * x) y.
 
 Lemma expOrd_nonzero x y : 0 < expOrd x y.
 Proof.
-  apply ord_lt_le_trans with oneOrd.
+  apply ord_lt_le_trans with 1.
   apply succ_lt.
   apply foldOrd_above_z.
 Qed.
@@ -745,8 +583,8 @@ Proof.
 Qed.
 
 Lemma expOrd_succ x y :
-  zeroOrd < x ->
-  expOrd x (succOrd y) ≈ (expOrd x y) ⊗ x.
+  0 < x ->
+  expOrd x (succOrd y) ≈ (expOrd x y) * x.
 Proof.
   intros.
   apply foldOrd_succ.
@@ -765,25 +603,17 @@ Proof.
 Qed.
 
 Lemma expOrd_increasing a (Ha : oneOrd < a) :
-  forall y x,
+  forall x y,
     x < y ->
     expOrd a x < expOrd a y.
 Proof.
   intros.
   apply foldOrd_increasing; auto.
   - intros.
-    rewrite mulOrd_unfold.
-    rewrite ord_lt_unfold in Ha.
-    destruct Ha as [q ?].
-    rewrite ord_le_unfold in H1. specialize (H1 tt).
-    rewrite ord_le_unfold in H0. specialize (H0 tt).
-    simpl in *.
-    eapply ord_lt_le_trans; [ | apply (sup_le _ _ q)]. simpl.
-    apply ord_le_lt_trans with (addOrd zeroOrd a0).
-    + eapply ord_le_trans; [ | apply addOrd_comm ].
-      apply addOrd_zero.
-    + apply addOrd_increasing1.
-      apply mulOrd_positive; auto.
+    rewrite <- (mulOrd_one a0) at 1.
+    apply mulOrd_increasing2; auto.
+    apply ord_lt_le_trans with 1; auto.
+    apply succ_lt.
   - apply mulOrd_monotone1.
 Qed.
 
@@ -800,4 +630,20 @@ Lemma expOrd_continuous x (Hx:ord_lt oneOrd x) :
   strongly_continuous (expOrd x).
 Proof.
   apply foldOrd_strongly_continuous; auto.
+Qed.
+
+Lemma expOrd_complete x y :
+  0 < x -> complete x -> complete y -> complete (expOrd x y).
+Proof.
+  intros Hx0 Hx Hy. unfold expOrd.
+  apply foldOrd_complete; auto.
+  - apply succ_complete. apply zero_complete.
+  - intros. apply mulOrd_positive; auto.
+    apply ord_lt_le_trans with 1; auto.
+    apply succ_lt.
+  - apply succ_least.
+    apply mulOrd_positive; auto.
+    apply succ_lt.
+  - intros. apply mulOrd_monotone1; auto.
+  - intros; apply mulOrd_complete; auto.
 Qed.
