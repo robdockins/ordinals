@@ -133,18 +133,15 @@ Proof.
       apply normal_monotone; auto.
 Qed.
 
-Lemma iter_f_monotone_func g h n :
-  (forall x, g x ≤ h x) ->
-  (forall x y, x ≤ y -> h x ≤ h y) ->
-  forall x, iter_f g x n ≤ iter_f h x n.
+Lemma iter_f_monotone_func f g n :
+  (forall x, f x ≤ g x) ->
+  (forall x y, x ≤ y -> g x ≤ g y) ->
+  forall x, iter_f f x n ≤ iter_f g x n.
 Proof.
-  intros Hg Hh.
+  intros Hf Hg.
   induction n; intros; simpl.
   - reflexivity.
-  - etransitivity.
-    apply Hg.
-    apply Hh.
-    auto.
+  - etransitivity; [ apply Hf | apply Hg; auto ].
 Qed.
 
 
@@ -152,9 +149,7 @@ Definition powOmega (x:Ord) : Ord := expOrd ω x.
 
 Lemma omega_gt1 : 1 < ω.
 Proof.
-  rewrite ord_lt_unfold.
-  exists 1%nat. simpl.
-  apply ord_le_refl.
+  apply (index_lt ω 1%nat).
 Qed.
 
 Lemma powOmega_increasing : forall x y, x < y -> powOmega x < powOmega y.
@@ -171,7 +166,6 @@ Proof.
   + apply powOmega_increasing.
   + red; intros A f a0; apply (expOrd_continuous ω omega_gt1 A f a0).
 Qed.
-
 
 Definition enum_fixpoints (f:Ord -> Ord) : Ord -> Ord :=
   fix rec (x:Ord) : Ord :=
@@ -331,6 +325,7 @@ Proof.
   unfold ord_eq; intuition; apply enum_fixpoints_monotone; auto.
 Qed.
 
+
 Definition ε (x:Ord) := enum_fixpoints powOmega x.
 
 Lemma epsilon_fixpoint x : ε x ≈ expOrd ω (ε x).
@@ -343,7 +338,6 @@ Qed.
 Section veblen.
   Variable f : Ord -> Ord.
   Hypothesis f_normal : normal_function f.
-  Hypothesis f_zero : zeroOrd < f zeroOrd.
 
   Fixpoint veblen (β:Ord) : Ord -> Ord :=
     fix inner (y:Ord) : Ord :=
@@ -734,6 +728,8 @@ Section veblen.
       simpl; intros. elim a0.
   Qed.
 
+  Hypothesis f_zero : 0 < f 0.
+
   Lemma veblen_increasing_first β :
     forall a, a < β -> veblen a zeroOrd < veblen β zeroOrd.
   Proof.
@@ -752,7 +748,7 @@ Section veblen.
     apply veblen_increasing.
     rewrite veblen_unroll.
     rewrite <- lub_le1.
-    apply ord_lt_le_trans with (f zeroOrd); auto.
+    apply ord_lt_le_trans with (f 0); [ apply f_zero | ].
     apply normal_monotone; auto.
     apply zero_least.
   Qed.
@@ -774,7 +770,7 @@ Section veblen.
   Qed.
 
   Lemma veblen_zero : forall x,
-    veblen zeroOrd x ≈ f x.
+    veblen 0 x ≈ f x.
   Proof.
     intro x.
     rewrite veblen_unroll. simpl.
@@ -823,7 +819,7 @@ Section veblen.
 
   Lemma veblen_limit_zero :
     forall β, limitOrdinal β -> complete β ->
-      veblen β zeroOrd ≈ boundedSup β (fun a => veblen a zeroOrd).
+      veblen β 0 ≈ boundedSup β (fun a => veblen a 0).
   Proof.
     intros.
     rewrite (veblen_unroll β).
@@ -963,16 +959,16 @@ Section veblen.
 
 End veblen.
 
-Definition Γ a := enum_fixpoints (fun b => veblen powOmega b zeroOrd) a.
+Definition Γ a := enum_fixpoints (fun b => veblen powOmega b 0) a.
 
-Theorem Gamma_fixpoints (EM:excluded_middle) : forall a, Γ a ≈ veblen powOmega (Γ a) zeroOrd.
+Theorem Gamma_fixpoints (EM:excluded_middle) : forall a, Γ a ≈ veblen powOmega (Γ a) 0.
 Proof.
   intro a. unfold Γ.
   apply enum_are_fixpoints.
   apply veblen_first_normal; auto.
   - apply powOmega_normal.
-  - unfold powOmega; apply expOrd_nonzero.
   - intro; apply (order_total EM).
+  - unfold powOmega; apply expOrd_nonzero.
 Qed.
 
 Theorem Gamma_normal (EM:excluded_middle) : normal_function Γ.
@@ -981,6 +977,6 @@ Proof.
   apply enum_fixpoints_normal.
   apply veblen_first_normal; auto.
   - apply powOmega_normal.
-  - unfold powOmega; apply expOrd_nonzero.
   - intro; apply (order_total EM).
+  - unfold powOmega; apply expOrd_nonzero.
 Qed.
