@@ -21,7 +21,7 @@ Lemma normal_inflationary (f:Ord -> Ord) :
   normal_function f ->
   forall x, x <= f x.
 Proof.
-  intro H. apply mono_lt_increasing. apply normal_increasing. auto.
+  intro H. apply increasing_inflationary. apply normal_increasing. auto.
 Qed.
 
 (** * Fixpoints of normal functions *)
@@ -160,14 +160,14 @@ Qed.
 Lemma powOmega_increasing : forall x y, x < y -> powOmega x < powOmega y.
 Proof.
   intros.
-  apply expOrd_monotone_lt; auto.
+  apply expOrd_increasing; auto.
   apply omega_gt1.
 Qed.
 
 Lemma powOmega_normal : normal_function powOmega.
 Proof.
   apply NormalFunction.
-  + apply expOrd_monotone_le.
+  + apply expOrd_monotone.
   + apply powOmega_increasing.
   + red; intros A f a0; apply (expOrd_continuous ω omega_gt1 A f a0).
 Qed.
@@ -801,7 +801,7 @@ Section veblen.
         apply normal_monotone; auto.
         rewrite ord_le_unfold; simpl; intro x.
         rewrite ord_lt_unfold; simpl; exists x.
-        apply mono_lt_increasing.
+        apply increasing_inflationary.
         apply enum_fixpoints_increasing.
         apply veblen_normal; auto.
       + apply sup_least. intro.

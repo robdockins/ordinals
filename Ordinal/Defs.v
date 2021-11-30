@@ -352,11 +352,11 @@ Proof.
   apply ord_lt_le_trans with y0; auto.
 Qed.
 
-Lemma mono_lt_increasing f :
+Lemma increasing_inflationary f :
   (forall x y, x < y -> f x < f y) ->
   forall a, a ≤ f a.
 Proof.
-  intro Hmono.
+  intro Hinc.
   induction a using ordinal_induction.
   apply ord_le_intro.
   intros z Hz.

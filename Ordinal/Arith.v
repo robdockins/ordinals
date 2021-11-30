@@ -47,7 +47,7 @@ Proof.
   apply lub_le1.
 Qed.
 
-Lemma foldOrd_monotone_le z s : forall x y,
+Lemma foldOrd_monotone z s : forall x y,
     (forall a b, a ≤ b -> s a ≤ s b) ->
     x ≤ y -> foldOrd z s x ≤ foldOrd z s y.
 Proof.
@@ -74,7 +74,7 @@ Proof.
   - apply foldOrd_above_z.
 Qed.
 
-Lemma foldOrd_monotone_lt z s : forall x y,
+Lemma foldOrd_increasing z s : forall x y,
     (forall a, z ≤ a -> a < s a) ->
     (forall a b, a ≤ b -> s a ≤ s b) ->
     x < y -> foldOrd z s x < foldOrd z s y.
@@ -87,7 +87,7 @@ Proof.
   rewrite <- lub_le2.
   rewrite <- (sup_le _ _ b).
   eapply ord_le_lt_trans; [ | apply H; apply foldOrd_above_z ].
-  apply foldOrd_monotone_le; auto.
+  apply foldOrd_monotone; auto.
 Qed.
 
 Lemma foldOrd_succ z s x :
@@ -129,10 +129,10 @@ Proof.
       eapply ord_le_trans; [ | apply lub_le2 ].
       eapply ord_le_trans; [ | apply (sup_le _ _ tt) ]. simpl.
       apply ord_le_refl.
-      apply foldOrd_monotone_le; auto.
+      apply foldOrd_monotone; auto.
       apply succ_least. auto.
   - apply boundedSup_least. intros a Ha.
-    apply foldOrd_monotone_le; auto with ord.
+    apply foldOrd_monotone; auto with ord.
 Qed.
 
 Lemma foldOrd_strongly_continuous z s :
@@ -192,9 +192,9 @@ Proof.
       simpl.
       destruct (Hx1 x1 x2) as [x' [Hx'1 Hx'2]].
       assert (Hsx1 : s (foldOrd (ord Z h) s (f x1)) <= s (foldOrd (ord Z h) s (f x'))).
-      { apply Hs2. apply foldOrd_monotone_le; auto. }
+      { apply Hs2. apply foldOrd_monotone; auto. }
       assert (Hsx2 : s (foldOrd (ord Z h) s (f x2)) <= s (foldOrd (ord Z h) s (f x'))).
-      { apply Hs2. apply foldOrd_monotone_le; auto. }
+      { apply Hs2. apply foldOrd_monotone; auto. }
       generalize Hsx1 Hsx2.
       do 2 rewrite ord_le_unfold.
       intros Hq1. specialize (Hq1 q1). rewrite ord_lt_unfold in Hq1.
@@ -402,7 +402,7 @@ Proof.
     auto.
 Qed.
 
-Lemma addOrd_monotone_le :
+Lemma addOrd_monotone :
   forall x y z1 z2, x ≤ y -> z1 ≤ z2 -> x ⊕ z1 ≤ y ⊕ z2.
 Proof.
   induction x as [A f]. destruct y as [B g]. induction z1 as [C h]. destruct z2.
@@ -431,7 +431,7 @@ Proof.
     apply H0; auto.
 Qed.
 
-Lemma addOrd_monotone_lt :
+Lemma addOrd_increasing_both :
   forall x y z1 z2, (x < y -> z1 ≤ z2 -> x ⊕ z1 < y ⊕ z2) /\
                     (x ≤ y -> z1 < z2 -> x ⊕ z1 < y ⊕ z2).
 Proof.
@@ -477,20 +477,20 @@ Proof.
       auto.
 Qed.
 
-Lemma addOrd_monotone_lt1 :
+Lemma addOrd_increasing1 :
   forall x y z, x < y -> x ⊕ z < y ⊕ z.
 Proof.
   intros.
-  destruct (addOrd_monotone_lt x y z z).
+  destruct (addOrd_increasing_both x y z z).
   apply H0; auto.
   apply ord_le_refl.
 Qed.
 
-Lemma addOrd_monotone_lt2 :
+Lemma addOrd_increasing2 :
   forall x y z, x < y -> z ⊕ x < z ⊕ y.
 Proof.
   intros.
-  destruct (addOrd_monotone_lt z z x y).
+  destruct (addOrd_increasing_both z z x y).
   apply H1; auto.
   apply ord_le_refl.
 Qed.
@@ -525,9 +525,9 @@ Proof.
     + apply ord_le_refl.
     + rewrite Hy.
       apply succ_least.
-      apply addOrd_monotone_lt2; auto with ord.
+      apply addOrd_increasing2; auto with ord.
   - apply succ_least.
-    apply addOrd_monotone_lt1.
+    apply addOrd_increasing1.
     apply succ_lt.
 Qed.
 
@@ -542,7 +542,7 @@ Qed.
 Add Parametric Morphism : addOrd with signature
     ord_le ++> ord_le ++> ord_le as addOrd_le_mor.
 Proof.
-  intros. apply addOrd_monotone_le; auto.
+  intros. apply addOrd_monotone; auto.
 Qed.
 
 Add Parametric Morphism : addOrd with signature
@@ -550,8 +550,8 @@ Add Parametric Morphism : addOrd with signature
 Proof.
   intros.
   eapply ord_lt_le_trans.
-  apply addOrd_monotone_lt1; eauto.
-  apply addOrd_monotone_le; auto.
+  apply addOrd_increasing1; eauto.
+  apply addOrd_monotone; auto.
   reflexivity.
 Qed.
 
@@ -560,8 +560,8 @@ Add Parametric Morphism : addOrd with signature
 Proof.
   intros.
   eapply ord_lt_le_trans.
-  apply addOrd_monotone_lt2; eauto.
-  apply addOrd_monotone_le; auto.
+  apply addOrd_increasing2; eauto.
+  apply addOrd_monotone; auto.
   reflexivity.
 Qed.
 
@@ -588,16 +588,16 @@ Proof.
   destruct y; auto.
 Qed.
 
-Lemma mulOrd_monotone_le1 : forall z x y, x ≤ y -> x ⊗ z ≤ y ⊗ z.
+Lemma mulOrd_monotone1 : forall z x y, x ≤ y -> x ⊗ z ≤ y ⊗ z.
 Proof.
   induction z as [C h Hz].
   simpl; intros.
   apply sup_least. intro c. simpl.
   rewrite <- (sup_le _ _ c).
-  apply addOrd_monotone_le; auto.
+  apply addOrd_monotone; auto.
 Qed.
 
-Lemma mulOrd_monotone_le2 : forall y x z, y ≤ z -> x ⊗ y ≤ x ⊗ z.
+Lemma mulOrd_monotone2 : forall y x z, y ≤ z -> x ⊗ y ≤ x ⊗ z.
 Proof.
   induction y as [B g Hy].
   intros.
@@ -613,11 +613,11 @@ Proof.
   intros.
   rewrite (mulOrd_unfold (ord A f) z).
   rewrite <- (sup_le _ _ q).
-  apply addOrd_monotone_le; auto.
+  apply addOrd_monotone; auto.
   apply ord_le_refl.
 Qed.
 
-Lemma mulOrd_monotone_lt2 : forall x y z,
+Lemma mulOrd_increasing2 : forall x y z,
     zeroOrd < x ->
     y < z ->
     x ⊗ y < x ⊗ z.
@@ -628,10 +628,10 @@ Proof.
   rewrite ord_lt_unfold in H.
   destruct H as [c Hc]. simpl in Hc.
   rewrite <- (sup_le _ _ c).
-  apply ord_le_lt_trans with (mulOrd x (h c)); [ apply mulOrd_monotone_le2; assumption | ].
+  apply ord_le_lt_trans with (mulOrd x (h c)); [ apply mulOrd_monotone2 ; assumption | ].
   apply ord_le_lt_trans with (addOrd (mulOrd x (h c)) zeroOrd).
   - apply addOrd_zero.
-  - apply addOrd_monotone_lt2. auto.
+  - apply addOrd_increasing2. auto.
 Qed.
 
 Lemma mulOrd_zero : forall x, x ⊗ zeroOrd ≈ zeroOrd.
@@ -693,7 +693,7 @@ Proof.
     rewrite <- (sup_le _ _ b').
     apply ord_le_trans with (mulOrd x (succOrd (g b))).
     apply (mulOrd_succ x (g b)).
-    apply mulOrd_monotone_le2.
+    apply mulOrd_monotone2.
     apply succ_least; auto.
   - apply sup_least. intro b.
     rewrite <- (sup_le _ _ b).
@@ -716,8 +716,8 @@ Add Parametric Morphism : mulOrd with signature
 Proof.
   intros.
   apply ord_le_trans with (x ⊗ y0).
-  apply mulOrd_monotone_le2; auto.
-  apply mulOrd_monotone_le1; auto.
+  apply mulOrd_monotone2; auto.
+  apply mulOrd_monotone1; auto.
 Qed.
 
 Add Parametric Morphism : mulOrd with signature
@@ -732,14 +732,14 @@ Qed.
 Definition expOrd (x y:Ord) : Ord :=
   foldOrd oneOrd (fun a => a ⊗ x) y.
 
-Lemma expOrd_nonzero x y : zeroOrd < expOrd x y.
+Lemma expOrd_nonzero x y : 0 < expOrd x y.
 Proof.
   apply ord_lt_le_trans with oneOrd.
   apply succ_lt.
   apply foldOrd_above_z.
 Qed.
 
-Lemma expOrd_zero x : expOrd x zeroOrd ≈ oneOrd.
+Lemma expOrd_zero x : expOrd x 0 ≈ 1.
 Proof.
   apply foldOrd_zero.
 Qed.
@@ -756,21 +756,21 @@ Proof.
   rewrite ord_le_unfold in H0. apply (H0 tt). auto.
 Qed.
 
-Lemma expOrd_monotone_le a : forall x y,
+Lemma expOrd_monotone a : forall x y,
     x ≤ y ->
     expOrd a x ≤ expOrd a y.
 Proof.
-  intros. apply foldOrd_monotone_le; auto.
-  intros; apply mulOrd_monotone_le1; auto.
+  intros. apply foldOrd_monotone; auto.
+  intros; apply mulOrd_monotone1; auto.
 Qed.
 
-Lemma expOrd_monotone_lt a (Ha : oneOrd < a) :
+Lemma expOrd_increasing a (Ha : oneOrd < a) :
   forall y x,
     x < y ->
     expOrd a x < expOrd a y.
 Proof.
   intros.
-  apply foldOrd_monotone_lt; auto.
+  apply foldOrd_increasing; auto.
   - intros.
     rewrite mulOrd_unfold.
     rewrite ord_lt_unfold in Ha.
@@ -782,9 +782,9 @@ Proof.
     apply ord_le_lt_trans with (addOrd zeroOrd a0).
     + eapply ord_le_trans; [ | apply addOrd_comm ].
       apply addOrd_zero.
-    + apply addOrd_monotone_lt1.
+    + apply addOrd_increasing1.
       apply mulOrd_positive; auto.
-  - apply mulOrd_monotone_le1.
+  - apply mulOrd_monotone1.
 Qed.
 
 Lemma expOrd_limit x y (Hx:oneOrd < x) :
@@ -793,7 +793,7 @@ Lemma expOrd_limit x y (Hx:oneOrd < x) :
 Proof.
   intros.
   apply foldOrd_limit; auto.
-  apply mulOrd_monotone_le1.
+  apply mulOrd_monotone1.
 Qed.
 
 Lemma expOrd_continuous x (Hx:ord_lt oneOrd x) :

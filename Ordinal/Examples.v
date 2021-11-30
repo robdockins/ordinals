@@ -60,9 +60,9 @@ Proof.
   apply ord_lt_le_trans with (β ⊗ succOrd x ⊕ y').
   - rewrite <- (addOrd_le1 _ (sz y')).
     rewrite mulOrd_succ.
-    apply addOrd_monotone_lt2; auto with ord.
-  - apply addOrd_monotone_le; auto with ord.
-    apply mulOrd_monotone_le2.
+    apply addOrd_increasing2; auto with ord.
+  - apply addOrd_monotone; auto with ord.
+    apply mulOrd_monotone2.
     apply succ_least. auto.
 Qed.
 
@@ -73,7 +73,7 @@ Lemma lex2 (α β:Ord) (x x':α) (y y':β) :
 Proof.
   unfold lex; intros.
   rewrite H.
-  apply addOrd_monotone_lt2; auto.
+  apply addOrd_increasing2; auto.
 Qed.
 
 (** * Well-founded relations generate ordinals *)
@@ -279,7 +279,7 @@ Lemma app_lt1 : forall (A:Ord) (xs ys:list A), ys <> [] ->  xs ◃ xs ++ ys.
 Proof.
   intros. rewrite listAdd. simpl.
   rewrite addOrd_zero at 1.
-  apply addOrd_monotone_lt2.
+  apply addOrd_increasing2.
   destruct ys.
   + elim H; auto.
   + simpl.
@@ -292,7 +292,7 @@ Proof.
   intros. rewrite listAdd. simpl.
   rewrite addOrd_zero at 1.
   rewrite addOrd_comm.
-  apply addOrd_monotone_lt1.
+  apply addOrd_increasing1.
   destruct xs.
   + elim H; auto.
   + simpl.
@@ -326,9 +326,9 @@ Proof.
   apply succ_least.
   rewrite (addOrd_comm (f a)).
   apply ord_lt_le_trans with (listOrd f l ⊕ (ord A f)).
-  apply addOrd_monotone_lt2. apply (index_lt (ord A f)).
+  apply addOrd_increasing2. apply (index_lt (ord A f)).
   rewrite <- (sup_le _ _ tt).
-  apply addOrd_monotone_le; auto with ord.
+  apply addOrd_monotone; auto with ord.
 Qed.
 
 Lemma listOrd_bounded (A:Ord) (l:list A) :
@@ -349,7 +349,7 @@ Proof.
   rewrite <- addOrd_le1.
   rewrite listOrd_bounded_aux; auto with ord.
   simpl.
-  apply mulOrd_monotone_le1.
+  apply mulOrd_monotone1.
   auto with ord.
 Qed.
 
@@ -419,7 +419,7 @@ Proof.
     apply succ_monotone_lt.
     rewrite <- (sup_le _ _ 0%nat).
     unfold streamIdx; unfold streamCons.
-    apply addOrd_monotone_lt2; auto with ord.
+    apply addOrd_increasing2; auto with ord.
     destruct A; apply listOrd_bounded'.
 Qed.
 
