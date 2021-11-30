@@ -106,8 +106,10 @@ Fixpoint complete (x:Ord) : Prop :=
   match x with
   | ord A f =>
     (forall a1 a2, exists a', f a1 <= f a' /\ f a2 <= f a') /\
+    (inhabited A \/ ~inhabited A) /\
     (forall a, complete (f a))
   end.
+
 
 (*  The notation "x ◃ y" indicates that "x" has a strictly smaller ordinal measure
     than "y".  Note that "x" and "y" do not need to have the same type.
@@ -391,7 +393,7 @@ Definition successorOrdinal (x:Ord) : Prop :=
 
 Definition limitOrdinal (x:Ord) : Prop :=
   match x with
-  | ord A f => (exists a:A, True) /\ ascendingSet A f
+  | ord A f => inhabited A /\ ascendingSet A f
   end.
 
 Lemma hasMax_ascending_contradiction A f : hasMaxElement A f -> ascendingSet A f -> False.
@@ -424,9 +426,7 @@ Proof.
   apply (hasMax_ascending_contradiction A f); auto.
 Qed.
 
-
 (** * Ordinal operators *)
-
 
 (** The zero ordinal, which is indexed by the empty type False *)
 Definition zeroOrd : Ord := ord False (False_rect _).
@@ -494,6 +494,12 @@ Proof.
   simpl. intros. elim a.
 Qed.
 
+Lemma zero_complete : complete zeroOrd.
+Proof.
+  hnf; simpl; intuition.
+  right. intros [H]; auto.
+Qed.
+
 (** Succ is a monotone operator with respetct to both lt and le, and
   * is strictly above its argument.
   *
@@ -549,6 +555,13 @@ Add Parametric Morphism : succOrd with signature
     ord_eq ==> ord_eq as succOrd_eq_mor.
 Proof.
   intros; apply succ_congruence; auto.
+Qed.
+
+Lemma succ_complete :forall o, complete o -> complete (succOrd o).
+Proof.
+  intros; hnf; simpl; intuition.
+  - exists tt; split; reflexivity.
+  - left; exact (inhabits tt).
 Qed.
 
 (** The supremum is nonstrictly above all the ordinals in the
@@ -791,7 +804,7 @@ Proof.
   intros H Heq ; split.
   - rewrite ord_lt_unfold in H.
     destruct H as [b ?].
-    exists b; auto.
+    exact (inhabits b).
   - red. intro a.
     destruct Heq as [Hle1 Hle2].
     rewrite ord_le_unfold in Hle1.
@@ -874,9 +887,7 @@ Module classical_ordinal_facts.
   Proof.
     destruct x as [A f]; simpl.
     destruct (max_or_ascending A f); auto.
-    destruct (EM (exists a:A, True)); intuition.
-    left; intro a.
-    elim H0. exists a; auto.
+    destruct (EM (inhabited A)); intuition.
   Qed.
 
   (** Classical ordinals form a total order, so every ordinal is complete. *)
@@ -886,6 +897,7 @@ Module classical_ordinal_facts.
     + destruct (order_total (f a1) (f a2)).
       * exists a2. split; auto with ord.
       * exists a1. split; auto with ord.
+    + apply EM.
   Qed.
 
   (** Classicaly, we can provide a more traditional induction principle for ordinals
@@ -919,6 +931,34 @@ Module classical_ordinal_facts.
   End classic.
 End classical_ordinal_facts.
 
+
+Lemma complete_subord o :
+  complete o -> forall i, complete (o i).
+Proof.
+  destruct o as [A f]; simpl; intuition.
+Qed.
+
+Lemma complete_zeroDec o :
+  complete o -> o <= zeroOrd \/ zeroOrd < o.
+Proof.
+  destruct o as [A f]; simpl; intuition.
+  - right.
+    destruct H1 as [a].
+    rewrite ord_lt_unfold. exists a.
+    apply zero_least.
+  - left.
+    rewrite ord_le_unfold. intro a.
+    elim H1. exact (inhabits a).
+Qed.
+
+Lemma complete_directed o :
+  complete o ->
+  forall a1 a2, exists a',
+      o a1 <= o a' /\
+      o a2 <= o a'.
+Proof.
+  destruct o as [A f]; simpl; intuition.
+Qed.
 
 
 (** Functions into sized types have sizes defined by nontrivial
@@ -1090,6 +1130,31 @@ Proof.
   exists (a,b). simpl.
   apply Hz; auto.
 Qed.
+
+Lemma glb_complete : forall x y, complete x -> complete y -> complete (x ⊓ y).
+Proof.
+  induction x as [X f Hx].
+  destruct y as [Y g].
+  simpl. intros [Hx1 [Hx2 Hx3]] [Hy1 [Hy2 Hy3]]; repeat split.
+  - intros [x1 y1] [x2 y2].
+    destruct (Hx1 x1 x2) as [x' [Hx'1 Hx'2]].
+    destruct (Hy1 y1 y2) as [y' [Hy'1 Hy'2]].
+    exists (x',y'). split; simpl.
+    + apply glb_greatest.
+      * rewrite glb_le1. auto.
+      * rewrite glb_le2. auto.
+    + apply glb_greatest.
+      * rewrite glb_le1. auto.
+      * rewrite glb_le2. auto.
+  - destruct Hx2 as [[x]|Hx2].
+    + destruct Hy2 as [[y]|Hy2].
+      * left. exact (inhabits (x,y)).
+      * right; intros [[x' y']]; auto.
+    + right; intros [[x' y']]; auto.
+  - intros [x y]. simpl.
+    apply Hx; auto.
+Qed.
+
 
 Add Parametric Morphism : glbOrd with signature
     ord_le ++> ord_le ++> ord_le as ord_glb_le_mor.
@@ -1371,6 +1436,96 @@ Proof.
       apply succ_least. auto.
   - apply boundedSup_least. intros a Ha.
     apply foldOrd_monotone_le; auto with ord.
+Qed.
+
+
+Lemma ord_le_subord x y :
+  x <= y ->
+  forall i, exists j, x i <= y j.
+Proof.
+  intros.
+  rewrite ord_le_unfold in H.
+  specialize (H i).
+  rewrite ord_lt_unfold in H.
+  auto.
+Qed.
+
+Lemma foldOrd_complete z s :
+  complete z ->
+  (forall x, zeroOrd < s x) ->
+  z <= s z ->
+  (forall x y, x <= y -> s x <= s y) ->
+  (forall o, complete o -> complete (s o)) ->
+  forall x, complete x -> complete (foldOrd z s x).
+Proof.
+  intros Hz Hs0 Hs1 Hs2 Hs3.
+  induction x as [X f Hx].
+  simpl; intros [Hx1 [Hx2 Hx3]].
+  destruct z as [Z h]; simpl in *.
+  destruct  Hz as [Hz1 [Hz2 Hz3]].
+  repeat split.
+  - intros [z1|x1] [z2|x2].
+    + destruct (Hz1 z1 z2) as [z' [??]].
+      exists (inl z'). split; auto.
+    + destruct x2 as [x2 q1]. simpl.
+      assert (ord Z h <= s (foldOrd (ord Z h) s (f x2))).
+      { etransitivity. apply Hs1.
+        apply Hs2. apply foldOrd_above_z.
+      }
+      destruct (ord_le_subord (ord Z h) (s (foldOrd (ord Z h) s (f x2))) H z1) as [q2 Hq2].
+      destruct (complete_directed _ (Hs3 _ (Hx _ (Hx3 _))) q1 q2) as [q' [Hq'1 Hq'2]].
+      exists (inr (existT _ x2 q')); simpl.
+      split.
+      * etransitivity; [ apply Hq2 | apply Hq'2 ].
+      * apply Hq'1.
+    + destruct x1 as [x1 q1]. simpl.
+      assert (ord Z h <= s (foldOrd (ord Z h) s (f x1))).
+      { etransitivity. apply Hs1.
+        apply Hs2. apply foldOrd_above_z.
+      }
+      destruct (ord_le_subord (ord Z h) (s (foldOrd (ord Z h) s (f x1))) H z2) as [q2 Hq2].
+      destruct (complete_directed _ (Hs3 _ (Hx _ (Hx3 _))) q1 q2) as [q' [Hq'1 Hq'2]].
+      exists (inr (existT _ x1 q')); simpl.
+      split.
+      * apply Hq'1.
+      * etransitivity; [ apply Hq2 | apply Hq'2 ].
+    + destruct x1 as [x1 q1].
+      destruct x2 as [x2 q2].
+      simpl.
+      destruct (Hx1 x1 x2) as [x' [Hx'1 Hx'2]].
+      assert (Hsx1 : s (foldOrd (ord Z h) s (f x1)) <= s (foldOrd (ord Z h) s (f x'))).
+      { apply Hs2. apply foldOrd_monotone_le; auto. }
+      assert (Hsx2 : s (foldOrd (ord Z h) s (f x2)) <= s (foldOrd (ord Z h) s (f x'))).
+      { apply Hs2. apply foldOrd_monotone_le; auto. }
+      generalize Hsx1 Hsx2.
+      do 2 rewrite ord_le_unfold.
+      intros Hq1. specialize (Hq1 q1). rewrite ord_lt_unfold in Hq1.
+      destruct Hq1 as [q1' Hq1].
+      intros Hq2. specialize (Hq2 q2). rewrite ord_lt_unfold in Hq2.
+      destruct Hq2 as [q2' Hq2].
+      destruct (complete_directed _ (Hs3 _ (Hx _ (Hx3 _))) q1' q2') as [q' [Hq'1 Hq'2]].
+      exists (inr (existT _ x' q')); simpl.
+      split.
+      * etransitivity; [ apply Hq1 | apply Hq'1 ].
+      * etransitivity; [ apply Hq2 | apply Hq'2 ].
+
+  - destruct Hz2 as [[z]|Hz2].
+    + left. exact (inhabits (inl z)).
+    + destruct Hx2 as [[x]|Hx2].
+      * assert (zeroOrd < s (foldOrd (ord Z h) s (f x))).
+        apply Hs0.
+        rewrite ord_lt_unfold in H.
+        destruct H as [q Hq].
+        left.
+        exact (inhabits (inr (existT _ x q))).
+      * right. intros [[z|[x ?]]].
+        ** apply Hz2. exact (inhabits z).
+        ** apply Hx2. exact (inhabits x).
+  - intros [z | [x q]]; simpl; auto.
+    assert (Hc : complete (s (foldOrd (ord Z h) s (f x)))).
+    { apply Hs3. apply Hx. apply Hx3. }
+    destruct (s (foldOrd (ord Z h) s (f x))); destruct Hc as [Hc1 [Hc2 Hc3]].
+    apply Hc3.
 Qed.
 
 Definition strongly_continuous (s:Ord -> Ord) :=
@@ -1733,7 +1888,6 @@ Add Parametric Morphism : addOrd with signature
 Proof.
   intros; split; apply addOrd_le_mor; solve [apply H|apply H0].
 Qed.
-
 
 
 (** * An ordinal multiplication *)
