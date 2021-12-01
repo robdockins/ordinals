@@ -159,72 +159,28 @@ Proof.
   intros Hz Hs0 Hs1 Hs2 Hs3.
   induction x as [X f Hx].
   simpl; intros [Hx1 [Hx2 Hx3]].
-  destruct z as [Z h]; simpl in *.
-  destruct  Hz as [Hz1 [Hz2 Hz3]].
-  repeat split.
-  - intros [z1|x1] [z2|x2].
-    + destruct (Hz1 z1 z2) as [z' [??]].
-      exists (inl z'). split; auto.
-    + destruct x2 as [x2 q1]. simpl.
-      assert (ord Z h <= s (foldOrd (ord Z h) s (f x2))).
-      { etransitivity. apply Hs1.
-        apply Hs2. apply foldOrd_above_z.
-      }
-      destruct (ord_le_subord (ord Z h) (s (foldOrd (ord Z h) s (f x2))) H z1) as [q2 Hq2].
-      destruct (complete_directed _ (Hs3 _ (Hx _ (Hx3 _))) q1 q2) as [q' [Hq'1 Hq'2]].
-      exists (inr (existT _ x2 q')); simpl.
-      split.
-      * etransitivity; [ apply Hq2 | apply Hq'2 ].
-      * apply Hq'1.
-    + destruct x1 as [x1 q1]. simpl.
-      assert (ord Z h <= s (foldOrd (ord Z h) s (f x1))).
-      { etransitivity. apply Hs1.
-        apply Hs2. apply foldOrd_above_z.
-      }
-      destruct (ord_le_subord (ord Z h) (s (foldOrd (ord Z h) s (f x1))) H z2) as [q2 Hq2].
-      destruct (complete_directed _ (Hs3 _ (Hx _ (Hx3 _))) q1 q2) as [q' [Hq'1 Hq'2]].
-      exists (inr (existT _ x1 q')); simpl.
-      split.
-      * apply Hq'1.
-      * etransitivity; [ apply Hq2 | apply Hq'2 ].
-    + destruct x1 as [x1 q1].
-      destruct x2 as [x2 q2].
-      simpl.
+  assert (Hsup : complete (supOrd (fun i : X => s (foldOrd z s (f i))))).
+  { apply sup_complete; auto.
+    - intros x1 x2.
       destruct (Hx1 x1 x2) as [x' [Hx'1 Hx'2]].
-      assert (Hsx1 : s (foldOrd (ord Z h) s (f x1)) <= s (foldOrd (ord Z h) s (f x'))).
-      { apply Hs2. apply foldOrd_monotone; auto. }
-      assert (Hsx2 : s (foldOrd (ord Z h) s (f x2)) <= s (foldOrd (ord Z h) s (f x'))).
-      { apply Hs2. apply foldOrd_monotone; auto. }
-      generalize Hsx1 Hsx2.
-      do 2 rewrite ord_le_unfold.
-      intros Hq1. specialize (Hq1 q1). rewrite ord_lt_unfold in Hq1.
-      destruct Hq1 as [q1' Hq1].
-      intros Hq2. specialize (Hq2 q2). rewrite ord_lt_unfold in Hq2.
-      destruct Hq2 as [q2' Hq2].
-      destruct (complete_directed _ (Hs3 _ (Hx _ (Hx3 _))) q1' q2') as [q' [Hq'1 Hq'2]].
-      exists (inr (existT _ x' q')); simpl.
-      split.
-      * etransitivity; [ apply Hq1 | apply Hq'1 ].
-      * etransitivity; [ apply Hq2 | apply Hq'2 ].
-
-  - destruct Hz2 as [[z]|Hz2].
-    + left. exact (inhabits (inl z)).
-    + destruct Hx2 as [[x]|Hx2].
-      * assert (zeroOrd < s (foldOrd (ord Z h) s (f x))).
-        { apply Hs0. apply foldOrd_above_z. }
-        rewrite ord_lt_unfold in H.
-        destruct H as [q Hq].
-        left.
-        exact (inhabits (inr (existT _ x q))).
-      * right. intros [[z|[x ?]]].
-        ** apply Hz2. exact (inhabits z).
-        ** apply Hx2. exact (inhabits x).
-  - intros [z | [x q]]; simpl; auto.
-    assert (Hc : complete (s (foldOrd (ord Z h) s (f x)))).
-    { apply Hs3. apply Hx. apply Hx3. }
-    destruct (s (foldOrd (ord Z h) s (f x))); destruct Hc as [Hc1 [Hc2 Hc3]].
-    apply Hc3.
+      exists x'.
+      split; apply Hs2; apply foldOrd_monotone; auto.
+    - destruct Hx2 as [[x]|Hx2].
+      + left. exists x.
+        apply Hs0.
+        apply foldOrd_above_z.
+      + right. intro x; elim Hx2. exact (inhabits x).
+  }
+  destruct Hx2 as [[x]|Hx2].
+  + apply lub_complete2; auto.
+    rewrite <- (sup_le _ _ x).
+    transitivity (s z); auto.
+    apply Hs2. apply foldOrd_above_z.
+  + apply lub_complete1; auto.
+    apply sup_least. intro x.
+    elim Hx2. exact (inhabits x).
 Qed.
+
 
 (** * Ordinal addition *)
 
@@ -522,48 +478,35 @@ Qed.
 
 Lemma mulOrd_complete x y : complete x -> complete y -> complete (x * y).
 Proof.
-  induction y as [Y g Hy]; simpl; intros Hx [Hy1 [Hy2 Hy3]].
-  repeat split.
-  - intros [y1 q1] [y2 q2]; simpl.
+  induction y as [Y g Hy]; simpl mulOrd; intros Hx [Hy1 [Hy2 Hy3]].
+  apply sup_complete.
+  - intros. apply addOrd_complete; auto.
+  - intros y1 y2.
     destruct (Hy1 y1 y2) as [y' [Hy'1 Hy'2]].
-    assert (Hgy1 :  x * g y1 + x <= x * g y' + x).
-    { apply addOrd_monotone; auto.
+    exists y'. split.
+    + apply addOrd_monotone; auto.
       apply mulOrd_monotone2; auto.
-      reflexivity. }
-    assert (Hgy2 : x * g y2 + x <= x * g y' + x).
-    { apply addOrd_monotone; auto.
+      reflexivity.
+    + apply addOrd_monotone; auto.
       apply mulOrd_monotone2; auto.
-      reflexivity. }
-    destruct (ord_le_subord _ _ Hgy1 q1) as [q1' Hq1].
-    destruct (ord_le_subord _ _ Hgy2 q2) as [q2' Hq2].
-    assert (Hc : complete (x * g y' + x)).
-    { apply addOrd_complete; auto. }
-    destruct (complete_directed _ Hc q1' q2') as [q' [Hq'1 Hq'2]].
-    exists (existT _ y' q'). simpl; split; auto.
-    + etransitivity; [ apply Hq1 | apply Hq'1 ].
-    + etransitivity; [ apply Hq2 | apply Hq'2 ].
-  - destruct Hy2 as [[y] | Hy2].
-    + destruct (complete_zeroDec x); auto.
-      * right.
-        intros [[y' q]].
-        assert (x * g y' + x <= 0).
-        { rewrite H. rewrite mulOrd_zero_l. rewrite <- addOrd_zero_l. reflexivity. }
-        destruct (ord_le_subord _ _ H0 q) as [[] _].
-      * rewrite ord_lt_unfold in H.
-        destruct H as [q _].
-        left.
-        assert (x <= x * g y + x).
+      reflexivity.
+  - destruct (complete_zeroDec x Hx).
+    + right; intro y.
+      rewrite (addOrd_zero_l 0).
+      apply addOrd_monotone; auto.
+      rewrite H.
+      rewrite mulOrd_zero_l.
+      reflexivity.
+    + destruct Hy2 as [[y]|Hy2].
+      * left. exists y.
+        apply ord_lt_le_trans with x; auto.
         rewrite (addOrd_zero_l x) at 1.
         apply addOrd_monotone; auto with ord.
         apply zero_least.
-        destruct (ord_le_subord _ _ H q) as [q' ?].
-        exact (inhabits (existT _ y q')).
-    + right. intros [[y q]].
-      elim Hy2. exact (inhabits y).
-  - simpl; intros [y q]. simpl.
-    apply complete_subord.
-    apply addOrd_complete; auto.
+      * right.
+        intro y. elim Hy2. exact (inhabits y).
 Qed.
+
 
 (** * Ordinal exponentiation *)
 

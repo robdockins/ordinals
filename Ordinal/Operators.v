@@ -811,3 +811,125 @@ Proof.
   - apply succ_monotone_le.
     apply lub_le2.
 Qed.
+
+
+Lemma lub_complete1 : forall x y,
+    x >= y ->
+    complete x ->
+    complete y ->
+    complete (x ⊔ y).
+Proof.
+ intros x y Hxy Hx Hy.
+ destruct x as [X f].
+ destruct y as [Y g].
+ simpl in *.
+ destruct Hx as [Hx1 [Hx2 Hx3]].
+ repeat split.
+ - intros [x1|y1].
+   + intros [x2|y2].
+     * destruct (Hx1 x1 x2) as [x' [Hx'1 Hx'2]].
+       exists (inl x'); split; auto.
+     * destruct (ord_le_subord _ _ Hxy y2) as [x2 Hy2]. simpl in *.
+       destruct (Hx1 x1 x2) as [x' [Hx'1 Hx'2]].
+       exists (inl x'); split; auto.
+       transitivity (f x2); auto.
+   + destruct (ord_le_subord _ _ Hxy y1) as [x1 Hy1]. simpl in *.
+     intros [x2|y2].
+     * destruct (Hx1 x1 x2) as [x' [Hx'1 Hx'2]].
+       exists (inl x'); split; auto.
+       transitivity (f x1); auto.
+     * destruct (ord_le_subord _ _ Hxy y2) as [x2 Hy2]. simpl in *.
+       destruct (Hx1 x1 x2) as [x' [Hx'1 Hx'2]].
+       exists (inl x'); split; auto.
+       transitivity (f x1); auto.
+       transitivity (f x2); auto.
+ - destruct Hx2 as [[x]|Hx2].
+   + left. exact (inhabits (inl x)).
+   + right. intros [[x|y]].
+     * apply Hx2. exact (inhabits x).
+     * apply Hx2.
+       destruct (ord_le_subord _ _ Hxy y) as [x _]. simpl in *.
+       exact (inhabits x).
+ - intros [x|y]; auto.
+   destruct Hy as [_ [_ Hy]]; apply Hy.
+Qed.
+
+
+Lemma lub_complete2 : forall x y,
+    x <= y ->
+    complete x ->
+    complete y ->
+    complete (x ⊔ y).
+Proof.
+ intros x y Hxy Hx Hy.
+ destruct x as [X f].
+ destruct y as [Y g].
+ simpl in *.
+ destruct Hy as [Hy1 [Hy2 Hy3]].
+ repeat split.
+ - intros [x1|y1].
+   + destruct (ord_le_subord _ _ Hxy x1) as [y1 Hx1]. simpl in *.
+     intros [x2|y2].
+     * destruct (ord_le_subord _ _ Hxy x2) as [y2 Hx2]. simpl in *.
+       destruct (Hy1 y1 y2) as [y' [Hy'1 Hy'2]].
+       exists (inr y'); split; auto.
+       transitivity (g y1); auto.
+       transitivity (g y2); auto.
+     * destruct (Hy1 y1 y2) as [y' [Hy'1 Hy'2]].
+       exists (inr y'); split; auto.
+       transitivity (g y1); auto.
+   + intros [x2|y2].
+     * destruct (ord_le_subord _ _ Hxy x2) as [y2 Hx2]. simpl in *.
+       destruct (Hy1 y1 y2) as [y' [Hy'1 Hy'2]].
+       exists (inr y'); split; auto.
+       transitivity (g y2); auto.
+     * destruct (Hy1 y1 y2) as [y' [Hy'1 Hy'2]].
+       exists (inr y'); split; auto.
+ - destruct Hy2 as [[y]|Hy2].
+   + left. exact (inhabits (inr y)).
+   + right. intros [[x|y]].
+     * apply Hy2.
+       destruct (ord_le_subord _ _ Hxy x) as [y _]. simpl in *.
+       exact (inhabits y).
+     * apply Hy2.
+       exact (inhabits y).
+ - intros [x|y]; auto.
+   destruct Hx as [_ [_ Hx]]; apply Hx.
+Qed.
+
+Lemma lim_complete : forall A (f:A -> Ord),
+    (forall a, complete (f a)) ->
+    (forall a1 a2, exists a', f a1 <= f a' /\ f a2 <= f a') ->
+    (inhabited A \/ ~inhabited A) ->
+    complete (limOrd f).
+Proof.
+  intros A f H1 H2 H3.
+  simpl. repeat split; auto.
+Qed.
+
+Lemma sup_complete : forall A (f:A -> Ord),
+    (forall a, complete (f a)) ->
+    (forall a1 a2, exists a', f a1 <= f a' /\ f a2 <= f a') ->
+    ((exists a, 0 < f a) \/ (forall a, f a <= 0)) ->
+    complete (supOrd f).
+Proof.
+  intros A f H1 H2 H3.
+  simpl. repeat split.
+  - intros [a1 q1] [a2 q2]. simpl.
+    destruct (H2 a1 a2) as [a' [Ha1 Ha2]].
+    destruct (ord_le_subord _ _ Ha1 q1) as [q1' Hq1].
+    destruct (ord_le_subord _ _ Ha2 q2) as [q2' Hq2].
+    destruct (complete_directed (f a') (H1 a') q1' q2') as [q' [Hq'1 Hq'2]].
+    exists (existT _ a' q'). simpl. split.
+    transitivity (f a' q1'); auto.
+    transitivity (f a' q2'); auto.
+  - destruct H3.
+    + left. destruct H as [a Ha].
+      rewrite ord_lt_unfold in Ha.
+      destruct Ha as [q Hq].
+      exact (inhabits (existT _ a q)).
+    + right. intros [[a q]].
+      destruct (ord_le_subord _ _ (H a) q) as [[] _].
+  - intros [a q]; simpl.
+    apply complete_subord; auto.
+Qed.
