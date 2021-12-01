@@ -5,6 +5,7 @@ Unset Printing Records.
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 
+Module classical.
 Section classic.
   Hypothesis EM : excluded_middle.
 
@@ -76,7 +77,7 @@ Section classic.
   Theorem ord_complete (x:Ord) : complete x.
   Proof.
     induction x as [A f]; simpl; intuition.
-    + destruct (order_total (f a1) (f a2)).
+    + intros a1 a2; destruct (order_total (f a1) (f a2)).
       * exists a2. split; auto with ord.
       * exists a1. split; auto with ord.
     + apply EM.
@@ -111,3 +112,4 @@ Section classic.
   Qed.
 
 End classic.
+End classical.

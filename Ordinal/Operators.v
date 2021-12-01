@@ -83,19 +83,23 @@ Definition predOrd (x:Ord) : Ord :=
   end.
 
 (** A "complete" ordinal is one which is directed, in an order-theoretic
-    sense, and for which all its subordinals are also complete.
+    sense; for which it deciable if it is inhabited; and for which all its
+    subordinals are also complete.
 
     This is a technical property that appears necessary in some later proofs.
-    In a classical seetting all ordinals would have this property.
+    In a classical setting all ordinals have this property, as it follows
+    easily from the totality of order.
   *)
+Definition directed A (f:A -> Ord) :=
+  forall a1 a2, exists a', f a1 <= f a' /\ f a2 <= f a'.
+
 Fixpoint complete (x:Ord) : Prop :=
   match x with
   | ord A f =>
-    (forall a1 a2, exists a', f a1 <= f a' /\ f a2 <= f a') /\
+    (directed A f) /\
     (inhabited A \/ ~inhabited A) /\
     (forall a, complete (f a))
   end.
-
 
 Lemma complete_subord o :
   complete o -> forall i, complete (o i).
@@ -125,9 +129,6 @@ Proof.
   destruct o as [A f]; simpl; intuition.
 Qed.
 
-Definition strongly_continuous (s:Ord -> Ord) :=
-  forall A (f:A -> Ord) (a0:A), s (supOrd f) ≤ supOrd (fun i:A => s (f i)).
-
 (** Zero is the least ordinal. *)
 Lemma zero_least : forall o, 0 ≤ o.
 Proof.
@@ -137,8 +138,8 @@ Qed.
 
 Lemma zero_complete : complete 0.
 Proof.
-  hnf; simpl; intuition.
-  right. intros [H]; auto.
+  simpl; repeat (hnf; intuition).
+  right. intros [[]].
 Qed.
 
 (** Succ is a monotone operator with respetct to both lt and le, and
@@ -419,7 +420,7 @@ Qed.
 Lemma omega_complete : complete ω.
 Proof.
   hnf; simpl; repeat split.
-  - intros.
+  - intros a1 a2.
     exists (Nat.max a1 a2); split; apply natOrdSize_monotone.
     + apply PeanoNat.Nat.le_max_l.
     + apply PeanoNat.Nat.le_max_r.
@@ -899,7 +900,7 @@ Qed.
 
 Lemma lim_complete : forall A (f:A -> Ord),
     (forall a, complete (f a)) ->
-    (forall a1 a2, exists a', f a1 <= f a' /\ f a2 <= f a') ->
+    directed A f ->
     (inhabited A \/ ~inhabited A) ->
     complete (limOrd f).
 Proof.
@@ -909,7 +910,7 @@ Qed.
 
 Lemma sup_complete : forall A (f:A -> Ord),
     (forall a, complete (f a)) ->
-    (forall a1 a2, exists a', f a1 <= f a' /\ f a2 <= f a') ->
+    directed A f ->
     ((exists a, 0 < f a) \/ (forall a, f a <= 0)) ->
     complete (supOrd f).
 Proof.
