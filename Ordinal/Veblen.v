@@ -69,6 +69,67 @@ Section normal_fixpoints.
       apply sup_le.
   Qed.
 
+  Lemma normal_fix_above : forall base, base ≤ normal_fix base.
+  Proof.
+    intros.
+    unfold normal_fix.
+    apply (sup_le _ (iter_f base) 0%nat).
+  Qed.
+
+  Lemma iter_f_complete n :
+    forall base, complete base ->
+    (forall x, complete x -> x <= f x) ->
+    (forall x, complete x -> complete (f x)) ->
+    complete (iter_f base n).
+  Proof.
+    induction n as [n IH1] using (well_founded_induction Wf_nat.lt_wf).
+    destruct n; simpl; auto.
+  Qed.
+
+  Lemma iter_f_index_monotone i j :
+    (forall x : Ord, complete x -> complete (f x)) ->
+    (forall x, complete x -> x <= f x) ->
+    (i <= j)%nat -> forall base, complete base -> iter_f base i <= iter_f base j.
+  Proof.
+    intros Hf1 Hf2 H; induction H; intros base Hbase; simpl.
+    - reflexivity.
+    - rewrite IHle; auto.
+      apply Hf2. apply iter_f_complete; auto.
+  Qed.
+
+  Lemma normal_fix_complete base :
+    complete base ->
+    (forall x, complete x -> x <= f x) ->
+    (forall x y, x <= y -> f x <= f y) ->
+    (forall x, complete x -> complete (f x)) ->
+    complete (normal_fix base).
+  Proof.
+    intros Hbase Hf1 Hf2 Hf3.
+    unfold normal_fix.
+    apply sup_complete; auto.
+    - intros; apply iter_f_complete; auto.
+    - intros i j. exists (Nat.max i j).
+      split; apply iter_f_index_monotone; auto.
+      + apply PeanoNat.Nat.le_max_l.
+      + apply PeanoNat.Nat.le_max_r.
+    - assert (Hc' : complete (f base)).
+      { apply Hf3; auto. }
+      destruct (complete_zeroDec base Hbase).
+      + destruct (complete_zeroDec (f base) Hc').
+        * right. intro i.
+          revert H H0. clear -Hf1 Hf2 Hbase. revert base Hbase.
+          induction i; simpl; intros; auto.
+          transitivity (f base); auto.
+          apply Hf2; auto.
+          rewrite IHi; auto.
+          apply zero_least.
+        * left.
+          exists 1%nat. simpl.
+          auto.
+      + left.
+        exists 0%nat. simpl. auto.
+  Qed.
+
   Hypothesis Hnormal : normal_function f.
 
   Lemma normal_prefixpoint : forall base, f (normal_fix base) ≤ normal_fix base.
@@ -86,13 +147,6 @@ Section normal_fixpoints.
     intros; split.
     - apply normal_inflationary; auto.
     - apply normal_prefixpoint.
-  Qed.
-
-  Lemma normal_fix_above : forall base, base ≤ normal_fix base.
-  Proof.
-    intros.
-    unfold normal_fix.
-    apply (sup_le _ (iter_f base) 0%nat).
   Qed.
 
   Lemma normal_fix_least : forall base z, base ≤ z -> f z ≤ z -> normal_fix base ≤ z.
@@ -338,6 +392,7 @@ Qed.
 Section veblen.
   Variable f : Ord -> Ord.
   Hypothesis f_normal : normal_function f.
+  Hypothesis f_zero : 0 < f 0.
 
   Fixpoint veblen (β:Ord) : Ord -> Ord :=
     fix inner (y:Ord) : Ord :=
@@ -457,6 +512,70 @@ Section veblen.
     rewrite veblen_unroll.
     rewrite <- lub_le1.
     apply normal_inflationary. auto.
+  Qed.
+
+  Lemma veblen_complete :
+    (forall x, complete x -> complete (f x)) ->
+    forall β, complete β -> forall x, complete x -> complete (veblen β x).
+  Proof.
+    intro Hf.
+    induction β as [B g Hβ]; intro Hc1.
+    induction x as [X h Hx]; intro Hc2.
+    rewrite veblen_unroll.
+    unfold boundedSup.
+    assert (Hsup : complete (supOrd
+         (fun i : B =>
+          normal_fix (veblen (g i))
+            (limOrd (fun x : ord X h => veblen (ord B g) (ord X h x)))))).
+    { destruct Hc2 as [H1 [H2 H3]].
+      apply sup_complete.
+      - intro b. apply normal_fix_complete.
+        + simpl. repeat split; auto.
+          intros x1 x2. destruct (H1 x1 x2) as [x' [Hx'1 Hx'2]].
+          exists x'. split; apply veblen_monotone; auto.
+        + intros; apply veblen_inflationary.
+        + apply veblen_monotone.
+        + simpl; intros.
+          apply Hβ; auto.
+          apply Hc1.
+      - intros b1 b2.
+        destruct Hc1 as [Hc1 [Hc2 Hc3]].
+        destruct (Hc1 b1 b2) as [b' [Hb1 Hb2]].
+        exists b'; simpl.
+        split; unfold normal_fix; apply sup_ord_le_morphism; intro i;
+          apply iter_f_monotone_func; auto.
+        + intros; apply veblen_monotone_first; auto.
+        + intros; apply veblen_monotone; auto.
+        + intros; apply veblen_monotone_first; auto.
+        + intros; apply veblen_monotone; auto.
+      - destruct Hc1 as [Hc1 [Hc2 Hc3]].
+        destruct Hc2 as [[b]|Hc2].
+        + left. exists b.
+          unfold normal_fix.
+          rewrite <- (sup_le _ _ 1%nat); simpl.
+          rewrite veblen_unroll.
+          rewrite <- lub_le1.
+          apply ord_lt_le_trans with (f 0); auto.
+          apply normal_monotone; auto.
+          apply zero_least.
+        + right. intro b. elim Hc2. exact (inhabits b).
+    }
+    destruct (complete_zeroDec _ Hc1).
+    - apply lub_complete1; auto.
+      apply sup_least; intro b.
+      destruct (ord_le_subord _ _ H b) as [[] _].
+    - apply lub_complete2; auto.
+      rewrite ord_lt_unfold in H.
+      destruct H as [b _].
+      rewrite <- (sup_le _ _ b).
+      unfold normal_fix.
+      rewrite <- (sup_le _ _ 1%nat); simpl.
+      rewrite veblen_unroll.
+      rewrite <- lub_le1.
+      apply normal_monotone; auto.
+      rewrite ord_le_unfold; intro x; simpl.
+      rewrite ord_lt_unfold; exists x. simpl.
+      apply veblen_inflationary.
   Qed.
 
   Lemma veblen_increasing0 : forall x y, x < y -> veblen zeroOrd x < veblen zeroOrd y.
@@ -728,8 +847,6 @@ Section veblen.
       simpl; intros. elim a0.
   Qed.
 
-  Hypothesis f_zero : 0 < f 0.
-
   Lemma veblen_increasing_first β :
     forall a, a < β -> veblen a zeroOrd < veblen β zeroOrd.
   Proof.
@@ -967,8 +1084,8 @@ Proof.
   apply enum_are_fixpoints.
   apply veblen_first_normal; auto.
   - apply powOmega_normal.
-  - intro; apply (order_total EM).
   - unfold powOmega; apply expOrd_nonzero.
+  - intro; apply (order_total EM).
 Qed.
 
 Theorem Gamma_normal (EM:excluded_middle) : normal_function Γ.
@@ -977,6 +1094,6 @@ Proof.
   apply enum_fixpoints_normal.
   apply veblen_first_normal; auto.
   - apply powOmega_normal.
-  - intro; apply (order_total EM).
   - unfold powOmega; apply expOrd_nonzero.
+  - intro; apply (order_total EM).
 Qed.
