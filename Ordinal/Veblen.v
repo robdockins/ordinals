@@ -1,34 +1,41 @@
 Require Import Setoid.
 Require Import Morphisms.
 Require Import Coq.Program.Basics.
-Require Import ClassicalFacts.
 
 Unset Printing Records.
 
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
-From Ordinal Require Import Classical.
 
 (** We say that a function is Scott continuous if it
-    preserves all nonempty directed suprema. *)
+    preserves all nonempty directed suprema of complete ordinals. *)
 Definition scott_continuous (s:Ord -> Ord) :=
   forall A (f:A -> Ord) (a0:A),
     directed A f ->
+    (forall a, complete (f a)) ->
     s (supOrd f) ≤ supOrd (fun i:A => s (f i)).
 
 Record normal_function (f:Ord -> Ord) :=
   NormalFunction
   { normal_monotone   : forall x y, x ≤ y -> f x ≤ f y
-  ; normal_increasing : forall x y, x < y -> f x < f y
+  ; normal_increasing : forall x y, complete y -> x < y -> f x < f y
   ; normal_continuous : scott_continuous f
+  ; normal_complete   : forall x, complete x -> complete (f x)
+  ; normal_nonzero    : forall x, 0 < f x
   }.
 
 Lemma normal_inflationary (f:Ord -> Ord) :
   normal_function f ->
-  forall x, x <= f x.
+  forall x, complete x -> x <= f x.
 Proof.
-  intro H. apply increasing_inflationary. apply normal_increasing. auto.
+  intro H.
+  induction x as [X g Hx]. intro Hc.
+  rewrite ord_le_unfold; intro x; simpl.
+  rewrite (Hx x).
+  * apply normal_increasing; auto.
+    apply (limit_lt (ord X g)).
+  * apply Hc.
 Qed.
 
 (** * Fixpoints of normal functions *)
@@ -61,25 +68,47 @@ Section normal_fixpoints.
     apply iter_f_monotone; auto.
   Qed.
 
+  Lemma iter_f_complete n :
+    forall base, complete base ->
+    (forall x, complete x -> complete (f x)) ->
+    complete (iter_f base n).
+  Proof.
+    induction n as [n IH1] using (well_founded_induction Wf_nat.lt_wf).
+    destruct n; simpl; auto.
+  Qed.
+
+  Lemma iter_f_index_monotone i j :
+    (forall x, complete x -> x <= f x) ->
+    (forall x, complete x -> complete (f x)) ->
+    (i <= j)%nat ->
+    forall base, complete base -> iter_f base i <= iter_f base j.
+  Proof.
+    intros Hf1 Hf2 H; induction H; intros base Hbase; simpl.
+    - reflexivity.
+    - rewrite IHle; auto.
+      apply Hf1. apply iter_f_complete; auto.
+  Qed.
+
   Lemma normal_fix_continuous :
-     (forall x y, x <= y -> f x <= f y) ->
+    (forall x y, x <= y -> f x <= f y) ->
+    (forall x, complete x -> complete (f x)) ->
     scott_continuous f ->
     scott_continuous normal_fix.
   Proof.
-    red; simpl; intros Hf1 Hf2 A g a0 Hd.
+    red; simpl; intros Hf1 Hf2 Hf3 A g a0 Hd Hg.
     unfold normal_fix at 1.
     apply sup_least. intro i.
     apply ord_le_trans with (supOrd (fun a => iter_f (g a) i)).
     - induction i.
-      + simpl.
-        reflexivity.
+      + simpl. reflexivity.
       + simpl.
         eapply ord_le_trans.
         * apply Hf1. apply IHi.
-        * apply Hf2; auto.
+        * apply Hf3; auto.
           intros a1 a2.
           destruct (Hd a1 a2) as [a' [Ha1 Ha2]].
           exists a'. split; apply iter_f_monotone; auto.
+          intros. apply iter_f_complete; auto.
     - apply sup_least. intro a.
       rewrite <- (sup_le _ _ a).
       unfold normal_fix.
@@ -93,27 +122,11 @@ Section normal_fixpoints.
     apply (sup_le _ (iter_f base) 0%nat).
   Qed.
 
-  Lemma iter_f_complete n :
-    forall base, complete base ->
-    (forall x, complete x -> complete (f x)) ->
-    complete (iter_f base n).
-  Proof.
-    induction n as [n IH1] using (well_founded_induction Wf_nat.lt_wf).
-    destruct n; simpl; auto.
-  Qed.
-
-  Lemma iter_f_index_monotone i j :
-    (forall x, x <= f x) ->
-    (i <= j)%nat -> forall base, iter_f base i <= iter_f base j.
-  Proof.
-    intros Hf H; induction H; intros base; simpl.
-    - reflexivity.
-    - rewrite IHle; auto.
-  Qed.
-
   Lemma directed_iter_f base :
-    (forall x, x <= f x) ->
+    (forall x, complete x -> x <= f x) ->
     (forall x y, x <= y -> f x <= f y) ->
+    (forall x, complete x -> complete (f x)) ->
+    complete base ->
     directed nat (iter_f base).
   Proof.
     intros. intros i j. exists (Nat.max i j).
@@ -124,7 +137,7 @@ Section normal_fixpoints.
 
   Lemma normal_fix_complete base :
     complete base ->
-    (forall x, x <= f x) ->
+    (forall x, complete x -> x <= f x) ->
     (forall x y, x <= y -> f x <= f y) ->
     (forall x, complete x -> complete (f x)) ->
     complete (normal_fix base).
@@ -154,7 +167,7 @@ Section normal_fixpoints.
 
   Hypothesis Hnormal : normal_function f.
 
-  Lemma normal_prefixpoint : forall base, f (normal_fix base) ≤ normal_fix base.
+  Lemma normal_prefixpoint : forall base, complete base -> f (normal_fix base) ≤ normal_fix base.
   Proof.
     intros.
     apply ord_le_trans with (supOrd (fun i => f (iter_f base i))).
@@ -162,19 +175,26 @@ Section normal_fixpoints.
       apply directed_iter_f; auto.
       apply normal_inflationary; auto.
       apply normal_monotone; auto.
+      apply normal_complete; auto.
+      intro i; apply iter_f_complete; auto.
+      apply normal_complete; auto.
     - apply sup_least. intro i.
       unfold normal_fix.
       apply (sup_le _ (iter_f base) (S i)).
   Qed.
 
-  Lemma normal_fixpoint : forall base, normal_fix base ≈ f (normal_fix base).
+  Lemma normal_fixpoint : forall base, complete base -> normal_fix base ≈ f (normal_fix base).
   Proof.
     intros; split.
     - apply normal_inflationary; auto.
-    - apply normal_prefixpoint.
+      apply normal_fix_complete; auto.
+      + apply normal_inflationary; auto.
+      + apply normal_monotone; auto.
+      + apply normal_complete; auto.
+    - apply normal_prefixpoint; auto.
   Qed.
 
-  Lemma normal_fix_least : forall base z, base ≤ z -> f z ≤ z -> normal_fix base ≤ z.
+  Lemma normal_fix_least : forall base z, complete z -> base ≤ z -> f z ≤ z -> normal_fix base ≤ z.
   Proof.
     intros.
     unfold normal_fix.
@@ -230,8 +250,13 @@ Lemma powOmega_normal : normal_function powOmega.
 Proof.
   apply NormalFunction.
   + apply expOrd_monotone.
-  + apply powOmega_increasing.
-  + red; intros A f a0 Hd; apply (expOrd_continuous ω omega_gt1 A f a0).
+  + intros; apply powOmega_increasing; auto.
+  + red; intros A f a0 Hd Hc; apply (expOrd_continuous ω omega_gt1 A f a0).
+  + unfold powOmega. intros; apply expOrd_complete; auto.
+    * apply (index_lt ω 0%nat).
+    * apply omega_complete.
+  + unfold powOmega. intros.
+    apply expOrd_nonzero.
 Qed.
 
 Definition enum_fixpoints (f:Ord -> Ord) : Ord -> Ord :=
@@ -240,13 +265,70 @@ Definition enum_fixpoints (f:Ord -> Ord) : Ord -> Ord :=
   | ord B g => normal_fix f (ord B (fun b => rec (g b)))
   end.
 
+Lemma enum_fixpoints_monotone f :
+  normal_function f ->
+  (forall x y, x ≤ y -> enum_fixpoints f x ≤ enum_fixpoints f y).
+Proof.
+  intros Hf x y; revert x.
+  induction y as [C h Hy].
+  destruct x as [B g].
+  simpl; intros.
+  unfold normal_fix.
+  apply sup_ord_le_morphism; intro i; simpl.
+  apply iter_f_monotone.
+  - apply normal_monotone; auto.
+  - rewrite ord_le_unfold; simpl; intro b.
+    rewrite ord_lt_unfold; simpl.
+    destruct (ord_le_subord _ _ H b) as [c Hb].
+    exists c.
+    apply Hy; auto.
+Qed.
+
+Lemma enum_fixpoints_increasing f :
+  normal_function f ->
+  (forall x y, x < y -> enum_fixpoints f x < enum_fixpoints f y).
+Proof.
+  intros Hf x y H.
+  rewrite ord_lt_unfold in H.
+  destruct x as [B g].
+  destruct y as [C h].
+  simpl in *.
+  destruct H as [i ?].
+  eapply ord_lt_le_trans; [| apply normal_fix_above ].
+  rewrite ord_lt_unfold. exists i. simpl.
+  apply (enum_fixpoints_monotone f Hf (ord B g) (h i)); auto.
+Qed.
+
+Lemma enum_fixpoints_complete f :
+  normal_function f ->
+  forall x, complete x -> complete (enum_fixpoints f x).
+Proof.
+  intro Hf.
+  induction x as [B g Hx]. intro Hc.
+  simpl enum_fixpoints.
+  apply normal_fix_complete.
+  - apply lim_complete.
+    + intros; apply Hx. apply Hc.
+    + intros b1 b2. destruct (complete_directed _ Hc b1 b2) as [b' [Hb1 Hb2]].
+      exists b'. split; apply enum_fixpoints_monotone; auto.
+    + apply Hc.
+  - apply normal_inflationary; auto.
+  - apply normal_monotone; auto.
+  - apply normal_complete; auto.
+Qed.
+
 Lemma enum_are_fixpoints f :
   normal_function f ->
-  forall x, enum_fixpoints f x ≈ f (enum_fixpoints f x).
+  forall x, complete x -> enum_fixpoints f x ≈ f (enum_fixpoints f x).
 Proof.
-  intros.
-  destruct x; simpl.
+  intros Hf x Hc.
+  destruct x as [X g]; simpl.
   apply normal_fixpoint; auto.
+  apply lim_complete.
+  - intros. apply enum_fixpoints_complete; auto. apply Hc.
+  - intros b1 b2. destruct (complete_directed _ Hc b1 b2) as [b' [Hb1 HB2]].
+    exists b'. split; apply enum_fixpoints_monotone; auto.
+  - apply Hc.
 Qed.
 
 Lemma enum_fixpoints_zero f :
@@ -267,53 +349,21 @@ Proof.
   simpl; intros. reflexivity.
 Qed.
 
-Lemma enum_fixpoints_monotone_both f :
-  normal_function f ->
-  (forall x y,
-      (x ≤ y -> enum_fixpoints f x ≤ enum_fixpoints f y) /\
-      (x < y -> enum_fixpoints f x < enum_fixpoints f y)).
-Proof.
-  intros Hf x.
-  induction x as [B g Hx].
-  induction y as [C h Hy].
-  simpl; intuition.
-  - apply normal_fix_least; auto.
-    rewrite ord_le_unfold; simpl; intros.
-    rewrite ord_le_unfold in H.
-    specialize (H a). simpl in H.
-    apply (Hx a (ord C h)); auto.
-    apply normal_prefixpoint; auto.
-  - rewrite ord_lt_unfold in H.
-    destruct H as [i ?].
-    simpl in H.
-    apply Hy in H.
-    simpl in H.
-    eapply ord_lt_le_trans; [| apply normal_fix_above ].
-    rewrite ord_lt_unfold. exists i. simpl.
-    auto.
-Qed.
-
-Lemma enum_fixpoints_increasing f :
-  normal_function f ->
-  (forall x y, x < y -> enum_fixpoints f x < enum_fixpoints f y).
-Proof.
-  intros; apply enum_fixpoints_monotone_both; auto.
-Qed.
-
-Lemma enum_fixpoints_monotone f :
-  normal_function f ->
-  (forall x y, x ≤ y -> enum_fixpoints f x ≤ enum_fixpoints f y).
-Proof.
-  intros; apply enum_fixpoints_monotone_both; auto.
-Qed.
-
 Lemma enum_fixpoints_cont f :
   normal_function f ->
   scott_continuous (enum_fixpoints f).
 Proof.
-  intros Hf A g a0 Hd.
+  intros Hf A g a0 Hd Hc.
   simpl.
   apply normal_fix_least; auto.
+  - apply sup_complete.
+    + intros; apply enum_fixpoints_complete; auto.
+    + intros a1 a2. destruct (Hd a1 a2) as [a' [Ha1 Ha2]].
+      exists a'.
+      split; apply enum_fixpoints_monotone; auto.
+    + left. exists a0.
+      rewrite enum_are_fixpoints; auto.
+      apply normal_nonzero; auto.
   - rewrite ord_le_unfold.
     simpl.
     intros [a i]. simpl.
@@ -326,6 +376,7 @@ Proof.
       auto with ord.
     + intros a1 a2. destruct (Hd a1 a2) as [a' [??]].
       exists a'. split; apply enum_fixpoints_monotone; auto.
+    + intro; apply enum_fixpoints_complete; auto.
 Qed.
 
 Lemma enum_fixpoints_normal f :
@@ -334,13 +385,22 @@ Lemma enum_fixpoints_normal f :
 Proof.
   intros; constructor.
   - apply enum_fixpoints_monotone; auto.
-  - apply enum_fixpoints_increasing; auto.
+  - intros; apply enum_fixpoints_increasing; auto.
   - apply enum_fixpoints_cont; auto.
+  - apply enum_fixpoints_complete; auto.
+  - intros.
+    destruct x as [X g].
+    simpl.
+    unfold normal_fix.
+    rewrite <- (sup_le _ _ 1%nat).
+    simpl.
+    apply normal_nonzero; auto.
 Qed.
 
 Lemma enum_least f :
   normal_function f ->
   forall (x z:Ord),
+    complete z ->
     f z ≤ z ->
     (forall x', x' < x -> enum_fixpoints f x' < z) ->
     enum_fixpoints f x ≤ z.
@@ -349,7 +409,7 @@ Proof.
   induction x as [B g Hx]. simpl; intros.
   apply normal_fix_least; auto.
   rewrite ord_le_unfold; simpl; intros.
-  apply H0.
+  apply H1.
   apply limit_lt.
 Qed.
 
@@ -361,26 +421,17 @@ Lemma enum_fixpoints_func_mono f g
 Proof.
   intros.
   induction x as [A q Hx]; simpl.
-  apply normal_fix_least; auto.
-  - rewrite ord_le_unfold. simpl; intro a.
-    rewrite <- (normal_fix_above).
-    rewrite ord_lt_unfold. simpl. exists a.
+  unfold normal_fix.
+  apply sup_ord_le_morphism. intro i.
+  transitivity (iter_f f (ord A (fun b : A => enum_fixpoints g (q b))) i).
+  - apply iter_f_monotone; auto.
+    apply normal_monotone; auto.
+    rewrite ord_le_unfold; simpl; intro a.
+    rewrite ord_lt_unfold; simpl; exists a.
     auto.
-  - rewrite H.
-    apply normal_prefixpoint; auto.
+  - apply iter_f_monotone_func; auto.
+    apply normal_monotone; auto.
 Qed.
-
-Lemma enum_fixpoints_strictly_inflationary f :
-  normal_function f ->
-  forall x, x < f x -> x < enum_fixpoints f x.
-Proof.
-  intros.
-  apply ord_lt_le_trans with (f x); auto.
-  rewrite enum_are_fixpoints; auto.
-  apply normal_monotone; auto.
-  apply normal_inflationary. apply enum_fixpoints_normal; auto.
-Qed.
-
 
 Add Parametric Morphism f (Hf:normal_function f) : (enum_fixpoints f)
   with signature ord_le ++> ord_le  as enum_fixpoint_le_mor.
@@ -397,9 +448,9 @@ Qed.
 
 Definition ε (x:Ord) := enum_fixpoints powOmega x.
 
-Lemma epsilon_fixpoint x : ε x ≈ expOrd ω (ε x).
+Lemma epsilon_fixpoint x : complete x -> ε x ≈ expOrd ω (ε x).
 Proof.
-  intros. unfold ε. apply enum_are_fixpoints.
+  intros. unfold ε. apply enum_are_fixpoints; auto.
   apply powOmega_normal.
 Qed.
 
@@ -407,7 +458,6 @@ Qed.
 Section veblen.
   Variable f : Ord -> Ord.
   Hypothesis f_normal : normal_function f.
-  Hypothesis f_zero : 0 < f 0.
 
   Fixpoint veblen (β:Ord) : Ord -> Ord :=
     fix inner (y:Ord) : Ord :=
@@ -424,11 +474,19 @@ Section veblen.
 
   Global Opaque veblen.
 
-  Lemma veblen_unroll_nonzero (β:Ord) (y:Ord) :
+  Lemma veblen_nonzero (β:Ord) (y:Ord) :
+    0 < veblen β y.
+  Proof.
+    rewrite veblen_unroll.
+    rewrite <- lub_le1.
+    apply normal_nonzero; auto.
+  Qed.
+
+  Lemma veblen_unroll_nonzero (β:Ord) (y:Ord) : complete y ->
     zeroOrd < β -> veblen β y ≈ boundedSup β (fun α => normal_fix (veblen α) (limOrd (fun x => veblen β (y x)))).
   Proof.
     destruct β as [B g].
-    intros; split.
+    intros Hc H; split.
     rewrite ord_lt_unfold in H.
     destruct H as [b Hb]. simpl in *.
     - rewrite veblen_unroll.
@@ -449,6 +507,7 @@ Section veblen.
         rewrite veblen_unroll.
         rewrite <- lub_le1.
         apply normal_inflationary; auto.
+        apply Hc.
       + reflexivity.
     - rewrite veblen_unroll.
       apply lub_le2.
@@ -521,7 +580,7 @@ Section veblen.
     apply veblen_monotone; auto.
   Qed.
 
-  Lemma veblen_inflationary (β:Ord) : forall x, x ≤ veblen β x.
+  Lemma veblen_inflationary (β:Ord) : forall x, complete x -> x ≤ veblen β x.
   Proof.
     intro x.
     rewrite veblen_unroll.
@@ -548,7 +607,7 @@ Section veblen.
         + simpl. repeat split; auto.
           intros x1 x2. destruct (H1 x1 x2) as [x' [Hx'1 Hx'2]].
           exists x'. split; apply veblen_monotone; auto.
-        + intros; apply veblen_inflationary.
+        + intros; apply veblen_inflationary; auto.
         + apply veblen_monotone.
         + simpl; intros.
           apply Hβ; auto.
@@ -571,6 +630,7 @@ Section veblen.
           rewrite veblen_unroll.
           rewrite <- lub_le1.
           apply ord_lt_le_trans with (f 0); auto.
+          apply normal_nonzero; auto.
           apply normal_monotone; auto.
           apply zero_least.
         + right. intro b. elim Hc2. exact (inhabits b).
@@ -591,9 +651,10 @@ Section veblen.
       rewrite ord_le_unfold; intro x; simpl.
       rewrite ord_lt_unfold; exists x. simpl.
       apply veblen_inflationary.
+      apply Hc2.
   Qed.
 
-  Lemma veblen_increasing0 : forall x y, x < y -> veblen zeroOrd x < veblen zeroOrd y.
+  Lemma veblen_increasing0 : forall x y, complete y -> x < y -> veblen zeroOrd x < veblen zeroOrd y.
   Proof.
     intros.
     apply ord_le_lt_trans with (f x).
@@ -628,7 +689,9 @@ Section veblen.
     apply veblen_monotone. auto.
   Qed.
 
-  Lemma veblen_increasing (β:Ord) : complete β -> forall x y, x < y -> veblen β x < veblen β y.
+  Lemma veblen_increasing (β:Ord) :
+    complete β ->
+    forall x y, complete y -> x < y -> veblen β x < veblen β y.
   Proof.
     intro Hβ.
     destruct (complete_zeroDec β); auto.
@@ -643,16 +706,17 @@ Section veblen.
   Qed.
 
   Lemma veblen_lt_lemma β : zeroOrd < β -> forall x q,
+     complete x ->
      q < veblen β x ->
      exists a, a < β /\ exists n,
          q < iter_f (veblen a) (limOrd (fun i => veblen β (x i))) n.
   Proof.
-    intros.
-    rewrite veblen_unroll_nonzero in H0; auto.
-    destruct β as [B g]. simpl in H0.
-    rewrite ord_lt_unfold in H0.
-    simpl in H0.
-    destruct H0 as [[b [n z]] Hq].
+    intros Hb x q Hc H.
+    rewrite veblen_unroll_nonzero in H; auto.
+    destruct β as [B g]. simpl in H.
+    rewrite ord_lt_unfold in H.
+    simpl in H.
+    destruct H as [[b [n z]] Hq].
     simpl in *.
     exists (g b). split; [ apply (index_lt (ord B g)) | ].
     exists n.
@@ -661,9 +725,9 @@ Section veblen.
 
   Lemma veblen_fixpoints_aux (β:Ord) (Hcomplete : complete β) :
       (forall y, y < β -> complete y -> scott_continuous (veblen y)) ->
-      forall α x, α < β -> complete α -> veblen α (veblen β x) ≤ veblen β x.
+      forall α x, α < β -> complete α -> complete x -> veblen α (veblen β x) ≤ veblen β x.
   Proof.
-    intros Hcont a x H Hcomplete'.
+    intros Hcont a x H Hac Hxc.
     rewrite (veblen_unroll a).
     apply lub_least.
     - transitivity (f (boundedSup β (fun α => normal_fix (veblen α) (limOrd (fun i => veblen β (x i)))))).
@@ -689,7 +753,20 @@ Section veblen.
             + apply veblen_increasing. apply Hcomplete.
             + apply Hcont. apply (index_lt (ord B g)).
               destruct Hcomplete as [?[??]]; auto.
+            + intros; apply veblen_complete; auto.
+              apply normal_complete; auto.
+              apply Hcomplete.
+            + intro; apply veblen_nonzero.
           }
+          apply lim_complete.
+          ** intro; apply veblen_complete; auto.
+             apply normal_complete; auto.
+             apply complete_subord; auto.
+          ** intros x1 x2. destruct (complete_directed _ Hxc x1 x2) as [x' [Hx1 Hx2]].
+             exists x'.
+             split; apply veblen_monotone; auto.
+          ** destruct x; apply Hxc.
+
         * intros b1 b2. destruct (complete_directed _ Hcomplete b1 b2) as [b' [Hb1 Hb2]].
           exists b'. split.
           ** unfold normal_fix. apply sup_ord_le_morphism.
@@ -700,6 +777,20 @@ Section veblen.
              intro i. apply iter_f_monotone_func.
              *** intros; apply veblen_monotone_first; auto.
              *** intros; apply veblen_monotone; auto.
+        * intro. apply normal_fix_complete; auto.
+          ** apply lim_complete.
+             *** intros; apply veblen_complete; auto.
+                 apply normal_complete; auto.
+                 apply complete_subord; auto.
+             *** intros x1 x2. destruct (complete_directed _ Hxc x1 x2) as [x' [Hx1 Hx2]].
+                 exists x'.
+                 split; apply veblen_monotone; auto.
+             *** destruct x; apply Hxc.
+          ** apply veblen_inflationary.
+          ** apply veblen_monotone; auto.
+          ** intros; apply veblen_complete; auto.
+             apply normal_complete; auto.
+             apply Hcomplete.
 
     - destruct a as [A g]. simpl.
       apply sup_least. intro y.
@@ -711,7 +802,7 @@ Section veblen.
       simpl.
       induction i; simpl.
       + apply limit_least. intro q.
-        destruct (veblen_lt_lemma β) with x q as [a' [Ha' [n Hn]]].
+        destruct (veblen_lt_lemma β) with x q as [a' [Ha' [n Hn]]]; auto.
         * apply ord_le_lt_trans with (ord A g); auto. apply zero_least.
         * apply index_lt.
         * assert (exists a2, a2 < β /\ ord A g <= a2 /\ a' <= a2).
@@ -768,7 +859,7 @@ Section veblen.
           rewrite ord_lt_unfold. exists b. auto.
         }
         assert (Hcy: complete (g y)).
-        { destruct Hcomplete' as [?[??]]; auto. }
+        { destruct Hac as [?[??]]; auto. }
         rewrite (Hcont (g y) Hy' Hcy B _ b).
         * apply sup_least.
           intro b'.
@@ -792,9 +883,33 @@ Section veblen.
                  transitivity (ord A g); auto with ord.
                  transitivity (h b); auto.
           ** apply directed_iter_f.
-             *** intros; apply veblen_inflationary.
+             *** intros; apply veblen_inflationary; auto.
              *** intros; apply veblen_monotone; auto.
-        * intros b1 b2. destruct (complete_directed (ord B h) Hcomplete b1 b2) as [b' [Hb1 Hb2]]. 
+             *** intros; apply veblen_complete; auto.
+                 apply normal_complete; auto.
+                 apply Hcomplete.
+             *** apply lim_complete.
+                 **** intros; apply veblen_complete; auto.
+                      apply normal_complete; auto.
+                      apply complete_subord; auto.
+                 **** intros x1 x2. destruct (complete_directed _ Hxc x1 x2) as [x' [Hx1 Hx2]].
+                      exists x'.
+                      split; apply veblen_monotone; auto.
+                 **** destruct x; apply Hxc.
+          ** intro j. apply iter_f_complete; auto.
+             *** apply lim_complete.
+                 **** intros; apply veblen_complete; auto.
+                      apply normal_complete; auto.
+                      apply complete_subord; auto.
+                 **** intros x1 x2. destruct (complete_directed _ Hxc x1 x2) as [x' [Hx1 Hx2]].
+                      exists x'.
+                      split; apply veblen_monotone; auto.
+                 **** destruct x; apply Hxc.
+             *** intros; apply veblen_complete; auto.
+                 apply normal_complete; auto.
+                 apply Hcomplete.
+
+        * intros b1 b2. destruct (complete_directed (ord B h) Hcomplete b1 b2) as [b' [Hb1 Hb2]].
           simpl in *.
           exists b'. split.
           ** apply sup_ord_le_morphism. intro j.
@@ -805,6 +920,37 @@ Section veblen.
              apply iter_f_monotone_func.
              *** intros; apply veblen_monotone_first; auto.
              *** intros; apply veblen_monotone; auto.
+        * intro b'.
+          apply sup_complete.
+          ** intro j.
+             apply iter_f_complete; auto.
+             *** apply lim_complete.
+                 **** intro; apply veblen_complete; auto.
+                      apply normal_complete; auto.
+                      apply complete_subord; auto.
+                 **** intros x1 x2. destruct (complete_directed _ Hxc x1 x2) as [x' [Hx1 Hx2]].
+                      exists x'.
+                      split; apply veblen_monotone; auto.
+                 **** destruct x; apply Hxc.
+             *** intros; apply veblen_complete; auto.
+                 apply normal_complete; auto.
+                 apply Hcomplete.
+          ** apply directed_iter_f.
+             *** intros; apply veblen_inflationary; auto.
+             *** apply veblen_monotone; auto.
+             *** apply veblen_complete; auto.
+                 apply normal_complete; auto.
+                 apply Hcomplete.
+             *** apply lim_complete.
+                 **** intro; apply veblen_complete; auto.
+                      apply normal_complete; auto.
+                      apply complete_subord; auto.
+                 **** intros x1 x2. destruct (complete_directed _ Hxc x1 x2) as [x' [Hx1 Hx2]].
+                      exists x'.
+                      split; apply veblen_monotone; auto.
+                 **** destruct x; apply Hxc.
+          ** left. exists 1%nat. simpl.
+             apply veblen_nonzero.
   Qed.
 
   Lemma veblen_continuous (β:Ord) : complete β -> scott_continuous (veblen β).
@@ -812,7 +958,7 @@ Section veblen.
     induction β as [β Hind] using ordinal_induction.
     intro Hc.
     destruct β as [A g]; simpl.
-    hnf; intros X h x Hd.
+    hnf; intros X h x Hd Hh.
     rewrite veblen_unroll.
     apply lub_least.
     - rewrite (normal_continuous f f_normal X h x); auto.
@@ -827,7 +973,18 @@ Section veblen.
         * apply veblen_monotone.
         * apply veblen_increasing. apply Hc.
         * apply Hind. apply (index_lt (ord A g)).
-          destruct Hc as [?[??]]. auto.
+          apply Hc.
+        * apply veblen_complete; auto.
+          apply normal_complete; auto.
+          apply Hc.
+        * apply veblen_nonzero.
+      + apply sup_complete.
+        * intros; apply veblen_complete; auto.
+          apply normal_complete; auto.
+        * intros x1 x2. destruct (Hd x1 x2) as [x' [Hx1 Hx2]].
+          exists x'. split; apply veblen_monotone; auto.
+        * left. exists x.
+          apply veblen_nonzero.
       + rewrite ord_le_unfold.
         simpl. intros [x' y]. simpl.
         rewrite <- (sup_le _ _ x').
@@ -835,7 +992,7 @@ Section veblen.
         * rewrite ord_lt_unfold. exists a. apply zero_least.
         * apply index_lt.
       + assert (Hc' : complete (g a)).
-        { destruct Hc as [?[??]]; auto. }
+        { apply Hc. }
         rewrite (Hind (g a) (index_lt (ord A g) a) Hc' X (fun i => veblen (ord A g) (h i)) x).
         * apply sup_ord_le_morphism. hnf; simpl. intro x'.
           apply veblen_fixpoints_aux; auto.
@@ -844,12 +1001,15 @@ Section veblen.
           destruct (Hd x1 x2) as [x' [??]].
           exists x'.
           split; apply veblen_monotone; auto.
+        * intros; apply veblen_complete; auto.
+          apply normal_complete; auto.
   Qed.
 
   Lemma veblen_fixpoints :
     forall α β x,
       complete α ->
       complete β ->
+      complete x ->
       α < β ->
       veblen α (veblen β x) ≤ veblen β x.
   Proof.
@@ -885,6 +1045,9 @@ Section veblen.
     - apply veblen_monotone.
     - apply veblen_increasing; auto.
     - apply veblen_continuous; auto.
+    - intros; apply veblen_complete; auto.
+      apply normal_complete; auto.
+    - apply veblen_nonzero.
   Qed.
 
   Lemma veblen_increasing_first :
@@ -904,11 +1067,28 @@ Section veblen.
     rewrite <- (sup_le _ _ 2%nat). simpl.
     apply veblen_increasing.
     - apply Hβ.
-    - rewrite veblen_unroll.
-      rewrite <- lub_le1.
-      apply ord_lt_le_trans with (f 0); [ apply f_zero | ].
-      apply normal_monotone; auto.
-      apply zero_least.
+    - apply veblen_complete; auto.
+      + apply normal_complete; auto.
+      + apply Hβ.
+      + apply lim_complete.
+        * intros [].
+        * intros [].
+        * right; intros [[]].
+    - apply veblen_nonzero.
+  Qed.
+
+  Lemma veblen_first_normal :
+    normal_function (fun β => veblen β zeroOrd).
+  Proof.
+    constructor.
+    - intros; apply veblen_monotone_first; auto.
+    - intros; apply veblen_increasing_first; auto.
+    - hnf; intros.
+      apply veblen_continuous_first; auto.
+    - intros; apply veblen_complete; auto.
+      apply normal_complete; auto.
+      apply zero_complete.
+    - intro; apply veblen_nonzero; auto.
   Qed.
 
   Lemma veblen_zero : forall x,
@@ -988,6 +1168,7 @@ Section veblen.
           apply veblen_monotone. auto.
           destruct H0 as [?[??]]; auto.
           destruct H0 as [?[??]]; auto.
+          apply zero_complete.
     - rewrite <- lub_le2.
       destruct β as [B g]; simpl in *.
       apply sup_least; simpl; intro i.
@@ -1000,24 +1181,24 @@ Section veblen.
   Qed.
 
   Lemma veblen_limit_succ :
-    forall β x, limitOrdinal β -> complete β ->
+    forall β x, limitOrdinal β -> complete β -> complete x ->
       veblen β (succOrd x) ≈ boundedSup β (fun a => veblen a (succOrd (veblen β x))).
   Proof.
-    intros.
+    intros β x Hlim Hβ Hx.
     rewrite veblen_unroll.
     split.
     - apply lub_least.
       + destruct β as [B g]; simpl.
-        destruct H as [[b] _].
+        destruct Hlim as [[b] _].
         rewrite <- (sup_le _ _ b).
         rewrite (veblen_unroll (g b)).
         rewrite <- lub_le1.
         apply normal_monotone; auto.
         apply succ_monotone_le.
-        apply veblen_inflationary.
+        apply veblen_inflationary; auto.
       + destruct β as [B g]; simpl.
         apply sup_least; simpl; intro b.
-        destruct H as [_ H].
+        destruct Hlim as [_ H].
         destruct (H b) as [b' Hb'].
         rewrite <- (sup_le _ _ b').
         unfold normal_fix. apply sup_least.
@@ -1027,11 +1208,19 @@ Section veblen.
           apply ord_lt_le_trans with (succOrd (veblen (ord B g) x)).
           rewrite ord_lt_unfold. exists tt; simpl.
           reflexivity.
-          apply veblen_inflationary.
+          apply veblen_inflationary; auto.
+          apply succ_complete.
+          apply veblen_complete; auto.
+          apply normal_complete; auto.
+
         * rewrite <- (veblen_fixpoints (g b) (g b')); auto.
-          apply veblen_monotone; auto.
-          destruct H0 as [?[??]]; auto.
-          destruct H0 as [?[??]]; auto.
+          ** apply veblen_monotone; auto.
+          ** apply Hβ.
+          ** apply Hβ.
+          ** apply succ_complete.
+             apply veblen_complete; auto.
+             apply normal_complete; auto.
+
     - destruct β as [B g]; simpl.
       apply sup_least; intro b.
       rewrite <- lub_le2.
@@ -1046,28 +1235,29 @@ Section veblen.
   Qed.
 
   Lemma veblen_limit_limit :
-    forall β x, limitOrdinal β -> limitOrdinal x -> complete β ->
+    forall β x, limitOrdinal β -> limitOrdinal x -> complete β -> complete x ->
       veblen β x ≈ boundedSup β (fun a => veblen a (boundedSup x (fun y => veblen β y))).
   Proof.
-    intros.
+    intros β x Hlimβ Hlimx Hβ Hx.
     destruct β as [B g].
     destruct x as [X h]. simpl.
     rewrite veblen_unroll. simpl.
     split.
     - apply lub_least.
-      + destruct H as [[b] H].
+      + destruct Hlimβ as [[b] H].
         rewrite <- (sup_le _ _ b).
         rewrite veblen_unroll.
         rewrite <- lub_le1.
         apply normal_monotone; auto.
         rewrite ord_le_unfold; simpl; intro x.
-        destruct H0 as [_ H0].
+        destruct Hlimx as [_ H0].
         destruct (H0 x) as [x' Hx'].
         rewrite <- (sup_le _ _ x').
         apply ord_lt_le_trans with (h x'); auto.
         apply veblen_inflationary.
+        apply Hx.
       + apply sup_least; intro b.
-        destruct H as [_ H].
+        destruct Hlimβ as [_ H].
         destruct (H b) as [b' Hb'].
         rewrite <- (sup_le _ _ b').
         unfold normal_fix.
@@ -1076,17 +1266,34 @@ Section veblen.
         induction i; simpl.
         * rewrite ord_le_unfold; simpl; intro x.
           rewrite <- (veblen_inflationary (g b')).
-          destruct H0 as [_ H0].
-          destruct (H0 x) as [x' Hx'].
-          rewrite <- (sup_le _ _ x').
-          apply veblen_increasing_nonzero; auto.
-          apply ord_le_lt_trans with (g b'); auto.
-          apply zero_least.
-          apply (index_lt (ord B g)).
+          ** destruct Hlimx as [_ H0].
+             destruct (H0 x) as [x' Hx'].
+             rewrite <- (sup_le _ _ x').
+             apply veblen_increasing_nonzero; auto.
+             apply ord_le_lt_trans with (g b'); auto.
+             apply zero_least.
+             apply (index_lt (ord B g)).
+          ** apply sup_complete.
+             *** intros; apply veblen_complete; auto.
+                 apply normal_complete; auto.
+                 apply Hx.
+             *** intros x1 x2. destruct (complete_directed (ord X h) Hx x1 x2) as [x' [Hx1 Hx2]].
+                 exists x'; split; apply veblen_monotone; auto.
+             *** left. exists x. apply veblen_nonzero.
         * rewrite <- (veblen_fixpoints (g b) (g b')); auto.
-          apply veblen_monotone; auto.
-          destruct H1 as [?[??]]; auto.
-          destruct H1 as [?[??]]; auto.
+          ** apply veblen_monotone; auto.
+          ** apply Hβ.
+          ** apply Hβ.
+          ** apply sup_complete.
+             *** intros; apply veblen_complete; auto.
+                 apply normal_complete; auto.
+                 apply Hx.
+             *** intros x1 x2. destruct (complete_directed (ord X h) Hx x1 x2) as [x' [Hx1 Hx2]].
+                 exists x'; split; apply veblen_monotone; auto.
+             *** destruct Hx as [Hx1 [Hx2 Hx3]].
+                 destruct Hx2 as [[x]|Hx2].
+                 **** left. exists x. apply veblen_nonzero.
+                 **** right. intro x. elim Hx2. exact (inhabits x).
     - rewrite <- lub_le2.
       apply sup_least; intro b.
       rewrite <- (sup_le _ _ b).
@@ -1101,35 +1308,40 @@ Section veblen.
 
 End veblen.
 
-Lemma veblen_first_normal (EM:excluded_middle) f :
-  normal_function f ->
-  0 < f 0 ->
-  normal_function (fun β => veblen f β zeroOrd).
-Proof.
-  constructor.
-  - intros; apply veblen_monotone_first; auto.
-  - intros; apply veblen_increasing_first; auto.
-    apply (classical.ord_complete EM).
-  - hnf; intros.
-    apply veblen_continuous_first; auto.
-Qed.
 
 Definition Γ a := enum_fixpoints (fun b => veblen powOmega b 0) a.
 
-Theorem Gamma_fixpoints (EM:excluded_middle) : forall a, Γ a ≈ veblen powOmega (Γ a) 0.
+Theorem Γ_fixpoints : forall a, complete a -> Γ a ≈ veblen powOmega (Γ a) 0.
 Proof.
-  intro a. unfold Γ.
-  apply enum_are_fixpoints.
-  apply (veblen_first_normal EM).
-  - apply powOmega_normal.
-  - unfold powOmega; apply expOrd_nonzero.
+  intros a Ha. unfold Γ.
+  apply enum_are_fixpoints; auto.
+  apply veblen_first_normal.
+  apply powOmega_normal.
 Qed.
 
-Theorem Gamma_normal (EM:excluded_middle) : normal_function Γ.
+Theorem Γ_normal : normal_function Γ.
 Proof.
   unfold Γ.
   apply enum_fixpoints_normal.
-  apply (veblen_first_normal EM); auto.
-  - apply powOmega_normal.
-  - unfold powOmega; apply expOrd_nonzero.
+  apply veblen_first_normal.
+  apply powOmega_normal.
 Qed.
+
+Definition Ξ a := enum_fixpoints (fun b => veblen Γ b 0) a.
+
+Theorem Ξ_fixpoints : forall a, complete a -> Ξ a ≈ veblen Γ (Ξ a) 0.
+Proof.
+  intros a Ha. unfold Ξ.
+  apply enum_are_fixpoints; auto.
+  apply veblen_first_normal.
+  apply Γ_normal.
+Qed.
+
+Theorem Ξ_normal : normal_function Ξ.
+Proof.
+  unfold Ξ.
+  apply enum_fixpoints_normal.
+  apply veblen_first_normal.
+  apply Γ_normal.
+Qed.
+
