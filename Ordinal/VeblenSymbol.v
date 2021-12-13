@@ -1,12 +1,14 @@
 Require Import Setoid.
 Require Import Morphisms.
 Require Import Coq.Program.Basics.
+Require Import Program.Wf.
 
 Unset Printing Records.
 
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
+From Ordinal Require Import Veblen.
 
 Require Import List.
 Import ListNotations.
@@ -115,114 +117,120 @@ Section VeblenSymbol.
   | symbol_lt_drop : forall i x ls, symbol_lt ls ((i,x)::ls)
   | symbol_lt_ord  : forall i x x' ls ys,
       x' < x ->
+      indices_bounded ys i ->
       symbol_lt (ys ++ ((i,x')::ls)) ((i,x)::ls).
 
   Definition VeblenSymbol_lt (xs ys : VeblenSymbol) : Prop :=
     symbol_lt (proj1_sig xs) (proj1_sig ys).
 
-  Lemma symbol_lt_eq_Acc : forall a,
-    Acc (fun xs0 ys : VeblenSymbol => symbol_lt (proj1_sig xs0) (proj1_sig ys)) a ->
-    forall b,
-      proj1_sig a = proj1_sig b ->
-      Acc (fun xs0 ys : VeblenSymbol => symbol_lt (proj1_sig xs0) (proj1_sig ys)) b.
-  Proof.
-    intros a Ha; induction Ha.
-    destruct x as [x Hx].
-    intros [y Hy]. simpl. intros. subst y.
-    constructor. simpl.
-    intros [z Hz] Hlt; simpl in *.
-    apply (H (exist _ z Hz) Hlt).
-  Qed.
-
   Lemma symbol_lt_append_Acc : forall a,
-    Acc (fun xs0 ys : VeblenSymbol => symbol_lt (proj1_sig xs0) (proj1_sig ys)) a ->
-    forall b,
-    Acc (fun xs0 ys : VeblenSymbol => symbol_lt (proj1_sig xs0) (proj1_sig ys)) b ->
-    forall c,
-    proj1_sig a ++ proj1_sig b = proj1_sig c ->
-    Acc (fun xs0 ys : VeblenSymbol => symbol_lt (proj1_sig xs0) (proj1_sig ys)) c.
+    Acc symbol_lt a ->
+    forall b, Acc symbol_lt b ->
+    Acc symbol_lt (a ++ b).
   Proof.
     intros a Ha. induction Ha.
-    intros b Hb c Hc.
-    constructor. intros [y Hy_f].
-    destruct c as [c Hc_f]. simpl.
-    intros Hlt. simpl in *.
-    destruct x as [x Hx_f]. simpl in *.
-    destruct x as [|[j o]].
-    - simpl in *. subst c.
-      destruct b as [b Hb_f].
-      simpl in *.
-      inversion Hb. simpl in *.
-      apply H1; simpl; auto.
-    - inversion Hlt; subst.
-      + simpl in H2.
-        inversion H2; subst.
-        simpl in Hx_f.
-        assert (Hx_f' : well_formed_symbol x).
-        { apply well_formed_tail_symbol with j; auto. }
-        apply H0 with (exist _ x Hx_f') b; auto.
-        simpl. apply symbol_lt_drop.
-      + simpl in H3.
-        inversion H3; subst.
-        assert (Hprefix : well_formed_symbol (ys ++ (j,x') :: x)).
-        { eapply is_well_formed_prefix with (proj1_sig b).
-          rewrite <- app_assoc. auto.
-        }
-        apply H0 with (exist _ (ys ++ (j,x') :: x) Hprefix) b; auto.
+    intros b Hb.
+    destruct x as [|[j o] x].
+    - simpl; auto.
+    - simpl.
+      constructor. simpl; intros.
+      inversion H1; subst.
+      + apply H0; auto.
+        apply symbol_lt_drop.
+      + cut (Acc symbol_lt ((ys ++ ((j,x') :: x)) ++ b)).
+        { rewrite <- app_assoc. auto. }
+        apply H0; auto.
         apply symbol_lt_ord; auto.
-        simpl.
-        rewrite <- app_assoc. simpl; auto.
   Qed.
 
-  Theorem VeblenSymbol_lt_wf : well_founded VeblenSymbol_lt.
+  Theorem symbol_lt_bounded_Acc : forall i xs, indices_bounded xs i -> Acc symbol_lt xs.
   Proof.
-    unfold VeblenSymbol_lt.
-    intros [xs Hxs].
-    destruct (well_formed_symbols_bounded xs Hxs) as [i Hi].
-    revert xs Hxs Hi.
     induction i as [i Hind_i] using (well_founded_induction idx_lt_wf).
-    induction xs.
-    - constructor. intros [ys Hys]; simpl. intro H.
-      inversion H.
-    - destruct a as [j x]. simpl in *.
+    induction xs; intros.
+    - constructor. intros ys Hys.
+      inversion Hys.
+    - destruct a as [j x]. simpl in *. destruct H.
       induction x as [x Hind_x] using ordinal_induction.
-      intros Hxs [Hj Hi].
-      constructor. intros [ys Hys]; simpl. intro H.
-      inversion H; subst.
+      constructor. intros ys. intro Hys.
+      inversion Hys; subst.
       + apply IHxs; auto.
-      + assert (Hy_f : well_formed_symbol ys0).
-        { apply is_well_formed_prefix with ((j,x') :: xs); auto. }
-        assert (Hx_f' : well_formed_symbol ((j,x') :: xs)).
-        { simpl; auto. }
-        apply symbol_lt_append_Acc with (exist _ ys0 Hy_f) (exist _ ((j,x')::xs) Hx_f'); simpl.
+      + apply symbol_lt_append_Acc.
         * apply (Hind_i j); auto.
-          eapply well_formed_bounded. apply Hys.
         * apply Hind_x; auto.
-        * auto.
+  Qed.
+
+  Theorem symbol_lt_well_formed_Acc : forall xs, well_formed_symbol xs -> Acc symbol_lt xs.
+  Proof.
+    intros.
+    destruct (well_formed_symbols_bounded xs H) as [i Hi].
+    apply (symbol_lt_bounded_Acc i xs Hi).
   Qed.
 
   Section MultiVeblen.
     Variable f : Ord -> Ord.
-    Require Import Program.Wf.
-    Require Import Veblen.
 
-    Fixpoint MultiVeblen (xs : VeblenSymbol) (HAcc : Acc VeblenSymbol_lt xs) {struct HAcc} : Ord -> Ord :=
+    Lemma step_down i (j:{ j:Idx | idx_lt j i}) A g ai y ls :
+      symbol_lt ((proj1_sig j,y)::(i,g ai)::ls) ((i,ord A g)::ls).
+    Proof.
+      apply (symbol_lt_ord i (ord A g) (g ai) ls [(proj1_sig j,y)]).
+      - apply (index_lt (ord A g) ai).
+      - simpl; split; auto. apply (proj2_sig j).
+    Qed.
+
+    Fixpoint MultiVeblen (xs : list (Idx*Ord)) (HAcc : Acc symbol_lt xs) {struct HAcc} : Ord -> Ord :=
       fix inner (x:Ord) : Ord :=
-        match xs as xs' return Acc VeblenSymbol_lt xs' -> Ord with
-        | exist _ [] _ => fun _ => f x
-        | exist _ ((i,ord A g)::ls) H => fun HAcc' =>
+        match xs as xs' return Acc symbol_lt xs' -> Ord with
+        | [] => fun _ => f x
+        | ((i,ord A g)::ls) => fun HAcc' =>
             match HAcc' with
             | Acc_intro _ Hsub =>
-              MultiVeblen (exist _ ls (is_well_formed_tail (i,ord A g) ls H)) (Hsub (exist _ ls (is_well_formed_tail (i,ord A g) ls H)) (symbol_lt_drop i (ord A g) ls)) x ⊔
+              MultiVeblen ls (Hsub ls (symbol_lt_drop i (ord A g) ls)) x ⊔
               match x with
               | ord X h =>
                 @supOrd A (fun ai =>
+                   normal_fix (MultiVeblen ((i,g ai)::ls) (Hsub _ (symbol_lt_ord i (ord A g) (g ai) ls nil (index_lt (ord A g) ai) I)))
+                              (ord X (fun xi => inner (h xi)))
+                   ⊔
                 @supOrd { j:Idx | idx_lt j i} (fun j =>
-                   normal_fix (fun y => MultiVeblen (exist _ ((proj1_sig j,y)::(i,g ai)::ls) (is_well_formed_cons (proj1_sig j) y i x (g ai) ls (proj2_sig j) H)) (Hsub (exist _ ((proj1_sig j,y)::(i,g ai)::ls) (is_well_formed_cons (proj1_sig j) y i x (g ai) ls (proj2_sig j) H)) (symbol_lt_ord i (ord A g) (g ai) ls [(proj1_sig j,y)] (index_lt (ord A g) ai))) zeroOrd)
+                   normal_fix (fun y => MultiVeblen ((proj1_sig j,y)::(i,g ai)::ls) (Hsub _ (step_down i j A g ai y ls)) zeroOrd)
                        (ord X (fun xi => inner (h xi)))
                    ))
               end
         end
       end HAcc.
+
    End MultiVeblen.
 End VeblenSymbol.
+
+Definition nat_symbol := list (nat*Ord).
+
+Require Import Lia.
+
+Lemma nat_symbol_bounded : forall (x:nat_symbol), exists i, indices_bounded nat lt x i.
+Proof.
+  induction x; simpl.
+  - exists O. auto.
+  - destruct IHx as [i Hi].
+    destruct a as [j _]; simpl.
+    exists (Peano.max i (S j)).
+    split; [ lia | ].
+    induction x; simpl.
+    + auto.
+    + destruct a as [k y]; simpl in *.
+      split; [ lia | intuition ].
+Qed.
+
+Require Import Wf_nat.
+
+Lemma nat_symbol_lt_wf : well_founded (symbol_lt nat lt).
+Proof.
+  intro x.
+  destruct (nat_symbol_bounded x) as [i Hi].
+  apply symbol_lt_bounded_Acc with i; auto.
+  apply lt_wf.
+Qed.
+
+Definition nth_veblen (n:nat) : Ord -> Ord :=
+  MultiVeblen nat lt powOmega [(n,1)] (nat_symbol_lt_wf [(n,1)]).
+
+Definition SmallVeblenOrdinal : Ord := ord nat (fun n => nth_veblen n 0).
