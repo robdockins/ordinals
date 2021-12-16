@@ -6,4 +6,8 @@ Ordinal/Arith.v
 Ordinal/NaturalArith.v
 Ordinal/Classical.v
 Ordinal/Examples.v
+Ordinal/Fixpoints.v
+Ordinal/VeblenDefs.v
+Ordinal/VeblenClassical.v
 Ordinal/Veblen.v
+Ordinal/VeblenSymbol.v
