@@ -8,11 +8,6 @@ Unset Printing Records.
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 
-(** We say that a function on ordinals is strongly continuous
-    if it preserves all nonempty suprema. *)
-Definition strongly_continuous (s:Ord -> Ord) :=
-  forall A (f:A -> Ord) (a0:A), s (supOrd f) ≤ supOrd (fun i:A => s (f i)).
-
 (** * Definitions by transfinite primitive recursion.
   *)
 Definition foldOrd (z:Ord) (s:Ord -> Ord) : Ord -> Ord :=

@@ -54,6 +54,11 @@ Notation "x ⊓ y" := (glbOrd x y) (at level 55, right associativity) : ord_scop
     the collection; but I have not been able to figure out how to make it work.
  *)
 
+(** We say that a function on ordinals is strongly continuous
+    if it preserves all nonempty suprema. *)
+Definition strongly_continuous (s:Ord -> Ord) :=
+  forall A (f:A -> Ord) (a0:A), s (supOrd f) ≤ supOrd (fun i:A => s (f i)).
+
 (* Natural numbers have an ordinal size.
  *)
 Fixpoint natOrdSize (x:nat) :=

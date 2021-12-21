@@ -8,6 +8,7 @@ Unset Printing Records.
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 
+Open Scope ord_scope.
 
 (** The "natural" ordinal addition function as defined by Hessenberg.
   * This ordinal operation is commutative, associative and absorbs zero.
@@ -352,4 +353,174 @@ Add Parametric Morphism : naddOrd with signature
    ord_eq ==> ord_eq ==> ord_eq as naddOrd_eq_mor.
 Proof.
   intros; split; apply naddOrd_le_mor; solve [apply H|apply H0].
+Qed.
+
+
+
+(** * Jacobsthal multiplication.
+      This is the transfinite iteration of natural addition.
+  *)
+
+Fixpoint jmulOrd (a:Ord) (b:Ord) : Ord :=
+    match b with
+    | ord B g => supOrd (fun i:B => (jmulOrd a (g i)) ⊕ a)
+    end.
+
+Notation "a × b" := (jmulOrd a b) (at level 35, right associativity) : ord_scope.
+
+Lemma jmulOrd_unfold (a:Ord) (b:Ord) :
+  a × b =
+  supOrd (fun i:b => a × (b i) ⊕ a).
+Proof.
+  destruct b as [B g]; simpl; auto.
+Qed.
+
+Lemma jmulOrd_monotone1 : forall z a b , a ≤ b -> a × z ≤ b × z.
+Proof.
+  induction z as [C h Hz].
+  simpl; intros.
+  apply sup_least. intro c. simpl.
+  rewrite <- (sup_le _ _ c).
+  apply naddOrd_monotone; auto.
+Qed.
+
+Lemma jmulOrd_monotone2 : forall b a z, b ≤ z -> a × b ≤ a × z.
+Proof.
+  induction b as [B g Hb].
+  intros.
+  destruct a as [A f]; simpl in *.
+  apply sup_least. intro i.
+  rewrite ord_le_unfold in H.
+  specialize (H i).
+  simpl in H.
+  rewrite ord_lt_unfold in H.
+  destruct H as [q ?].
+  specialize (Hb i).
+  generalize (Hb (ord A f) (z q) H).
+  intros.
+  rewrite (jmulOrd_unfold (ord A f) z).
+  rewrite <- (sup_le _ _ q).
+  rewrite H0. reflexivity.
+Qed.
+
+Lemma jmulOrd_increasing2 : forall a b c,
+    0 < a ->
+    b < c ->
+    a × b < a × c.
+Proof.
+  intros a b [C h] Ha H.
+  rewrite (jmulOrd_unfold a (ord C h)).
+  simpl.
+  rewrite ord_lt_unfold in H.
+  destruct H as [c Hc]. simpl in Hc.
+  rewrite <- (sup_le _ _ c).
+  apply ord_le_lt_trans with (jmulOrd a (h c)); [ apply jmulOrd_monotone2 ; assumption | ].
+  apply ord_le_lt_trans with (naddOrd (jmulOrd a (h c)) zeroOrd).
+  - rewrite <- naddOrd_zero. reflexivity.
+  - apply naddOrd_increasing2. auto.
+Qed.
+
+Add Parametric Morphism : jmulOrd with signature
+    ord_le ++> ord_le ++> ord_le as jmulOrd_le_mor.
+Proof.
+  intros.
+  apply ord_le_trans with (x × y0).
+  apply jmulOrd_monotone2; auto.
+  apply jmulOrd_monotone1; auto.
+Qed.
+
+Add Parametric Morphism : jmulOrd with signature
+    ord_eq ==> ord_eq ==> ord_eq as jmulOrd_eq_mor.
+Proof.
+  unfold ord_eq; intuition; apply jmulOrd_le_mor; auto.
+Qed.
+
+
+Lemma jmulOrd_zero_r : forall a, a × 0 ≈ 0.
+Proof.
+  intros; split.
+  - destruct a as [A f]. simpl.
+    apply sup_least. intuition.
+  - apply zero_least.
+Qed.
+
+Lemma jmulOrd_zero_l : forall a, 0 × a ≈ 0.
+Proof.
+  induction a as [A f Ha].
+  split; simpl.
+  - apply sup_least; intro x.
+    rewrite <- naddOrd_zero.
+    apply Ha.
+  - apply zero_least.
+Qed.
+
+Lemma jmulOrd_succ : forall a b, a × (succOrd b) ≈ (a × b) ⊕ a.
+Proof.
+  intros; split; simpl.
+  - apply sup_least; auto with ord.
+  - rewrite <- (sup_le _ _ tt); auto with ord.
+Qed.
+
+Lemma jmulOrd_one : forall a, a × 1 ≈ a.
+Proof.
+  intro.
+  rewrite jmulOrd_succ.
+  rewrite jmulOrd_zero_r.
+  rewrite naddOrd_comm.
+  rewrite <- naddOrd_zero.
+  reflexivity.
+Qed.
+
+Lemma jmulOrd_positive : forall a b,
+    zeroOrd < a ->
+    zeroOrd < b ->
+    zeroOrd < a × b.
+Proof.
+  intros.
+  destruct a as [A f].
+  destruct b as [B g].
+  simpl.
+  rewrite ord_lt_unfold in H.
+  rewrite ord_lt_unfold in H0.
+  destruct H as [a _].
+  destruct H0 as [b _].
+  simpl in *.
+  rewrite <- (sup_le _ _ b).
+  rewrite (naddOrd_zero 0).
+  apply ord_le_lt_trans with (ord A f × g b ⊕ 0).
+  apply naddOrd_le_mor; apply zero_least.
+  apply naddOrd_increasing2.
+  rewrite ord_lt_unfold. simpl.
+  exists a.
+  apply zero_least.
+Qed.
+
+Lemma jmulOrd_limit : forall a b,
+    limitOrdinal b ->
+    a × b ≈ supOrd (fun i:b => a × (b i)).
+Proof.
+  destruct b as [B g]; simpl; intros.
+  split.
+  - apply sup_least. intro b.
+    destruct H as [_ H].
+    destruct (H b) as [b' Hb'].
+    rewrite <- (sup_le _ _ b').
+    apply ord_le_trans with (jmulOrd a (succOrd (g b))).
+    apply (jmulOrd_succ a (g b)).
+    apply jmulOrd_monotone2.
+    apply succ_least; auto.
+  - apply sup_least. intro b.
+    rewrite <- (sup_le _ _ b).
+    apply naddOrd_le1.
+Qed.
+
+Lemma jmulOrd_continuous a : strongly_continuous (jmulOrd a).
+Proof.
+  red; simpl; intros.
+  apply sup_least.
+  intros [i q]. simpl.
+  rewrite <- (sup_le _ _ i).
+  rewrite (jmulOrd_unfold a (f i)).
+  rewrite <- (sup_le _ _ q).
+  reflexivity.
 Qed.

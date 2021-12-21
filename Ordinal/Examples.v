@@ -14,7 +14,7 @@ Unset Printing Records.
 
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
-From Ordinal Require Import Arith.
+From Ordinal Require Import NaturalArith.
 
 (** Functions into sized types have sizes defined by nontrivial
     limit ordinals.
@@ -50,19 +50,19 @@ Global Hint Resolve fun_lt dep_lt : ord.
 (** * Lexicographic orders, encoded as ordinals *)
 
 Definition lex {α β:Ord} (x:α) (y:β) :=
-  β ⊗ sz x ⊕ sz y.
+  β × sz x ⊕ sz y.
 
 Lemma lex1 (α β:Ord) (x x':α) (y y':β) :
   x ◃ x' ->
   lex x y < lex x' y'.
 Proof.
   unfold lex; intros.
-  apply ord_lt_le_trans with (β ⊗ succOrd x ⊕ y').
-  - rewrite <- (addOrd_le1 _ (sz y')).
-    rewrite mulOrd_succ.
-    apply addOrd_increasing2; auto with ord.
-  - apply addOrd_monotone; auto with ord.
-    apply mulOrd_monotone2.
+  apply ord_lt_le_trans with (β × succOrd x ⊕ y').
+  - rewrite <- (naddOrd_le1 _ (sz y')).
+    rewrite jmulOrd_succ.
+    apply naddOrd_increasing2; auto with ord.
+  - apply naddOrd_monotone; auto with ord.
+    apply jmulOrd_monotone2.
     apply succ_least. auto.
 Qed.
 
@@ -73,7 +73,7 @@ Lemma lex2 (α β:Ord) (x x':α) (y y':β) :
 Proof.
   unfold lex; intros.
   rewrite H.
-  apply addOrd_increasing2; auto.
+  apply naddOrd_increasing2; auto.
 Qed.
 
 (** * Well-founded relations generate ordinals *)
@@ -196,28 +196,28 @@ Lemma add_trans1 x y z : x ≤ y -> x ≤ y ⊕ z.
 Proof.
   intros.
   apply ord_le_trans with y; auto.
-  apply addOrd_le1.
+  apply naddOrd_le1.
 Qed.
 
 Lemma add_trans1' x y z : x < y -> x < y ⊕ z.
 Proof.
   intros.
   apply ord_lt_le_trans with y; auto.
-  apply addOrd_le1.
+  apply naddOrd_le1.
 Qed.
 
 Lemma add_trans2 x y z : x ≤ z -> x ≤ y ⊕ z.
 Proof.
   intros.
   apply ord_le_trans with z; auto.
-  apply addOrd_le2.
+  apply naddOrd_le2.
 Qed.
 
 Lemma add_trans2' x y z : x < z -> x < y ⊕ z.
 Proof.
   intros.
   apply ord_lt_le_trans with z; auto.
-  apply addOrd_le2.
+  apply naddOrd_le2.
 Qed.
 
 Global Hint Unfold ordSize : ord.
@@ -237,8 +237,8 @@ Global Hint Resolve
 Definition listOrd {A} (f:A -> Ord) : list A -> Ord :=
   fix listOrd (l:list A) : Ord :=
     match l with
-    | [] => zeroOrd
-    | x::xs => succOrd (addOrd (f x) (listOrd xs))
+    | [] => 0
+    | x::xs => succOrd (f x ⊕ listOrd xs)
     end.
 
 Canonical Structure ListOrd (A:Ord) : Ord :=
@@ -248,11 +248,11 @@ Lemma listAdd (A:Ord) (xs ys:list A) :
   sz (xs ++ ys) ≈ sz xs ⊕ sz ys.
 Proof.
   induction xs; simpl.
-  - rewrite addOrd_comm.
-    apply addOrd_zero.
-  - rewrite addOrd_succ.
+  - rewrite naddOrd_comm.
+    apply naddOrd_zero.
+  - rewrite naddOrd_succ.
     rewrite IHxs.
-    rewrite addOrd_assoc.
+    rewrite naddOrd_assoc.
     reflexivity.
 Qed.
 
@@ -278,8 +278,8 @@ Global Hint Resolve head_lt tail_lt : ord.
 Lemma app_lt1 : forall (A:Ord) (xs ys:list A), ys <> [] ->  xs ◃ xs ++ ys.
 Proof.
   intros. rewrite listAdd. simpl.
-  rewrite addOrd_zero at 1.
-  apply addOrd_increasing2.
+  rewrite naddOrd_zero at 1.
+  apply naddOrd_increasing2.
   destruct ys.
   + elim H; auto.
   + simpl.
@@ -290,9 +290,9 @@ Qed.
 Lemma app_lt2 : forall (A:Ord) (xs ys:list A), xs <> [] -> ys ◃ xs ++ ys.
 Proof.
   intros. rewrite listAdd. simpl.
-  rewrite addOrd_zero at 1.
-  rewrite addOrd_comm.
-  apply addOrd_increasing1.
+  rewrite naddOrd_zero at 1.
+  rewrite naddOrd_comm.
+  apply naddOrd_increasing1.
   destruct xs.
   + elim H; auto.
   + simpl.
@@ -306,9 +306,9 @@ Lemma Permutation_size (A:Ord) (r s:list A) : Permutation r s -> sz r ≈ sz s.
 Proof.
   intro H; induction H; simpl; eauto with ord.
   - rewrite IHPermutation; auto with ord.
-  - repeat rewrite addOrd_succ2.
-    do 2 rewrite addOrd_assoc.
-    rewrite (addOrd_comm (A y)).
+  - repeat rewrite naddOrd_succ2.
+    do 2 rewrite naddOrd_assoc.
+    rewrite (naddOrd_comm (A y)).
     auto with ord.
 Qed.
 
@@ -319,20 +319,20 @@ Qed.
 Global Hint Resolve In_lt : ord.
 
 Lemma listOrd_bounded_aux A (f:A -> Ord) l :
-  listOrd f l ≤ (ord A f) ⊗ (length l : ω).
+  listOrd f l ≤ (ord A f) × (length l : ω).
 Proof.
   induction l; simpl.
   apply zero_least.
   apply succ_least.
-  rewrite (addOrd_comm (f a)).
+  rewrite (naddOrd_comm (f a)).
   apply ord_lt_le_trans with (listOrd f l ⊕ (ord A f)).
-  apply addOrd_increasing2. apply (index_lt (ord A f)).
+  apply naddOrd_increasing2. apply (index_lt (ord A f)).
   rewrite <- (sup_le _ _ tt).
-  apply addOrd_monotone; auto with ord.
+  apply naddOrd_monotone; auto with ord.
 Qed.
 
 Lemma listOrd_bounded (A:Ord) (l:list A) :
-  sz l ≤ A ⊗ ω.
+  sz l ≤ A × ω.
 Proof.
   destruct A as [A f].
   simpl. rewrite <- (sup_le _ _ (length l)).
@@ -340,16 +340,16 @@ Proof.
 Qed.
 
 Lemma listOrd_bounded' (A:Ord) (l:list A) :
-  sz l < (succOrd A) ⊗ ω.
+  sz l < (succOrd A) × ω.
 Proof.
   destruct A as [A f].
   simpl. rewrite <- (sup_le _ _ (length l)).
-  rewrite addOrd_succ2.
+  rewrite naddOrd_succ2.
   apply succ_trans.
-  rewrite <- addOrd_le1.
+  rewrite <- naddOrd_le1.
   rewrite listOrd_bounded_aux; auto with ord.
   simpl.
-  apply mulOrd_monotone1.
+  apply jmulOrd_monotone1.
   auto with ord.
 Qed.
 
@@ -376,7 +376,7 @@ Fixpoint streamAppend {A:Type} (l:list A) (s:stream A) : stream A :=
    the elements of streams are always subterms of the stream.
  *)
 Definition streamOrd {A} (f:A -> Ord) (s:stream A) : Ord :=
-  succOrd (supOrd (fun n => f (streamIdx n s) ⊕ (succOrd (ord A f) ⊗ ω))).
+  succOrd (supOrd (fun n => f (streamIdx n s) ⊕ (succOrd (ord A f) × ω))).
 Canonical Structure StreamOrd (A:Ord) : Ord :=
   ord (stream A) (streamOrd (ordSize A)).
 
@@ -419,7 +419,7 @@ Proof.
     apply succ_monotone_lt.
     rewrite <- (sup_le _ _ 0%nat).
     unfold streamIdx; unfold streamCons.
-    apply addOrd_increasing2; auto with ord.
+    apply naddOrd_increasing2; auto with ord.
     destruct A; apply listOrd_bounded'.
 Qed.
 
@@ -453,7 +453,7 @@ Lemma rose_immediate_subtree_lt (A:Ord) (a:A) (s:nat -> CountableRoseTree A) n :
 Proof.
   simpl.
   apply succ_trans.
-  rewrite <- addOrd_le2.
+  rewrite <- naddOrd_le2.
   apply ord_lt_le; apply succ_trans.
   rewrite <- (sup_le _ _ n).
   auto with ord.
@@ -559,7 +559,7 @@ Fixpoint asdf_size n (x:asdf n) : Ord :=
 with qwerty_size n (x:qwerty n) : Ord :=
   match x with
   | emptyQwerty => zeroOrd
-  | someQwerty n x y => succOrd (addOrd (qwerty_size n x) (depOrd asdf_size y))
+  | someQwerty n x y => succOrd (qwerty_size n x ⊕ depOrd asdf_size y)
   end.
 
 Canonical Structure AsdfOrdSize n :=
