@@ -402,7 +402,7 @@ Lemma streamTail_le (A:Ord) (h:A) (tl:stream A) :
   tl ⊴ streamCons h tl.
 Proof.
   simpl. unfold streamOrd.
-  apply succ_monotone_le.
+  apply succ_monotone.
   apply sup_least. intro i.
   rewrite <- (sup_le _ _ (S i)).
   simpl.
@@ -416,7 +416,7 @@ Proof.
   - unfold streamOrd.
     apply succ_trans; apply zero_least.
   - unfold streamOrd.
-    apply succ_monotone_lt.
+    apply succ_increasing.
     rewrite <- (sup_le _ _ 0%nat).
     unfold streamIdx; unfold streamCons.
     apply naddOrd_increasing2; auto with ord.

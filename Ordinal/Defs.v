@@ -19,18 +19,6 @@ My secondary goal was to climb the first part of the way into
 Feferman-Shütte ordinal Γ₀, and perhaps up to the small Veblen ordinal
 (SVO), which is formed as the limit of the extended Veblen functions
 on finitely-many variables.
-
-Regarding the first goal, I believe this effort has been quite
-successful. Some examples of using ordinals for these purposes
-is given a the end of this file.
-
-On the second goal, the result is a bit more mixed.  Development
-proceeds smoothly up through computing the ε numbers with no problems.
-The definition of the Vebeln functions and many of their properties
-likewise goes through without much trouble.  However, it has remained
-stubbornly difficult to find a proof that the Veblen functions are
-inflationary in their first argument, a property necessary to
-show that they have fixpoints.  More details follow.
 *)
 
 
@@ -116,7 +104,7 @@ Lemma ord_le_subord x y :
   x <= y ->
   forall i, exists j, x i <= y j.
 Proof.
-  intros.
+  intros H i.
   rewrite ord_le_unfold in H.
   specialize (H i).
   rewrite ord_lt_unfold in H.
@@ -128,13 +116,13 @@ Qed.
 Lemma ord_lt_le : forall b a,
   a < b -> a ≤ b.
 Proof.
-  induction b as [B g]. intros.
-  rewrite ord_lt_unfold in H0. simpl in *.
-  destruct H0 as [b ?].
+  induction b as [B g]. intros a Ha.
+  rewrite ord_lt_unfold in Ha.
+  destruct Ha as [b Hb].
   destruct a as [A f].
   rewrite ord_le_unfold in *.
-  intros.
-  specialize (H0 a).
+  intro a.
+  specialize (Hb a).
   rewrite ord_lt_unfold.
   exists b. apply H. auto.
 Qed.
@@ -145,11 +133,11 @@ Lemma ord_le_refl x : x ≤ x.
 Proof.
   induction x as [A f].
   rewrite ord_le_unfold.
-  intros.
+  intros a.
   rewrite ord_lt_unfold.
-  exists a. apply H.
+  exists a.
+  apply H.
 Qed.
-
 
 Lemma index_lt : forall (a:Ord) (i:a), a i < a.
 Proof.
@@ -258,7 +246,7 @@ Lemma ord_lt_acc : forall x y,  y ≤ x -> Acc ord_lt y.
 Proof.
   induction x as [A f]; intros z Hz.
   constructor. intros y Hy.
-  assert (Hyx : (ord_lt y (ord A f))).
+  assert (Hyx : y < ord A f).
   { apply ord_lt_le_trans with z; auto. }
 
   rewrite ord_lt_unfold in Hyx.
@@ -284,8 +272,7 @@ Definition ordinal_induction
 (** The less-than order is irreflexive, a simple corollary of well-foundedness. *)
 Corollary ord_lt_irreflexive : forall x, x < x -> False.
 Proof.
-  induction x using ordinal_induction.
-  firstorder.
+  induction x using ordinal_induction; firstorder.
 Qed.
 
 (** * Ordinal equality is an equality relation *)
@@ -358,8 +345,7 @@ Lemma increasing_inflationary f :
 Proof.
   intro Hinc.
   induction a using ordinal_induction.
-  apply ord_le_intro.
-  intros z Hz.
+  apply ord_le_intro; intros z Hz.
   rewrite (H z); auto.
 Qed.
 

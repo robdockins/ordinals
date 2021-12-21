@@ -19,8 +19,6 @@ Definition succOrd (x:Ord) : Ord := ord unit (fun _ => x).
 Number Notation Ord Nat.of_num_uint Nat.to_num_uint
          (via nat mapping [zeroOrd => O, succOrd => S]) : ord_scope.
 
-Definition oneOrd := succOrd zeroOrd.
-
 Definition limOrd {A:Type} (f:A -> Ord) := ord A f.
 
 (** The binary upper bound of two ordinals is constructed using a sum type
@@ -88,7 +86,7 @@ Definition predOrd (x:Ord) : Ord :=
   end.
 
 (** A "complete" ordinal is one which is directed, in an order-theoretic
-    sense; for which it deciable if it is inhabited; and for which all its
+    sense; for which it decidable if it is inhabited; and for which all its
     subordinals are also complete.
 
     This is a technical property that appears necessary in some later proofs.
@@ -141,6 +139,8 @@ Proof.
   simpl. intros [].
 Qed.
 
+Global Hint Resolve zero_least : ord.
+
 Lemma zero_complete : complete 0.
 Proof.
   simpl; repeat (hnf; intuition).
@@ -159,43 +159,43 @@ Proof.
   rewrite ord_lt_unfold. simpl. exists tt. apply ord_le_refl.
 Qed.
 
+Global Hint Resolve succ_lt : ord.
+
 Lemma succ_least : forall x y, x < y -> succOrd x ≤ y.
 Proof.
   intros.
   rewrite ord_le_unfold. simpl; auto.
 Qed.
 
-Lemma succ_monotone_lt : forall a b, a < b -> succOrd a < succOrd b.
-Proof.
-  intros.
-  apply ord_le_lt_trans with b.
-  apply succ_least; auto.
-  apply succ_lt.
-Qed.
-
-Lemma succ_monotone_le : forall a b, a ≤ b -> succOrd a ≤ succOrd b.
+Lemma succ_monotone : forall a b, a ≤ b -> succOrd a ≤ succOrd b.
 Proof.
   intros.
   apply succ_least.
-  apply ord_le_lt_trans with b; auto.
-  apply succ_lt.
+  apply ord_le_lt_trans with b; auto with ord.
+Qed.
+
+Lemma succ_increasing : forall a b, a < b -> succOrd a < succOrd b.
+Proof.
+  intros.
+  apply ord_le_lt_trans with b; auto with ord.
+  apply succ_least; auto.
 Qed.
 
 Lemma succ_congruence : forall a b, a ≈ b -> succOrd a ≈ succOrd b.
 Proof.
-  unfold ord_eq; intuition; apply succ_monotone_le; auto.
+  unfold ord_eq; intuition; apply succ_monotone; auto.
 Qed.
 
 Add Parametric Morphism : succOrd with signature
     ord_le ++> ord_le as succOrd_le_mor.
 Proof.
-  intros; apply succ_monotone_le; auto.
+  intros; apply succ_monotone; auto.
 Qed.
 
 Add Parametric Morphism : succOrd with signature
     ord_lt ++> ord_lt as succOrd_lt_mor.
 Proof.
-  intros; apply succ_monotone_lt; auto.
+  intros; apply succ_increasing; auto.
 Qed.
 
 Add Parametric Morphism : succOrd with signature
@@ -211,27 +211,26 @@ Proof.
   - left; exact (inhabits tt).
 Qed.
 
+
 (** The supremum is nonstrictly above all the ordinals in the
   * collection defined by "f".  Morover it is it the smallest such.
   *)
 Lemma sup_le : forall A (f:A -> Ord) a, f a ≤ supOrd f.
 Proof.
-  intros.
+  intros A f a.
   rewrite ord_le_unfold.
   intro b.
   rewrite ord_lt_unfold.
   exists (@existT A (fun a => ordCarrier (f a)) a b).
-  simpl.
-  apply ord_le_refl.
+  simpl. auto with ord.
 Qed.
 
 Lemma sup_least : forall A (f:A -> Ord) z,
     (forall a, f a ≤ z) -> supOrd f ≤ z.
 Proof.
-  intros.
+  intros A f z H.
   rewrite ord_le_unfold.
-  simpl; intros.
-  destruct a as [a b]. simpl.
+  intros [a b]; simpl.
   specialize (H a).
   rewrite ord_le_unfold in H.
   apply H.
@@ -242,7 +241,7 @@ Instance sup_ord_le_morphism (A:Type) :
 Proof.
   repeat intro.
   red in H.
-  apply sup_least. intro.
+  apply sup_least. intro a.
   rewrite H.
   apply sup_le.
 Qed.
@@ -286,21 +285,17 @@ Global Hint Resolve limit_lt sup_le : ord.
 Lemma sup_lim : forall A (f:A -> Ord),
   supOrd f ≤ limOrd f.
 Proof.
-  intros.
+  intros A f.
   apply sup_least.
-  intros.
-  apply ord_lt_le.
-  apply limit_lt.
+  auto with ord.
 Qed.
 
 Lemma lim_sup : forall A (f:A -> Ord),
   limOrd f ≤ succOrd (supOrd f).
 Proof.
-  intros.
+  intros A f.
   apply limit_least. intro a.
-  apply ord_le_lt_trans with (supOrd f).
-  apply sup_le.
-  apply succ_lt.
+  apply ord_le_lt_trans with (supOrd f); auto with ord.
 Qed.
 
 Lemma sup_succ_lim : forall A (f:A -> Ord),
@@ -312,8 +307,7 @@ Proof.
     rewrite ord_lt_unfold.
     simpl.
     exists (existT _ i tt).
-    simpl.
-    apply ord_le_refl.
+    simpl; auto with ord.
   - apply sup_least.
     intros.
     apply succ_least.
@@ -393,9 +387,7 @@ Proof.
   simpl. split.
   - exact (inhabits 0%nat).
   - hnf; intros.
-    exists (S a).
-    simpl.
-    apply succ_lt.
+    exists (S a); simpl; auto with ord.
 Qed.
 
 Lemma omega_least : forall x, limitOrdinal x -> ω <= x.
@@ -407,7 +399,7 @@ Proof.
   destruct H as [[q] H].
   rewrite ord_lt_unfold; simpl.
   induction a; simpl.
-  - exists q. apply zero_least.
+  - exists q; auto with ord.
   - destruct IHa as [r Hr].
     destruct (H r) as [s Hs].
     exists s.
@@ -439,10 +431,9 @@ Qed.
 Lemma ord_isZero z : zeroOrdinal z <-> z ≈ 0.
 Proof.
   split.
-  - intro. split.
-    + destruct z as [Z f].
-      rewrite ord_le_unfold. intro a; elim (H a).
-    + apply zero_least.
+  - intro. split; auto with ord.
+    destruct z as [Z f].
+    rewrite ord_le_unfold. intro a; elim (H a).
   - repeat intro.
     destruct z as [Z f].
     simpl. intro a.
@@ -491,8 +482,10 @@ Proof.
   reflexivity.
 Qed.
 
-
-Lemma ord_isLimit' β : zeroOrd < β -> β ≈ boundedSup β (fun a => a) -> limitOrdinal β.
+Lemma ord_isLimit' β :
+  0 < β ->
+  β ≈ boundedSup β (fun a => a) ->
+  limitOrdinal β.
 Proof.
   destruct β as [B g]; simpl.
   intros H Heq ; split.
@@ -535,14 +528,13 @@ Proof.
   apply H; auto with ord.
 Qed.
 
-Lemma pred_zero : zeroOrd ≈ predOrd zeroOrd.
+Lemma pred_zero : 0 ≈ predOrd 0.
 Proof.
-  split.
-  - apply zero_least.
-  - apply pred_least.
-    intros.
-    rewrite ord_lt_unfold in H.
-    destruct H. destruct x0.
+  split; auto with ord.
+  apply pred_least.
+  intros x H.
+  rewrite ord_lt_unfold in H.
+  destruct H as [[] _].
 Qed.
 
 Lemma pred_successor x : successorOrdinal x -> predOrd x < x.
@@ -673,7 +665,6 @@ Proof.
   - intros [x y]. simpl.
     apply Hx; auto.
 Qed.
-
 
 Add Parametric Morphism : glbOrd with signature
     ord_le ++> ord_le ++> ord_le as ord_glb_le_mor.
@@ -812,9 +803,9 @@ Lemma succ_lub x y :
  succOrd x ⊔ succOrd y ≤ succOrd (x ⊔ y).
 Proof.
   apply lub_least.
-  - apply succ_monotone_le.
+  - apply succ_monotone.
     apply lub_le1.
-  - apply succ_monotone_le.
+  - apply succ_monotone.
     apply lub_le2.
 Qed.
 

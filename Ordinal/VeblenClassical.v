@@ -472,7 +472,7 @@ Section veblen.
         rewrite (veblen_unroll f (g b)).
         rewrite <- lub_le1.
         apply normal_monotone; auto.
-        apply succ_monotone_le.
+        apply succ_monotone.
         apply veblen_inflationary; auto.
       + destruct β as [B g]; simpl.
         apply sup_least; simpl; intro b.

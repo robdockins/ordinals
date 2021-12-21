@@ -14,28 +14,24 @@ Section classic.
     (~(x < y) -> y <= x).
   Proof.
     revert y.
-    induction x using ordinal_induction. rename H into Hindx.
-    induction y using ordinal_induction. rename H into Hindy.
+    induction x as [x Hindx] using ordinal_induction.
+    induction y as [y Hindy] using ordinal_induction.
+
     split.
     * rewrite ord_le_unfold.
       intros.
       destruct (EM (exists a, ~x a < y)).
-      2: { elim H; intros.
-           destruct (EM (x a < y)); auto.
-           elim H0; eauto. }
-      clear H.
-      destruct H0 as [a Ha].
-      destruct (EM (y <= x a)); auto.
-      rewrite ord_lt_unfold. exists a. auto.
-      destruct (Hindx (x a) (index_lt x a) y).
-      rewrite ord_lt_unfold. exists a. intuition.
-
-    * intros.
-      rewrite ord_le_unfold. intro a.
+      + clear H.
+        destruct H0 as [a Ha].
+        destruct (Hindx (x a) (index_lt x a) y).
+        rewrite ord_lt_unfold. exists a. intuition.
+      + elim H; intros.
+        destruct (EM (x a < y)); auto.
+        elim H0; eauto.
+    * intros. rewrite ord_le_unfold. intro a.
       destruct (Hindy (y a) (index_lt y a)).
       apply H0.
-      intro.
-      apply H.
+      intro. apply H.
       rewrite ord_lt_unfold. exists a. auto.
   Qed.
 
@@ -127,13 +123,13 @@ Section classic.
     *)
   Lemma classical_ordinal_induction (P:Ord -> Prop) :
     (forall x y, x ≈ y -> P x -> P y) ->
-    P zeroOrd ->
+    P 0 ->
     (forall o, P o -> P (succOrd o)) ->
     (forall x, (forall a, a < x -> P a) -> limitOrdinal x -> P x) ->
     forall x, P x.
   Proof.
     intros Heq Hzero Hsucc Hlimit.
-    induction x using ordinal_induction. rename H into Hind.
+    induction x as [x Hind] using ordinal_induction.
     destruct (ordinal_discriminate x) as [H|[H|H]].
     - apply Heq with zeroOrd.
       symmetry. apply ord_isZero; auto.

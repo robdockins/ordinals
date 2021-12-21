@@ -27,8 +27,7 @@ Proof.
   apply lub_least.
   - apply Hz.
   - apply sup_least. intros a.
-    apply ord_le_trans with (s (q (f a))).
-    apply Hmono. auto.
+    transitivity (s (q (f a))); auto.
     apply (Hsq (ord A f)).
 Qed.
 
@@ -36,9 +35,9 @@ Lemma foldOrd_unfold z s (x:Ord) i :
   s (foldOrd z s (x i)) ≤ foldOrd z s x.
 Proof.
   destruct x as [A f]. simpl.
-  eapply ord_le_trans; [ | apply lub_le2 ].
-  eapply ord_le_trans; [ | apply (sup_le _ _ i)]. simpl.
-  apply ord_le_refl.
+  etransitivity; [ | apply lub_le2 ].
+  etransitivity; [ | apply (sup_le _ _ i)]. simpl.
+  reflexivity.
 Qed.
 
 Lemma foldOrd_above_z z s x : z ≤ foldOrd z s x.
@@ -245,7 +244,7 @@ Proof.
     apply sup_least; intro c.
     destruct (ord_le_subord _ _ H1 c) as [d Hd]. simpl in *.
     rewrite <- (sup_le _ _ d).
-    apply succ_monotone_le.
+    apply succ_monotone.
     apply H; auto.
 Qed.
 
@@ -254,10 +253,8 @@ Lemma addOrd_increasing :
 Proof.
   intros.
   unfold addOrd.
-  apply foldOrd_increasing.
-  - intros. apply succ_lt.
-  - apply succ_monotone_le.
-  - auto.
+  apply foldOrd_increasing; auto with ord.
+  apply succ_monotone.
 Qed.
 
 Lemma addOrd_continuous x :
@@ -271,13 +268,9 @@ Lemma addOrd_complete x y :
   complete x -> complete y -> complete (x + y).
 Proof.
   intros. unfold addOrd.
-  apply foldOrd_complete; auto.
-  - intros.
-    apply ord_le_lt_trans with x0.
-    apply zero_least.
-    apply succ_lt.
-  - apply ord_lt_le. apply succ_lt.
-  - intros; apply succ_monotone_le; auto.
+  apply foldOrd_complete; auto with ord.
+  - intros. eapply ord_le_lt_trans; auto with ord.
+  - intros; apply succ_monotone; auto.
   - apply succ_complete.
 Qed.
 
@@ -351,7 +344,7 @@ Proof.
   - rewrite <- lub_le2.
     apply sup_least; intro i.
     rewrite <- (sup_le _ _ i).
-    apply succ_monotone_le.
+    apply succ_monotone.
     apply addOrd_monotone; auto.
     reflexivity.
 Qed.
@@ -425,25 +418,25 @@ Proof.
 Qed.
 
 Lemma mulOrd_positive : forall x y,
-    zeroOrd < x ->
-    zeroOrd < y ->
-    zeroOrd < x * y.
+    0 < x ->
+    0 < y ->
+    0 < x * y.
 Proof.
-  intros.
+  intros x y Hx Hy.
   destruct x as [A f].
   destruct y as [B g].
   simpl.
-  rewrite ord_lt_unfold in H.
-  rewrite ord_lt_unfold in H0.
-  destruct H as [a _].
-  destruct H0 as [b _].
+  rewrite ord_lt_unfold in Hx.
+  rewrite ord_lt_unfold in Hy.
+  destruct Hx as [a _].
+  destruct Hy as [b _].
   simpl in *.
   rewrite <- (sup_le _ _ b).
   rewrite <- lub_le2.
   rewrite <- (sup_le _ _ a).
   rewrite ord_lt_unfold. simpl.
   exists tt.
-  apply zero_least.
+  auto with ord.
 Qed.
 
 Lemma mulOrd_limit : forall x y,
@@ -502,7 +495,6 @@ Proof.
         apply ord_lt_le_trans with x; auto.
         rewrite (addOrd_zero_l x) at 1.
         apply addOrd_monotone; auto with ord.
-        apply zero_least.
       * right.
         intro y. elim Hy2. exact (inhabits y).
 Qed.
@@ -545,7 +537,7 @@ Proof.
   intros; apply mulOrd_monotone1; auto.
 Qed.
 
-Lemma expOrd_increasing a (Ha : oneOrd < a) :
+Lemma expOrd_increasing a (Ha : 1 < a) :
   forall x y,
     x < y ->
     expOrd a x < expOrd a y.
@@ -560,7 +552,7 @@ Proof.
   - apply mulOrd_monotone1.
 Qed.
 
-Lemma expOrd_limit x y (Hx:oneOrd < x) :
+Lemma expOrd_limit x y (Hx: 1 < x) :
   limitOrdinal y ->
   expOrd x y ≈ boundedSup y (expOrd x).
 Proof.
@@ -569,7 +561,7 @@ Proof.
   apply mulOrd_monotone1.
 Qed.
 
-Lemma expOrd_continuous x (Hx:ord_lt oneOrd x) :
+Lemma expOrd_continuous x (Hx: 1 < x) :
   strongly_continuous (expOrd x).
 Proof.
   apply foldOrd_strongly_continuous; auto.
