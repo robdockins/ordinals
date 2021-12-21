@@ -9,5 +9,5 @@ Ordinal/Examples.v
 Ordinal/Fixpoints.v
 Ordinal/VeblenDefs.v
 Ordinal/VeblenClassical.v
-Ordinal/Veblen.v
+Ordinal/VeblenCon.v
 Ordinal/VeblenSymbol.v

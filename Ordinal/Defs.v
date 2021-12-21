@@ -60,7 +60,7 @@ Coercion sz : ordCarrier >-> Ord.
 Add Printing Coercion sz.
 
 
-(** We define less-than and less-equal essentially by mutual
+(** We define < and ≤ essentially by mutual
     recursion on the structure of ordinals. The ordering
     relation has an elegant game semantics flavor, defined
     by the quantifier nesting structure.
@@ -422,3 +422,4 @@ Proof.
   intros [A f]; simpl; intros Hsucc [_ Hlim].
   apply (hasMax_ascending_contradiction A f); auto.
 Qed.
+

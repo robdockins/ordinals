@@ -8,7 +8,8 @@ Unset Printing Records.
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
-From Ordinal Require Import Veblen.
+From Ordinal Require Import Fixpoints.
+From Ordinal Require Import VeblenDefs.
 
 Require Import List.
 Import ListNotations.
@@ -188,11 +189,11 @@ Section VeblenSymbol.
               match x with
               | ord X h =>
                 @supOrd A (fun ai =>
-                   normal_fix (MultiVeblen ((i,g ai)::ls) (Hsub _ (symbol_lt_ord i (ord A g) (g ai) ls nil (index_lt (ord A g) ai) I)))
+                   fixOrd (MultiVeblen ((i,g ai)::ls) (Hsub _ (symbol_lt_ord i (ord A g) (g ai) ls nil (index_lt (ord A g) ai) I)))
                               (ord X (fun xi => inner (h xi)))
                    ⊔
                 @supOrd { j:Idx | idx_lt j i} (fun j =>
-                   normal_fix (fun y => MultiVeblen ((proj1_sig j,y)::(i,g ai)::ls) (Hsub _ (step_down i j A g ai y ls)) zeroOrd)
+                   fixOrd (fun y => MultiVeblen ((proj1_sig j,y)::(i,g ai)::ls) (Hsub _ (step_down i j A g ai y ls)) zeroOrd)
                        (ord X (fun xi => inner (h xi)))
                    ))
               end

@@ -124,3 +124,4 @@ Proof.
   intros. apply veblen_monotone_first; auto.
   intros. apply powOmega_monotone; auto.
 Qed.
+
