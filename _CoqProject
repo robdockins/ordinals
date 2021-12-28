@@ -3,6 +3,8 @@
 Ordinal/Defs.v
 Ordinal/Operators.v
 Ordinal/Arith.v
+Ordinal/Enumerate.v
+Ordinal/Cantor.v
 Ordinal/NaturalArith.v
 Ordinal/Classical.v
 Ordinal/Examples.v

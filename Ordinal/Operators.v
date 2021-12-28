@@ -236,6 +236,16 @@ Proof.
   apply H.
 Qed.
 
+Lemma sup_lt x A (f:A -> Ord) :
+  x < supOrd f -> exists a:A, x < f a.
+Proof.
+  rewrite ord_lt_unfold. simpl.
+  intros [[a q] H]; simpl in *.
+  exists a.
+  rewrite ord_lt_unfold.
+  exists q. auto.
+Qed.
+
 Instance sup_ord_le_morphism (A:Type) :
   Proper (pointwise_relation _ ord_le ==> ord_le) (@supOrd A).
 Proof.
@@ -425,6 +435,11 @@ Proof.
   - induction a.
     + apply zero_complete.
     + apply succ_complete; auto.
+Qed.
+
+Lemma omega_gt1 : 1 < ω.
+Proof.
+  apply (index_lt ω 1%nat).
 Qed.
 
 (** Any zero ordinal is equal to the distinguished zeroOrd *)
@@ -725,6 +740,19 @@ Proof.
     exists c. simpl. auto.
 Qed.
 
+Lemma lub_lt a b c :
+  a < b ⊔ c -> a < b \/ a < c.
+Proof.
+  rewrite ord_lt_unfold. unfold lubOrd. simpl.
+  intros [q ?].
+  destruct b as [B h].
+  destruct c as [C g]. simpl in *.
+  destruct q.
+  - left. rewrite ord_lt_unfold. eauto.
+  - right. rewrite ord_lt_unfold. eauto.
+Qed.
+
+
 (** lubOrd is a commutative, associative operator
   *)
 Lemma lub_le_comm : forall x y, x ⊔ y ≤ y ⊔ x.
@@ -796,6 +824,37 @@ Proof.
   intros; split; apply ord_lub_le_mor; intuition.
 Qed.
 
+Lemma lub_binary_sup a b :
+  a ⊔ b ≈ supOrd (fun i:bool => if i then a else b).
+Proof.
+  split.
+  - apply lub_least.
+    + rewrite <- (sup_le _ _ true).
+      reflexivity.
+    + rewrite <- (sup_le _ _ false).
+      reflexivity.
+  - apply sup_least. intros [|].
+    + apply lub_le1.
+    + apply lub_le2.
+Qed.
+
+Lemma lub_continuous f a b :
+  (forall a b, a ≤ b -> f a ≤ f b) ->
+  strongly_continuous f ->
+  f (a ⊔ b) ≈ f a ⊔ f b.
+Proof.
+  intros Hmono Hcont.
+  transitivity (f (supOrd (fun i:bool => if i then a else b))).
+  { split; apply Hmono; apply lub_binary_sup. }
+  split.
+  - rewrite (Hcont bool (fun i => if i then a else b) false).
+    apply sup_least. intros [|].
+    + apply lub_le1.
+    + apply lub_le2.
+  - apply lub_least; apply Hmono.
+    + rewrite <- (sup_le _ _ true); reflexivity.
+    + rewrite <- (sup_le _ _ false); reflexivity.
+Qed.
 
 (**  The lub of successors is <= the successor of the lub.
   *)

@@ -149,7 +149,7 @@ Section classic.
 End classic.
 
 (** Now, we show some reverse results. In particular, we will show how certain
-    reasoning principles about our presentation of ordinals imply the non-constructive
+    reasoning principles about our presentation of ordinals imply non-constructive
     principles. The workhorse of these results will be the truth ordinal,
     which is 0 for a false proposition and 1 for a true proposition. The main
     results follow from the fact that being able to distinguish which of these cases
@@ -259,14 +259,66 @@ Proof.
     apply HNP; auto.
 Qed.
 
+Definition truth_ord' (P:Prop) := supOrd (fun n => 1 ⊔ (ord P (fun H => natOrdSize n))).
+
+Lemma truth_ord'_false (P:Prop) : ~P -> truth_ord' P ≈ 1.
+Proof.
+  intro H. unfold truth_ord'; split.
+  - apply sup_least; intro n.
+    apply lub_least; auto with ord.
+    rewrite ord_le_unfold. simpl; intros.
+    elim H; auto.
+  - rewrite <- (sup_le _ _ 0%nat).
+    apply lub_le1.
+Qed.
+
+Lemma truth_ord'_true (P:Prop) : P -> truth_ord' P ≈ ω.
+Proof.
+  intro H. unfold truth_ord'; split.
+  - apply sup_least; intro n.
+    apply lub_least; auto with ord.
+    rewrite ord_le_unfold. simpl; intros.
+    rewrite ord_lt_unfold. exists 0%nat. auto with ord.
+    rewrite ord_le_unfold; simpl; intro.
+    rewrite ord_lt_unfold. simpl. exists n. auto with ord.
+  - rewrite ord_le_unfold; intro n.
+    rewrite <- (sup_le _ _ n).
+    rewrite <- lub_le2.
+    rewrite ord_lt_unfold. exists H. simpl.
+    auto with ord.
+Qed.
+
+Lemma truth_ord'_complete P : complete (truth_ord' P).
+Proof.
+  simpl; intuition.
+  - unfold directed.
+    intros [n1 q1] [n2 q2]. simpl.
+    destruct q1; destruct q2; simpl.
+    + exists (existT _ 0%nat (inl tt)). simpl; split; auto with ord.
+    + exists (existT _ n2 (inr p)); simpl; split; auto with ord.
+    + exists (existT _ n1 (inr p)); simpl; split; auto with ord.
+    + exists (existT _ (Nat.max n1 n2) (inr p)); simpl; split.
+      apply natOrdSize_monotone; apply PeanoNat.Nat.le_max_l.
+      apply natOrdSize_monotone; apply PeanoNat.Nat.le_max_r.
+  - left. exact (inhabits (existT _ 0%nat (inl tt))).
+  - destruct a; simpl.
+    destruct s; simpl.
+    + simpl; intuition.
+      hnf; simpl; intuition.
+      right.
+      intros [[]].
+    + induction x.
+      * apply zero_complete.
+      * apply succ_complete; auto.
+Qed.
+
 Lemma succ_limit_dec_EM :
   (forall x, 0 < x -> successorOrdinal x \/ limitOrdinal x) ->
   excluded_middle.
 Proof.
   intros Hdec P.
-  set (x := supOrd (fun n => 1 ⊔ (ord P (fun H => natOrdSize n)))).
-  destruct (Hdec x).
-  - unfold x.
+  destruct (Hdec (truth_ord' P)).
+  - unfold truth_ord'.
     rewrite <- (sup_le _ _ 0%nat).
     rewrite <- lub_le1.
     apply succ_lt.

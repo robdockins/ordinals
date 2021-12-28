@@ -11,6 +11,7 @@ From Ordinal Require Import Arith.
 From Ordinal Require Import Fixpoints.
 From Ordinal Require Import VeblenDefs.
 From Ordinal Require Import Classical.
+From Ordinal Require Import Enumerate.
 
 Record normal_function (f:Ord -> Ord) :=
   NormalFunction

@@ -1,6 +1,7 @@
 Require Import Setoid.
 Require Import Morphisms.
 Require Import Coq.Program.Basics.
+Require Import Coq.Program.Wf.
 
 Unset Printing Records.
 
@@ -268,6 +269,13 @@ Definition ordinal_induction
      (forall x : Ord, (forall y : Ord, y < x -> P y) -> P x) ->
      (forall a : Ord, P a)
   := well_founded_induction ord_lt_wf.
+
+(* An induction principle for the elements of an ordinal. *)
+Definition size_induction (A:Ord) :
+  forall (P:A -> Prop),
+  (forall x:A, (forall y, y ◃ x -> P y) -> P x) ->
+  (forall x:A, P x)
+ := well_founded_induction (measure_wf ord_lt_wf sz).
 
 (** The less-than order is irreflexive, a simple corollary of well-foundedness. *)
 Corollary ord_lt_irreflexive : forall x, x < x -> False.
