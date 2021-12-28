@@ -955,7 +955,7 @@ Section veblen.
   Qed.
 
   Lemma veblen_first_normal :
-    normal_function (fun β => veblen f β zeroOrd).
+    normal_function (fun β => veblen f β 0).
   Proof.
     constructor.
     - intros; apply veblen_monotone_first; auto.
