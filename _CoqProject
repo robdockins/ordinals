@@ -1,0 +1,16 @@
+-R Ordinal/ Ordinal
+
+Ordinal/Defs.v
+Ordinal/Operators.v
+Ordinal/Arith.v
+Ordinal/Enumerate.v
+Ordinal/Cantor.v
+Ordinal/NaturalArith.v
+Ordinal/Classical.v
+Ordinal/Examples.v
+Ordinal/Fixpoints.v
+Ordinal/VeblenDefs.v
+Ordinal/VeblenClassical.v
+Ordinal/VeblenCon.v
+Ordinal/VeblenSymbol.v
+Ordinal/Countable.v
