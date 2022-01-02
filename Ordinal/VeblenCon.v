@@ -44,27 +44,6 @@ Qed.
 Section normal_fixpoints.
   Variable f : Ord -> Ord.
 
-  Lemma iter_f_complete n :
-    forall base, complete base ->
-    (forall x, complete x -> complete (f x)) ->
-    complete (iter_f f base n).
-  Proof.
-    induction n as [n IH1] using (well_founded_induction Wf_nat.lt_wf).
-    destruct n; simpl; auto.
-  Qed.
-
-  Lemma iter_f_index_monotone i j :
-    (forall x, complete x -> x <= f x) ->
-    (forall x, complete x -> complete (f x)) ->
-    (i <= j)%nat ->
-    forall base, complete base -> iter_f f base i <= iter_f f base j.
-  Proof.
-    intros Hf1 Hf2 H; induction H; intros base Hbase; simpl.
-    - reflexivity.
-    - rewrite IHle; auto.
-      apply Hf1. apply iter_f_complete; auto.
-  Qed.
-
   Lemma fixOrd_continuous :
     (forall x y, x <= y -> f x <= f y) ->
     (forall x, complete x -> complete (f x)) ->
@@ -194,32 +173,12 @@ Proof.
   apply NormalFunction.
   + apply expOrd_monotone.
   + intros; apply powOmega_increasing; auto.
-  + red; intros A f a0 Hd Hc; apply (expOrd_continuous ω omega_gt1 A f a0).
+  + red; intros A f a0 Hd Hc; apply (expOrd_continuous ω A f a0).
   + unfold powOmega. intros; apply expOrd_complete; auto.
     * apply (index_lt ω 0%nat).
     * apply omega_complete.
   + unfold powOmega. intros.
     apply expOrd_nonzero.
-Qed.
-
-Lemma enum_fixpoints_complete f :
-  normal_function f ->
-  forall x, complete x -> complete (enum_fixpoints f x).
-Proof.
-  intro Hf.
-  induction x as [B g Hx]. intro Hc.
-  simpl enum_fixpoints.
-  apply normal_fix_complete.
-  - apply lim_complete.
-    + intros; apply Hx. apply Hc.
-    + intros b1 b2. destruct (complete_directed _ Hc b1 b2) as [b' [Hb1 Hb2]].
-      exists b'. split; apply enum_fixpoints_monotone; auto.
-      apply normal_monotone; auto.
-      apply normal_monotone; auto.
-    + apply Hc.
-  - apply normal_inflationary; auto.
-  - apply normal_monotone; auto.
-  - apply normal_complete; auto.
 Qed.
 
 Lemma enum_are_fixpoints f :
@@ -230,7 +189,11 @@ Proof.
   destruct x as [X g]; simpl.
   apply normal_fixpoint; auto.
   apply lim_complete.
-  - intros. apply enum_fixpoints_complete; auto. apply Hc.
+  - intros. apply enum_fixpoints_complete; auto.
+    + apply normal_inflationary; auto.
+    + apply normal_monotone; auto.
+    + apply normal_complete; auto.
+    + apply Hc.
   - intros b1 b2. destruct (complete_directed _ Hc b1 b2) as [b' [Hb1 HB2]].
     exists b'. split; apply enum_fixpoints_monotone; auto.
     apply normal_monotone; auto.
@@ -265,6 +228,9 @@ Proof.
   apply normal_fix_least; auto.
   - apply sup_complete.
     + intros; apply enum_fixpoints_complete; auto.
+      * apply normal_inflationary; auto.
+      * apply normal_monotone; auto.
+      * apply normal_complete; auto.
     + intros a1 a2. destruct (Hd a1 a2) as [a' [Ha1 Ha2]].
       exists a'.
       split; apply enum_fixpoints_monotone; auto.
@@ -289,6 +255,9 @@ Proof.
       apply normal_monotone; auto.
       apply normal_monotone; auto.
     + intro; apply enum_fixpoints_complete; auto.
+      * apply normal_inflationary; auto.
+      * apply normal_monotone; auto.
+      * apply normal_complete; auto.
 Qed.
 
 Lemma enum_fixpoints_normal f :
@@ -302,6 +271,9 @@ Proof.
     apply normal_monotone; auto.
   - apply enum_fixpoints_cont; auto.
   - apply enum_fixpoints_complete; auto.
+    + apply normal_inflationary; auto.
+    + apply normal_monotone; auto.
+    + apply normal_complete; auto.
   - intros.
     destruct x as [X g].
     simpl.

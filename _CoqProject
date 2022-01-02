@@ -9,6 +9,9 @@ Ordinal/NaturalArith.v
 Ordinal/Classical.v
 Ordinal/Examples.v
 Ordinal/Fixpoints.v
+Ordinal/Reflection.v
+Ordinal/CantorNotation.v
+
 Ordinal/VeblenDefs.v
 Ordinal/VeblenClassical.v
 Ordinal/VeblenCon.v

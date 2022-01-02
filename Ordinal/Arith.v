@@ -681,6 +681,13 @@ Qed.
 Definition expOrd (x y:Ord) : Ord :=
   foldOrd 1 (fun a => a * x) y.
 
+Lemma expOrd_unfold (x:Ord) (y:Ord) :
+  expOrd x y =
+  1 ⊔ supOrd (fun i:y => expOrd x (y i) * x).
+Proof.
+  destruct y; auto.
+Qed.
+
 Lemma expOrd_nonzero x y : 0 < expOrd x y.
 Proof.
   apply ord_lt_le_trans with 1.
@@ -713,6 +720,38 @@ Proof.
   intros; apply mulOrd_monotone1; auto.
 Qed.
 
+Lemma expOrd_monotone_base : forall x y a,
+  x ≤ y ->
+  expOrd x a ≤ expOrd y a.
+Proof.
+  intros.
+  induction a as [A f].
+  do 2 rewrite expOrd_unfold.
+  apply lub_least. { apply lub_le1. }
+  rewrite <- lub_le2.
+  apply sup_least; intro i.
+  rewrite <- (sup_le _ _ i).
+  etransitivity.
+  { apply mulOrd_monotone2. apply H. }
+  apply mulOrd_monotone1.
+  apply H0.
+Qed.
+
+Add Parametric Morphism : expOrd with signature
+    ord_le ++> ord_le ++> ord_le as expOrd_le_mor.
+Proof.
+  intros.
+  transitivity (expOrd x y0).
+  apply expOrd_monotone; auto.
+  apply expOrd_monotone_base; auto.
+Qed.
+
+Add Parametric Morphism : expOrd with signature
+    ord_eq ==> ord_eq ==> ord_eq as expOrd_eq_mor.
+Proof.
+  unfold ord_eq; intuition; apply expOrd_le_mor; auto.
+Qed.
+
 Lemma expOrd_increasing a (Ha : 1 < a) :
   forall x y,
     x < y ->
@@ -737,7 +776,7 @@ Proof.
   apply mulOrd_monotone1.
 Qed.
 
-Lemma expOrd_continuous x (Hx: 1 < x) :
+Lemma expOrd_continuous x :
   strongly_continuous (expOrd x).
 Proof.
   apply foldOrd_strongly_continuous; auto.
@@ -759,6 +798,46 @@ Proof.
   - intros; apply mulOrd_complete; auto.
 Qed.
 
+
+Lemma expOrd_one_base x : expOrd 1 x ≈ 1.
+Proof.
+  induction x as [A f].
+  rewrite expOrd_unfold.
+  split.
+  - apply lub_least; auto with ord.
+    apply sup_least; intro i.
+    rewrite mulOrd_one_r.
+    apply (H i).
+  - apply lub_le1.
+Qed.
+
+Lemma expOrd_one x : expOrd x 1 ≈ 1 ⊔ x.
+Proof.
+  rewrite expOrd_unfold.
+  split; apply lub_least.
+  apply lub_le1.
+  apply sup_least; intro i.
+  rewrite expOrd_zero.
+  rewrite mulOrd_one_l.
+  apply lub_le2.
+  apply lub_le1.
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ tt).
+  rewrite expOrd_zero.
+  rewrite mulOrd_one_l.
+  reflexivity.
+Qed.
+
+Lemma expOrd_one' x : x > 0 -> expOrd x 1 ≈ x.
+Proof.
+  intros.
+  rewrite expOrd_one.
+  split.
+  apply lub_least; auto with ord.
+  apply succ_least; auto.
+  apply lub_le2.
+Qed.  
+
 Lemma expOrd_lub a b c :
   expOrd a (b ⊔ c) ≈ expOrd a b ⊔ expOrd a c.
 Proof.
@@ -768,7 +847,6 @@ Proof.
   intros; apply mulOrd_monotone1; auto.
   apply foldOrd_strongly_continuous.
 Qed.
-
 
 Lemma expOrd_add a b c :
   expOrd a (b + c) ≈ expOrd a b * expOrd a c.
@@ -781,8 +859,7 @@ Proof.
       transitivity (0 + expOrd a b).
       { apply addOrd_zero_l. }
       apply addOrd_monotone; auto with ord.
-    + unfold expOrd at 1.
-      rewrite foldOrd_unfold.
+    + rewrite expOrd_unfold at 1.
       apply lub_least.
       * rewrite <- (sup_le _ _ (inl _ tt)).
         transitivity (0 + 1).
@@ -818,6 +895,37 @@ Proof.
 Qed.
 
 
+Lemma expOrd_mul a b c :
+  expOrd a (b * c) ≈ expOrd (expOrd a b) c.
+Proof.
+  revert a b; induction c as [C h]; intros.
+  rewrite mulOrd_unfold.
+  rewrite (expOrd_unfold (expOrd a b)).
+  split.
+  - rewrite expOrd_unfold.
+    apply lub_least; auto with ord.
+    { apply lub_le1. }
+    apply sup_least; intros [i q].
+    rewrite <- lub_le2.
+    simpl.
+    rewrite <- (sup_le _ _ i).
+    rewrite <- (H i).
+    rewrite <- expOrd_add.
+    unfold expOrd at 2.
+    rewrite foldOrd_unfold.
+    rewrite <- lub_le2.
+    rewrite <- (sup_le  _ _ q).
+    reflexivity.
+  - apply lub_least. { apply succ_least; apply expOrd_nonzero. }
+    apply sup_least. intro i. 
+    rewrite <- (H i).
+    transitivity (expOrd a (b * h i + b)).
+    rewrite expOrd_add. reflexivity.
+    apply expOrd_monotone.
+    rewrite <- (sup_le _ _ i).
+    reflexivity.
+Qed.
+
 Definition powOmega (x:Ord) : Ord := expOrd ω x.
 
 Lemma powOmega_monotone : forall x y, x ≤ y -> powOmega x ≤ powOmega y.
@@ -831,3 +939,19 @@ Proof.
   apply expOrd_increasing; auto.
   apply omega_gt1.
 Qed.
+
+
+Fixpoint KnuthUp (n:nat) (a:Ord) : Ord -> Ord :=
+  match n with
+  | O    => fun b => b * a
+  | S n' => foldOrd 1 (KnuthUp n' a)
+  end.
+
+Lemma KnuthUp_zero a b : KnuthUp 0%nat a b ≈ b * a.
+Proof. reflexivity. Qed.
+
+Lemma KnuthUp_succ n a b : KnuthUp (S n) a b ≈ foldOrd 1 (KnuthUp n a) b.
+Proof. reflexivity. Qed.
+
+Lemma KnuthUp_one a b : KnuthUp 1%nat a b ≈ expOrd a b.
+Proof. reflexivity. Qed.

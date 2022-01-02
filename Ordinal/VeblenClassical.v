@@ -570,7 +570,6 @@ Proof.
   - apply powOmega_increasing.
   - unfold powOmega.
     apply expOrd_continuous.
-    apply omega_gt1.
   - intros. apply expOrd_nonzero.
 Qed.
 

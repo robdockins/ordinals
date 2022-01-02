@@ -36,6 +36,40 @@ Section fixpoints.
     apply (sup_le _ (iter_f base) 0%nat).
   Qed.
 
+  Lemma iter_f_complete n :
+    forall base, complete base ->
+    (forall x, complete x -> complete (f x)) ->
+    complete (iter_f base n).
+  Proof.
+    induction n as [n IH1] using (well_founded_induction Wf_nat.lt_wf).
+    destruct n; simpl; auto.
+  Qed.
+
+  Lemma iter_f_index_monotone i j :
+    (forall x, complete x -> x <= f x) ->
+    (forall x, complete x -> complete (f x)) ->
+    (i <= j)%nat ->
+    forall base, complete base -> iter_f base i <= iter_f base j.
+  Proof.
+    intros Hf1 Hf2 H; induction H; intros base Hbase; simpl.
+    - reflexivity.
+    - rewrite IHle; auto.
+      apply Hf1. apply iter_f_complete; auto.
+  Qed.
+
+  Lemma directed_iter_f base :
+    (forall x, complete x -> x <= f x) ->
+    (forall x y, x <= y -> f x <= f y) ->
+    (forall x, complete x -> complete (f x)) ->
+    complete base ->
+    directed nat (iter_f base).
+  Proof.
+    intros. intros i j. exists (Nat.max i j).
+    split; apply iter_f_index_monotone; auto.
+    + apply PeanoNat.Nat.le_max_l.
+    + apply PeanoNat.Nat.le_max_r.
+  Qed.
+
   Hypothesis Hmonotone : forall x y, x <= y -> f x <= f y.
 
   Lemma fixOrd_monotone :
@@ -89,6 +123,36 @@ Section fixpoints.
       rewrite (Hcont A (fun i => supOrd (iter_f (g i))) a0).
       apply sup_ord_le_morphism. intro a.
       apply fixOrd_prefixpoint.
+  Qed.
+
+  Lemma normal_fix_complete base :
+    complete base ->
+    (forall x, complete x -> x <= f x) ->
+    (forall x y, x <= y -> f x <= f y) ->
+    (forall x, complete x -> complete (f x)) ->
+    complete (fixOrd base).
+  Proof.
+    intros Hbase Hf1 Hf2 Hf3.
+    unfold fixOrd.
+    apply sup_complete; auto.
+    - intros; apply iter_f_complete; auto.
+    - apply directed_iter_f; auto.
+    - assert (Hc' : complete (f base)).
+      { apply Hf3; auto. }
+      destruct (complete_zeroDec base Hbase).
+      + destruct (complete_zeroDec (f base) Hc').
+        * right. intro i.
+          revert H H0. clear -Hf1 Hf2 Hbase. revert base Hbase.
+          induction i; simpl; intros; auto.
+          transitivity (f base); auto.
+          apply Hf2; auto.
+          rewrite IHi; auto.
+          apply zero_least.
+        * left.
+          exists 1%nat. simpl.
+          auto.
+      + left.
+        exists 0%nat. simpl. auto.
   Qed.
 
 End fixpoints.
@@ -251,7 +315,22 @@ Proof.
       apply enum_are_fixpoints; auto.
 Qed.
 
-
+Lemma enum_fixpoints_complete f :
+  (forall x, complete x -> x ≤ f x) ->
+  (forall x y, x ≤ y -> f x ≤ f y) ->
+  (forall x, complete x -> complete (f x)) ->
+  forall x, complete x -> complete (enum_fixpoints f x).
+Proof.
+  intros Hf1 Hf2 Hf3.
+  induction x as [B g Hx]. intro Hc.
+  simpl enum_fixpoints.
+  apply normal_fix_complete; auto.
+  apply lim_complete.
+  + intros; apply Hx. apply Hc.
+  + intros b1 b2. destruct (complete_directed _ Hc b1 b2) as [b' [Hb1 Hb2]].
+    exists b'. split; apply enum_fixpoints_monotone; auto.
+  + apply Hc.
+Qed.
 
 Definition ε (x:Ord) := enum_fixpoints powOmega x.
 
@@ -278,7 +357,6 @@ Proof.
   apply powOmega_increasing.
   unfold powOmega.
   apply expOrd_continuous.
-  apply omega_gt1.
 Qed.
 
 Lemma ε_fixpoint : forall x, ε x ≈ expOrd ω (ε x).
@@ -286,7 +364,6 @@ Proof.
   intro x.
   apply enum_are_fixpoints.
   apply expOrd_continuous.
-  apply omega_gt1.
   apply increasing_inflationary.
   apply powOmega_increasing.
 Qed.
@@ -299,5 +376,78 @@ Proof.
   apply powOmega_increasing.
   apply powOmega_monotone.
   apply expOrd_continuous.
-  apply omega_gt1.
+Qed.
+
+Theorem ε_complete x : complete x -> complete (ε x).
+Proof.
+  intros. unfold ε.
+  apply enum_fixpoints_complete; auto.
+  intros; apply increasing_inflationary. apply powOmega_increasing.
+  apply powOmega_monotone.
+  intros; apply expOrd_complete; auto.
+  apply (index_lt ω 0%nat).
+  apply omega_complete.
+Qed.
+
+Opaque foldOrd.
+
+Theorem ε0_least_expOmega_closed : 
+  forall X, expOrd ω X ≤ X -> ε 0 ≤ X.
+Proof.
+  intros.
+  unfold ε. simpl. unfold fixOrd.
+  apply sup_least; intro i.
+  induction i; simpl iter_f.
+  { rewrite ord_le_unfold; intros []. }
+  rewrite <- H.
+  unfold powOmega.
+  apply expOrd_monotone.
+  apply IHi.
+Qed.
+
+
+Theorem KnuthUp_epsilon : KnuthUp 2 ω ω ≈ ε 0.
+Proof.
+  rewrite KnuthUp_succ.
+  transitivity (foldOrd 1 (expOrd ω) ω); [ reflexivity |].
+  rewrite foldOrd_unfold.
+  split.
+  - apply lub_least.
+    + unfold ε; simpl.
+      unfold fixOrd.
+      rewrite <- (sup_le _ _ 1%nat).
+      apply succ_least. apply expOrd_nonzero.
+    + apply sup_least; intro n.
+      induction n.
+      * simpl.
+        rewrite foldOrd_unfold.
+        transitivity (expOrd ω 1).
+        { apply expOrd_monotone. apply lub_least; auto with ord.
+          apply sup_least; intros []. }
+        unfold fixOrd. rewrite <- (sup_le _ _ 2%nat).
+        unfold iter_f. unfold powOmega.
+        apply expOrd_monotone.
+        apply succ_least. apply expOrd_nonzero.
+      * unfold ε. simpl.
+        rewrite fixOrd_fixpoint.
+        unfold powOmega.
+        apply expOrd_monotone.
+        rewrite foldOrd_succ.
+        apply IHn.
+        intros. apply succ_least; apply expOrd_nonzero.
+        apply expOrd_continuous.
+        apply increasing_inflationary.
+        apply powOmega_increasing.
+  - unfold ε. simpl enum_fixpoints. unfold fixOrd.
+    apply sup_least; intro n.
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ n).
+    simpl.
+    induction n; simpl.
+    + rewrite ord_le_unfold; intros [].
+    + unfold powOmega at 1.
+      apply expOrd_monotone.
+      rewrite foldOrd_succ.
+      apply IHn.
+      intros. apply succ_least. apply expOrd_nonzero.
 Qed.
