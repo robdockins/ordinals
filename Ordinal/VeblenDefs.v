@@ -97,16 +97,6 @@ Section veblen.
 
 End veblen.
 
-(* We say x is a critical ordinal for β when
-   x is in the range of f and also x is a fixpoint
-   for (veblen α) whenever α < β.
- *)
-Definition critical_ordinal f (β:Ord) (x:Ord) : Prop :=
-  (exists y, x ≈ f y) /\ (forall α, α < β -> x ≈ veblen f α x).
-
-Definition strongly_critical_ordinal f (β:Ord) : Prop :=
-  critical_ordinal f β β.
-
 Definition Γ a := enum_fixpoints (fun b => veblen powOmega b 0) a.
 
 Lemma Γ_monotone : forall x y, x ≤ y -> Γ x ≤ Γ y.

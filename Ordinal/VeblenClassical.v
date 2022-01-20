@@ -21,6 +21,15 @@ Record normal_function (f:Ord -> Ord) :=
   ; normal_nonzero    : forall x, 0 < f x
   }.
 
+(* We say x is a critical ordinal for β when
+   x is a fixpoint for (veblen α) whenever α < β.
+ *)
+Definition critical_ordinal f (β:Ord) (x:Ord) : Prop :=
+  forall α, α < β -> x ≈ veblen f α x.
+
+Definition strongly_critical_ordinal f (β:Ord) : Prop :=
+  β > 0 /\ critical_ordinal f β β.
+
 Lemma normal_inflationary f :
   normal_function f ->
   forall x, x ≤ f x.
@@ -561,7 +570,220 @@ Section veblen.
       reflexivity.
   Qed.
 
+  Theorem veblen_enumerates_critical β :
+    β > 0 ->
+    enumerates (veblen f β) (critical_ordinal f β).
+  Proof.
+    intros Hβ.
+    constructor.
+    - intro x. unfold critical_ordinal.
+      intros. symmetry. apply veblen_fixpoints; auto.
+    - intros; apply veblen_monotone; auto.
+      apply normal_monotone; auto.
+    - intros; apply veblen_increasing; auto.
+    - intros x z Hz1 Hz2.
+      rewrite veblen_unroll.
+      apply lub_least.
+      + generalize (Hz1 0 Hβ).
+        rewrite veblen_zero.
+        intro.
+        rewrite H.
+        apply normal_monotone; auto.
+        apply ord_le_intro. intros y Hy.
+        apply Hz2 in Hy.
+        apply ord_le_lt_trans with (veblen f β y); auto.
+        apply veblen_inflationary.
+      + destruct β as [B g]. simpl.
+        apply sup_least; intro i.
+        apply fixOrd_least.
+        * apply veblen_monotone; auto.
+          apply normal_monotone; auto.
+        * rewrite ord_le_unfold; simpl.
+          intro a.
+          apply Hz2.
+          apply index_lt.
+        * apply Hz1. apply (index_lt (ord B g)); auto.
+  Qed.
+
+  Theorem strongly_critical_fixpoint β :
+    strongly_critical_ordinal f β <-> veblen f β 0 ≈ β.
+  Proof.
+    split; intro H.
+    - destruct H as [Hβ H].
+      split.
+      + rewrite veblen_unroll.
+        apply lub_least.
+        * generalize (H 0 Hβ).
+          rewrite veblen_zero. intro.
+          rewrite H0.
+          apply normal_monotone; auto with ord.
+        * destruct β as [B g]; simpl.
+          apply sup_least. simpl; intro.
+          apply fixOrd_least; auto.
+          ** apply veblen_monotone; auto.
+             apply normal_monotone; auto.
+          ** rewrite ord_le_unfold. simpl; intro.
+             elim a0.
+          ** apply H.
+             apply (index_lt (ord B g) a).
+      + apply (increasing_inflationary (fun x => veblen f x 0)).
+        apply veblen_increasing_first; auto.
+    - hnf. split.
+      + rewrite <- H.
+        apply veblen_nonzero.
+      + intros α Hα.
+        rewrite <- H at 1.
+        transitivity (veblen f α (veblen f β 0)).
+        symmetry. apply veblen_fixpoints; auto.
+        split; apply veblen_monotone.
+        apply normal_monotone; auto.
+        apply H.
+        apply normal_monotone; auto.
+        apply H.
+  Qed.
+
 End veblen.
+
+Lemma onePlus_normal : normal_function (addOrd 1).
+Proof.
+  constructor.
+  - intros; apply addOrd_monotone; auto with ord.
+  - intros; apply addOrd_increasing; auto.
+  - apply addOrd_continuous.
+  - intros.
+    rewrite <- addOrd_le1.
+    apply succ_lt.
+Qed.
+
+Lemma onePlus_least_normal f :
+    normal_function f ->
+    forall x, 1+x <= f x.
+Proof.
+  intros.
+  induction x using ordinal_induction.
+  unfold addOrd.
+  rewrite foldOrd_unfold.
+  apply lub_least.
+  apply succ_least.
+  apply normal_nonzero; auto.
+  apply sup_least. intro i.
+  apply succ_least.
+  rewrite (H0 (x i)).
+  apply normal_increasing; auto.
+  apply index_lt.
+  apply index_lt.
+Qed.
+
+Require Import Cantor.
+
+Lemma veblen_onePlus :
+  forall a x, complete a -> complete x -> veblen (addOrd 1) a x ≈ expOrd ω a + x.
+Proof.
+  induction a as [A f Ha]. induction x as [X g Hx].
+  split.
+  - rewrite veblen_unroll.
+    apply lub_least.
+    + apply addOrd_monotone; auto with ord.
+      apply succ_least.
+      apply expOrd_nonzero.
+    + unfold boundedSup.
+      apply sup_least; intro i.
+      apply fixOrd_least.
+      * intros; apply veblen_monotone; auto.
+        intros; apply addOrd_monotone; auto with ord.
+      * rewrite ord_le_unfold. simpl ordSize. intro a.
+        simpl in a. rewrite Hx; auto.
+        apply addOrd_increasing.
+        apply (index_lt (ord X g) a).
+        apply H0.
+      * rewrite (Ha i).
+        rewrite addOrd_assoc.
+        apply addOrd_monotone; auto with ord.
+        apply expOrd_add_collapse; auto.
+        apply (index_lt (ord A f)).
+        apply H.
+        apply addOrd_complete; auto.
+        apply expOrd_complete; auto.
+        apply (index_lt _ 0%nat).
+        apply omega_complete.
+
+  - unfold addOrd at 1.
+    rewrite foldOrd_unfold.
+    apply lub_least.
+    + rewrite expOrd_unfold.
+      apply lub_least.
+      { apply succ_least.
+        apply veblen_nonzero.
+        apply onePlus_normal. }
+      apply sup_least; intro i.
+      rewrite veblen_unroll.
+      rewrite <- lub_le2.
+      unfold boundedSup.
+      rewrite <- (sup_le _ _ i).
+      unfold fixOrd.
+      rewrite mulOrd_unfold.
+      apply sup_least; intro n.
+      rewrite <- (sup_le _ _ (S n)).
+      transitivity (expOrd ω (f i) * (S n : ω)).
+      simpl. rewrite <- (sup_le _ _ tt).
+      reflexivity.
+      generalize (S n). clear n.
+      induction n.
+      * simpl. apply sup_least; intros [].
+      * simpl.
+        apply sup_least; intros [].
+        etransitivity.
+        2: { apply veblen_monotone.
+             intros; apply foldOrd_monotone; auto.
+             intros; apply succ_monotone; auto.
+             apply IHn. }
+        rewrite Ha.
+        ** clear.
+           unfold sz. simpl ordSize.
+           induction n; simpl natOrdSize.
+           rewrite mulOrd_zero_r.
+           rewrite <- addOrd_zero_l.
+           rewrite <- addOrd_zero_r.
+           reflexivity.
+           rewrite mulOrd_succ.
+           rewrite addOrd_assoc.
+           rewrite IHn.
+           reflexivity.
+        ** apply H.
+        ** apply mulOrd_complete.
+           apply expOrd_complete.
+           apply (index_lt _ 0%nat).
+           apply omega_complete.
+           apply H.
+           unfold sz. simpl ordSize.
+           clear; induction n; simpl natOrdSize.
+           apply zero_complete.
+           apply succ_complete; auto.
+
+    + apply sup_least; intro i. simpl ordSize.
+      transitivity (succOrd (expOrd ω (ord A f) + g i)).
+      reflexivity.
+      rewrite <- Hx; auto.
+      apply succ_least.
+      destruct (complete_zeroDec (ord A f)); auto.
+      * eapply ord_le_lt_trans.
+        apply veblen_monotone_first.
+        intros; apply addOrd_monotone; auto with ord.
+        apply H1.
+        eapply ord_lt_le_trans.
+        apply veblen_increasing0.
+        apply onePlus_normal.
+        apply (index_lt (ord X g) i).
+        apply veblen_monotone_first; auto with ord.
+        intros; apply addOrd_monotone; auto with ord.
+      * apply veblen_increasing_nonzero; auto.
+        apply onePlus_normal.
+        apply (index_lt (ord X g) i).
+      * apply H0.
+Qed.
+
+
+
 
 Lemma powOmega_normal : normal_function powOmega.
 Proof.
@@ -590,103 +812,6 @@ Proof.
     simpl. unfold fixOrd.
     rewrite <- (sup_le _ _ 1%nat). simpl.
     apply normal_nonzero. auto.
-Qed.
-
-Theorem veblen_enumerates_critical (EM:excluded_middle) f β :
-  normal_function f ->
-  enumerates (veblen f β) (critical_ordinal f β).
-Proof.
-  intro Hn.
-  constructor.
-  - intro x. unfold critical_ordinal.
-    split.
-    + destruct (classical.order_total EM β 0).
-      * exists x.
-        transitivity (veblen f 0 x).
-         split; apply veblen_monotone_first; auto.
-         apply normal_monotone; auto.
-         apply normal_monotone; auto.
-         apply zero_least.
-         apply veblen_zero.
-      * exists (veblen f β x).
-        transitivity (veblen f 0 (veblen f β x)).
-        symmetry. apply veblen_fixpoints; auto.
-        ** intro o. apply (classical.ord_directed EM o).
-        ** rewrite veblen_zero. reflexivity.
-    + intros. symmetry. apply veblen_fixpoints; auto.
-      intro o. apply (classical.ord_directed EM o).
-  - intros; apply veblen_monotone; auto.
-    apply normal_monotone; auto.
-  - intros; apply veblen_increasing; auto.
-    intro. apply (classical.order_total EM).
-  - intros x z [Hz1 Hz2] Hz3.
-    rewrite veblen_unroll.
-    apply lub_least.
-    + destruct Hz1 as [y Hy].
-      rewrite Hy.
-      destruct (classical.order_total EM x y).
-      * apply normal_monotone; auto.
-      * apply Hz3 in H.
-        elim (ord_lt_irreflexive z).
-        apply ord_le_lt_trans with (veblen f β y); auto.
-        rewrite Hy.
-        rewrite veblen_unroll.
-        apply lub_le1.
-    + destruct β as [B g]. simpl.
-      apply sup_least; intro i.
-      apply fixOrd_least.
-      * apply veblen_monotone; auto.
-        apply normal_monotone; auto.
-      * rewrite ord_le_unfold; simpl.
-        intro a.
-        apply Hz3.
-        apply index_lt.
-      * apply Hz2. apply (index_lt (ord B g)); auto.
-Qed.        
-
-Theorem strongly_critical_fixpoint (EM:excluded_middle) f β :
-  normal_function f ->
-  strongly_critical_ordinal f β <-> veblen f β 0 ≈ β.
-Proof.
-  intro Hn.
-  split; intro H.
-  - destruct H as [H1 H2].
-    split.
-    + rewrite veblen_unroll.
-      apply lub_least.
-      * destruct H1 as [y Hy]. rewrite Hy.
-        apply normal_monotone; auto. apply zero_least.
-      * destruct β as [B g]; simpl.
-        apply sup_least. simpl; intro.
-        apply fixOrd_least; auto.
-        ** apply veblen_monotone; auto.
-           apply normal_monotone; auto.
-        ** rewrite ord_le_unfold. simpl; intro.
-           elim a0.
-        ** rewrite <- H2; auto with ord.
-    + apply (increasing_inflationary (fun x => veblen f x 0)).
-      apply veblen_increasing_first; auto.
-      intro o. apply (classical.order_total EM).
-  - hnf. split.
-    + exists (veblen f β 0).
-      rewrite <- H at 1.
-      transitivity (veblen f 0 (veblen f β 0)).
-      symmetry. apply (veblen_fixpoints f Hn); auto.
-      intro o. apply (classical.ord_directed EM o).
-      rewrite <- H.
-      apply veblen_nonzero; auto.
-      rewrite veblen_zero.
-      reflexivity.
-    + intros α Hα.
-      rewrite <- H at 1.
-      transitivity (veblen f α (veblen f β 0)).
-      symmetry. apply (veblen_fixpoints f Hn); auto.
-      intro o. apply (classical.ord_directed EM o).
-      split; apply veblen_monotone.
-      apply normal_monotone; auto.
-      apply H.
-      apply normal_monotone; auto.
-      apply H.
 Qed.
 
 Theorem Γ_fixpoints (EM:excluded_middle) : forall a, Γ a ≈ veblen powOmega (Γ a) 0.
@@ -729,12 +854,14 @@ Proof.
   apply enumerates_equiv_pred with (fun x => x ≈ veblen powOmega x 0).
   { intro; symmetry. rewrite strongly_critical_fixpoint; auto.
     split; apply ord_eq_sym.
-    apply powOmega_normal. }
+    apply powOmega_normal.
+    intro; apply classical.order_total; auto.
+    intro; apply classical.ord_directed; auto. }
   apply enum_fixpoints_enumerates.
   - intros. apply (increasing_inflationary (fun x => veblen powOmega x 0)).
     apply veblen_increasing_first.
     apply powOmega_normal.
-    intro o. apply classical.order_total; auto.
+    intro; apply classical.order_total; auto.
   - intros; apply veblen_monotone_first; auto.
     apply powOmega_monotone.
   - apply veblen_continuous_first.
@@ -769,7 +896,10 @@ Proof.
   apply enumerates_equiv_pred with (fun x => x ≈ veblen Γ x 0).
   { intro; symmetry. rewrite strongly_critical_fixpoint; auto.
     split; apply ord_eq_sym.
-    apply Γ_normal; auto. }
+    apply Γ_normal; auto.
+    intro; apply classical.order_total; auto.
+    intro; apply classical.ord_directed; auto. }
+
   apply enum_fixpoints_enumerates.
   - intros. apply (increasing_inflationary (fun x => veblen Γ x 0)).
     apply veblen_increasing_first.
