@@ -356,6 +356,249 @@ Proof.
 Qed.
 
 
+(** * Natural multiplication *)
+
+Fixpoint nmulOrd (x:Ord) : Ord -> Ord :=
+  fix inner (y:Ord) : Ord :=
+    match x, y with
+    | ord A f, ord B g =>
+      (supOrd (fun a:A => nmulOrd (f a) y ⊕ y))
+      ⊔
+      (supOrd (fun b:B => inner (g b) ⊕ x))
+    end.
+
+Notation "a ⊗ b" := (nmulOrd a b) (at level 35, right associativity) : ord_scope.
+
+Lemma nmulOrd_unfold (x y:Ord) :
+  x ⊗ y =
+    (supOrd (fun a:x => x a ⊗ y ⊕ y))
+    ⊔
+    (supOrd (fun b:y => x ⊗ y b ⊕ x)).
+Proof.
+  destruct x; destruct y; auto.
+Qed.
+
+Global Opaque nmulOrd.
+
+Lemma nmulOrd_comm_le : forall x y,
+  x ⊗ y ≤ y ⊗ x.
+Proof.
+  induction x as [A f]. induction y as [B g].
+  rewrite nmulOrd_unfold.
+  apply lub_least.
+  - apply sup_least; intro a. simpl.
+    rewrite H.
+    rewrite (nmulOrd_unfold (ord B g) (ord A f)).
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ a).
+    auto with ord.
+  - apply sup_least; intro b. simpl.
+    rewrite H0.
+    rewrite (nmulOrd_unfold (ord B g) (ord A f)).
+    rewrite <- lub_le1.
+    rewrite <- (sup_le _ _ b).
+    auto with ord.
+Qed.
+
+Lemma nmulOrd_comm x y :
+  x ⊗ y ≈ y ⊗ x.
+Proof.
+  split; apply nmulOrd_comm_le; auto.
+Qed.
+
+Lemma nmulOrd_monotone : forall x y a b,
+    a ≤ x -> b ≤ y -> a ⊗ b ≤ x ⊗ y.
+Proof.
+  induction x as [X f].
+  induction y as [Y g].
+  intros.
+  rewrite (nmulOrd_unfold a b).
+  apply lub_least.
+  - apply sup_least; intro ai.
+    rewrite (nmulOrd_unfold (ord X f) (ord Y g)).
+    rewrite <- lub_le1.
+    generalize (ord_le_subord _ _ H1 ai); intros [x Hx].
+    rewrite <- (sup_le _ _ x).
+    simpl.
+    apply naddOrd_monotone; auto with ord.
+  - apply sup_least; intro bi.
+    rewrite (nmulOrd_unfold (ord X f) (ord Y g)).
+    rewrite <- lub_le2.
+    generalize (ord_le_subord _ _ H2 bi); intros [y Hy].
+    rewrite <- (sup_le _ _ y).
+    simpl.
+    apply naddOrd_monotone; auto with ord.
+Qed.
+
+Lemma nmulOrd_increasing2 :
+  forall x y z1 z2, x < y -> 0 < z1 -> z1 ≤ z2 -> x ⊗ z1 < y ⊗ z2.
+Proof.
+  intros x y z1 z2 Hxy Hz1 Hzs.
+  rewrite ord_lt_unfold in Hxy.
+  destruct Hxy as [b Hb].
+  rewrite (nmulOrd_unfold y z2).
+  rewrite <- lub_le1.
+  rewrite <- (sup_le _ _ b).
+  apply ord_lt_le_trans with (y b ⊗ z2 ⊕ 1).
+  rewrite naddOrd_comm.
+  rewrite naddOrd_succ.
+  rewrite naddOrd_comm.
+  rewrite <- naddOrd_zero.
+  rewrite ord_lt_unfold; exists tt. simpl.
+  apply nmulOrd_monotone; auto.
+  apply naddOrd_monotone; auto with ord.
+  rewrite <- Hzs.
+  apply succ_least; auto.
+Qed.
+
+Lemma nmulOrd_increasing1 :
+  forall x y z1 z2, x < y -> 0 < z1 -> z1 ≤ z2 -> z1 ⊗ x < z2 ⊗ y.
+Proof.
+  intros.
+  rewrite (nmulOrd_comm z1 x).
+  rewrite (nmulOrd_comm z2 y).
+  apply nmulOrd_increasing2; auto.
+Qed.
+
+Add Parametric Morphism : nmulOrd with signature
+    ord_le ++> ord_le ++> ord_le as nmulOrd_le_mor.
+Proof.
+  intros. apply nmulOrd_monotone; auto.
+Qed.
+
+Add Parametric Morphism : naddOrd with signature
+   ord_eq ==> ord_eq ==> ord_eq as nmulOrd_eq_mor.
+Proof.
+  intros; split; apply naddOrd_le_mor; solve [apply H|apply H0].
+Qed.
+
+Lemma nmulOrd_stepl (x y:Ord) (i:x) :
+  x i ⊗ y ⊕ y ≤ x ⊗ y.
+Proof.
+  rewrite (nmulOrd_unfold x y).
+  rewrite <- lub_le1.
+  rewrite <- (sup_le _ _ i).
+  reflexivity.
+Qed.
+
+Lemma nmulOrd_stepr (x y:Ord) (i:y) :
+  x ⊗ y i ⊕ x ≤ x ⊗ y.
+Proof.
+  rewrite (nmulOrd_unfold x y).
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ i).
+  reflexivity.
+Qed.
+
+Lemma nmulOrd_zero x : x ⊗ 0 ≈ 0.
+Proof.
+  split; auto with ord.
+  induction x as [X f].
+  rewrite nmulOrd_unfold.
+  apply lub_least.
+  - apply sup_least; intro a.
+    rewrite <- naddOrd_zero.
+    apply H.
+  - apply sup_least. intros [].
+Qed.
+
+Lemma nmulOrd_one x : x ⊗ 1 ≈ x.
+Proof.
+  induction x as [A f].
+  rewrite nmulOrd_unfold.
+  split.
+  apply lub_least.
+  apply sup_least. intro a.
+  simpl.
+  rewrite (H a).
+  rewrite naddOrd_comm.
+  rewrite naddOrd_succ.
+  rewrite naddOrd_comm.
+  rewrite <- naddOrd_zero.
+  apply succ_least.
+  apply (index_lt _ a).
+  apply sup_least. simpl; intro.
+  rewrite nmulOrd_zero.
+  rewrite naddOrd_comm.
+  rewrite <- naddOrd_zero.
+  auto with ord.
+
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ tt).
+  simpl.
+  rewrite nmulOrd_zero.
+  rewrite naddOrd_comm.
+  rewrite <- naddOrd_zero.
+  auto with ord.
+Qed.
+
+Lemma nmulDistrib1 : forall x y z,
+  x ⊗ (y ⊕ z) ≤ (x ⊗ y) ⊕ (x ⊗ z).
+Proof.
+  induction x as [x Hindx] using ordinal_induction.
+  induction y as [y Hindy] using ordinal_induction.
+  induction z as [z Hindz] using ordinal_induction.
+  rewrite (nmulOrd_unfold x (y⊕z)).
+  apply lub_least.
+  + apply sup_least; intro i.
+    rewrite (Hindx (x i)); auto with ord.
+    transitivity ((x i ⊗ y ⊕ y) ⊕ (x i ⊗ z ⊕ z)).
+    rewrite naddOrd_assoc.
+    rewrite (naddOrd_comm _ y).
+    rewrite naddOrd_assoc.
+    rewrite (naddOrd_comm y _).
+    repeat rewrite naddOrd_assoc.
+    reflexivity.
+    apply naddOrd_monotone; apply nmulOrd_stepl.
+  + apply sup_least.
+    rewrite (naddOrd_unfold y z). simpl.
+    intros [i|i].
+    * rewrite (Hindy (y i)); auto with ord.
+      rewrite (naddOrd_comm _ x).
+      rewrite naddOrd_assoc.
+      apply naddOrd_monotone; auto with ord.
+      rewrite naddOrd_comm.
+      apply nmulOrd_stepr.
+    * rewrite (Hindz (z i)); auto with ord.
+      rewrite <- naddOrd_assoc.
+      apply naddOrd_monotone; auto with ord.
+      apply nmulOrd_stepr.
+Qed.
+
+Lemma nmulDistrib2 : forall a b y z x,
+  a ≤ x -> b ≤ x ->
+  (a ⊗ y) ⊕ (b ⊗ z) ≤ x ⊗ (y ⊕ z).
+Proof.
+  induction a as [a Hinda] using ordinal_induction.
+  induction b as [b Hindb] using ordinal_induction.
+  induction y as [y Hindy] using ordinal_induction.
+  induction z as [z Hindz] using ordinal_induction.
+  intros x Ha Hb.
+  rewrite naddOrd_unfold.
+  apply lub_least.
+  - apply limit_least.
+    rewrite (nmulOrd_unfold a y). simpl.
+    intros [[i q]|[i q]]; simpl.
+    + apply ord_lt_le_trans with ((a i ⊗ y ⊕ y) ⊕ b ⊗ z).
+      apply naddOrd_increasing1. apply index_lt.
+      clear q.
+
+
+
+      rewrite (naddOrd_comm (a i ⊗ y) y).
+      rewrite <- naddOrd_assoc.
+      rewrite (Hinda (a i) (index_lt a i) b y z x).
+
+
+
+
+
+
+Abort.
+(* Not sure how to prove this... or if it is actually true.
+   I haven't yet found an induction hypothesis that seems to work.
+ *)
+
 
 (** * Jacobsthal multiplication.
       This is the transfinite iteration of natural addition.
