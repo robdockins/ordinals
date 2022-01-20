@@ -511,6 +511,49 @@ Proof.
       reflexivity.
 Qed.
 
+Lemma expOrd_truth_ord_complete P :
+  complete (expOrd ω (classical.truth_ord P)).
+Proof.
+  red; simpl.
+  rewrite expOrd_unfold.
+  simpl.
+  split.
+  - red. simpl.
+    intros [|[HP ?]] [|[HP' ?]]; simpl.
+    exists (inl tt). split; auto with ord.
+    exists (inr (existT _ HP' o)). simpl.
+    split; auto with ord.
+    exists (inr (existT _ HP o)). simpl.
+    split; auto with ord.
+    assert (complete (expOrd ω 0 * ω)).
+    { apply mulOrd_complete.
+      apply expOrd_complete.
+      apply (index_lt _ 0%nat).
+      apply omega_complete.
+      apply zero_complete.
+      apply omega_complete. }
+    destruct (complete_directed _ H o o0) as [o' [??]].
+    exists (inr (existT _ HP o')). simpl.
+    split; auto.
+
+  - split.
+    left.
+    constructor.
+    left. constructor.
+
+    intros [|[??]]; simpl.
+    apply zero_complete.
+    apply complete_subord.
+    apply mulOrd_complete.
+    apply expOrd_complete.
+    apply (index_lt _ 0%nat).
+    apply omega_complete.
+    apply zero_complete.
+    apply omega_complete.
+Qed.
+
+
+
 Lemma truth_ord'_expOmega (P:Prop) : classical.truth_ord' P ≈ expOrd ω (classical.truth_ord P).
 Proof.
   unfold classical.truth_ord, classical.truth_ord'.
