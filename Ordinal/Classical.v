@@ -1,6 +1,9 @@
-Require Import ClassicalFacts.
+From Coq Require Import ClassicalFacts.
+From Coq Require Import Arith.
+From Coq Require Import Lia.
 
 Unset Printing Records.
+
 
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
@@ -344,6 +347,65 @@ Proof.
     destruct (H0 (existT _ O (inl tt))) as [[i q] H1].
     destruct q; auto. simpl in *.
     apply ord_lt_irreflexive in H1. elim H1.
+Qed.
+
+Definition Brouwer_continuity_for_numbers :=
+  forall (R : (nat -> nat) -> nat -> Prop),
+    (forall f, exists m, R f m) ->
+    forall (a : nat -> nat),
+    exists (n : nat) (m : nat),
+    forall (b: nat -> nat),
+      (forall i, (i < n)%nat -> a i = b i) ->
+      R b m.
+
+Definition limited_principle_of_omniscience :=
+  forall (f:nat -> nat), (forall i, f i = 0%nat) \/ (exists i, f i <> 0%nat).
+
+Theorem EM_LPO : excluded_middle -> limited_principle_of_omniscience.
+Proof.
+  intros EM f.
+  destruct (EM (exists i, f i <> 0%nat)); auto.
+  left. intro i.
+  case_eq (f i); auto.
+  intros. elim H.
+  exists i.
+  rewrite H0.
+  discriminate.
+Qed.
+
+Theorem Brouwer_continuity_LPO :
+  Brouwer_continuity_for_numbers -> limited_principle_of_omniscience -> False.
+Proof.
+  intros Hcont HLPO.
+  set (R (f:nat->nat) (n:nat) :=
+         f n <> 0%nat \/ (forall i, f i = 0%nat)).
+  assert (Hn : forall f, exists n, R f n).
+  { intro f. destruct (HLPO f); auto.
+    - exists 0%nat. hnf.
+      right. auto.
+    - destruct H as [i Hi]. exists i. hnf.
+      auto. }
+  apply Hcont in Hn.
+  destruct (Hn (fun _ => 0%nat)) as [n [m Hm]].
+  unfold R in Hm.
+  set (g i := (if le_lt_dec i (Nat.max n m) then 0 else 1)%nat).
+  destruct (Hm g).
+  - unfold g; simpl; intros.
+    destruct (le_lt_dec i (Nat.max n m)); lia.
+  - unfold g in H.
+    destruct (le_lt_dec m (Nat.max n m)); lia.
+  - unfold g in H.
+    specialize (H (S (Nat.max n m))).
+    destruct (le_lt_dec (S (Nat.max n m)) (Nat.max n m)); lia.
+Qed.
+
+Corollary Brouwer_continuity_anticlassical :
+  Brouwer_continuity_for_numbers -> excluded_middle -> False.
+Proof.
+  intros.
+  apply Brouwer_continuity_LPO; auto.
+  apply EM_LPO.
+  assumption.
 Qed.
 
 End classical.
