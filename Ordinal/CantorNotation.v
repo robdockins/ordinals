@@ -2,6 +2,8 @@ Require Import Morphisms.
 Require Import Coq.Program.Basics.
 Require Import NArith.
 Require Import List.
+Import ListNotations.
+Open Scope list.
 
 Unset Printing Records.
 
@@ -14,20 +16,68 @@ From Ordinal Require Import Reflection.
 
 Open Scope ord_scope.
 
+(** Cantor forms are an inductive notion for ordinals below ε₀.
+
+    In this presentation, each "CantorSum" represents a sum of
+    terms of the form ωˣ. So, for example, the form "CantorSum [x,y,z]"
+    represents the ordinal expression ωˣ + ωʸ + ωᶻ.
+
+    Note, unlike some presentations, we do not
+    have a natural number coefficent for each term.  Instead, multiple
+    copies of the same term may appear to represent, e.g. ωˣ·3.
+
+    At this point we do not impose any ordering restrictions on the
+    terms. See below, where we will define what it meants to be a
+    normal form, and define a subset type that restricts the type of
+    Cantor forms to the Cantor _normal_ forms.
+ *)
 Inductive CantorForm : Set :=
   | CantorSum : list CantorForm -> CantorForm.
 
-Fixpoint cantorOrd (cf:CantorForm) : Ord :=
+
+(** The denotation function for Cantor forms. Each "CantorSum"
+    corresponds to a sum of terms of the form ωˣ.
+ *)
+Fixpoint CF_denote (cf:CantorForm) : Ord :=
   match cf with
   | CantorSum xs =>
-      fold_right (fun (x:CantorForm) o => expOrd ω (cantorOrd x) + o) 0 xs
+      fold_right (fun (x:CantorForm) o => expOrd ω (CF_denote x) + o) 0 xs
   end.
 
-Canonical Structure CF :=
-  ord CantorForm cantorOrd.
+(** The ordinal defined by cantor forms. *)
+Canonical Structure CF := ord CantorForm CF_denote.
 
-Import ListNotations.
-Open Scope list.
+
+(** This defines what it means for a Cantor
+    form to be "normal".  Essentially it requires
+    that a form like ωˣ + ωʸ + ωᶻ has the property
+    that x ≥ y ≥ z.  Note that we use ≥ instead of >
+    because repeated terms are allowed.
+
+    In addition to the main ordering constraint,
+    subterms must themselves be normal.
+  *)
+Fixpoint cantorIsNormal (cf:CantorForm) : Prop :=
+  match cf with
+  | CantorSum [] => True
+  | CantorSum (x0::xs0) =>
+    cantorIsNormal x0 /\
+    (fix check (x:CantorForm) (xs:list CantorForm) : Prop :=
+      match xs with
+      | [] => True
+      | (x'::xs') => cantorIsNormal x' /\ CF_denote x ≥ CF_denote x' /\ check x' xs'
+      end) x0 xs0
+  end.
+
+(** The Cantor normal forms are precisely those Cantor forms that are normal. *)
+Definition CantorNormalForm : Set := { cf:CantorForm | cantorIsNormal cf }.
+
+(** The denotation of a Cantor normal form is just the denotation of its
+    underlying Cantor form. *)
+Definition CNF_denote (x:CantorNormalForm) := CF_denote (proj1_sig x).
+
+(** The ordinal defined by Cantor normal forms. *)
+Canonical Structure CNF := ord CantorNormalForm CNF_denote.
 
 Inductive ordering := LT | EQ | GT.
 
@@ -38,6 +88,7 @@ Definition ordering_swap (o:ordering) : ordering :=
   | GT => LT
   end.
 
+(* Compute the lexicographic ordering given two sub-orderings. *)
 Definition lexCompare (o1:ordering) (o2:ordering) : ordering :=
   match o1 with
   | LT => LT
@@ -45,6 +96,10 @@ Definition lexCompare (o1:ordering) (o2:ordering) : ordering :=
   | GT => GT
   end.
 
+(** This is the main comparison operation on Cantor forms. It lexicographically
+    compares terms in a sequence.  Note that, although this operation is defined
+    on all Cantor forms, it only computes the correct answers on normal forms.
+ *)
 Fixpoint cantorCompare (x:CantorForm) (y:CantorForm) {struct x} : ordering :=
   match x, y with
   | CantorSum xs0, CantorSum ys0 =>
@@ -57,39 +112,6 @@ Fixpoint cantorCompare (x:CantorForm) (y:CantorForm) {struct x} : ordering :=
          lexCompare (cantorCompare x y) (cantorSumCompare xs ys)
        end) xs0 ys0
   end.
-
-Definition cantorSumCompare : list CantorForm -> list CantorForm -> ordering :=
-  fix cantorSumCompare (xs:list CantorForm) (ys:list CantorForm) {struct xs} : ordering :=
-  match xs, ys with
-  | [], [] => EQ
-  | [], (y::ys) => LT
-  | (x::xs), [] => GT
-  | (x::xs), (y::ys) =>
-    lexCompare (cantorCompare x y) (cantorSumCompare xs ys)
-  end.
-
-Lemma cantorCompare_unfold xs ys : cantorCompare (CantorSum xs) (CantorSum ys) = cantorSumCompare xs ys.
-Proof.
-  reflexivity.
-Qed.
-
-
-Fixpoint cantorIsNormal (cf:CantorForm) : Prop :=
-  match cf with
-  | CantorSum [] => True
-  | CantorSum (x0::xs0) => cantorIsNormal x0 /\
-    (fix check (x:CantorForm) (xs:list CantorForm) : Prop :=
-      match xs with
-      | [] => True
-      | (x'::xs') => cantorIsNormal x' /\ cantorOrd x >= cantorOrd x' /\ check x' xs'
-      end) x0 xs0
-  end.
-
-Definition CantorNormalForm : Set := { cf:CantorForm | cantorIsNormal cf }.
-
-Definition CNF_denote (x:CantorNormalForm) := cantorOrd (proj1_sig x).
-
-Canonical Structure CNF := ord CantorNormalForm CNF_denote.
 
 Lemma cantorCompare_swap : forall (x y:CantorForm),
   cantorCompare x y = ordering_swap (cantorCompare y x).
@@ -105,7 +127,7 @@ Proof.
     + symmetry. apply Hind.
 Qed.
 
-Lemma CantorForm_complete : forall a, complete (cantorOrd a).
+Lemma CantorForm_complete : forall a, complete (CF_denote a).
 Proof.
   fix Hind 1.
   intros [ls]. simpl.
@@ -118,19 +140,25 @@ Proof.
     apply omega_complete.
 Qed.
 
-Lemma cantorOrd_shrink : forall x, cantorOrd x < expOrd ω (cantorOrd x).
+(** This is an important techincal lemma that lets us
+    do ordinal induction on the denotation of Cantor forms.
+
+    It basically tells us that subterms of a Cantor form
+    have strictly smaller denotations, and is key to showing
+    that the denotation of all Cantor forms are below ε₀.
+  *)
+Lemma CF_denote_shrink : forall (x:CF), x < expOrd ω x.
 Proof.
   fix Hind 1.
   intros [xs]. revert xs.
   fix Hind_xs 1.
   intros [|x xs].
-  - simpl cantorOrd.
-    apply expOrd_nonzero.
-  - simpl cantorOrd.
+  - apply expOrd_nonzero.
+  - simpl sz; simpl CF_denote.
     apply expOmega_additively_closed.
     + apply (CantorForm_complete (CantorSum (x::xs))).
     + rewrite expOrd_add.
-      apply ord_lt_le_trans with (expOrd ω (expOrd ω (cantorOrd x)) * 1).
+      apply ord_lt_le_trans with (expOrd ω (expOrd ω (CF_denote x)) * 1).
       rewrite mulOrd_one_r.
       apply expOrd_increasing. apply omega_gt1.
       apply Hind.
@@ -139,7 +167,7 @@ Proof.
     + rewrite expOrd_add.
       apply ord_lt_le_trans with
           (1 * expOrd ω (fold_right
-                           (fun (x0 : CantorForm) (o : Ord) => expOrd ω (cantorOrd x0) + o) 0 xs)).
+                           (fun (x0 : CantorForm) (o : Ord) => expOrd ω (CF_denote x0) + o) 0 xs)).
       rewrite mulOrd_one_l.
       apply (Hind_xs xs).
       apply mulOrd_monotone1.
@@ -156,7 +184,7 @@ Proof.
   - rewrite <- ε_fixpoint. auto.
 Qed.
 
-Theorem cantorForm_below_epsilon : forall (x:CF), x < ε 0.
+Theorem CF_below_epsilon : forall (x:CF), x < ε 0.
 Proof.
   induction x using size_induction.
   destruct x as [xs].
@@ -174,7 +202,7 @@ Proof.
     apply H.
     simpl.
     rewrite <- addOrd_le1.
-    apply cantorOrd_shrink.
+    apply CF_denote_shrink.
     apply IHxs.
     intros.
     apply H.
@@ -183,21 +211,20 @@ Proof.
     auto.
 Qed.
 
-
 Definition CantorNormalForm_lt (x y:CantorNormalForm) :=
   cantorCompare (proj1_sig x) (proj1_sig y) = LT.
 
 Definition CantorNormalForm_le (x y:CantorNormalForm) :=
   cantorCompare (proj1_sig x) (proj1_sig y) <> GT.
 
-Lemma CNF_compare_correct_lemma a lsb : 
+Lemma CNF_compare_correct_lemma a lsb :
   forall c,
     cantorIsNormal (CantorSum (c :: lsb)) ->
     cantorIsNormal a ->
     cantorIsNormal c ->
-    cantorOrd c < cantorOrd a ->
-    fold_right (fun (x : CantorForm) (o : Ord) => expOrd ω (cantorOrd x) + o) 0
-               lsb < expOrd ω (cantorOrd a).
+    CF_denote c < CF_denote a ->
+    fold_right (fun (x : CantorForm) (o : Ord) => expOrd ω (CF_denote x) + o) 0
+               lsb < expOrd ω (CF_denote a).
 Proof.
   induction lsb; simpl fold_right; intros.
   - apply expOrd_nonzero.
@@ -205,11 +232,11 @@ Proof.
     { apply CantorForm_complete. }
     { apply expOrd_increasing; auto.
       apply omega_gt1.
-      apply ord_le_lt_trans with (cantorOrd c); auto.
+      apply ord_le_lt_trans with (CF_denote c); auto.
       simpl in *; intuition. }
 
     apply IHlsb with a0; simpl in *; intuition.
-    apply ord_le_lt_trans with (cantorOrd c); auto.
+    apply ord_le_lt_trans with (CF_denote c); auto.
 Qed.
 
 Lemma CNF_compare_correct :
@@ -217,9 +244,9 @@ Lemma CNF_compare_correct :
     cantorIsNormal a ->
     cantorIsNormal b ->
     match cantorCompare a b with
-    | LT => cantorOrd a < cantorOrd b
-    | EQ => cantorOrd a ≈ cantorOrd b
-    | GT => cantorOrd a > cantorOrd b
+    | LT => CF_denote a < CF_denote b
+    | EQ => CF_denote a ≈ CF_denote b
+    | GT => CF_denote a > CF_denote b
     end.
 Proof.
   induction a as [[xs] Hind] using size_induction.
@@ -242,7 +269,7 @@ Proof.
       assert (Hc : cantorIsNormal c).
       { simpl in H0; intuition. }
       assert (Hlt : a ◃ (CantorSum (a :: lsa))).
-      { simpl. rewrite <- addOrd_le1. apply cantorOrd_shrink. }
+      { simpl. rewrite <- addOrd_le1. apply CF_denote_shrink. }
       generalize (Hind a Hlt c Ha Hc).
       destruct (cantorCompare a c); simpl.
       * intros.
@@ -256,9 +283,9 @@ Proof.
 
       * intro Hac.
         assert (match cantorCompare (CantorSum lsa) (CantorSum lsb) with
-                  | LT => cantorOrd (CantorSum lsa) < cantorOrd (CantorSum lsb)
-                  | EQ => cantorOrd (CantorSum lsa) ≈ cantorOrd (CantorSum lsb)
-                  | GT => cantorOrd (CantorSum lsb) < cantorOrd (CantorSum lsa)
+                  | LT => CF_denote (CantorSum lsa) < CF_denote (CantorSum lsb)
+                  | EQ => CF_denote (CantorSum lsa) ≈ CF_denote (CantorSum lsb)
+                  | GT => CF_denote (CantorSum lsb) < CF_denote (CantorSum lsa)
                 end).
         apply IHlsa; auto.
         { intros. apply Hind; auto. simpl.
@@ -278,8 +305,8 @@ Proof.
                 end
             end) lsa lsb).
         ** apply ord_le_lt_trans with
-            (expOrd ω (cantorOrd c) +
-                      fold_right (fun (x : CantorForm) (o : Ord) => expOrd ω (cantorOrd x) + o) 0 lsa).
+            (expOrd ω (CF_denote c) +
+                      fold_right (fun (x : CantorForm) (o : Ord) => expOrd ω (CF_denote x) + o) 0 lsa).
            apply addOrd_monotone; auto with ord.
            apply expOrd_monotone; apply Hac.
            apply addOrd_increasing. auto.
@@ -287,8 +314,8 @@ Proof.
            apply addOrd_eq_mor; auto.
            split; apply expOrd_monotone; apply Hac.
         ** apply ord_le_lt_trans with
-               (expOrd ω (cantorOrd a) +
-                fold_right (fun (x : CantorForm) (o : Ord) => expOrd ω (cantorOrd x) + o) 0 lsb).
+               (expOrd ω (CF_denote a) +
+                fold_right (fun (x : CantorForm) (o : Ord) => expOrd ω (CF_denote x) + o) 0 lsb).
            apply addOrd_monotone; auto with ord.
            apply expOrd_monotone; apply Hac.
            apply addOrd_increasing. auto.
@@ -302,7 +329,7 @@ Proof.
         apply CNF_compare_correct_lemma with c; auto.
 Qed.
 
-Lemma CNF_lt_reflects : reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> PROP) ord_lt CantorNormalForm_lt.
+Theorem CNF_lt_reflects : reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> PROP) ord_lt CantorNormalForm_lt.
 Proof.
   simpl. intros x [a Ha] Hxa y [b Hb] Hyb.
   unfold CNF_denote, CantorNormalForm_lt in *; simpl in *.
@@ -319,7 +346,7 @@ Proof.
     auto.
 Qed.
 
-Lemma CNF_le_reflects : reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> PROP) ord_le CantorNormalForm_le.
+Theorem CNF_le_reflects : reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> PROP) ord_le CantorNormalForm_le.
 Proof.
   simpl. intros x [a Ha] Hxa y [b Hb] Hyb.
   unfold CNF_denote, CantorNormalForm_le in *; simpl in *.
@@ -333,6 +360,220 @@ Proof.
   - destruct (cantorCompare a b); intuition.
     + rewrite Hxa. rewrite Hyb. auto with ord.
     + rewrite Hxa. rewrite Hyb. apply H.
+Qed.
+
+Theorem CNF_decide_order (x y:CNF) : {x < y} + {x ≥ y}.
+Proof.
+  destruct x as [x Hx]; destruct y as [y Hy].
+  simpl sz. unfold CNF_denote. simpl.
+  generalize (CNF_compare_correct x y Hx Hy).
+  destruct (cantorCompare x y); intros.
+  - left; assumption.
+  - right; apply H.
+  - right; auto with ord.
+Qed.
+
+
+(** Given any Cantor form, not necessarily normal, we can
+    compute an equivalent normal form.
+  *)
+Fixpoint normalize (x:CantorForm) : CantorForm :=
+  match x with
+  | CantorSum [] => CantorSum []
+  | CantorSum (x0::xs0) =>
+    CantorSum
+      ((fix normalizeSeq (x:CantorForm) (xs:list CantorForm) : list CantorForm :=
+         match xs with
+         | [] => [x]
+         | y::ys =>
+           match normalizeSeq (normalize y) ys with
+           | [] => [x]
+           | z::zs =>
+             match cantorCompare x z with
+             | LT => z::zs
+             | EQ => x::z::zs
+             | GT => x::z::zs
+             end
+           end
+         end
+       ) (normalize x0) xs0)
+  end.
+
+Lemma normalize_is_normal (x:CF) : cantorIsNormal (normalize x).
+Proof.
+  induction x as [x Hx] using size_induction.
+  destruct x as [xs].
+  simpl normalize.
+  destruct xs.
+  { simpl; auto. }
+  revert c Hx.
+  induction xs.
+  - intros.
+    simpl; split; auto.
+    apply Hx.
+    simpl sz.
+    rewrite <- lub_le1.
+    apply CF_denote_shrink.
+  - intros.
+    assert (Hnorm : cantorIsNormal
+           (CantorSum
+              ((fix normalizeSeq
+                  (x : CantorForm) (xs : list CantorForm) {struct xs} :
+                    list CantorForm :=
+                  match xs with
+                  | [] => [x]
+                  | y :: ys =>
+                      match normalizeSeq (normalize y) ys with
+                      | [] => [x]
+                      | z :: zs =>
+                          match cantorCompare x z with
+                          | LT => z :: zs
+                          | _ => x :: z :: zs
+                          end
+                      end
+                  end) (normalize a) xs))).
+    { apply IHxs. intros; apply Hx.
+      simpl in H.
+      simpl.
+      eapply ord_lt_le_trans; [apply H | ].
+      apply addOrd_le2. }
+    case_eq ((fix normalizeSeq
+            (x : CantorForm) (xs0 : list CantorForm) {struct xs0} :
+              list CantorForm :=
+            match xs0 with
+            | [] => [x]
+            | y :: ys =>
+                match normalizeSeq (normalize y) ys with
+                | [] => [x]
+                | z :: zs =>
+                    match cantorCompare x z with
+                    | LT => z :: zs
+                    | _ => x :: z :: zs
+                    end
+                end
+            end) (normalize a) xs); intros.
+    + simpl. split; auto.
+      apply Hx.
+      simpl.
+      rewrite <- addOrd_le1.
+      apply CF_denote_shrink.
+    + simpl in Hnorm.
+      rewrite H in Hnorm.
+      destruct Hnorm as [Hnorm1 Hnorm2].
+      assert (Hnorm' : cantorIsNormal (normalize c)).
+      { apply Hx. simpl.
+        rewrite <- addOrd_le1. apply CF_denote_shrink. }
+      generalize (CNF_compare_correct (normalize c) c0 Hnorm' Hnorm1).
+      case_eq (cantorCompare (normalize c) c0); intros.
+      * simpl; intuition.
+      * simpl; intuition.
+        apply H1.
+      * simpl; intuition.
+Qed.
+
+Lemma normalize_is_equal (x:CF) : CF_denote x ≈ CF_denote (normalize x).
+Proof.
+  induction x as [x Hx] using size_induction.
+  destruct x as [xs].
+  simpl normalize.
+  destruct xs.
+  { simpl; reflexivity. }
+  revert c Hx.
+  induction xs.
+  - intros.
+    simpl.
+    apply ord_lub_eq_mor.
+    apply expOrd_eq_mor. reflexivity.
+    apply Hx.
+    simpl. rewrite <- lub_le1.
+    apply CF_denote_shrink.
+    apply sup_ord_eq_morphism.
+    hnf; intros [].
+  - intros.
+    transitivity (expOrd ω (CF_denote c) + CF_denote (CantorSum (a::xs))).
+    reflexivity.
+    rewrite IHxs.
+    case_eq ((fix normalizeSeq
+           (x : CantorForm) (xs0 : list CantorForm) {struct xs0} :
+             list CantorForm :=
+           match xs0 with
+           | [] => [x]
+           | y :: ys =>
+               match normalizeSeq (normalize y) ys with
+               | [] => [x]
+               | z :: zs =>
+                   match cantorCompare x z with
+                   | LT => z :: zs
+                   | _ => x :: z :: zs
+                   end
+               end
+           end) (normalize a) xs).
+    + intros.
+      simpl.
+      apply ord_lub_eq_mor.
+      apply expOrd_eq_mor. reflexivity.
+      apply Hx.
+      simpl.
+      rewrite <- addOrd_le1.
+      apply CF_denote_shrink.
+      apply sup_ord_eq_morphism.
+      hnf; intros [].
+    + intros.
+      assert (Hnorm' : cantorIsNormal (normalize c)).
+      { apply normalize_is_normal. }
+      assert (Hnorm : cantorIsNormal (CantorSum (c0 :: l))).
+      { rewrite <- H.
+        apply (normalize_is_normal (CantorSum (a :: xs))). }
+      simpl in Hnorm. destruct Hnorm as [Hnorm1 Hnorm2].
+      generalize (CNF_compare_correct (normalize c) c0 Hnorm' Hnorm1).
+      case_eq (cantorCompare (normalize c) c0); intros.
+      simpl.
+      rewrite addOrd_assoc.
+      apply addOrd_eq_mor.
+      split.
+      * apply expOrd_add_collapse; auto.
+        apply CantorForm_complete.
+        eapply ord_le_lt_trans; [ | apply H1 ].
+        apply Hx.
+        simpl. rewrite <- addOrd_le1. apply CF_denote_shrink.
+      * apply addOrd_le2.
+      * reflexivity.
+      * simpl.
+        rewrite Hx.
+        reflexivity.
+        simpl. rewrite <- addOrd_le1. apply CF_denote_shrink.
+      * simpl.
+        rewrite Hx.
+        reflexivity.
+        simpl. rewrite <- addOrd_le1. apply CF_denote_shrink.
+    + intros. apply Hx.
+      simpl.
+      eapply ord_lt_le_trans; [ apply H | ].
+      rewrite <- addOrd_le2. reflexivity.
+Qed.
+
+(* Every Cantor form has an equivalent normal form. *)
+Definition CF_normalize : CF -> CNF :=
+  fun x => exist _ (normalize x) (normalize_is_normal x).
+
+Theorem CF_normalize_equal (x:CF) : x ≈ CF_normalize x.
+Proof.
+  simpl. unfold CNF_denote, CF_normalize. simpl.
+  apply normalize_is_equal.
+Qed.
+
+(* Cantor forms and Cantor normal forms are equivalent as ordinals. *)
+Theorem CF_CNF : CF ≈ CNF.
+Proof.
+  split.
+  - rewrite ord_le_unfold.
+    intro x. rewrite ord_lt_unfold.
+    exists (CF_normalize x).
+    apply CF_normalize_equal.
+  - rewrite ord_le_unfold.
+    intro x. rewrite ord_lt_unfold.
+    exists (proj1_sig x).
+    reflexivity.
 Qed.
 
 
@@ -359,7 +600,7 @@ Definition CNF_zero  : CNF := exist _ CF_zero  CF_zero_normal.
 Definition CNF_one   : CNF := exist _ CF_one   CF_one_normal.
 Definition CNF_omega : CNF := exist _ CF_omega CF_omega_normal.
 
-Lemma CNF_reflects_zero : reflects CantorNormalForm CNF_denote ORD 0 CNF_zero.
+Theorem CNF_reflects_zero : reflects CantorNormalForm CNF_denote ORD 0 CNF_zero.
 Proof.
   red; simpl.
   unfold CNF_denote. simpl. reflexivity.
@@ -369,7 +610,8 @@ Opaque expOrd.
 Opaque mulOrd.
 Opaque addOrd.
 
-Lemma CNF_reflects_one : reflects CantorNormalForm CNF_denote ORD 1 CNF_one.
+Theorem CNF_reflects_one : reflects CantorNormalForm CNF_denote ORD 1 CNF_one.
+Proof.
   red; simpl.
   unfold CNF_denote.
   simpl.
@@ -378,7 +620,7 @@ Lemma CNF_reflects_one : reflects CantorNormalForm CNF_denote ORD 1 CNF_one.
   reflexivity.
 Qed.
 
-Lemma CNF_reflects_omega : reflects CantorNormalForm CNF_denote ORD ω CNF_omega.
+Theorem CNF_reflects_omega : reflects CantorNormalForm CNF_denote ORD ω CNF_omega.
 Proof.
   red; simpl.
   unfold CNF_denote.
@@ -420,7 +662,7 @@ Proof.
     clear n H0 H2.
     induction xs; simpl; try reflexivity.
     rewrite IHxs. clear IHxs.
-    assert (Ha : cantorOrd a ≈ 0).
+    assert (Ha : CF_denote a ≈ 0).
     { split; auto with ord.
       simpl in H; intuition. }
     rewrite Ha.
@@ -447,7 +689,7 @@ Proof.
   - apply additively_closed_collapse.
     apply expOmega_additively_closed.
     apply CantorForm_complete.
-    assert (cantorOrd (CantorSum (c::cs)) >= 1).
+    assert (CF_denote (CantorSum (c::cs)) >= 1).
     { simpl. rewrite <- addOrd_le1.
       apply succ_least. apply expOrd_nonzero. }
     rewrite <- H0.
@@ -458,6 +700,12 @@ Proof.
 Qed.
 
 
+(** This defines the addition algorithm on cantor normal forms.
+    It esseentially consists of appending to the two sequences,
+    followed by a normalization step where any terms on the left
+    with strictly smaller exponents than the leading term on the right
+    are discarded.
+ *)
 Fixpoint cantorSum_add xs ys :=
   match xs with
   | [] => ys
@@ -491,9 +739,9 @@ Qed.
 Lemma cantorSum_add_correct xs : forall ys,
     cantorIsNormal (CantorSum xs) ->
     cantorIsNormal (CantorSum ys) ->
-    cantorOrd (CantorSum xs) + cantorOrd (CantorSum ys) ≈ cantorOrd (CantorSum (cantorSum_add xs ys)).
+    CF_denote (CantorSum xs) + CF_denote (CantorSum ys) ≈ CF_denote (CantorSum (cantorSum_add xs ys)).
 Proof.
-  induction xs; simpl cantorSum_add; simpl cantorOrd; intros.
+  induction xs; simpl cantorSum_add; simpl CF_denote; intros.
   - rewrite <- addOrd_zero_l. reflexivity.
   - assert (cantorIsNormal (CantorSum xs)).
     { simpl in H; destruct xs; simpl in *; intuition. }
@@ -501,7 +749,7 @@ Proof.
     intros. rewrite <- addOrd_assoc.
     rewrite H2.
     generalize (cantorSum_add_normal xs ys H1 H0).
-    destruct (cantorSum_add xs ys); simpl cantorOrd.
+    destruct (cantorSum_add xs ys); simpl CF_denote.
     + reflexivity.
     + generalize (CNF_compare_correct a c).
       case_eq (cantorCompare a c); intros; try reflexivity.
@@ -529,18 +777,18 @@ Qed.
 Lemma CF_add_correct : forall (x y:CF),
   cantorIsNormal x ->
   cantorIsNormal y ->
-  cantorOrd x + cantorOrd y ≈ cantorOrd (CF_add x y).
+  CF_denote x + CF_denote y ≈ CF_denote (CF_add x y).
 Proof.
   intros [xs] [ys] Hx Hy.
   apply (cantorSum_add_correct xs ys); auto.
 Qed.
 
-
+(** Package up the algorithm with the proof that it preserves normal forms. *)
 Definition CNF_add (x y : CNF) : CNF
   := exist _ (CF_add (proj1_sig x) (proj1_sig y))
-           (CF_add_normal _ _ (proj2_sig x) (proj2_sig y)).
+             (CF_add_normal _ _ (proj2_sig x) (proj2_sig y)).
 
-Lemma CNF_add_reflects : reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> ORD) addOrd CNF_add.
+Theorem CNF_add_reflects : reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> ORD) addOrd CNF_add.
 Proof.
   hnf; simpl. unfold CNF_denote. intros x [a Ha] Hxa y [b Hb] Hyb; simpl in *.
   rewrite Hxa. rewrite Hyb.
@@ -548,13 +796,29 @@ Proof.
   apply (cantorSum_add_correct xs ys); auto.
 Qed.
 
+(** This sub-algorithm computes the value x * ωᵉ, which is equal to ω^(x₁ + e),
+    where x₁ is the exponent of the leading term of x, except for some special
+    cases involving empty sequences.
+  *)
 Definition CF_mul_single (x:CF) (e:CF) : CF :=
   match x, e with
+
+    (* 0 * ωᵉ = 0 *)
   | CantorSum [], _  => CantorSum []
+
+    (* x * ω⁰ = x *)
   | _ , CantorSum [] => x
-  | CantorSum (x::_), _ => CantorSum [ CF_add x e ]
+
+    (* x * ωᵉ = ω^(x₁ + e) otherwise *)
+  | CantorSum (x1::_), _ => CantorSum [ CF_add x1 e ]
   end.
 
+(** Compute the multiplication of two normal forms.
+
+    It is a sum of partial products, where each term on the right
+    is multiplied by the entire sequence on the left, and the results
+    are added together.
+  *)
 Definition CF_mul (x:CF) (y:CF) : CF :=
   match y with
   | CantorSum ys => fold_right (fun y s => CF_add (CF_mul_single x y) s) CF_zero ys
@@ -593,14 +857,16 @@ Proof.
     destruct ys; simpl in *; intuition.
 Qed.
 
+(** This techincal property is required to show that the single term
+    multiplication procedure is correct.  *)
 Lemma cantorFirstTerm_dominates x xs :
   cantorIsNormal (CantorSum (x :: xs)) ->
-  cantorOrd (CantorSum xs) ≤ expOrd ω (cantorOrd x) * sz (length xs).
+  CF_denote (CantorSum xs) ≤ expOrd ω (CF_denote x) * sz (length xs).
 Proof.
   induction xs.
   - simpl; intros; auto with ord.
   - intros.
-    transitivity (expOrd ω (cantorOrd x) * (natOrdSize (length xs + 1))).
+    transitivity (expOrd ω (CF_denote x) * (natOrdSize (length xs + 1))).
     + rewrite natOrdSize_add.
       rewrite ordDistrib_left.
       rewrite mulOrd_one_r.
@@ -611,7 +877,7 @@ Proof.
         destruct (cantorCompare x a); intuition.
       * apply H4; auto.
         destruct xs; intuition.
-        transitivity (cantorOrd a); auto.
+        transitivity (CF_denote a); auto.
     + apply mulOrd_monotone2.
       replace (length xs + 1)%nat with (1 + length xs)%nat by auto with arith.
       simpl; reflexivity.
@@ -620,7 +886,7 @@ Qed.
 Lemma CF_mul_single_correct : forall x e,
   cantorIsNormal x ->
   cantorIsNormal e ->
-  cantorOrd (CF_mul_single x e) ≈ cantorOrd x * expOrd ω (cantorOrd e).
+  CF_denote (CF_mul_single x e) ≈ CF_denote x * expOrd ω (CF_denote e).
 Proof.
   intros [xs] [es] Hx He.
   destruct xs.
@@ -631,21 +897,21 @@ Proof.
       rewrite mulOrd_one_r.
       reflexivity.
     + unfold CF_mul_single.
-      transitivity (expOrd ω (cantorOrd (CF_add c (CantorSum (c0::es))))).
+      transitivity (expOrd ω (CF_denote (CF_add c (CantorSum (c0::es))))).
       { generalize (CF_add c (CantorSum (c0::es))).
         intros. simpl.
         rewrite <- addOrd_zero_r. reflexivity. }
-      transitivity (expOrd ω (cantorOrd c + cantorOrd (CantorSum (c0::es)))).
-      { assert (cantorOrd (CF_add c (CantorSum (c0::es))) ≈
-                          (cantorOrd c + cantorOrd (CantorSum (c0 :: es)))).
+      transitivity (expOrd ω (CF_denote c + CF_denote (CantorSum (c0::es)))).
+      { assert (CF_denote (CF_add c (CantorSum (c0::es))) ≈
+                          (CF_denote c + CF_denote (CantorSum (c0 :: es)))).
         symmetry; apply CF_add_correct; simpl in *; intuition.
         split; apply expOrd_monotone; apply H. }
       rewrite expOrd_add.
       split.
       * apply mulOrd_monotone1.
-        simpl cantorOrd.
+        simpl CF_denote.
         apply addOrd_le1.
-      * simpl cantorOrd at 1.
+      * simpl CF_denote at 1.
         apply expOrd_omega_collapse with (length xs).
         ** apply CantorForm_complete.
         ** simpl.
@@ -657,13 +923,13 @@ Qed.
 Lemma CF_mul_correct : forall x y,
     cantorIsNormal x ->
     cantorIsNormal y ->
-    cantorOrd (CF_mul x y) ≈ cantorOrd x * cantorOrd y.
+    CF_denote (CF_mul x y) ≈ CF_denote x * CF_denote y.
 Proof.
   intros x [ys].
   induction ys; simpl CF_mul; intros.
-  - simpl cantorOrd.
+  - simpl CF_denote.
     rewrite mulOrd_zero_r. reflexivity.
-  - simpl cantorOrd.
+  - simpl CF_denote.
     rewrite ordDistrib_left.
     rewrite <- CF_add_correct.
     apply addOrd_eq_mor.
@@ -677,11 +943,13 @@ Proof.
     destruct ys; simpl in * ; intuition.
 Qed.
 
+(** Pacakge together the multiplication algorithm with the proof
+    that it preserves normal forms. *)
 Definition CNF_mul (x y : CNF) : CNF
   := exist _ (CF_mul (proj1_sig x) (proj1_sig y))
            (CF_mul_normal _ _ (proj2_sig x) (proj2_sig y)).
 
-Lemma CNF_mul_reflects : reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> ORD) mulOrd CNF_mul.
+Theorem CNF_mul_reflects : reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> ORD) mulOrd CNF_mul.
 Proof.
   hnf; simpl. unfold CNF_denote. intros x [a Ha] Hxa y [b Hb] Hyb; simpl in *.
   rewrite Hxa. rewrite Hyb.
@@ -709,6 +977,9 @@ Proof.
 Qed.
 
 
+(** Compute the value x^(ωᵉ). This algorithm has quite a few special cases,
+    which are commented inline.
+ *)
 Definition CF_exp_single (x:CF) (e:CF) : CF :=
   match x with
 
@@ -720,6 +991,7 @@ Definition CF_exp_single (x:CF) (e:CF) : CF :=
 
   | CantorSum (CantorSum [] :: _ ) =>
     match cantorIsFinite e with
+
       (* n ^ (ω^0) = n *)
     | Some 0 => x
 
@@ -732,6 +1004,7 @@ Definition CF_exp_single (x:CF) (e:CF) : CF :=
 
   | CantorSum (x1 :: _) =>
     match cantorIsFinite e with
+
       (* x^ (ω^0) = x *)
     | Some 0 => x
 
@@ -740,6 +1013,9 @@ Definition CF_exp_single (x:CF) (e:CF) : CF :=
     end
   end.
 
+(** Compute xʸ. The terms on the right are used to exponentate the entire
+    term on the left via CF_exp_single and all the results are multiplied together.
+  *)
 Definition CF_exp (x:CF) (y:CF) : CF :=
   match y with
   | CantorSum ys => fold_right (fun y s => CF_mul (CF_exp_single x y) s) CF_one ys
@@ -788,7 +1064,7 @@ Qed.
 Lemma CF_exp_single_correct x e :
   cantorIsNormal x ->
   cantorIsNormal e ->
-  cantorOrd (CF_exp_single x e) ≈ expOrd (cantorOrd x) (expOrd ω (cantorOrd e)).
+  CF_denote (CF_exp_single x e) ≈ expOrd (CF_denote x) (expOrd ω (CF_denote e)).
 Proof.
   unfold CF_exp_single. intros.
   destruct x as [xs].
@@ -834,7 +1110,7 @@ Proof.
       * intros.
         rewrite (cantorIsFinite_fin (CantorSum (CantorSum [] :: c :: xs)) _ H (refl_equal _)).
         symmetry.
-        simpl cantorOrd.
+        simpl CF_denote.
         repeat rewrite <- addOrd_zero_r.
         apply expNatToOmegaInf.
         ** simpl.
@@ -843,10 +1119,10 @@ Proof.
            apply addOrd_le1.
         ** rewrite (cantorIsFinite_inf (CantorSum es) H1).
            reflexivity.
-    + cut (cantorOrd (CantorSum es) > 0 ->
-           cantorOrd (CantorSum [CF_mul (CantorSum (l :: ls)) (CantorSum [CantorSum es])]) ≈
-                     expOrd (cantorOrd (CantorSum (CantorSum (l :: ls) :: xs)))
-                     (expOrd ω (cantorOrd (CantorSum es)))).
+    + cut (CF_denote (CantorSum es) > 0 ->
+           CF_denote (CantorSum [CF_mul (CantorSum (l :: ls)) (CantorSum [CantorSum es])]) ≈
+                     expOrd (CF_denote (CantorSum (CantorSum (l :: ls) :: xs)))
+                     (expOrd ω (CF_denote (CantorSum es)))).
       { intros Hmain.
         case_eq (cantorIsFinite (CantorSum es)).
         - intros n Hn.
@@ -867,7 +1143,7 @@ Proof.
           rewrite <- addOrd_le1.
           apply succ_lt. }
       intro.
-      simpl cantorOrd at 1.
+      simpl CF_denote at 1.
       rewrite CF_mul_correct.
       rewrite <- addOrd_zero_r.
       rewrite expOrd_mul.
@@ -887,8 +1163,8 @@ Proof.
            apply expOrd_monotone.
            rewrite <- addOrd_le1.
            apply succ_least. apply expOrd_nonzero.
-        ** change (cantorOrd (CantorSum xs) ≤
-                       expOrd ω (cantorOrd (CantorSum (l::ls))) * sz (length xs)).
+        ** change (CF_denote (CantorSum xs) ≤
+                       expOrd ω (CF_denote (CantorSum (l::ls))) * sz (length xs)).
            apply cantorFirstTerm_dominates; auto.
         ** apply (CantorForm_complete (CantorSum es)).
       * simpl in *; intuition.
@@ -898,7 +1174,7 @@ Qed.
 Lemma CF_exp_correct : forall x y,
   cantorIsNormal x ->
   cantorIsNormal y ->
-  cantorOrd (CF_exp x y) ≈ expOrd (cantorOrd x) (cantorOrd y).
+  CF_denote (CF_exp x y) ≈ expOrd (CF_denote x) (CF_denote y).
 Proof.
   intros x [ys]. induction ys; simpl; intuition.
   - do 2 rewrite expOrd_zero. rewrite <- addOrd_zero_r. reflexivity.
@@ -915,6 +1191,7 @@ Proof.
       simpl; intuition.
 Qed.
 
+(** Package together the exponentation algorithm with the proof that it preserves normal forms. *)
 Definition CNF_exp (x y:CNF) : CNF :=
   exist _ (CF_exp (proj1_sig x) (proj1_sig y))
           (CF_exp_normal _ _ (proj2_sig x) (proj2_sig y)).
@@ -927,6 +1204,9 @@ Proof.
 Qed.
 
 
+(** Note, we cannot go any higher in Knuth's "up arrow" hierarchy. If we could compute x↑↑y,
+    for CNF values x and y, then we could compute ω↑↑ω = ε₀, which is too large.
+  *)
 Theorem CNF_reflects_KnuthUp2_impossible :
   ~exists f, reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> ORD) (KnuthUp 2) f.
 Proof.
@@ -939,7 +1219,7 @@ Proof.
   rewrite KnuthUp_epsilon in Hf.
   apply (ord_lt_irreflexive (ε 0)).
   rewrite Hf at 1.
-  apply cantorForm_below_epsilon.
+  apply CF_below_epsilon.
 Qed.
 
 
@@ -981,7 +1261,7 @@ Theorem CNF_is_ε0 : CNF ≈ ε 0.
 Proof.
   split.
   - rewrite ord_le_unfold; intro cnf.
-    apply cantorForm_below_epsilon.
+    apply CF_below_epsilon.
   - apply ε0_least_expOmega_closed.
     apply CNF_expOmega_fixpoint.
 Qed.
@@ -1005,7 +1285,7 @@ Proof.
       apply succ_lt.
       apply Hsucc.
       simpl; reflexivity. }
-  
+
   apply ε0_least_expOmega_closed; auto.
   transitivity (expOrd ω (supOrd denote)).
   - apply expOrd_monotone.
@@ -1022,8 +1302,11 @@ Qed.
 Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
+(** Here, we must rely on the axiom of the excluded middle
+    to show that every ordinal below ε₀ has a Cantor normal form.
+ *)
 Theorem CNF_has_enough_notations (EM:excluded_middle) :
-  forall x, x < ε 0 -> exists c:CNF, x ≈ c.
+  forall x:Ord, x < ε 0 -> exists c:CNF, x ≈ c.
 Proof.
   intros.
   induction x using ordinal_induction.
@@ -1069,12 +1352,17 @@ Proof.
     apply CNF_reflects_omega.
 Qed.
 
+(** Here, we explicitly show that the above result requires EM,
+    as we can easily recover it.  This follows from the fact
+    that the order on CNF is decidable, and that "enough notations"
+    implies we can find a notation for the truth ordinal for
+    any proposition. *)
 Theorem CNF_has_enough_notations_is_classical :
-  (forall x, x < ε 0 -> exists c:CNF, x ≈ c) ->
+  (forall x:Ord, x < ε 0 -> exists c:CNF, x ≈ c) ->
   excluded_middle.
 Proof.
   intros H P.
-  destruct (H (classical.truth_ord P)).
+  destruct (H (classical.truth_ord P)) as [x Hx].
   - simpl. unfold fixOrd.
     rewrite <- (sup_le _ _ 2%nat).
     unfold iter_f.
@@ -1092,27 +1380,23 @@ Proof.
     apply (index_lt _ 0%nat).
     apply expOrd_monotone.
     apply succ_least. apply expOrd_nonzero.
-
-  - destruct x as [x Hx].
-    simpl in *. unfold CNF_denote in H0.
-    simpl in *.
-    destruct x as [xs].
-    destruct xs as [|x xs]; simpl in *.
-    + right; intro HP.
-      destruct H0.
-      rewrite ord_le_unfold in H0.
-      specialize (H0 HP).
-      rewrite ord_lt_unfold in H0.
-      destruct H0 as [[] _].
+  - destruct (CNF_decide_order CNF_zero x) as [Ho|Ho].
     + left.
-      assert (0 < classical.truth_ord P).
-      { rewrite H0.
-        rewrite <- addOrd_le1.
-        apply expOrd_nonzero. }
-      rewrite ord_lt_unfold in H1.
-      destruct H1 as [HP _]; auto.
+      rewrite <- Hx in Ho.
+      rewrite ord_lt_unfold in Ho.
+      destruct Ho as [HP _].
+      exact HP.
+    + right; intro HNP.
+      rewrite <- Hx in Ho.
+      rewrite ord_le_unfold in Ho.
+      specialize (Ho HNP).
+      rewrite ord_lt_unfold in Ho.
+      destruct Ho as [[] _].
 Qed.
 
+(** Even if we restrict our attention to the "complete" ordinals,
+    the existence of enough Cantor normal forms implies the excluded middle.
+  *)
 Theorem CNF_has_enough_notations_is_classical_for_complete_ordinals :
   (forall x, complete x -> x < ε 0 -> exists c:CNF, x ≈ c) ->
   excluded_middle.
