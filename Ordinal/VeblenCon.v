@@ -1271,6 +1271,145 @@ Section veblen.
 
 End veblen.
 
+
+Lemma onePlus_normal : normal_function (addOrd 1).
+Proof.
+  constructor.
+  - intros; apply addOrd_monotone; auto with ord.
+  - intros; apply addOrd_increasing; auto.
+  - red; intros; apply addOrd_continuous; auto.
+  - intros; apply addOrd_complete; auto.
+    apply succ_complete. apply zero_complete.
+  - intros.
+    rewrite <- addOrd_le1.
+    apply succ_lt.
+Qed.
+
+Lemma onePlus_least_normal f :
+    normal_function f ->
+    forall x, complete x -> 1+x <= f x.
+Proof.
+  intros.
+  induction x using ordinal_induction.
+  rewrite addOrd_unfold.
+  apply lub_least.
+  apply succ_least.
+  apply normal_nonzero; auto.
+  apply sup_least. intro i.
+  apply succ_least.
+  rewrite (H1 (x i)).
+  apply normal_increasing; auto.
+  apply index_lt.
+  apply index_lt.
+  apply complete_subord. auto.
+Qed.
+
+Require Import Cantor.
+
+Lemma veblen_onePlus :
+  forall a x, complete a -> complete x -> veblen (addOrd 1) a x ≈ expOrd ω a + x.
+Proof.
+  induction a as [A f Ha]. induction x as [X g Hx].
+  split.
+  - rewrite veblen_unroll.
+    apply lub_least.
+    + apply addOrd_monotone; auto with ord.
+      apply succ_least.
+      apply expOrd_nonzero.
+    + unfold boundedSup.
+      apply sup_least; intro i.
+      apply fixOrd_least.
+      * intros; apply veblen_monotone; auto.
+        intros; apply addOrd_monotone; auto with ord.
+      * rewrite ord_le_unfold. simpl ordSize. intro a.
+        simpl in a. rewrite Hx; auto.
+        apply addOrd_increasing.
+        apply (index_lt (ord X g) a).
+        apply H0.
+      * rewrite (Ha i).
+        rewrite addOrd_assoc.
+        apply addOrd_monotone; auto with ord.
+        apply expOrd_add_collapse; auto.
+        apply (index_lt (ord A f)).
+        apply H.
+        apply addOrd_complete; auto.
+        apply expOrd_complete; auto.
+        apply (index_lt _ 0%nat).
+        apply omega_complete.
+
+  - unfold addOrd at 1.
+    rewrite foldOrd_unfold.
+    apply lub_least.
+    + rewrite expOrd_unfold.
+      apply lub_least.
+      { apply succ_least.
+        apply veblen_nonzero.
+        apply onePlus_normal. }
+      apply sup_least; intro i.
+      rewrite veblen_unroll.
+      rewrite <- lub_le2.
+      unfold boundedSup.
+      rewrite <- (sup_le _ _ i).
+      unfold fixOrd.
+      rewrite mulOrd_unfold.
+      apply sup_least; intro n.
+      rewrite <- (sup_le _ _ (S n)).
+      transitivity (expOrd ω (f i) * (S n : ω)).
+      simpl.
+      rewrite mulOrd_succ.
+      reflexivity.
+      generalize (S n). clear n.
+      induction n.
+      * simpl. rewrite mulOrd_zero_r. auto with ord.
+      * simpl.
+        rewrite mulOrd_succ.
+        etransitivity.
+        2: { apply veblen_monotone.
+             intros; apply addOrd_monotone; auto with ord.
+             apply IHn. }
+        rewrite Ha.
+        ** clear.
+           unfold sz. simpl ordSize.
+           induction n; simpl natOrdSize.
+           rewrite mulOrd_zero_r.
+           rewrite addOrd_zero_l.
+           rewrite addOrd_zero_r.
+           reflexivity.
+           rewrite mulOrd_succ.
+           rewrite addOrd_assoc.
+           rewrite IHn.
+           reflexivity.
+        ** apply H.
+        ** apply mulOrd_complete.
+           apply expOrd_complete.
+           apply (index_lt _ 0%nat).
+           apply omega_complete.
+           apply H.
+           apply natOrdSize_complete.
+
+    + apply sup_least; intro i. simpl ordSize.
+      transitivity (succOrd (expOrd ω (ord A f) + g i)).
+      reflexivity.
+      rewrite <- Hx; auto.
+      apply succ_least.
+      destruct (complete_zeroDec (ord A f)); auto.
+      * eapply ord_le_lt_trans.
+        apply veblen_monotone_first.
+        intros; apply addOrd_monotone; auto with ord.
+        apply H1.
+        eapply ord_lt_le_trans.
+        apply veblen_increasing0.
+        apply onePlus_normal. apply H0.
+        apply (index_lt (ord X g) i).
+        apply veblen_monotone_first; auto with ord.
+        intros; apply addOrd_monotone; auto with ord.
+      * apply veblen_increasing_nonzero; auto.
+        apply onePlus_normal.
+        apply (index_lt (ord X g) i).
+      * apply H0.
+Qed.
+
+
 Lemma enumerates_equiv_pred f P P' :
   normal_function f ->
   (forall x, complete x -> P x <-> P' x) ->
