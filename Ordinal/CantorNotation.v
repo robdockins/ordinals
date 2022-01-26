@@ -252,7 +252,6 @@ Proof.
   induction a as [[xs] Hind] using size_induction.
   induction xs as [|a lsa].
   - intros [lsb]; destruct lsb; simpl; intros; auto with ord.
-    + reflexivity.
     + rewrite <- addOrd_le1.
       apply expOrd_nonzero.
   - intros [lsb]; destruct lsb; intros.
@@ -412,7 +411,7 @@ Proof.
     simpl; split; auto.
     apply Hx.
     simpl sz.
-    rewrite <- lub_le1.
+    rewrite addOrd_zero_r.
     apply CF_denote_shrink.
   - intros.
     assert (Hnorm : cantorIsNormal
@@ -482,13 +481,11 @@ Proof.
   induction xs.
   - intros.
     simpl.
-    apply ord_lub_eq_mor.
-    apply expOrd_eq_mor. reflexivity.
+    apply addOrd_eq_mor; auto with ord.
+    apply expOrd_eq_mor; auto with ord.
     apply Hx.
-    simpl. rewrite <- lub_le1.
+    simpl. rewrite <- addOrd_le1.
     apply CF_denote_shrink.
-    apply sup_ord_eq_morphism.
-    hnf; intros [].
   - intros.
     transitivity (expOrd ω (CF_denote c) + CF_denote (CantorSum (a::xs))).
     reflexivity.
@@ -510,14 +507,12 @@ Proof.
            end) (normalize a) xs).
     + intros.
       simpl.
-      apply ord_lub_eq_mor.
-      apply expOrd_eq_mor. reflexivity.
+      apply addOrd_eq_mor; auto with ord.
+      apply expOrd_eq_mor; auto with ord.
       apply Hx.
       simpl.
       rewrite <- addOrd_le1.
       apply CF_denote_shrink.
-      apply sup_ord_eq_morphism.
-      hnf; intros [].
     + intros.
       assert (Hnorm' : cantorIsNormal (normalize c)).
       { apply normalize_is_normal. }
@@ -616,8 +611,7 @@ Proof.
   unfold CNF_denote.
   simpl.
   rewrite expOrd_zero.
-  rewrite <- addOrd_zero_r.
-  reflexivity.
+  symmetry. apply addOrd_zero_r.
 Qed.
 
 Theorem CNF_reflects_omega : reflects CantorNormalForm CNF_denote ORD ω CNF_omega.
@@ -625,17 +619,10 @@ Proof.
   red; simpl.
   unfold CNF_denote.
   simpl.
-  rewrite <- addOrd_zero_r.
-  transitivity (expOrd ω 1).
-  rewrite expOrd_succ.
+  repeat rewrite addOrd_zero_r.
   rewrite expOrd_zero.
-  rewrite mulOrd_one_l. reflexivity.
+  rewrite expOrd_one'; auto with ord.
   apply (index_lt ω 0%nat).
-  split; apply expOrd_monotone.
-  rewrite <- addOrd_zero_r.
-  rewrite expOrd_zero; auto with ord.
-  rewrite <- addOrd_zero_r.
-  rewrite expOrd_zero; auto with ord.
 Qed.
 
 
@@ -742,7 +729,7 @@ Lemma cantorSum_add_correct xs : forall ys,
     CF_denote (CantorSum xs) + CF_denote (CantorSum ys) ≈ CF_denote (CantorSum (cantorSum_add xs ys)).
 Proof.
   induction xs; simpl cantorSum_add; simpl CF_denote; intros.
-  - rewrite <- addOrd_zero_l. reflexivity.
+  - rewrite addOrd_zero_l. reflexivity.
   - assert (cantorIsNormal (CantorSum xs)).
     { simpl in H; destruct xs; simpl in *; intuition. }
     generalize (IHxs ys H1 H0).
@@ -900,7 +887,7 @@ Proof.
       transitivity (expOrd ω (CF_denote (CF_add c (CantorSum (c0::es))))).
       { generalize (CF_add c (CantorSum (c0::es))).
         intros. simpl.
-        rewrite <- addOrd_zero_r. reflexivity. }
+        rewrite addOrd_zero_r. reflexivity. }
       transitivity (expOrd ω (CF_denote c + CF_denote (CantorSum (c0::es)))).
       { assert (CF_denote (CF_add c (CantorSum (c0::es))) ≈
                           (CF_denote c + CF_denote (CantorSum (c0 :: es)))).
@@ -943,7 +930,7 @@ Proof.
     destruct ys; simpl in * ; intuition.
 Qed.
 
-(** Pacakge together the multiplication algorithm with the proof
+(** Package together the multiplication algorithm with the proof
     that it preserves normal forms. *)
 Definition CNF_mul (x y : CNF) : CNF
   := exist _ (CF_mul (proj1_sig x) (proj1_sig y))
@@ -1071,7 +1058,7 @@ Proof.
   destruct e as [es].
   destruct xs as [|x xs].
   - simpl; intros.
-    rewrite <- addOrd_zero_r.
+    rewrite addOrd_zero_r.
     rewrite expOrd_zero.
     split.
     apply succ_least. apply expOrd_nonzero.
@@ -1084,7 +1071,7 @@ Proof.
     destruct ls as [|l ls].
     destruct xs.
     + simpl.
-      rewrite <- addOrd_zero_r.
+      rewrite addOrd_zero_r.
       rewrite expOrd_zero.
       symmetry; apply expOrd_one_base.
     + case_eq (cantorIsFinite (CantorSum es)). intros n Hn.
@@ -1101,7 +1088,7 @@ Proof.
            rewrite expNatToOmegaPow.
            rewrite <- CF_nat_correct.
            simpl.
-           repeat rewrite <- addOrd_zero_r.
+           repeat rewrite addOrd_zero_r.
            reflexivity.
            simpl.
            rewrite ord_lt_unfold; exists tt. simpl.
@@ -1111,7 +1098,7 @@ Proof.
         rewrite (cantorIsFinite_fin (CantorSum (CantorSum [] :: c :: xs)) _ H (refl_equal _)).
         symmetry.
         simpl CF_denote.
-        repeat rewrite <- addOrd_zero_r.
+        repeat rewrite addOrd_zero_r.
         apply expNatToOmegaInf.
         ** simpl.
            rewrite ord_lt_unfold; exists tt. simpl.
@@ -1145,14 +1132,14 @@ Proof.
       intro.
       simpl CF_denote at 1.
       rewrite CF_mul_correct.
-      rewrite <- addOrd_zero_r.
+      rewrite addOrd_zero_r.
       rewrite expOrd_mul.
       split.
-      * simpl. rewrite <- addOrd_zero_r.
+      * simpl. rewrite addOrd_zero_r.
         apply expOrd_monotone_base.
         apply addOrd_le1.
       * simpl.
-        repeat rewrite <- addOrd_zero_r.
+        repeat rewrite addOrd_zero_r.
         apply expToOmega_collapse_tower with (length xs); auto.
         ** transitivity (expOrd ω 1).
            { rewrite expOrd_one'.
@@ -1177,7 +1164,7 @@ Lemma CF_exp_correct : forall x y,
   CF_denote (CF_exp x y) ≈ expOrd (CF_denote x) (CF_denote y).
 Proof.
   intros x [ys]. induction ys; simpl; intuition.
-  - do 2 rewrite expOrd_zero. rewrite <- addOrd_zero_r. reflexivity.
+  - do 2 rewrite expOrd_zero. rewrite addOrd_zero_r. reflexivity.
   - rewrite CF_mul_correct.
     + rewrite CF_exp_single_correct; auto.
       rewrite expOrd_add.
@@ -1233,12 +1220,11 @@ Proof.
   unfold CNF_denote; simpl.
   rewrite <- CF_add_correct; auto.
   simpl.
-  rewrite <- addOrd_zero_r.
+  rewrite addOrd_zero_r.
   rewrite expOrd_zero.
-  Transparent addOrd. unfold addOrd. Opaque addOrd.
-  rewrite foldOrd_succ. rewrite foldOrd_zero.
+  rewrite addOrd_succ.
+  rewrite addOrd_zero_r.
   apply succ_lt.
-  intros. rewrite H. apply ord_lt_le; apply succ_lt.
   apply CF_one_normal.
 Qed.
 
@@ -1459,16 +1445,13 @@ Proof.
       rewrite <- H1.
       rewrite addOrd_assoc.
       rewrite <- addOrd_le1.
-      Transparent addOrd. unfold addOrd. Opaque addOrd.
-      rewrite foldOrd_succ.
-      rewrite foldOrd_zero.
+      rewrite addOrd_succ.
+      rewrite addOrd_zero_r.
       apply succ_lt.
-      intros. rewrite H3. apply ord_lt_le. apply succ_lt.
+
       rewrite ord_lt_unfold in H3.
       destruct H3 as [[n q] Hq]; simpl in *.
       destruct q.
       elim (ord_lt_irreflexive 1); auto with ord.
-      apply ord_le_lt_trans with 0; auto.
-      apply succ_lt.
       auto.
 Qed.

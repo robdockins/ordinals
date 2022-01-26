@@ -294,6 +294,7 @@ Section veblen.
       apply fixOrd_least.
       + apply veblen_monotone. apply normal_monotone; auto.
       + rewrite ord_le_unfold.
+        simpl. rewrite sup_unfold.
         simpl. intros [x' y]. simpl.
         rewrite <- (sup_le _ _ x').
         apply veblen_increasing_nonzero.
@@ -661,8 +662,7 @@ Lemma onePlus_least_normal f :
 Proof.
   intros.
   induction x using ordinal_induction.
-  unfold addOrd.
-  rewrite foldOrd_unfold.
+  rewrite addOrd_unfold.
   apply lub_least.
   apply succ_least.
   apply normal_nonzero; auto.
@@ -725,25 +725,25 @@ Proof.
       apply sup_least; intro n.
       rewrite <- (sup_le _ _ (S n)).
       transitivity (expOrd ω (f i) * (S n : ω)).
-      simpl. rewrite <- (sup_le _ _ tt).
+      simpl.
+      rewrite mulOrd_succ.
       reflexivity.
       generalize (S n). clear n.
       induction n.
-      * simpl. apply sup_least; intros [].
+      * simpl. rewrite mulOrd_zero_r. auto with ord.
       * simpl.
-        apply sup_least; intros [].
+        rewrite mulOrd_succ.
         etransitivity.
         2: { apply veblen_monotone.
-             intros; apply foldOrd_monotone; auto.
-             intros; apply succ_monotone; auto.
+             intros; apply addOrd_monotone; auto with ord.
              apply IHn. }
         rewrite Ha.
         ** clear.
            unfold sz. simpl ordSize.
            induction n; simpl natOrdSize.
            rewrite mulOrd_zero_r.
-           rewrite <- addOrd_zero_l.
-           rewrite <- addOrd_zero_r.
+           rewrite addOrd_zero_l.
+           rewrite addOrd_zero_r.
            reflexivity.
            rewrite mulOrd_succ.
            rewrite addOrd_assoc.
@@ -755,10 +755,7 @@ Proof.
            apply (index_lt _ 0%nat).
            apply omega_complete.
            apply H.
-           unfold sz. simpl ordSize.
-           clear; induction n; simpl natOrdSize.
-           apply zero_complete.
-           apply succ_complete; auto.
+           apply natOrdSize_complete.
 
     + apply sup_least; intro i. simpl ordSize.
       transitivity (succOrd (expOrd ω (ord A f) + g i)).

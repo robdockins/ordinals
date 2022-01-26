@@ -164,20 +164,6 @@ Proof.
   apply (ord_lt_irreflexive _ H).
 Qed.
 
-Lemma succ_trans x y : x ≤ y -> x < succOrd y.
-Proof.
-  intros.
-  rewrite ord_lt_unfold.
-  simpl. exists tt. auto.
-Qed.
-
-Lemma succ_trans' x y : x ≤ y -> x ≤ succOrd y.
-Proof.
-  intros.
-  apply ord_lt_le.
-  apply succ_trans; auto.
-Qed.
-
 Lemma lub_trans1 x y z : x ≤ y -> x ≤ y ⊔ z.
 Proof.
   intros.
@@ -220,17 +206,12 @@ Proof.
   apply naddOrd_le2.
 Qed.
 
-Global Hint Unfold ordSize : ord.
 Global Hint Resolve
-     limit_lt lub_le1 lub_le2
-     ord_lt_trans ord_le_trans ord_eq_trans
      succ_trans
      succ_trans'
      lub_trans1 lub_trans2
      add_trans1 add_trans2
-     add_trans1' add_trans2'
-     ord_lt_le ord_le_refl ord_eq_refl : ord.
-
+     add_trans1' add_trans2' : ord.
 
 (* Lists of ordinal-sized types have an ordinal size.
  *)
@@ -482,7 +463,7 @@ Qed.
     This Ltac code is currently super first-pass, and could probably
     be improved a lot.
   *)
-Ltac try_ord := try solve [ auto with ord | simpl; auto 100 with ord | simpl; eauto with ord ].
+Ltac try_ord := try (solve [ simpl; auto 40 with ord | simpl; eauto with ord ]).
 
 Ltac subterm_trans x :=
   apply subterm_trans with x; try_ord.
@@ -501,7 +482,6 @@ Goal forall x:nat, x <> S (S (S (S x))).
 Proof.
   ord_crush.
 Qed.
-
 
 Goal forall (a b c:nat) x, x <> a::b::c::x.
 Proof.
@@ -570,5 +550,18 @@ Canonical Structure QwertyOrdSize n :=
 Goal forall n a b c f,
   f (S n) <> mkAsdf _ [a; b; someQwerty _ c f].
 Proof.
-  ord_crush.
+  intros; apply size_discriminate.
+  eapply subterm_trans. auto with ord.
+  simpl.
+  unfold depOrd.
+  apply succ_trans.
+  apply succ_trans'.
+  apply add_trans2.
+  apply succ_trans'.
+  apply add_trans2.
+  apply succ_trans'.
+  apply add_trans1.
+  apply succ_trans'.
+  apply add_trans2.
+  auto with ord.
 Qed.

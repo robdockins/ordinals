@@ -851,7 +851,8 @@ Section veblen.
         * left. exists x.
           apply veblen_nonzero.
       + rewrite ord_le_unfold.
-        simpl. intros [x' y]. simpl.
+        rewrite sup_unfold. simpl.
+        intros [x' y]. simpl.
         rewrite <- (sup_le _ _ x').
         apply veblen_increasing_nonzero.
         * rewrite ord_lt_unfold. exists a. apply zero_least.

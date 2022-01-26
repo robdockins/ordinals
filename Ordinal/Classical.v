@@ -293,7 +293,7 @@ Qed.
 
 Lemma truth_ord'_complete P : complete (truth_ord' P).
 Proof.
-  simpl; intuition.
+  unfold truth_ord'. rewrite sup_unfold. simpl. intuition.
   - unfold directed.
     intros [n1 q1] [n2 q2]. simpl.
     destruct q1; destruct q2; simpl.
@@ -305,14 +305,11 @@ Proof.
       apply natOrdSize_monotone; apply PeanoNat.Nat.le_max_r.
   - left. exact (inhabits (existT _ 0%nat (inl tt))).
   - destruct a; simpl.
-    destruct s; simpl.
-    + simpl; intuition.
-      hnf; simpl; intuition.
-      right.
-      intros [[]].
-    + induction x.
-      * apply zero_complete.
-      * apply succ_complete; auto.
+    revert o.
+    rewrite lub_unfold.
+    simpl. intros [| _].
+    apply zero_complete.
+    apply natOrdSize_complete.
 Qed.
 
 Lemma succ_limit_dec_EM :
@@ -381,10 +378,8 @@ Proof.
          f n <> 0%nat \/ (forall i, f i = 0%nat)).
   assert (Hn : forall f, exists n, R f n).
   { intro f. destruct (HLPO f); auto.
-    - exists 0%nat. hnf.
-      right. auto.
-    - destruct H as [i Hi]. exists i. hnf.
-      auto. }
+    - exists 0%nat. hnf. right. auto.
+    - destruct H as [i Hi]. exists i. hnf. left. auto. }
   apply Hcont in Hn.
   destruct (Hn (fun _ => 0%nat)) as [n [m Hm]].
   unfold R in Hm.

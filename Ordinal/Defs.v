@@ -374,7 +374,7 @@ Definition ascendingSet A (f:A -> Ord) :=
 
 Definition zeroOrdinal (x:Ord) : Prop :=
   match x with
-  | ord A f => A -> False
+  | ord A f => ~inhabited A
   end.
 
 Definition successorOrdinal (x:Ord) : Prop :=
@@ -406,8 +406,7 @@ Qed.
 (** An ordinal cannot be both zero and a limit *)
 Lemma zero_not_limit : forall x, zeroOrdinal x -> limitOrdinal x -> False.
 Proof.
-  intros [A f]; simpl; intros Hz [Hnz _].
-  destruct Hnz as [a]; auto.
+  intros [A f]; simpl; intros Hz [Hnz _]; auto.
 Qed.
 
 (** An ordinal cannot be both a successor and a limit *)

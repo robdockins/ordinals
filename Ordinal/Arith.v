@@ -107,10 +107,10 @@ Proof.
       apply lub_le1.
     + apply sup_least. intro.
       apply ord_le_refl.
-  - simpl.
-    + rewrite <- lub_le2.
-      rewrite <- (sup_le _ _ tt).
-      reflexivity.
+  - rewrite succ_unfold. simpl foldOrd.
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ tt).
+    reflexivity.
 Qed.
 
 Lemma foldOrd_limit z s x :
@@ -193,6 +193,17 @@ Definition addOrd (x y:Ord) := foldOrd x succOrd y.
 
 Notation "x + y" := (addOrd x y) : ord_scope.
 
+Lemma addOrd_unfold (x y:Ord) : x + y = x ⊔ supOrd (fun i => succOrd (x + y i)).
+Proof.
+  destruct y; reflexivity.
+Qed.
+
+Lemma addOrd_succ (x y:Ord) : x + succOrd y ≈ succOrd (x + y).
+Proof.
+  unfold addOrd. apply foldOrd_succ.
+  intros; auto with ord.
+Qed.
+
 Lemma addOrd_le1 x y : x ≤ x + y.
 Proof.
   destruct y as [B g].
@@ -206,36 +217,37 @@ Proof.
   destruct x as [A f].
   simpl.
   rewrite ord_le_unfold; intro b. simpl.
-  rewrite ord_lt_unfold. simpl.
-  exists (inr (existT _ b tt)).
-  simpl.
-  auto.
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ b).
+  apply succ_trans.
+  apply Hy.
 Qed.
 
-Lemma addOrd_zero_r x : x ≈ x + 0.
+Lemma addOrd_zero_r x : x + 0 ≈ x.
 Proof.
   split.
-  - simpl.
-    apply lub_le1.
-  - simpl.
+  - rewrite zero_unfold.
+    simpl.
     apply lub_least.
     reflexivity.
     apply sup_least. intros [].
+  - simpl. apply lub_le1.
 Qed.
 
-Lemma addOrd_zero_l x : x ≈ 0 + x.
+Lemma addOrd_zero_l x : 0 + x ≈ x.
 Proof.
   induction x as  [X f Hx].
   split; simpl.
+  - apply lub_least; auto with ord.
+    apply sup_least; intro i.
+    apply succ_least.
+    rewrite Hx.
+    apply (index_lt (ord X f)).
   - rewrite ord_le_unfold.
     simpl; intro x.
-    rewrite ord_lt_unfold; simpl.
-    exists (inr (existT _ x tt)).
-    simpl. apply Hx.
-  - rewrite ord_le_unfold.
-    simpl; intros [[]|[x []]]. simpl.
-    rewrite ord_lt_unfold; simpl.
-    exists x.
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ x).
+    apply succ_trans.
     apply Hx.
 Qed.
 
@@ -275,7 +287,6 @@ Lemma addOrd_complete x y :
 Proof.
   intros. unfold addOrd.
   apply foldOrd_complete; auto with ord.
-  - intros. eapply ord_le_lt_trans; auto with ord.
   - intros; apply succ_monotone; auto.
   - apply succ_complete.
 Qed.
@@ -318,18 +329,18 @@ Proof.
   split.
   - apply lub_least.
     + apply lub_le1.
-    + unfold addOrd.
+    + unfold addOrd at 1.
       rewrite foldOrd_unfold at 1.
       apply lub_least.
       rewrite <- lub_le1.
-      apply foldOrd_above_z.
-      apply sup_least. simpl.
+      apply addOrd_le1.
+      apply sup_least.
+      rewrite sup_unfold. simpl.
       intros [??]. simpl.
       apply succ_least.
       rewrite <- lub_le2.
       rewrite <- (sup_le _ _ x).
-      rewrite ord_lt_unfold.
-      simpl. exists tt; simpl.
+      apply succ_trans.
       apply H.
   - apply lub_least.
     + apply lub_le1.
@@ -340,7 +351,7 @@ Proof.
       apply addOrd_increasing.
       rewrite <- lub_le2.
       rewrite <- (sup_le _ _ c).
-      rewrite ord_lt_unfold. exists tt; simpl.
+      apply succ_trans.
       reflexivity.
 Qed.
 
@@ -383,7 +394,6 @@ Proof.
   unfold ord_eq; intuition; eapply addOrd_cancel_le; eauto.
 Qed.
 
-
 (** * Ordinal multiplication *)
 
 Fixpoint mulOrd (x:Ord) (y:Ord) : Ord :=
@@ -425,13 +435,13 @@ Proof.
   intros.
   rewrite (mulOrd_unfold (ord A f) z).
   rewrite <- (sup_le _ _ q).
-  simpl.
   apply lub_least.
-  - rewrite <- lub_le1.
+  - simpl.
+    rewrite <- lub_le1.
     apply Hy. auto.
-  - rewrite <- lub_le2.
-    apply sup_least; intro i.
-    rewrite <- (sup_le _ _ i).
+  - simpl.
+    rewrite <- lub_le2.
+    apply sup_ord_le_morphism. intro i.
     apply succ_monotone.
     apply addOrd_monotone; auto.
     reflexivity.
@@ -481,7 +491,7 @@ Qed.
 Lemma mulOrd_zero_l : forall x, 0 * x ≈ 0.
 Proof.
   induction x as [X f Hx].
-  split; simpl.
+  split; simpl mulOrd.
   - apply sup_least; intro x.
     apply lub_least.
     apply Hx.
@@ -493,7 +503,8 @@ Lemma mulOrd_succ : forall x y, x * (succOrd y) ≈ (x * y) + x.
 Proof.
   intros; split; simpl.
   - apply sup_least; auto with ord.
-  - rewrite <- (sup_le _ _ tt); auto with ord.
+  - simpl.
+    rewrite <- (sup_le _ _ tt); auto with ord.
 Qed.
 
 Lemma mulOrd_one_r : forall x, mulOrd x 1 ≈ x.
@@ -501,7 +512,6 @@ Proof.
   intro.
   rewrite mulOrd_succ.
   rewrite mulOrd_zero_r.
-  symmetry.
   apply addOrd_zero_l.
 Qed.
 
@@ -531,21 +541,20 @@ Proof.
   rewrite mulOrd_unfold.
   split.
   - apply sup_least. intro i.
-    simpl.
+    rewrite addOrd_unfold; simpl.
     apply lub_least.
     + rewrite H. apply (index_le (ord X f)).
     + apply sup_least; intro.
       apply succ_least.
-      rewrite ord_lt_unfold. exists i. simpl.
+      rewrite ord_lt_unfold. exists i.
       apply lub_least.
       apply H.
       apply sup_least; intros [].
   - rewrite ord_le_unfold; intro i.
-    rewrite <- (sup_le _ _ i).
-    simpl.
+    rewrite <- (sup_le _ _ i); simpl.
     rewrite <- lub_le2.
     rewrite <- (sup_le _ _ tt).
-    rewrite ord_lt_unfold. exists tt. simpl.
+    apply succ_trans.
     rewrite <- lub_le1.
     apply H.
 Qed.
@@ -565,10 +574,8 @@ Proof.
   destruct Hy as [b _].
   simpl in *.
   rewrite <- (sup_le _ _ b).
-  rewrite <- lub_le2.
+  rewrite <- lub_le2. simpl.
   rewrite <- (sup_le _ _ a).
-  rewrite ord_lt_unfold. simpl.
-  exists tt.
   auto with ord.
 Qed.
 
@@ -607,7 +614,7 @@ Proof.
       reflexivity.
   - destruct (complete_zeroDec x Hx).
     + right; intro y.
-      rewrite (addOrd_zero_l 0).
+      rewrite <- (addOrd_zero_l 0).
       apply addOrd_monotone; auto.
       rewrite H.
       rewrite mulOrd_zero_l.
@@ -615,45 +622,52 @@ Proof.
     + destruct Hy2 as [[y]|Hy2].
       * left. exists y.
         apply ord_lt_le_trans with x; auto.
-        rewrite (addOrd_zero_l x) at 1.
+        rewrite <- (addOrd_zero_l x) at 1.
         apply addOrd_monotone; auto with ord.
-      * right.
-        intro y. elim Hy2. exact (inhabits y).
+      * right. intro y. elim Hy2. exact (inhabits y).
 Qed.
 
 
 Lemma ordDistrib_left a b c :
   a * (b + c) ≈ (a * b) + (a * c).
 Proof.
-  induction c as [C h]; simpl.
-  rewrite (mulOrd_lub a).
+  induction c as [C h].
   split.
-  - apply lub_least.
-    + apply lub_le1.
-    + unfold mulOrd at 1.
-      simpl. fold mulOrd.
-      apply sup_least. intros [??]. simpl.
+  - rewrite addOrd_unfold.
+    rewrite mulOrd_lub.
+    apply lub_least.
+    + apply addOrd_le1.
+    + rewrite mulOrd_unfold.
+      apply sup_least.
+      intros [??]. unfold boundedSup.
       rewrite (H x).
       rewrite <- addOrd_assoc.
-      unfold addOrd at 1.
-      rewrite foldOrd_unfold.
-      apply ord_lub_le_mor.
-      { reflexivity. }
-      apply sup_least. intro i.
-      rewrite <- (sup_le _ _ (existT _ x i)). simpl.
-      reflexivity.
-  - apply lub_least.
-    + apply lub_le1.
-    + apply sup_least; intros [??]. simpl.
-      rewrite <- lub_le2.
-      rewrite <- (sup_le _ _ (existT _ x tt)). simpl.
+      apply addOrd_monotone; auto with ord.
+      rewrite (mulOrd_unfold a (ord C h)).
+      rewrite <- (sup_le _ _ x).
+      apply addOrd_monotone; auto with ord.
+  - rewrite addOrd_unfold. 
+    apply lub_least.
+    + rewrite addOrd_unfold.
+      rewrite mulOrd_lub.
+      apply lub_le1.
+    + rewrite mulOrd_unfold.
+      simpl.
+      rewrite (sup_unfold C (fun i => a * h i + a)). simpl.
+      apply sup_least; intros [??]. simpl.
       apply succ_least.
-      rewrite (H x).
-      rewrite <- addOrd_assoc.
+      apply ord_lt_le_trans with (a * b + (a * h x + a)).
       apply addOrd_increasing.
       apply index_lt.
+      rewrite addOrd_assoc.
+      rewrite mulOrd_lub.
+      rewrite <- lub_le2.
+      rewrite (mulOrd_unfold a (supOrd _ )).
+      rewrite (sup_unfold C (fun i => succOrd (b + h i))). simpl.
+      rewrite <- (sup_le _ _ (existT _ x tt)). simpl.
+      rewrite (H x).
+      reflexivity.
 Qed.
-
 
 Lemma mulOrd_assoc a b c :
   a * (b * c) ≈ a * b * c.
@@ -661,6 +675,7 @@ Proof.
   induction c as [C h]; simpl.
   split.
   - apply sup_least. intros [??]. simpl.
+    fold mulOrd.
     rewrite <- (sup_le _ _ x).
     rewrite <- (H x).
     rewrite <- ordDistrib_left.
@@ -672,6 +687,8 @@ Proof.
     rewrite <- ordDistrib_left.
     rewrite mulOrd_unfold.
     apply sup_least; intro i.
+    rewrite (mulOrd_unfold a (supOrd _)). simpl.
+    rewrite (sup_unfold C (fun i => b * h i + b)). simpl.
     rewrite <- (sup_le _ _ (existT _ x i)). simpl.
     reflexivity.
 Qed.
@@ -855,17 +872,16 @@ Proof.
   rewrite expOrd_lub.
   split.
   - apply lub_least.
-    + rewrite <- (sup_le _ _ (inl _ tt)).
-      transitivity (0 + expOrd a b).
-      { apply addOrd_zero_l. }
-      apply addOrd_monotone; auto with ord.
+    + rewrite mulOrd_lub.
+      rewrite <- lub_le1.
+      rewrite mulOrd_one_r.
+      reflexivity.
     + rewrite expOrd_unfold at 1.
       apply lub_least.
-      * rewrite <- (sup_le _ _ (inl _ tt)).
-        transitivity (0 + 1).
-        { apply addOrd_zero_l. }
-        apply addOrd_monotone; auto with ord.
-        rewrite ord_le_unfold. simpl; intro.
+      * rewrite mulOrd_lub.
+        rewrite <- lub_le1.
+        rewrite mulOrd_one_r.
+        apply succ_least.
         apply expOrd_nonzero.
       * apply sup_least; simpl.
         intros [??]. simpl.
@@ -873,8 +889,13 @@ Proof.
         rewrite <- mulOrd_assoc.
         rewrite mulOrd_unfold.
         apply sup_least. simpl; intro i.
-        rewrite <- (sup_le _ _ (inr _ (existT _ x i))). simpl.
+        rewrite mulOrd_lub.
+        rewrite <- lub_le2.
+        rewrite <- (sup_le _ _ x).
+        rewrite (mulOrd_unfold _ (expOrd a (h x) * a)).
+        rewrite <- (sup_le _ _ i).
         reflexivity.
+
   - apply sup_least. intros [|[x i]]; simpl.
     + rewrite <- lub_le1.
       transitivity (0 + expOrd a b).
@@ -904,13 +925,12 @@ Proof.
   split.
   - rewrite expOrd_unfold.
     apply lub_least; auto with ord.
-    { apply lub_le1. }
     apply sup_least; intros [i q].
     rewrite <- lub_le2.
-    simpl.
-    rewrite <- (sup_le _ _ i).
+    etransitivity; [ | apply (sup_le _ _ i) ]. simpl.
     rewrite <- (H i).
     rewrite <- expOrd_add.
+
     unfold expOrd at 2.
     rewrite foldOrd_unfold.
     rewrite <- lub_le2.
@@ -925,6 +945,7 @@ Proof.
     rewrite <- (sup_le _ _ i).
     reflexivity.
 Qed.
+
 
 Definition powOmega (x:Ord) : Ord := expOrd ω x.
 
@@ -955,3 +976,5 @@ Proof. reflexivity. Qed.
 
 Lemma KnuthUp_one a b : KnuthUp 1%nat a b ≈ expOrd a b.
 Proof. reflexivity. Qed.
+
+Global Opaque addOrd mulOrd expOrd.

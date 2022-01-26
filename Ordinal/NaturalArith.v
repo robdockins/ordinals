@@ -48,10 +48,9 @@ Proof.
   destruct y as [B g].
   rewrite naddOrd_unfold.
   rewrite ord_le_unfold; intros.
-  rewrite ord_lt_unfold.
-  simpl.
-  exists (inl a).
-  auto.
+  rewrite <- lub_le1.
+  eapply ord_le_lt_trans; [ | apply (limit_lt _ _ a) ].
+  simpl; auto.
 Qed.
 
 Lemma naddOrd_le2 x y : y ≤ x ⊕ y.
@@ -60,9 +59,9 @@ Proof.
   destruct x as [B g].
   rewrite naddOrd_unfold.
   rewrite ord_le_unfold; intros.
-  rewrite ord_lt_unfold.
-  exists (inr a).
-  apply Hx.
+  rewrite <- lub_le2.
+  eapply ord_le_lt_trans; [ | apply (limit_lt _ _ a) ].
+  simpl; auto.
 Qed.
 
 Lemma naddOrd_zero x : x ≈ x ⊕ 0.
@@ -72,16 +71,15 @@ Proof.
     rewrite naddOrd_unfold.
     simpl.
     rewrite ord_le_unfold; simpl; intros.
-    rewrite ord_lt_unfold.
-    exists (inl a).
-    apply H.
+    rewrite <- lub_le1.
+    eapply ord_le_lt_trans; [ | apply (limit_lt _ _ a) ].
+    simpl; apply H.
   - induction x as [A f].
     rewrite naddOrd_unfold.
-    rewrite ord_le_unfold; simpl; intros.
-    destruct a; intuition.
-    rewrite ord_lt_unfold.
-    exists a.
-    auto.
+    apply lub_least.
+    apply limit_least; intros.
+    rewrite H. apply limit_lt.
+    apply limit_least; intros [].
 Qed.
 
 Lemma naddOrd_comm_le x y : x ⊕ y ≤ y ⊕ x.
@@ -90,17 +88,16 @@ Proof.
   induction x as [A f Hx].
   intro y. revert A f Hx.
   induction y as [B g Hy]; intros.
-  rewrite ord_le_unfold. rewrite naddOrd_unfold.
-  simpl; intros.
-  destruct a.
-  - rewrite ord_lt_unfold.
-    rewrite naddOrd_unfold.
-    simpl.
-    exists (inr a); auto.
-  - rewrite ord_lt_unfold.
-    rewrite naddOrd_unfold.
-    exists (inl b).
-    apply Hy. auto.
+  repeat rewrite naddOrd_unfold.  
+  apply lub_least; apply limit_least; intro; simpl.
+  - rewrite (Hx i).
+    rewrite <- lub_le2.
+    eapply ord_le_lt_trans; [ | apply (limit_lt _ _ i)]. simpl.
+    reflexivity.
+  - rewrite Hy; auto.
+    rewrite <- lub_le1.
+    eapply ord_le_lt_trans; [ | apply (limit_lt _ _ i)]. simpl.
+    reflexivity.
 Qed.
 
 Lemma naddOrd_comm x y : x ⊕ y ≈ y ⊕ x.
@@ -111,14 +108,11 @@ Qed.
 Lemma naddOrd_assoc1 : forall x y z,  x ⊕ (y ⊕ z) ≤ (x ⊕ y) ⊕ z.
 Proof.
   induction x as [A f]. induction y as [B g]. induction z as [C h].
-  rewrite ord_le_unfold.
-  rewrite naddOrd_unfold.
-  rewrite naddOrd_unfold.
-  simpl.
+  repeat rewrite naddOrd_unfold.
+  repeat rewrite lub_unfold. simpl.
+  rewrite ord_le_unfold. simpl.
   intros.
   rewrite ord_lt_unfold.
-  rewrite naddOrd_unfold.
-  rewrite naddOrd_unfold.
   simpl in *.
   destruct a as [a|[b|c]].
   - exists (inl (inl a)).
@@ -135,13 +129,11 @@ Proof.
   induction x as [A f].
   induction y as [B g].
   induction z as [C h].
+  repeat rewrite naddOrd_unfold.
+  repeat rewrite lub_unfold.
   rewrite ord_le_unfold.
-  rewrite naddOrd_unfold.
-  rewrite naddOrd_unfold.
   simpl; intros.
   rewrite ord_lt_unfold.
-  rewrite naddOrd_unfold.
-  rewrite naddOrd_unfold.
   simpl.
   destruct a as [[a|b]|c].
   - exists (inl a).
@@ -299,9 +291,10 @@ Lemma naddOrd_succ x y : succOrd x ⊕ y ≈ succOrd (x ⊕ y).
 Proof.
   split.
   - induction y as [B g Hy].
-    rewrite ord_le_unfold.
     rewrite naddOrd_unfold.
+    rewrite lub_unfold.
     simpl.
+    rewrite ord_le_unfold.
     intro ua.
     rewrite ord_lt_unfold. simpl.
     exists tt.
@@ -551,7 +544,8 @@ Proof.
     reflexivity.
     apply naddOrd_monotone; apply nmulOrd_stepl.
   + apply sup_least.
-    rewrite (naddOrd_unfold y z). simpl.
+    rewrite (naddOrd_unfold y z).
+    rewrite lub_unfold. simpl.
     intros [i|i].
     * rewrite (Hindy (y i)); auto with ord.
       rewrite (naddOrd_comm _ x).
@@ -577,21 +571,18 @@ Proof.
   rewrite naddOrd_unfold.
   apply lub_least.
   - apply limit_least.
-    rewrite (nmulOrd_unfold a y). simpl.
+    rewrite (nmulOrd_unfold a y).
+    rewrite lub_unfold. simpl.
+    repeat rewrite sup_unfold.
     intros [[i q]|[i q]]; simpl.
     + apply ord_lt_le_trans with ((a i ⊗ y ⊕ y) ⊕ b ⊗ z).
-      apply naddOrd_increasing1. apply index_lt.
+      apply naddOrd_increasing1.
+      apply index_lt.
       clear q.
-
-
-
+      
       rewrite (naddOrd_comm (a i ⊗ y) y).
       rewrite <- naddOrd_assoc.
       rewrite (Hinda (a i) (index_lt a i) b y z x).
-
-
-
-
 
 
 Abort.

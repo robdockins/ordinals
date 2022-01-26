@@ -132,6 +132,11 @@ Proof.
   destruct o as [A f]; simpl; intuition.
 Qed.
 
+Lemma zero_unfold : zeroOrd = ord False (False_rect Ord).
+Proof.
+  reflexivity.
+Qed.
+
 (** Zero is the least ordinal. *)
 Lemma zero_least : forall o, 0 ≤ o.
 Proof.
@@ -145,6 +150,11 @@ Lemma zero_complete : complete 0.
 Proof.
   simpl; repeat (hnf; intuition).
   right. intros [[]].
+Qed.
+
+Lemma succ_unfold x : succOrd x = ord unit (fun _ => x).
+Proof.
+  reflexivity.
 Qed.
 
 (** Succ is a monotone operator with respetct to both lt and le, and
@@ -181,6 +191,20 @@ Proof.
   apply succ_least; auto.
 Qed.
 
+Lemma succ_trans x y : x ≤ y -> x < succOrd y.
+Proof.
+  intros.
+  rewrite ord_lt_unfold.
+  simpl. exists tt. auto.
+Qed.
+
+Lemma succ_trans' x y : x ≤ y -> x ≤ succOrd y.
+Proof.
+  intros.
+  apply ord_lt_le.
+  apply succ_trans; auto.
+Qed.
+
 Lemma succ_congruence : forall a b, a ≈ b -> succOrd a ≈ succOrd b.
 Proof.
   unfold ord_eq; intuition; apply succ_monotone; auto.
@@ -211,6 +235,22 @@ Proof.
   - left; exact (inhabits tt).
 Qed.
 
+
+Lemma natOrdSize_complete n : complete (natOrdSize n).
+Proof.
+  induction n; simpl natOrdSize.
+  apply zero_complete.
+  apply succ_complete; auto.
+Qed.
+
+
+Lemma sup_unfold A (f:A->Ord) :
+  supOrd f =
+  ord (sigT (fun a => ordCarrier (f a)))
+      (fun ai => ordSize (f (projT1 ai)) (projT2 ai)).
+Proof.
+  reflexivity.
+Qed.
 
 (** The supremum is nonstrictly above all the ordinals in the
   * collection defined by "f".  Morover it is it the smallest such.
@@ -266,6 +306,11 @@ Proof.
   apply sup_ord_le_morphism; red; intros; apply H.
 Qed.
 
+
+Lemma limit_unfold A (f:A -> Ord) : limOrd f = ord A f.
+Proof.
+  reflexivity.
+Qed.
 
 (** The limit ordinal is strictly above all the ordinals in
   * the collection defined by "f".  Moreover it is the smallest
@@ -448,10 +493,10 @@ Proof.
   split.
   - intro. split; auto with ord.
     destruct z as [Z f].
-    rewrite ord_le_unfold. intro a; elim (H a).
+    rewrite ord_le_unfold. intro a; elim H. exact (inhabits a).
   - repeat intro.
     destruct z as [Z f].
-    simpl. intro a.
+    simpl. intros [a].
     destruct H as [H1 H2].
     rewrite ord_le_unfold in H1.
     generalize (H1 a).
@@ -517,6 +562,11 @@ Proof.
     destruct a'. simpl in *.
     exists x.
     rewrite ord_lt_unfold. exists o. auto.
+Qed.
+
+Lemma pred_unfold x : predOrd x = supOrd (ordSize x).
+Proof.
+  destruct x; reflexivity.
 Qed.
 
 (** pred(y) is the smallest ordinal that is (nonstrictly) above
@@ -614,6 +664,12 @@ Proof.
   intros; split; apply pred_le_mor; apply H.
 Qed.
 
+Lemma glb_unfold x y :
+  x ⊓ y = ord (ordCarrier x * ordCarrier y)
+              (fun i => x (fst i) ⊓ y (snd i)).
+Proof.
+  destruct x; destruct y; reflexivity.
+Qed.
 
 (** glb is the greatest lower bound of its arguments.
  *)
@@ -697,6 +753,16 @@ Add Parametric Morphism : glbOrd with signature
 Proof.
   unfold ord_eq.
   intros; split; apply ord_glb_le_mor; intuition.
+Qed.
+
+Lemma lub_unfold x y :
+  x ⊔ y = ord (ordCarrier x + ordCarrier y)
+              (fun xy => match xy with
+                         | inl i => x i
+                         | inr i => y i
+                         end).
+Proof.
+  destruct x; destruct y; reflexivity.
 Qed.
 
 (** lub is the least upper bound of its arguments.
@@ -869,6 +935,15 @@ Proof.
 Qed.
 
 
+Global Hint Unfold ordSize : ord.
+Global Hint Resolve
+     limit_lt lub_le1 lub_le2
+     ord_lt_trans ord_le_trans ord_eq_trans
+     succ_trans
+     succ_trans'
+     lub_le1 lub_le2
+     ord_lt_le ord_le_refl ord_eq_refl : ord.
+
 Lemma lub_complete1 : forall x y,
     x >= y ->
     complete x ->
@@ -907,7 +982,8 @@ Proof.
        destruct (ord_le_subord _ _ Hxy y) as [x _]. simpl in *.
        exact (inhabits x).
  - intros [x|y]; auto.
-   destruct Hy as [_ [_ Hy]]; apply Hy.
+   destruct Hy as [_ [_ Hy]].
+   apply Hy.
 Qed.
 
 
@@ -989,3 +1065,6 @@ Proof.
   - intros [a q]; simpl.
     apply complete_subord; auto.
 Qed.
+
+
+Global Opaque lubOrd glbOrd supOrd.
