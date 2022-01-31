@@ -961,20 +961,213 @@ Proof.
   apply omega_gt1.
 Qed.
 
-
 Fixpoint KnuthUp (n:nat) (a:Ord) : Ord -> Ord :=
   match n with
   | O    => fun b => b * a
   | S n' => foldOrd 1 (KnuthUp n' a)
   end.
 
-Lemma KnuthUp_zero a b : KnuthUp 0%nat a b ≈ b * a.
+Lemma KnuthUp_zero : KnuthUp 0%nat = fun a b => b * a.
 Proof. reflexivity. Qed.
 
-Lemma KnuthUp_succ n a b : KnuthUp (S n) a b ≈ foldOrd 1 (KnuthUp n a) b.
+Lemma KnuthUp_succ n : KnuthUp (S n) = fun a => foldOrd 1 (KnuthUp n a).
 Proof. reflexivity. Qed.
 
-Lemma KnuthUp_one a b : KnuthUp 1%nat a b ≈ expOrd a b.
+Lemma KnuthUp_one : KnuthUp 1%nat = expOrd.
 Proof. reflexivity. Qed.
+
+Lemma KnuthUp_two : KnuthUp 2%nat = fun a => foldOrd 1 (expOrd a).
+Proof. reflexivity. Qed.
+
+Lemma KnuthUp_monotone n : forall a b c d,
+  a ≤ b ->
+  c ≤ d ->
+  KnuthUp n a c ≤ KnuthUp n b d.
+Proof.
+  induction n; simpl; intros.
+  transitivity (c*b).
+  apply mulOrd_monotone2; auto.
+  apply mulOrd_monotone1; auto.
+  transitivity (foldOrd 1 (KnuthUp n b) c).
+  apply foldOrd_least.
+  apply foldOrd_above_z.
+  intros; apply IHn; auto with ord.
+  intros.
+  destruct x as [X f].
+  simpl.
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ i).
+  apply IHn; auto with ord.
+  apply foldOrd_monotone; auto.
+  intros; apply IHn; auto with ord.
+Qed.
+
+Lemma KnuthUp_continuous n : forall a,
+  (n > 0)%nat ->
+  strongly_continuous (KnuthUp n a).
+Proof.
+  intros. inversion H; subst; apply foldOrd_strongly_continuous.
+Qed.
+
+Lemma KnuthUp_one_eq n : forall a,
+  0 < a ->
+  KnuthUp n a 1 ≈ a.
+Proof.
+  induction n; simpl KnuthUp.
+  - intros. rewrite mulOrd_one_l. reflexivity.
+  - intros. split.
+    apply lub_least.
+    apply succ_least; auto.
+    apply sup_least; intros.
+    destruct n; simpl KnuthUp.
+    transitivity (1 * a).
+    apply mulOrd_monotone1.
+    apply lub_least; auto with ord.
+    apply sup_least. intros [].
+    rewrite mulOrd_one_l. auto with ord.
+    rewrite lub_continuous.
+    apply lub_least.
+    apply IHn. auto.
+    rewrite sup_unfold.
+    simpl.
+    apply lub_least.
+    apply succ_least; auto.
+    apply sup_least; intros [[] _].
+    intros.
+    apply foldOrd_monotone; auto.
+    intros; apply KnuthUp_monotone; auto with ord.
+    apply foldOrd_strongly_continuous.
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ tt).
+    rewrite <- IHn at 1; auto.
+    apply KnuthUp_monotone; auto with ord.
+Qed.
+
+
+Lemma foldOrd_add z s a b :
+  (forall x y, x ≤ y -> s x ≤ s y) ->
+  foldOrd z s (a + b) ≈ foldOrd (foldOrd z s a) s b.
+Proof.
+  intros.
+  induction b as [B g]. simpl.
+  rewrite lub_continuous.
+  split.
+  apply lub_least.
+  apply lub_le1.
+  transitivity (foldOrd z s (limOrd (fun i => a + g i))).
+  apply foldOrd_monotone; auto; apply sup_succ_lim.
+  simpl.
+  apply lub_least.
+  rewrite <- lub_le1.
+  apply foldOrd_above_z.
+  apply sup_least; intro i.
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ i).
+  apply H.
+  apply H0.
+  apply lub_least; auto with ord.
+  apply sup_least; intro i.
+  rewrite <- lub_le2.
+  transitivity (foldOrd z s (succOrd (a + g i))).
+  simpl.
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ tt).
+  apply H.
+  apply H0.
+  apply foldOrd_monotone; auto.
+  rewrite <- (sup_le _ _ i); auto with ord.
+  intros; apply foldOrd_monotone; auto.
+  apply foldOrd_strongly_continuous.
+Qed.
+
+Lemma KnuthUp_omega_fix : forall n a,
+    (n > 0)%nat ->
+    0 < a ->
+    KnuthUp n a (KnuthUp (S n) a ω) ≈ KnuthUp (S n) a ω.
+Proof.
+  split.
+  - intros.
+    rewrite KnuthUp_succ.
+    intros.
+    transitivity (KnuthUp n a (supOrd (fun (i:ω) => foldOrd 1 (KnuthUp n a) i))).
+    apply KnuthUp_monotone; auto with ord.
+    simpl.
+    apply lub_least.
+    rewrite <- (sup_le _ _ 0%nat).
+    apply foldOrd_above_z.
+    apply sup_least; intro i.
+    rewrite <- (sup_le _ _ (S i)).
+    simpl.
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ tt).
+    reflexivity.
+    transitivity (supOrd (fun (i:ω) => KnuthUp n a (foldOrd 1 (KnuthUp n a) (sz i)))).
+    apply KnuthUp_continuous; auto.
+    apply sup_least; intro i.
+    simpl.
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ i).
+    reflexivity.
+  - simpl.
+    apply lub_least.
+    inversion H; simpl; apply foldOrd_above_z.
+    apply sup_least; intro i.
+    apply KnuthUp_monotone; auto with ord.
+    induction i; simpl.
+    apply lub_least; auto with ord.
+    apply sup_least; intros [].
+    apply lub_least; auto with ord.
+    apply sup_least; intros [].
+    rewrite <- lub_le2.
+    rewrite <- (sup_le  _ _ i).
+    apply KnuthUp_monotone; auto with ord.
+Qed.
+
+Lemma KnuthUp_saturates : forall n a b,
+    (n > 0)%nat ->
+    0 < a ->
+    KnuthUp (S n) a b ≤ KnuthUp (S n) a ω.
+Proof.
+  intros.
+  induction b as [B g]; intros.
+  rewrite <- KnuthUp_omega_fix; auto.
+  rewrite KnuthUp_succ.
+  simpl foldOrd at 1.
+  apply lub_least.
+  inversion H; simpl; apply foldOrd_above_z.
+  apply sup_least; intro i.
+  apply KnuthUp_monotone; auto with ord.
+  apply H1; auto.
+Qed.
+
+Lemma KnuthUp_not_increasing : forall n,
+    (n > 1)%nat ->
+    (forall a b c, b < c -> KnuthUp n a b < KnuthUp n a c) -> False.
+Proof.
+  intros.
+  apply (ord_lt_irreflexive (KnuthUp n ω (succOrd ω))).
+  apply ord_le_lt_trans with (KnuthUp n ω ω).
+  destruct n. inversion H.
+  apply KnuthUp_saturates; auto.
+  inversion H; auto with arith.
+  apply (index_lt _ 0%nat).
+  apply H0.
+  apply succ_lt.
+Qed.
+
+Lemma KnuthUp2_epsilon_number : forall a,
+    a ≥ ω ->
+    KnuthUp 2%nat a ω ≈ expOrd ω (KnuthUp 2%nat a ω).
+Proof.
+  intros. split.
+  - apply increasing_inflationary; auto.
+    intros; apply expOrd_increasing; auto.
+    apply omega_gt1.
+  - rewrite <- KnuthUp_omega_fix at 2; auto.
+    rewrite KnuthUp_one.
+    apply expOrd_monotone_base; auto.
+    rewrite <- H. apply (index_lt _ 0%nat).
+Qed.
+
 
 Global Opaque addOrd mulOrd expOrd.

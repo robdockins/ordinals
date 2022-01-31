@@ -11,6 +11,7 @@ From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
 From Ordinal Require Import Classical.
 From Ordinal Require Import Enumerate.
+From Ordinal Require Import Fixpoints.
 
 Definition additively_closed (x:Ord) :=
   forall a b, a < x -> b < x -> a + b < x .
@@ -146,6 +147,18 @@ Proof.
     apply expOrd_monotone.
     auto.
 Qed.
+
+Lemma epslion_additively_closed : forall x, complete x -> additively_closed (ε x).
+Proof.
+  intros. hnf; intros.
+  rewrite ε_fixpoint.
+  apply expOmega_additively_closed.
+  - apply ε_complete; auto.
+  - rewrite <- ε_fixpoint. auto.
+  - rewrite <- ε_fixpoint. auto.
+Qed.
+
+
 
 Lemma expOrd_add_collapse b c :
   complete c ->

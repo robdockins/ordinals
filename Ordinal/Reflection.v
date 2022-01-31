@@ -45,3 +45,57 @@ Fixpoint reflects (A:Type) (f:A -> Ord) (S:Shape) : ordShape S -> reflShape S A 
   | PROD S1 S2 => fun x a => reflects A f S1 (fst x) (fst a) /\ reflects A f S2 (snd x) (snd a)
   | ARROW S1 S2 => fun g h => forall x a, reflects A f S1 x a -> reflects A f S2 (g x) (h a)
   end.
+
+
+Remark ε0_least_exp_closed :
+  forall X denote zeroX succX expOmegaX,
+    reflects X denote ORD 0 zeroX ->
+    reflects X denote (ORD ==> ORD) succOrd succX ->
+    reflects X denote (ORD ==> ORD) (expOrd ω) expOmegaX ->
+
+    ε 0 ≤ ord X denote.
+Proof.
+  intros X denote zeroX succX expOmegaX Hzero Hsucc HexpOmega.
+
+  assert (Hlimit : limitOrdinal (ord X denote)).
+  { simpl; split.
+    - exact (inhabits zeroX).
+    - hnf; simpl; intros.
+      exists (succX a).
+      apply ord_lt_le_trans with (succOrd (denote a)).
+      apply succ_lt.
+      apply Hsucc.
+      simpl; reflexivity. }
+
+  apply ε0_least_expOmega_closed; auto.
+  transitivity (expOrd ω (supOrd denote)).
+  - apply expOrd_monotone.
+    apply ord_isLimit; auto.
+  - etransitivity; [ apply expOrd_continuous |].
+    exact zeroX.
+    apply sup_least; intro x.
+    transitivity (denote (expOmegaX x)).
+    apply HexpOmega. simpl; reflexivity.
+    apply (index_le (ord X denote)).
+Qed.
+
+
+
+(** TODO, this ordering stuff doesn't really go here *)
+Inductive ordering := LT | EQ | GT.
+
+Definition ordering_swap (o:ordering) : ordering :=
+  match o with
+  | LT => GT
+  | EQ => EQ
+  | GT => LT
+  end.
+
+(* Compute the lexicographic ordering given two sub-orderings. *)
+Definition lexCompare (o1:ordering) (o2:ordering) : ordering :=
+  match o1 with
+  | LT => LT
+  | EQ => o2
+  | GT => GT
+  end.
+

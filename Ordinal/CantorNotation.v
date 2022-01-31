@@ -79,23 +79,6 @@ Definition CNF_denote (x:CantorNormalForm) := CF_denote (proj1_sig x).
 (** The ordinal defined by Cantor normal forms. *)
 Canonical Structure CNF := ord CantorNormalForm CNF_denote.
 
-Inductive ordering := LT | EQ | GT.
-
-Definition ordering_swap (o:ordering) : ordering :=
-  match o with
-  | LT => GT
-  | EQ => EQ
-  | GT => LT
-  end.
-
-(* Compute the lexicographic ordering given two sub-orderings. *)
-Definition lexCompare (o1:ordering) (o2:ordering) : ordering :=
-  match o1 with
-  | LT => LT
-  | EQ => o2
-  | GT => GT
-  end.
-
 (** This is the main comparison operation on Cantor forms. It lexicographically
     compares terms in a sequence.  Note that, although this operation is defined
     on all Cantor forms, it only computes the correct answers on normal forms.
@@ -174,16 +157,6 @@ Proof.
       apply succ_least. apply expOrd_nonzero.
 Qed.
 
-Lemma epslion_additively_closed : forall x, complete x -> additively_closed (ε x).
-Proof.
-  intros. hnf; intros.
-  rewrite ε_fixpoint.
-  apply expOmega_additively_closed.
-  - apply ε_complete; auto.
-  - rewrite <- ε_fixpoint. auto.
-  - rewrite <- ε_fixpoint. auto.
-Qed.
-
 Theorem CF_below_epsilon : forall (x:CF), x < ε 0.
 Proof.
   induction x using size_induction.
@@ -217,6 +190,7 @@ Definition CantorNormalForm_lt (x y:CantorNormalForm) :=
 Definition CantorNormalForm_le (x y:CantorNormalForm) :=
   cantorCompare (proj1_sig x) (proj1_sig y) <> GT.
 
+
 Lemma CNF_compare_correct_lemma a lsb :
   forall c,
     cantorIsNormal (CantorSum (c :: lsb)) ->
@@ -237,6 +211,27 @@ Proof.
 
     apply IHlsb with a0; simpl in *; intuition.
     apply ord_le_lt_trans with (CF_denote c); auto.
+Qed.
+
+(* TODO, not sure what to call this... *)
+Lemma add_lemma : forall a b,
+    complete a ->
+    a <= b ->
+    b > 0 ->
+    a < b + a.
+Proof.
+  induction a as [A f Ha]. simpl; intuition.
+  rewrite addOrd_unfold.
+  destruct H3 as [a].
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ a).
+  apply succ_trans.
+  rewrite <- addOrd_le1. auto.
+  rewrite <- addOrd_le1.
+  apply ord_le_lt_trans with 0.
+  rewrite ord_le_unfold; intro a.
+  elim H3. exact (inhabits a).
+  auto.
 Qed.
 
 Lemma CNF_compare_correct :
@@ -370,6 +365,115 @@ Proof.
   - left; assumption.
   - right; apply H.
   - right; auto with ord.
+Qed.
+
+
+Lemma CF_subterm_head a xs : a ◃ (CantorSum (a::xs)).
+Proof.
+  simpl; intuition.
+  rewrite <- addOrd_le1.
+  apply CF_denote_shrink.
+Qed.
+
+Lemma CF_subterm_tail a xs :
+  cantorIsNormal (CantorSum (a::xs)) ->
+  CantorSum xs ◃ (CantorSum (a::xs)).
+Proof.
+  simpl. revert a.
+  induction xs; simpl.
+  + intros.
+    rewrite addOrd_zero_r.
+    apply expOrd_nonzero.
+  + intros.
+    eapply ord_lt_le_trans.
+    apply addOrd_increasing.
+    apply (IHxs a); intuition.
+    apply addOrd_monotone; auto with ord.
+    apply expOrd_monotone; intuition.
+Qed.
+
+
+Theorem CF_normal_forms_unique : forall (x y:CF),
+  cantorIsNormal x ->
+  cantorIsNormal y ->
+  CF_denote x ≈ CF_denote y ->
+  x = y.
+Proof.
+  induction x using size_induction.
+  destruct x as [xs]. destruct y as [ys].
+  intros. f_equal.
+  revert ys H0 H1 H2.
+  induction xs.
+  - simpl; intros.
+    destruct ys; auto.
+    simpl in H2.
+    elim (ord_lt_irreflexive 0).
+    rewrite H2 at 2.
+    rewrite <- addOrd_le1.
+    apply expOrd_nonzero.
+  - simpl; intros.
+    destruct ys.
+    { simpl in H2.
+      elim (ord_lt_irreflexive 0).
+      rewrite <- H2 at 2.
+      rewrite <- addOrd_le1.
+      apply expOrd_nonzero. }
+
+    cut (CF_denote a ≈ CF_denote c).
+    { intros ?.
+      f_equal.
+      - apply H; intuition.
+        simpl. rewrite <- addOrd_le1.
+        apply CF_denote_shrink; intuition.
+      - apply IHxs; intuition.
+        apply H; intuition.
+        rewrite H1.
+        apply CF_subterm_tail; simpl; intuition.
+        destruct xs; simpl; intuition.
+        destruct ys; simpl; intuition.
+        simpl in H2.
+        eapply addOrd_cancel.
+        apply H2.
+        apply expOrd_eq_mor; auto with ord. }
+
+    assert (Ha : cantorIsNormal a) by intuition.
+    assert (Hc : cantorIsNormal c) by intuition.
+    generalize (CNF_compare_correct a c Ha Hc).
+    destruct (cantorCompare a c); auto.
+    + intros.
+      simpl in H2.
+      clear -H0 H1 H2 H3.
+      elim (ord_lt_irreflexive
+              (expOrd ω (CF_denote a) +
+               fold_right
+                 (fun (x : CantorForm) (o : Ord) => expOrd ω (CF_denote x) + o) 0 xs)).
+      rewrite H2 at 2.
+      rewrite <- (additively_closed_collapse (expOrd ω (CF_denote a)) (expOrd ω (CF_denote c))).
+      rewrite <- addOrd_assoc.
+      apply addOrd_increasing.
+      rewrite <- H2.
+      apply CF_subterm_tail; simpl; intuition.
+      apply expOmega_additively_closed.
+      apply CantorForm_complete.
+      apply expOrd_increasing; auto.
+      apply (index_lt _ 1%nat).
+    + intros.
+      simpl in H2.
+      clear -H0 H1 H2 H3.
+      elim (ord_lt_irreflexive
+              (expOrd ω (CF_denote a) +
+               fold_right
+                 (fun (x : CantorForm) (o : Ord) => expOrd ω (CF_denote x) + o) 0 xs)).
+      rewrite H2 at 1.
+      rewrite <- (additively_closed_collapse (expOrd ω (CF_denote c)) (expOrd ω (CF_denote a))).
+      rewrite <- addOrd_assoc.
+      apply addOrd_increasing.
+      rewrite H2.
+      apply CF_subterm_tail; simpl; intuition.
+      apply expOmega_additively_closed.
+      apply CantorForm_complete.
+      apply expOrd_increasing; auto.
+      apply (index_lt _ 1%nat).
 Qed.
 
 
@@ -1250,38 +1354,6 @@ Proof.
     apply CF_below_epsilon.
   - apply ε0_least_expOmega_closed.
     apply CNF_expOmega_fixpoint.
-Qed.
-
-Remark ε0_least_exp_closed :
-  forall X denote zeroX succX expOmegaX,
-    reflects X denote ORD 0 zeroX ->
-    reflects X denote (ORD ==> ORD) succOrd succX ->
-    reflects X denote (ORD ==> ORD) (expOrd ω) expOmegaX ->
-
-    ε 0 ≤ ord X denote.
-Proof.
-  intros X denote zeroX succX expOmegaX Hzero Hsucc HexpOmega.
-
-  assert (Hlimit : limitOrdinal (ord X denote)).
-  { simpl; split.
-    - exact (inhabits zeroX).
-    - hnf; simpl; intros.
-      exists (succX a).
-      apply ord_lt_le_trans with (succOrd (denote a)).
-      apply succ_lt.
-      apply Hsucc.
-      simpl; reflexivity. }
-
-  apply ε0_least_expOmega_closed; auto.
-  transitivity (expOrd ω (supOrd denote)).
-  - apply expOrd_monotone.
-    apply ord_isLimit; auto.
-  - etransitivity; [ apply expOrd_continuous |].
-    exact zeroX.
-    apply sup_least; intro x.
-    transitivity (denote (expOmegaX x)).
-    apply HexpOmega. simpl; reflexivity.
-    apply (index_le (ord X denote)).
 Qed.
 
 
