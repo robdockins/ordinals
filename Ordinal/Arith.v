@@ -394,6 +394,35 @@ Proof.
   unfold ord_eq; intuition; eapply addOrd_cancel_le; eauto.
 Qed.
 
+Lemma onePlus_succ x : 1 + x ≤ succOrd x.
+Proof.
+  induction x as [X f Hx].
+  rewrite addOrd_unfold. simpl.
+  apply lub_least. apply succOrd_le_mor. auto with ord.
+  apply sup_least; intro i.
+  apply succOrd_le_mor.
+  rewrite Hx.
+  apply succ_least. apply (index_lt (ord X f) i).
+Qed.
+
+Lemma limit_onePlus x : limitOrdinal x -> 1 + x ≤ x.
+Proof.
+  destruct x as [X f]; simpl; intros [??].
+  apply lub_least.
+  apply succ_least.
+  destruct H as [x]. rewrite ord_lt_unfold. exists x. auto with ord.
+  apply sup_least; intro x.
+  apply succ_least. simpl.
+  hnf in H0.
+  destruct (H0 x) as [y Hy].
+  apply ord_le_lt_trans with (f y).
+  transitivity (succOrd (f x)).
+  apply onePlus_succ.
+  apply succ_least. auto.
+  apply (index_lt (ord X f) y).
+Qed.
+
+
 (** * Ordinal multiplication *)
 
 Fixpoint mulOrd (x:Ord) (y:Ord) : Ord :=
@@ -646,7 +675,7 @@ Proof.
       rewrite (mulOrd_unfold a (ord C h)).
       rewrite <- (sup_le _ _ x).
       apply addOrd_monotone; auto with ord.
-  - rewrite addOrd_unfold. 
+  - rewrite addOrd_unfold.
     apply lub_least.
     + rewrite addOrd_unfold.
       rewrite mulOrd_lub.
@@ -853,7 +882,7 @@ Proof.
   apply lub_least; auto with ord.
   apply succ_least; auto.
   apply lub_le2.
-Qed.  
+Qed.
 
 Lemma expOrd_lub a b c :
   expOrd a (b ⊔ c) ≈ expOrd a b ⊔ expOrd a c.
@@ -937,7 +966,7 @@ Proof.
     rewrite <- (sup_le  _ _ q).
     reflexivity.
   - apply lub_least. { apply succ_least; apply expOrd_nonzero. }
-    apply sup_least. intro i. 
+    apply sup_least. intro i.
     rewrite <- (H i).
     transitivity (expOrd a (b * h i + b)).
     rewrite expOrd_add. reflexivity.

@@ -1598,3 +1598,118 @@ Proof.
   - apply veblen_first_normal.
     apply Γ_normal.
 Qed.
+
+
+Require Import ClassicalFacts.
+From Ordinal Require Import Classical.
+
+Lemma veblen_decompose (EM:excluded_middle) f (Hf:normal_function f) :
+  forall x
+    (Hlim : limitOrdinal x),
+    x < veblen f x 0 ->
+    f x ≤ x ->
+    exists a b, x ≈ veblen f a b /\ 0 < a /\ a < x /\ b < x.
+Proof.
+  induction x as [x Hx] using ordinal_induction; intros Hlim Hx1 Hx2.
+  set (P a := a > 0 /\ exists b, b < x /\ x <= veblen f a b).
+  destruct (classical.ord_well_ordered EM P x) as [a [[Ha0 Ha] Hleast]]; auto.
+  { red. split. rewrite <- Hx2. apply normal_nonzero; auto.
+    exists 0. split; auto with ord. rewrite <- Hx2. apply normal_nonzero; auto. }
+
+  destruct Ha as [b0 Hb0].
+  set (Q b := b < x /\ x <= veblen f a b).
+  destruct (classical.ord_well_ordered EM Q b0) as [b [[Hb Hab] Hbleast]]; auto.
+  unfold P in *.
+  unfold Q in *.
+
+  assert (Hle : veblen f a b ≤ x).
+  { destruct (classical.order_total EM (veblen f a b) x) as [H|H]; auto.
+    exfalso.
+    rewrite veblen_unroll in H.
+    apply lub_lt in H.
+    destruct H.
+    - apply (ord_lt_irreflexive x).
+      apply ord_lt_le_trans with (f b); auto.
+      transitivity (f x); auto.
+      apply normal_monotone; auto.
+      intuition.
+
+    - case_eq a; intros A g Hg.
+      rewrite Hg in H. simpl in H.
+      apply sup_lt in H.
+      destruct H as [i H].
+
+      unfold fixOrd in H.
+      apply sup_lt in H.
+      destruct H as [n ?].
+      apply (ord_lt_irreflexive x).
+      eapply ord_lt_le_trans. apply H.
+      clear H.
+      induction n; simpl.
+      * rewrite ord_le_unfold; simpl; intro q.
+        destruct (classical.order_total EM x (veblen f (ord A g) (b q))) as [H|H]; auto. exfalso.
+        rewrite <- Hg in H.
+        assert (Hbq : b <= b q).
+        { apply Hbleast; split; auto.
+          transitivity b; auto with ord. }
+        elim (ord_lt_irreflexive b).
+        rewrite Hbq at 1.
+        apply index_lt.
+
+      * transitivity (veblen f (g i) x).
+        apply veblen_monotone; auto.
+        apply normal_monotone; auto.
+
+        clear n IHn.
+        destruct (classical.order_total EM (veblen f (g i) x) x) as [H|H]; auto. exfalso.
+        assert (Hai : a <= g i).
+        { apply Hleast.
+          split.
+          - destruct (classical.order_total EM (g i) 0); auto.
+            elim (ord_lt_irreflexive x).
+            apply ord_lt_le_trans with (veblen f (g i) x); auto.
+            transitivity (veblen f 0 x).
+            apply veblen_monotone_first; auto.
+            apply normal_monotone; auto.
+            rewrite veblen_zero; auto.
+          - assert (Hxsup1 : x ≈ supOrd (fun i => x i)).
+            { destruct x as [X h].
+              apply ascending_sup_lim.
+              destruct Hlim; auto.
+            }
+            assert (Hxsup2 : veblen f (g i) x ≤ veblen f (g i) (supOrd (fun i : x => x i))).
+            { apply veblen_monotone; auto. apply normal_monotone; auto. apply Hxsup1. }
+            assert (Hxsup3 : veblen f (g i) (supOrd (fun j : x => x j)) <=
+                    supOrd (fun j => veblen f (g i) (x j))).
+            { assert (Hx0 : x > 0).
+              { rewrite <- Hx2. apply normal_nonzero; auto. }
+              rewrite ord_lt_unfold in Hx0. destruct Hx0; auto.
+              apply veblen_continuous; auto.
+              apply classical.ord_complete; auto.
+              apply classical.ord_directed; auto.
+              intros; apply classical.ord_complete; auto. }
+            rewrite Hxsup2 in H.
+            rewrite Hxsup3 in H.
+            apply sup_lt in H.
+            destruct H as [j Hj].
+            exists (x j); split; auto with ord. }
+        apply (ord_lt_irreflexive a).
+        rewrite Hai at 1.
+        rewrite Hg.
+        apply (index_lt (ord A g) i). }
+
+  assert (Hax : a < x).
+  { destruct (classical.order_total EM x a); auto. exfalso.
+    elim (ord_lt_irreflexive x).
+    apply ord_lt_le_trans with (veblen f x 0); auto.
+    transitivity (veblen f a 0).
+    apply veblen_monotone_first; auto.
+    apply normal_monotone; auto.
+    rewrite <- Hle.
+    apply veblen_monotone; auto with ord.
+    apply normal_monotone; auto.
+  }
+
+  exists a, b; intuition.
+  split; auto.
+Qed.
