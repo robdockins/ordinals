@@ -1,3 +1,4 @@
+Require Import Setoid.
 Require Import Morphisms.
 Require Import Coq.Program.Basics.
 Require Import NArith.
@@ -16,7 +17,7 @@ From Ordinal Require Import Fixpoints.
 From Ordinal Require Import Reflection.
 From Ordinal Require Import VeblenDefs.
 From Ordinal Require Import VeblenCon.
-
+From Ordinal Require Import VeblenFacts.
 
 Open Scope ord_scope.
 
@@ -51,9 +52,6 @@ Proof.
     apply (index_lt _ 0%nat).
     apply omega_complete.
 Qed.
-
-Lemma omega_gt0 : 0 < ω.
-Proof. apply (index_lt _ 0%nat). Qed.
 
 Local Hint Unfold powOmega : core.
 Local Hint Resolve VF_complete veblen_complete
@@ -90,79 +88,6 @@ Proof.
 Qed.
 
 
-Lemma veblen_additively_closed a b :
-  complete a -> complete b ->
-  additively_closed (veblen (expOrd ω) a b).
-Proof.
-  intros. red. intros x y Hx Hy.
-  destruct (complete_zeroDec a) as [Ha|Ha]; auto.
-  - assert (veblen (expOrd ω) a b ≈ expOrd ω b).
-    { split.
-      transitivity (veblen (expOrd ω) 0 b).
-      apply veblen_monotone_first; auto.
-      rewrite veblen_zero. reflexivity.
-      rewrite veblen_unroll.
-      apply lub_le1. }
-    rewrite H1 in Hx, Hy.
-    rewrite H1.
-    apply expOmega_additively_closed; auto.
-  - assert (veblen (expOrd ω) a b ≈ expOrd ω (veblen (expOrd ω) a b)).
-    { rewrite <- (veblen_fixpoints _ powOmega_normal 0) at 1; auto.
-      rewrite veblen_zero.  reflexivity. }
-    rewrite H1 in Hx, Hy.
-    rewrite H1.
-    apply expOmega_additively_closed; auto.
-Qed.
-
-Lemma Γ_additively_closed a :
-  complete a -> additively_closed (Γ a).
-Proof.
-  red; intros.
-  rewrite Γ_fixpoints; auto.
-  rewrite Γ_fixpoints in H0, H1; auto.
-  apply veblen_additively_closed; auto.
-  apply normal_complete; auto.
-  apply Γ_normal.
-Qed.
-
-Lemma veblen_collapse f (Hf:normal_function f) :
-  forall a b c,
-    complete a ->
-    complete b ->
-    complete c ->
-    a < c ->
-    b <= c ->
-    veblen f c 0 <= c ->
-    veblen f a b <= c.
-Proof.
-  intros.
-  transitivity (veblen f c 0); auto.
-  rewrite <- (veblen_fixpoints f Hf a c 0); auto.
-  apply veblen_monotone; auto.
-  rewrite H3.
-  apply (normal_inflationary (fun i => veblen f i 0)); auto.
-  apply veblen_first_normal; auto.
-Qed.
-
-Lemma veblen_collapse' f (Hf:normal_function f) :
-  forall a b c,
-    complete a ->
-    complete b ->
-    complete c ->
-    a < c ->
-    b < c ->
-    veblen f c 0 <= c ->
-    veblen f a b < c.
-Proof.
-  intros.
-  apply ord_lt_le_trans with (veblen f c 0); auto.
-  rewrite <- (veblen_fixpoints f Hf a c 0); auto.
-  apply veblen_increasing; auto.
-  apply ord_lt_le_trans with c; auto.
-  apply (normal_inflationary (fun i => veblen f i 0)); auto.
-  apply veblen_first_normal; auto.
-Qed.
-
 Lemma VW_collapse : forall a b c,
   0 < VF_denote b ->
   VF_denote a < VF_denote (W b c) ->
@@ -186,14 +111,19 @@ Lemma VW_collapse2 : forall b c,
   VF_denote (V (W b c) Z) ≈ VF_denote (W b c).
 Proof.
   intros. simpl.
-  split.
-  - rewrite <- (veblen_fixpoints _ (powOmega_normal) 0) at 2; auto.
-    rewrite veblen_zero.
-    rewrite veblen_onePlus; auto.
-    rewrite addOrd_zero_r.
-    reflexivity.
-  - apply (normal_inflationary (fun x => veblen (addOrd 1) x 0)); auto.
-    apply veblen_first_normal; auto.
+  rewrite <- (veblen_fixpoints _ (powOmega_normal) 0) at 2; auto.
+  rewrite veblen_zero.
+  rewrite veblen_onePlus; auto.
+  rewrite addOrd_zero_r.
+  reflexivity.
+Qed.
+
+Definition VF_isZero x : { x = Z } + { 0 < VF_denote x }.
+Proof.
+  destruct x.
+  - left. apply eq_refl.
+  - right. simpl. apply veblen_nonzero; auto.
+  - right. simpl. apply veblen_nonzero; auto.
 Qed.
 
 Fixpoint VF_compare (x:VForm) : VForm -> ordering :=
@@ -220,106 +150,65 @@ Fixpoint VF_compare (x:VForm) : VForm -> ordering :=
       end
 
     | V a x', W b y' =>
-      match b with
-      | Z =>
+      if VF_isZero b then
         match VF_compare a y' with
         | LT => VF_compare x' (V y' Z)
-        | EQ => VF_compare x' Z
+        | EQ => if VF_isZero x' then EQ else GT
         | GT => GT
         end
-      | _ =>
+      else
         match VF_compare a (W b y') with
         | LT => VF_compare x' (W b y')
-        | EQ => match x' with
-                | Z => EQ
-                | _ => GT
-                end
+        | EQ => if VF_isZero x' then EQ else GT
         | GT => GT
         end
-      end
 
     | W a x', V b y' =>
-      match a with
-      | Z =>
+      if VF_isZero a then
         match VF_compare x' b with
         | LT => LT
-        | EQ => match y' with
-                | Z => EQ
-                | _ => LT
-                end
+        | EQ => if VF_isZero y' then EQ else LT
         | GT => inner y'
         end
-      | _ =>
+      else
         match inner b with
         | LT => LT
-        | EQ => match y' with
-                | Z => EQ
-                | _ => LT
-                end
+        | EQ => if VF_isZero y' then EQ else LT
         | GT => inner y'
         end
-      end
     end.
 
+Lemma VW_compare_eq a x b y :
+  VF_compare (V a x) (W b y) =
+  if VF_isZero b then
+    match VF_compare a y with
+    | LT => VF_compare x (V y Z)
+    | EQ => if VF_isZero x then EQ else GT
+    | GT => GT
+    end
+  else
+    match VF_compare a (W b y) with
+    | LT => VF_compare x (W b y)
+    | EQ => if VF_isZero x then EQ else GT
+    | GT => GT
+    end.
+Proof. reflexivity. Qed.
 
-Definition ordering_correct o a b :=
-  match o with
-  | LT => a < b
-  | EQ => a ≈ b
-  | GT => a > b
-  end.
-
-Lemma veblen_compare_same_level f (Hf:normal_function f) :
-  forall oab oxy oxVby oVaxy a b x y,
-    complete a ->
-    complete b ->
-    complete x ->
-    complete y ->
-    ordering_correct oab a b ->
-    ordering_correct oxy x y ->
-    ordering_correct oxVby x (veblen f b y) ->
-    ordering_correct oVaxy (veblen f a x) y ->
-    ordering_correct
-      (match oab with
-      | LT => oxVby
-      | EQ => oxy
-      | GT => oVaxy
-      end) (veblen f a x) (veblen f b y) .
-Proof.
-  do 8 intro. intros Ha Hb Hx Hy Hoab Hoxy HoxVby HVaxy.
-  destruct oab; simpl in *.
-  - destruct oxVby; simpl in *.
-    + apply ord_lt_le_trans with (veblen f a (veblen f b y)).
-      apply veblen_increasing; auto.
-      apply veblen_fixpoints; auto.
-    + transitivity (veblen f a (veblen f b y)).
-      { split; (apply veblen_monotone; [ intros; apply normal_monotone; auto with ord | apply HoxVby ]). }
-      apply veblen_fixpoints; auto.
-    + apply ord_lt_le_trans with x; auto.
-      apply veblen_inflationary; auto.
-  - destruct oxy; simpl in *.
-    + apply ord_lt_le_trans with (veblen f a y).
-      apply veblen_increasing; auto.
-      apply veblen_monotone_first; auto.
-      apply Hoab.
-    + transitivity (veblen f a y).
-      split; apply veblen_monotone; auto; apply Hoxy.
-      split; apply veblen_monotone_first; auto; apply Hoab.
-    + apply ord_le_lt_trans with (veblen f a y).
-      apply veblen_monotone_first; auto. apply Hoab.
-      apply veblen_increasing; auto.
-  - destruct oVaxy; simpl in *.
-    + apply ord_lt_le_trans with y; auto.
-      apply veblen_inflationary; auto.
-    + symmetry.
-      transitivity (veblen f b (veblen f a x)).
-      split; apply veblen_monotone; auto; apply HVaxy.
-      apply veblen_fixpoints; auto.
-    + apply ord_lt_le_trans with (veblen f b (veblen f a x)).
-      apply veblen_increasing; auto.
-      apply veblen_fixpoints; auto.
-Qed.
-
+Lemma WV_compare_eq a x b y :
+  VF_compare (W a x) (V b y) =
+  if VF_isZero a then
+    match VF_compare x b with
+    | LT => LT
+    | EQ => if VF_isZero y then EQ else LT
+    | GT => VF_compare (W a x) y
+    end
+  else
+    match VF_compare (W a x) b with
+    | LT => LT
+    | EQ => if VF_isZero y then EQ else LT
+    | GT => VF_compare (W a x) y
+    end.
+Proof. reflexivity. Qed.
 
 Lemma VF_compare_correct : forall x y,
     ordering_correct (VF_compare x y) (VF_denote x) (VF_denote y).
@@ -331,64 +220,32 @@ Proof.
     apply veblen_nonzero; auto.
     apply veblen_nonzero; auto.
   (* x => V a x case *)
-  - induction y as [|b IHb y IHy|b IHb y IHy]; simpl.
+  - induction y as [|b IHb y IHy|b IHb y IHy].
     (* y => Z case *)
-    + apply veblen_nonzero; auto.
+    + simpl. apply veblen_nonzero; auto.
     (* y => V b y case *)
-    + apply (veblen_compare_same_level); auto.
+    + simpl. apply (veblen_compare_correct); auto.
       apply (IHa b). apply (IHx y). apply IHx.
 
     (* y => W b y case *)
-    + assert (b = Z \/ b <> Z).
-      { destruct b; auto; right; discriminate. }
-      destruct H.
-      * subst b. simpl.
-        generalize (veblen_compare_same_level
-                      (addOrd 1) onePlus_normal
-                      (VF_compare a y) (VF_compare x Z)
-                      (VF_compare x (V y Z)) GT
-                      (VF_denote a) (VF_denote y) (VF_denote x)  0
-                      (VF_complete _)
-                      (VF_complete _)
-                      (VF_complete _)
-                      zero_complete
-                      (IHa y) (IHx Z) (IHx (V y Z)) (veblen_nonzero _ onePlus_normal _ _)
-                   ).
-        { destruct (VF_compare a y).
-          - destruct (VF_compare x (V y Z)); simpl;
-              rewrite veblen_zero;
-              repeat (rewrite veblen_onePlus; auto);
-              rewrite addOrd_zero_r; auto.
-          - destruct (VF_compare x Z); simpl;
-              rewrite veblen_zero;
-              repeat (rewrite veblen_onePlus; auto);
-              rewrite addOrd_zero_r; auto.
-          - simpl;
-              rewrite veblen_zero;
-              repeat (rewrite veblen_onePlus; auto);
-              rewrite addOrd_zero_r; auto. }
-
-      * cut (match match VF_compare a (W b y) with
-                   | LT => VF_compare x (W b y)
-                   | EQ => match x with
-                           | Z => EQ
-                           | _ => GT
-                           end
+    + rewrite VW_compare_eq.
+      destruct (VF_isZero b).
+      * subst b.
+        change (ordering_correct 
+                  (match VF_compare a y with
+                   | LT => VF_compare x (V y Z)
+                   | EQ => if VF_isZero x then EQ else GT
                    | GT => GT
-                   end
-             with
-             | LT =>
-               veblen (addOrd 1) (VF_denote a) (VF_denote x) <
-               veblen (expOrd ω) (VF_denote b) (VF_denote y)
-             | EQ =>
-               veblen (addOrd 1) (VF_denote a) (VF_denote x)
-                      ≈ veblen (expOrd ω) (VF_denote b) (VF_denote y)
-             | GT =>
-               veblen (expOrd ω) (VF_denote b) (VF_denote y) <
-               veblen (addOrd 1) (VF_denote a) (VF_denote x)
-             end).
-        { destruct b; auto. elim H; auto. }
-        generalize (IHa (W b y)).
+                   end)
+                  (VF_denote (V a x)) (VF_denote (W Z y))).
+        rewrite WZ_collapse.
+        simpl.
+        apply veblen_compare_correct; auto.
+        ** apply IHa.
+        ** destruct (VF_isZero x); subst; simpl; auto with ord.
+        ** apply IHx.
+
+      * generalize (IHa (W b y)); simpl.
         destruct (VF_compare a (W b y)); intros Hasub.
         ** generalize (IHx (W b y)).
            destruct (VF_compare x (W b y)); intros Hxsub.
@@ -398,11 +255,6 @@ Proof.
                rewrite <- (veblen_fixpoints _ powOmega_normal 0) at 2; auto.
                rewrite veblen_zero.
                reflexivity.
-               destruct b; simpl.
-               elim H; auto.
-               apply veblen_nonzero; auto.
-               apply veblen_nonzero; auto.
-
            *** split.
                apply veblen_collapse; auto.
                apply Hxsub.
@@ -411,185 +263,70 @@ Proof.
                rewrite veblen_onePlus; auto.
                rewrite addOrd_zero_r.
                reflexivity.
-               destruct b; simpl.
-               elim H; auto.
-               apply veblen_nonzero; auto.
-               apply veblen_nonzero; auto.
-               simpl.
                rewrite <- Hxsub.
                apply veblen_inflationary; auto.
            *** rewrite veblen_onePlus; auto.
                rewrite <- addOrd_le2. apply Hxsub.
-        ** destruct x; simpl.
+        ** destruct (VF_isZero x); subst; simpl; auto with ord.
            *** rewrite veblen_onePlus; auto.
                rewrite addOrd_zero_r.
                rewrite Hasub.
-               rewrite <- (veblen_fixpoints _ powOmega_normal 0); auto.
+               symmetry.
+               rewrite <- (veblen_fixpoints _ powOmega_normal 0) at 1; auto.
                rewrite veblen_zero.
-               simpl. reflexivity.
-               destruct b; simpl.
-               elim H; auto.
-               apply veblen_nonzero; auto.
-               apply veblen_nonzero; auto.
+               reflexivity.
            *** rewrite veblen_onePlus; auto.
                rewrite Hasub.
-               simpl.
                rewrite <- (veblen_fixpoints _ powOmega_normal 0) at 1; auto.
                rewrite veblen_zero.
                rewrite <- addOrd_zero_r.
-               apply addOrd_increasing.
-               apply veblen_nonzero; auto.
-               destruct b; simpl.
-               elim H; auto.
-               apply veblen_nonzero; auto.
-               apply veblen_nonzero; auto.
-           *** rewrite veblen_onePlus; auto.
-               rewrite Hasub.
-               simpl.
-               rewrite <- (veblen_fixpoints _ powOmega_normal 0) at 1; auto.
-               rewrite veblen_zero.
-               rewrite <- addOrd_zero_r.
-               apply addOrd_increasing.
-               apply veblen_nonzero; auto.
-               destruct b; simpl.
-               elim H; auto.
-               apply veblen_nonzero; auto.
-               apply veblen_nonzero; auto.
+               apply addOrd_increasing; auto.
         ** rewrite veblen_onePlus; auto.
            rewrite <- addOrd_le1.
            rewrite <- (veblen_fixpoints _ powOmega_normal 0); auto.
            rewrite veblen_zero.
            apply expOrd_increasing; auto.
-           destruct b; simpl.
-           elim H; auto.
-           apply veblen_nonzero; auto.
-           apply veblen_nonzero; auto.
 
   (* x => W a x case *)
-  - induction y as [|b IHb y IHy|b IHb y IHy]; simpl.
+  - induction y as [|b IHb y IHy|b IHb y IHy].
     (* y => Z case *)
-    + apply veblen_nonzero; auto.
+    + simpl; apply veblen_nonzero; auto.
     (* y => V b y case *)
-    + assert (a = Z \/ a <> Z).
-      { destruct a; auto; right; discriminate. }
-      destruct H.
+    + rewrite WV_compare_eq.
+      destruct (VF_isZero a).
       * subst a.
-        assert (Hy' :
-                  ordering_correct match y with
-                    | Z => EQ
-                    | _ => LT
-                    end 0 (VF_denote y)).
-        { destruct y; simpl; auto with ord.
-          apply veblen_nonzero; auto.
-          apply veblen_nonzero; auto. }
-        assert (HWZxy :
-                  (ordering_correct (VF_compare (W Z x) y)
-                                    (veblen (addOrd 1) (VF_denote x) 0) (VF_denote y))).
-        { destruct (VF_compare (W Z x) y); simpl in IHy; simpl.
-          - rewrite veblen_zero in IHy.
-            rewrite veblen_onePlus; auto.
-            rewrite addOrd_zero_r. auto.
-          - rewrite veblen_zero in IHy.
-            rewrite veblen_onePlus; auto.
-            rewrite addOrd_zero_r. auto.
-          - rewrite veblen_zero in IHy.
-            rewrite veblen_onePlus; auto.
-            rewrite addOrd_zero_r. auto. }
+        change (ordering_correct 
+                  match VF_compare x b with
+                  | LT => LT
+                  | EQ => if VF_isZero y then EQ else LT
+                  | GT => VF_compare (W Z x) y
+                  end
+                  (VF_denote (W Z x)) (VF_denote (V b y))).
+        rewrite WZ_collapse.
+        assert (H : ordering_correct (VF_compare (W Z x) y) (VF_denote (W Z x)) (VF_denote y)); auto.
+        rewrite WZ_collapse in H.
 
-        generalize (veblen_compare_same_level
-                      (addOrd 1) onePlus_normal
-                      (VF_compare x b) (match y with Z => EQ | _ => LT end)
-                      LT
-                      (VF_compare (W Z x) y)
-                      (VF_denote x) (VF_denote b) 0 (VF_denote y)
-                      (VF_complete _)
-                      (VF_complete _)
-                      zero_complete
-                      (VF_complete _)
-                      (IHx b) Hy' (veblen_nonzero _ onePlus_normal _ _) HWZxy).
-        { destruct (VF_compare x b); simpl.
-            + rewrite veblen_zero.
-              rewrite veblen_onePlus; auto.
-              rewrite addOrd_zero_r. auto.
-            + destruct (match y with
-                   | Z => EQ
-                   | _ => LT
-                   end); simpl;
-              rewrite veblen_zero;
-              repeat (rewrite veblen_onePlus; auto);
-              rewrite addOrd_zero_r; auto.
-            + destruct ((fix inner (y0 : VForm) : ordering :=
-        match y0 with
-        | Z => GT
-        | V b0 y' =>
-            match VF_compare x b0 with
-            | LT => LT
-            | EQ => match y' with
-                    | Z => EQ
-                    | _ => LT
-                    end
-            | GT => inner y'
-            end
-        | W b0 y' =>
-            match
-              (fix inner0 (y1 : VForm) : ordering :=
-                 match y1 with
-                 | Z => EQ
-                 | _ => LT
-                 end) b0
-            with
-            | LT => VF_compare x y0
-            | EQ => VF_compare x y'
-            | GT => inner y'
-            end
-        end) y); simpl;
-              rewrite veblen_zero;
-              repeat (rewrite veblen_onePlus; auto);
-              rewrite addOrd_zero_r; auto. }
+        apply veblen_compare_correct; auto.
+        ** apply IHx.
+        ** destruct (VF_isZero y); subst; simpl; auto with ord.
+        ** simpl. apply veblen_nonzero; auto.
 
-      (* a <> Z case *)
-      * cut (match match VF_compare (W a x) b with
-                   | LT => LT
-                   | EQ => match y with
-                           | Z => EQ
-                           | _ => LT
-                           end
-                   | GT => VF_compare (W a x) y
-                   end with
-                 | LT =>
-      veblen (expOrd ω) (VF_denote a) (VF_denote x) <
-      veblen (addOrd 1) (VF_denote b) (VF_denote y)
-  | EQ =>
-      veblen (expOrd ω) (VF_denote a) (VF_denote x)
-      ≈ veblen (addOrd 1) (VF_denote b) (VF_denote y)
-  | GT =>
-      veblen (addOrd 1) (VF_denote b) (VF_denote y) <
-      veblen (expOrd ω) (VF_denote a) (VF_denote x) end).
-        { destruct a; auto. elim H; auto. }
-        destruct (VF_compare (W a x) b).
-        ** rewrite veblen_onePlus; auto.
+      * destruct (VF_compare (W a x) b).
+        ** simpl.
+           rewrite veblen_onePlus; auto.
            rewrite <- addOrd_le1.
            simpl in IHb.
            rewrite <- (veblen_fixpoints _ powOmega_normal 0); auto.
            rewrite veblen_zero.
            apply expOrd_increasing; auto.
-           destruct a; simpl; auto.
-           elim H; auto.
-           apply veblen_nonzero; auto.
-           apply veblen_nonzero; auto.
 
-        ** destruct y; simpl.
-           *** simpl in IHb.
-               rewrite veblen_onePlus; auto.
+        ** destruct (VF_isZero y); subst; simpl.
+           *** rewrite veblen_onePlus; auto.
                rewrite addOrd_zero_r.
                rewrite <- IHb.
                rewrite <- (veblen_fixpoints _ powOmega_normal 0) at 1; auto.
                rewrite veblen_zero.
                reflexivity.
-               destruct a; simpl; auto.
-               elim H; auto.
-               apply veblen_nonzero; auto.
-               apply veblen_nonzero; auto.
            *** rewrite veblen_onePlus; auto.
                rewrite <- IHb.
                simpl.
@@ -597,25 +334,9 @@ Proof.
                rewrite veblen_zero.
                rewrite <- addOrd_zero_r.
                apply addOrd_increasing; auto.
-               apply veblen_nonzero; auto.
-               destruct a; simpl; auto.
-               elim H; auto.
-               apply veblen_nonzero; auto.
-               apply veblen_nonzero; auto.
-           *** rewrite veblen_onePlus; auto.
-               rewrite <- IHb.
-               simpl.
-               rewrite <- (veblen_fixpoints _ powOmega_normal 0) at 1; auto.
-               rewrite veblen_zero.
-               rewrite <- addOrd_zero_r.
-               apply addOrd_increasing; auto.
-               apply veblen_nonzero; auto.
-               destruct a; simpl; auto.
-               elim H; auto.
-               apply veblen_nonzero; auto.
-               apply veblen_nonzero; auto.
         ** destruct (VF_compare (W a x) y).
-           *** rewrite veblen_onePlus; auto.
+           *** simpl.
+               rewrite veblen_onePlus; auto.
                rewrite <- addOrd_le2.
                apply IHy.
            *** split.
@@ -623,28 +344,22 @@ Proof.
                apply veblen_inflationary; auto.
                apply veblen_collapse; auto.
                apply IHy.
+               simpl.
                rewrite <- (veblen_fixpoints _ powOmega_normal 0) at 2; auto.
                rewrite veblen_onePlus; auto.
                rewrite addOrd_zero_r.
                rewrite veblen_zero.
                reflexivity.
-               destruct a; simpl; auto.
-               elim H; auto.
-               apply veblen_nonzero; auto.
-               apply veblen_nonzero; auto.
-           *** apply veblen_collapse'; auto.
+           *** simpl.
+               apply veblen_collapse'; auto.
                rewrite <- (veblen_fixpoints _ powOmega_normal 0) at 2; auto.
                rewrite veblen_zero.
                rewrite veblen_onePlus; auto.
                rewrite addOrd_zero_r.
                reflexivity.
-               destruct a; simpl; auto.
-               elim H; auto.
-               apply veblen_nonzero; auto.
-               apply veblen_nonzero; auto.
 
     (* y => W b y case *)
-    + apply (veblen_compare_same_level); auto.
+    + apply (veblen_compare_correct); auto.
       apply (IHa b). apply (IHx y). apply IHx.
 Qed.
 
@@ -687,54 +402,6 @@ Definition VF_subterm_shrink x :=
   | W a b => VF_denote a < VF_denote x /\
              VF_denote b < VF_denote x
   end.
-
-Lemma veblen_subterm1_nonzero f (Hf:normal_function f) :
-  forall a b,
-    complete a ->
-    complete b ->
-    0 < b ->
-    a < veblen f a b.
-Proof.
-  intros.
-  apply ord_le_lt_trans with (veblen f a 0).
-  apply (normal_inflationary (fun i => veblen f i 0)); auto.
-  apply veblen_first_normal; auto.
-  apply veblen_increasing; auto.
-Qed.
-
-Lemma veblen_subterm1_zero_nest f (Hf:normal_function f) :
-  forall a b c,
-    complete a ->
-    complete b ->
-    complete c ->
-    a < c ->
-    b < c ->
-    veblen f a b < veblen f c 0.
-Proof.
-  intros.
-  apply ord_lt_le_trans with (veblen f a (veblen f c 0)).
-  apply veblen_increasing; auto.
-  apply ord_le_lt_trans with (veblen f b 0).
-  apply (normal_inflationary (fun i => veblen f i 0)); auto.
-  apply veblen_first_normal; auto.
-  apply (normal_increasing (fun i => veblen f i 0)); auto.
-  apply veblen_first_normal; auto.
-  apply veblen_fixpoints; auto.
-Qed.
-
-Lemma veblen_increasing' f (Hf:normal_function f) :
-  forall a b c d,
-    complete a ->
-    complete d ->
-    a <= b ->
-    c < d ->
-    veblen f a c < veblen f b d.
-Proof.
-  intros.
-  apply ord_lt_le_trans with (veblen f a d).
-  apply veblen_increasing; auto.
-  apply veblen_monotone_first; auto.
-Qed.
 
 Lemma VF_normal_subterm_shrink :
   forall x,
@@ -910,14 +577,6 @@ Proof.
           apply veblen_increasing'; auto.
           apply H6. }
       f_equal; auto.
-Qed.
-
-Definition VF_isZero x : { x = Z } + { 0 < VF_denote x }.
-Proof.
-  destruct x.
-  - left. apply eq_refl.
-  - right. simpl. apply veblen_nonzero; auto.
-  - right. simpl. apply veblen_nonzero; auto.
 Qed.
 
 Definition Vnorm (a:VForm) (b:VForm) : VForm :=
@@ -1722,7 +1381,7 @@ Proof.
   transitivity (veblen powOmega (boundedSup VF (fun x => x)) 0).
   { apply veblen_monotone_first.
     intros; apply expOrd_monotone; auto.
-    apply (ord_isLimit VF). apply VF_limit. }
+    apply (limit_boundedSup VF). apply VF_limit. }
   unfold boundedSup. unfold VF at 1.
   transitivity (supOrd (fun x => veblen powOmega (VF_denote x) 0)).
   { apply veblen_continuous_first; auto. exact Z. }

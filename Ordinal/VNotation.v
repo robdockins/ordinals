@@ -1,3 +1,4 @@
+Require Import Setoid.
 Require Import Morphisms.
 Require Import Coq.Program.Basics.
 Require Import NArith.
@@ -16,7 +17,7 @@ From Ordinal Require Import Fixpoints.
 From Ordinal Require Import Reflection.
 From Ordinal Require Import VeblenDefs.
 From Ordinal Require Import VeblenCon.
-
+From Ordinal Require Import VeblenFacts.
 
 Open Scope ord_scope.
 
@@ -65,24 +66,17 @@ Qed.
 Local Hint Resolve VF_complete onePlus_normal veblen_onePlus_complete
       succ_complete zero_complete : core.
 
-
 Lemma VF_denote_shrink1 : forall a x,
   VF_denote a < VF_denote (V a x).
 Proof.
-  induction a; simpl; intuition.
-  { apply veblen_nonzero; auto. }
-  apply ord_lt_le_trans with
-    (veblen (addOrd 1) (VF_denote a1) (veblen (addOrd 1) (veblen (addOrd 1) (VF_denote a1) (VF_denote a2)) (VF_denote x))).
-  2: { apply veblen_fixpoints; auto.
-       apply ord_lt_le_trans with (veblen (addOrd 1) (VF_denote a1) 0).
-       apply (IHa1 Z). apply veblen_monotone; auto with ord.
-       intros; apply addOrd_monotone; auto with ord. }
-  apply veblen_increasing; auto.
-  eapply ord_lt_le_trans; [ apply (IHa2 x) | ].
-  simpl.
-  apply veblen_monotone_first.
-  intros; apply addOrd_monotone; auto with ord.
-  apply veblen_inflationary; auto.
+  simpl; intros.
+  apply ord_lt_le_trans with (veblen (addOrd 1) (VF_denote a) 0).
+  - clear x.
+    induction a; simpl; intuition.
+    { apply veblen_nonzero; auto. }
+    apply veblen_shrink_lemma; auto.
+  - apply veblen_monotone; auto with ord.
+    intros; apply addOrd_monotone; auto with ord.
 Qed.
 
 Lemma VF_denote_le2 : forall x a,
@@ -98,9 +92,7 @@ Lemma VF_denote_shrink2 : forall x a,
 Proof.
   induction x; simpl; intuition.
   { apply veblen_nonzero; auto. }
-  apply ord_le_lt_trans with (veblen (addOrd 1) (VF_denote a) (VF_denote x2)).
-  { apply veblen_monotone_first; auto. intros; apply addOrd_monotone; auto with ord. }
-  apply veblen_increasing; auto.
+  apply veblen_increasing'; auto.
   apply IHx2. simpl; intuition.
 Qed.
 
@@ -835,7 +827,6 @@ Theorem VF_reflects_expOrd : reflects VForm VF_denote (ORD ==> ORD ==> ORD) expO
   apply VF_exp_correct.
 Qed.
 
-
 Theorem VF_ε₀ : VF ≈ ε 0.
 Proof.
   split.
@@ -853,45 +844,66 @@ From Ordinal Require Import Classical.
 Theorem VF_has_enough_notations (EM:excluded_middle) :
   forall x:Ord, x < ε 0 -> exists c:VF, x ≈ c.
 Proof.
-  intros.
-  induction x using ordinal_induction.
-  destruct (cantor_decomposition EM x) as [ls [H1 H2]].
-  cut (exists ca:VF, cantor_denote ls ≈ sz ca).
-  { intros. destruct H3 as [ca Hca] ; auto.
-    exists ca. rewrite <- H2. auto. }
-  destruct H2. clear H3.
+  induction x as [x Hx] using ordinal_induction. intro H.
+  destruct (classical.ordinal_discriminate EM x) as [Hzero|[Hsucc|Hlimit]].
+  - (* Zero ordinal, exhibit Z *)
+    exists Z. simpl. 
+    apply ord_isZero in Hzero. auto.
 
-  induction ls; intros.
-  - simpl.
-    exists Z.
-    reflexivity.
-  - simpl.
-    assert (a < x).
-    { destruct (classical.order_total EM x a); auto.
+  - (* Successor ordinal *)
+    apply ord_isSucc in Hsucc.
+    destruct Hsucc as [o Ho].
+
+    (* invoke the induction hypothesis *)
+    destruct (Hx o) as [vo Hvo].
+    rewrite Ho. apply succ_lt.
+    transitivity x; auto.
+    rewrite Ho. apply succ_lt.
+
+    (* exhibit the successor V form and wrap up *)
+    exists (VF_succ vo).
+    rewrite Ho.
+    apply VF_reflects_succ; auto.
+
+  - (* x is a limit, it must be a fixpoint of (addOrd 1) *)
+    assert (Hlimit' : 1 + x <= x).
+    { apply limit_onePlus; auto. }
+
+    (* x cannot be an ε number, as it would be too large *)
+    assert (Hepsilon: x < veblen (addOrd 1) x 0).
+    { destruct (classical.order_total EM (veblen (addOrd 1) x 0) x); auto.
       elim (ord_lt_irreflexive (ε 0)).
       apply ord_le_lt_trans with x; auto.
-      simpl. unfold fixOrd.
-      apply sup_least. intro i.
-      induction i; simpl.
-      - rewrite ord_le_unfold; intros [].
-      - unfold powOmega.
-        rewrite IHi.
-        simpl in H1. destruct H1.
-        rewrite <- H2 at 2.
-        simpl.
-        rewrite <- addOrd_le1.
-        apply expOrd_monotone; auto. }
+      unfold ε. simpl.
+      apply fixOrd_least; auto.
+      apply normal_monotone. apply powOmega_normal.
+      rewrite ord_le_unfold; intros [].
+      rewrite veblen_onePlus in H0; auto.
+      rewrite addOrd_zero_r in H0. auto.
+      apply classical.ord_complete; auto.
+    }
 
-    destruct (H0 a H3) as [ac Hac].
+    (* decompose the ordinal *)
+    destruct (veblen_decompose EM (addOrd 1) (onePlus_normal) x) as [a [b [Hab[_[Ha Hb]]]]]; auto.
+    
+    (* invoke the induction hypotheses *)
+    destruct (Hx a) as [va Hva]; auto.
     transitivity x; auto.
-    destruct IHls as [cls Hcls]; auto.
-    simpl in H1; intuition.
-    destruct ls; simpl in *; intuition.
-    transitivity a; auto.
-    simpl in H2.
-    rewrite <- H2.
-    apply addOrd_le2.
-    exists (VF_add (VF_expOmega ac) cls).
-    apply VF_reflects_add; auto.
-    apply VF_reflects_expOmega; auto.
+    destruct (Hx b) as [vb Hvb]; auto.
+    transitivity x; auto.
+    
+    (* exhibit the V form and wrap up *)
+    exists (V va vb).
+    rewrite Hab. simpl; symmetry.
+    transitivity (veblen (addOrd 1) a (VF_denote vb)).
+    split; apply veblen_monotone_first; auto.
+    apply normal_monotone; auto.
+    apply Hva.
+    apply normal_monotone; auto.
+    apply Hva.
+    split; apply veblen_monotone; auto.
+    apply normal_monotone; auto.
+    apply Hvb.
+    apply normal_monotone; auto.
+    apply Hvb.
 Qed.

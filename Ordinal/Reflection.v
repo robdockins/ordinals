@@ -1,3 +1,4 @@
+Require Import Setoid.
 Require Import Morphisms.
 Require Import Coq.Program.Basics.
 Require Import NArith.
@@ -70,7 +71,7 @@ Proof.
   apply ε0_least_expOmega_closed; auto.
   transitivity (expOrd ω (supOrd denote)).
   - apply expOrd_monotone.
-    apply ord_isLimit; auto.
+    apply limit_boundedSup; auto.
   - etransitivity; [ apply expOrd_continuous |].
     exact zeroX.
     apply sup_least; intro x.
@@ -99,3 +100,40 @@ Definition lexCompare (o1:ordering) (o2:ordering) : ordering :=
   | GT => GT
   end.
 
+Definition ordering_correct o a b :=
+  match o with
+  | LT => a < b
+  | EQ => a ≈ b
+  | GT => a > b
+  end.
+
+Fixpoint nat_compare (x y:nat) : ordering :=
+  match x, y with
+  | O, O       => EQ
+  | S _, O     => GT
+  | O , S _    => LT
+  | S x', S y' => nat_compare x' y'
+  end.
+
+Lemma nat_compare_correct :
+  forall x y,
+    match nat_compare x y with
+    | LT => (x < y)%nat
+    | EQ => x = y
+    | GT => (x > y)%nat
+    end.
+Proof.
+  induction x; destruct y; simpl; auto with arith.
+  generalize (IHx y).
+  destruct (nat_compare x y); intuition.
+Qed.
+
+Add Parametric Morphism o : (ordering_correct o)
+  with signature ord_eq ==> ord_eq ==> impl as ordering_correct_eq_mor.
+Proof.
+  repeat intro.
+  destruct o; simpl in *.
+  rewrite <- H. rewrite <- H0. auto.
+  rewrite <- H. rewrite <- H0. auto.
+  rewrite <- H. rewrite <- H0. auto.
+Qed.  

@@ -115,3 +115,21 @@ Proof.
   intros. apply powOmega_monotone; auto.
 Qed.
 
+Add Parametric Morphism f (Hf : forall a b, a <= b -> f a <= f b) : (veblen f)
+    with signature ord_le ==> ord_le ==> ord_le
+      as veblen_le_mor.
+Proof.
+  intros.
+  transitivity (veblen f y x0).
+  apply veblen_monotone_first; auto.
+  apply veblen_monotone; auto.
+Qed.
+
+Add Parametric Morphism f (Hf : forall a b, a <= b -> f a <= f b) : (veblen f)
+    with signature ord_eq ==> ord_eq ==> ord_eq
+      as veblen_eq_mor.
+Proof.
+  intros.
+  split; apply veblen_le_mor; auto with ord.
+  apply H. apply H0. apply H. apply H0.
+Qed.

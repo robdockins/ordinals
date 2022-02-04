@@ -182,11 +182,14 @@ Proof.
 Qed.
 
 Lemma zero_dec_EM :
-  (forall x, x <= 0 \/ 0 < x) ->
+  (forall x, x <= 1 -> x <= 0 \/ 0 < x) ->
   excluded_middle.
 Proof.
   intros Hzdec P.
   destruct (Hzdec (truth_ord P)).
+  - rewrite ord_le_unfold.
+    simpl; intros.
+    apply succ_lt.
   - right.
     intro H1.
     destruct (ord_le_subord _ _ H H1) as [[] _].
@@ -208,8 +211,7 @@ Lemma complete_EM :
   excluded_middle.
 Proof.
   intro. apply zero_dec_EM.
-  intro x.
-  apply complete_zeroDec; auto.
+  intros; apply complete_zeroDec; auto.
 Qed.
 
 Lemma ord_well_ordered_WEM :
@@ -313,7 +315,7 @@ Proof.
 Qed.
 
 Lemma succ_limit_dec_EM :
-  (forall x, 0 < x -> successorOrdinal x \/ limitOrdinal x) ->
+  (forall x, 0 < x -> x <= ω -> complete x -> successorOrdinal x \/ limitOrdinal x) ->
   excluded_middle.
 Proof.
   intros Hdec P.
@@ -322,6 +324,14 @@ Proof.
     rewrite <- (sup_le _ _ 0%nat).
     rewrite <- lub_le1.
     apply succ_lt.
+  - unfold truth_ord'.
+    apply sup_least. intro i.
+    apply lub_least.
+    apply succ_least.
+    apply (index_lt _ 0%nat).
+    rewrite ord_le_unfold; simpl; intros.
+    apply index_lt.
+  - apply truth_ord'_complete.
   - hnf in H; simpl in H.
     destruct H as [[i s]H].
     destruct s; simpl in *.

@@ -482,10 +482,11 @@ Proof.
     + apply succ_complete; auto.
 Qed.
 
+Lemma omega_gt0 : 0 < ω.
+Proof. apply (index_lt _ 0%nat). Qed.
+
 Lemma omega_gt1 : 1 < ω.
-Proof.
-  apply (index_lt ω 1%nat).
-Qed.
+Proof. apply (index_lt ω 1%nat). Qed.
 
 (** Any zero ordinal is equal to the distinguished zeroOrd *)
 Lemma ord_isZero z : zeroOrdinal z <-> z ≈ 0.
@@ -534,7 +535,34 @@ Proof.
     transitivity o; auto.
 Qed.
 
-Lemma ord_isLimit β : limitOrdinal β -> β ≈ boundedSup β (fun a => a).
+Lemma ord_isLimit : forall x,
+    limitOrdinal x <->
+    (x > 0 /\ (forall i, i < x -> exists j, i < j /\ j < x)).
+Proof.
+  intros [X f].
+  split; simpl; intuition.
+  - rewrite ord_lt_unfold.
+    destruct H0 as [x]. exists x. auto with ord.
+  - rewrite ord_lt_unfold in H.
+    destruct H as [x ?].
+    destruct (H1 x) as [x' ?].
+    exists (f x').
+    split.
+    rewrite H; auto.
+    apply (index_lt (ord X f) x').
+  - rewrite ord_lt_unfold in H0.
+    destruct H0 as [x _].
+    exact (inhabits x).
+  - red; intros.
+    destruct (H1 (f a)) as [j [??]].
+    apply (index_lt (ord X f) a).
+    rewrite ord_lt_unfold in H2.
+    destruct H2 as [k ?].
+    exists k. 
+    apply ord_lt_le_trans with j; auto.
+Qed.
+
+Lemma limit_boundedSup β : limitOrdinal β -> β ≈ boundedSup β (fun a => a).
 Proof.
   destruct β as [B g]; simpl.
   intros [_ Hb].
@@ -542,7 +570,7 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma ord_isLimit' β :
+Lemma limit_boundedSup' β :
   0 < β ->
   β ≈ boundedSup β (fun a => a) ->
   limitOrdinal β.
@@ -562,6 +590,40 @@ Proof.
     destruct a'. simpl in *.
     exists x.
     rewrite ord_lt_unfold. exists o. auto.
+Qed.
+
+Add Parametric Morphism : zeroOrdinal with signature
+    ord_eq ==> impl as zeroOrdinal_mor.
+Proof.
+  repeat intro.
+  rewrite ord_isZero in H0.
+  rewrite ord_isZero.
+  rewrite <- H; auto.
+Qed.
+
+Add Parametric Morphism : successorOrdinal with signature
+    ord_eq ==> impl as succOrdinal_mor.
+Proof.
+  repeat intro.
+  rewrite ord_isSucc  in H0.
+  rewrite ord_isSucc.
+  destruct H0 as [o ?].
+  exists o.
+  rewrite <- H; auto.
+Qed.
+
+Add Parametric Morphism : limitOrdinal with signature
+    ord_eq ==> impl as limitOrdinal_mor.
+Proof.
+  repeat intro.
+  rewrite ord_isLimit in H0.
+  rewrite ord_isLimit.
+  intuition.
+  rewrite <- H; auto.
+  destruct (H2 i) as [j [??]].
+  rewrite H; auto.
+  exists j; split; auto.
+  rewrite <- H; auto.
 Qed.
 
 Lemma pred_unfold x : predOrd x = supOrd (ordSize x).

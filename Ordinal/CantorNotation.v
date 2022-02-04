@@ -1313,6 +1313,133 @@ Proof.
   apply CF_below_epsilon.
 Qed.
 
+Lemma limitOrdinal_intro : forall x,
+    x > 0 ->
+    (forall i, i < x -> exists j, i < j /\ j < x) ->
+    limitOrdinal x.
+Proof.
+  destruct x as [X f]; intros.
+  simpl; split.
+  - rewrite ord_lt_unfold in H. destruct H as [i _].
+    exact (inhabits i).
+  - hnf. intros.
+    destruct (H0 (f a)) as [b [??]].
+    apply (index_lt (ord X f) a).
+    rewrite ord_lt_unfold in H2.
+    destruct H2 as [k ?].
+    exists k.
+    apply ord_lt_le_trans with b; auto.
+Qed.
+
+Lemma successor_add x y :
+  successorOrdinal y -> successorOrdinal (x + y).
+Proof.
+  rewrite ord_isSucc.
+  intros [o Ho].
+  rewrite ord_isSucc.
+  exists (x + o).
+  rewrite Ho.
+  apply addOrd_succ.
+Qed.
+
+Lemma limit_add x y :
+  limitOrdinal y -> limitOrdinal (x + y).
+Proof.
+  intros.
+  destruct y as [Y f]; simpl in *; intuition.
+  apply limitOrdinal_intro.
+  destruct H0 as [y].
+  rewrite addOrd_unfold.
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ y).
+  apply succ_trans. auto with ord.
+  intros. 
+  rewrite addOrd_unfold in H.
+  apply lub_lt in H.
+  destruct H.
+  exists x.
+  split; auto.
+  destruct H0 as [y].
+  rewrite addOrd_unfold.
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ y).
+  apply succ_trans. apply addOrd_le1.
+  apply sup_lt in H.
+  destruct H as [y H].
+  destruct (H1 y) as [y' H2].
+  exists (x + f y').
+  split.
+  eapply ord_lt_le_trans; [ apply H |].
+  apply succ_least.
+  apply addOrd_increasing.
+  auto.
+  rewrite (addOrd_unfold x (ord Y f)).
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ y').
+  apply succ_trans.
+  reflexivity.
+Qed.
+
+Lemma CF_discriminate (c:CF) :
+  cantorIsNormal c -> zeroOrdinal c \/ successorOrdinal c \/ limitOrdinal c.
+Proof.
+  induction c using size_induction.
+  destruct c. destruct l; simpl; intuition.
+  - left. intros [[]].
+  - destruct (H (CantorSum l)).
+    apply CF_subterm_tail; simpl; auto.
+    destruct l; simpl; intuition.
+    + assert (l = nil).
+      { rewrite ord_isZero in H0.
+        destruct l; simpl in *; auto.
+        elim (ord_lt_irreflexive 0).
+        rewrite <- H0 at 2.
+        rewrite <- addOrd_le1.
+        apply expOrd_nonzero. }
+      subst l. simpl.
+      right.
+      destruct (CNF_decide_order CNF_zero (exist _ c H1)).
+      right.
+      rewrite addOrd_zero_r.
+      apply ord_isLimit; split; auto.
+      apply expOrd_nonzero.
+      intros.
+      exists (i+1).
+      split.
+      rewrite addOrd_succ.
+      apply succ_trans.
+      apply addOrd_le1.
+      apply expOmega_additively_closed; auto.
+      apply CantorForm_complete.
+      apply ord_lt_le_trans with (expOrd ω 1).
+      rewrite expOrd_one'; auto.
+      apply (index_lt _ 1%nat).
+      apply (index_lt _ 0%nat).
+      apply expOrd_monotone.
+      apply succ_least. apply o.
+      left.
+      apply ord_isSucc.
+      exists 0.
+      rewrite addOrd_zero_r.
+      split.
+      rewrite o.
+      simpl.
+      rewrite expOrd_zero; auto with ord.
+      apply succ_least. apply expOrd_nonzero.
+    + right.
+      destruct H0.
+      left. apply successor_add; auto.
+      right. apply limit_add; auto.
+Qed.
+
+
+Theorem CNF_discriminate (c:CNF) :
+  zeroOrdinal c \/ successorOrdinal c \/ limitOrdinal c.
+Proof.
+  destruct c as [c H]. simpl. unfold CNF_denote; simpl.
+  apply CF_discriminate; auto.
+Qed.
+
 
 Lemma CNF_limit : limitOrdinal CNF.
 Proof.
@@ -1336,7 +1463,7 @@ Theorem CNF_expOmega_fixpoint : expOrd ω CNF ≤ CNF.
 Proof.
   transitivity (expOrd ω (supOrd CNF_denote)).
   - apply expOrd_monotone.
-    apply ord_isLimit.
+    apply limit_boundedSup.
     apply CNF_limit.
   - etransitivity; [ apply expOrd_continuous |].
     exact CNF_zero.
@@ -1419,37 +1546,32 @@ Theorem CNF_has_enough_notations_is_classical :
   (forall x:Ord, x < ε 0 -> exists c:CNF, x ≈ c) ->
   excluded_middle.
 Proof.
-  intros H P.
-  destruct (H (classical.truth_ord P)) as [x Hx].
-  - simpl. unfold fixOrd.
-    rewrite <- (sup_le _ _ 2%nat).
-    unfold iter_f.
-    unfold powOmega.
-    apply ord_lt_le_trans with ω.
-    rewrite ord_lt_unfold.
-    exists 1%nat.
+  intros. apply classical.zero_dec_EM.
+  intros.
+  destruct (H x) as [c Hc].
+  - rewrite H0.
+    unfold ε.
     simpl.
-    unfold classical.truth_ord.
-    rewrite ord_le_unfold.
-    simpl; intros.
-    apply succ_lt.
-    transitivity (expOrd ω 1).
-    rewrite expOrd_one'. reflexivity.
+    unfold fixOrd.
+    rewrite <- (sup_le _ _ 2%nat).
+    simpl.
+    unfold powOmega.
+    rewrite expOrd_lub.
+    rewrite <- lub_le1.
+    rewrite expOrd_one'.
+    apply (index_lt _ 1%nat).
     apply (index_lt _ 0%nat).
-    apply expOrd_monotone.
-    apply succ_least. apply expOrd_nonzero.
-  - destruct (CNF_decide_order CNF_zero x) as [Ho|Ho].
-    + left.
-      rewrite <- Hx in Ho.
-      rewrite ord_lt_unfold in Ho.
-      destruct Ho as [HP _].
-      exact HP.
-    + right; intro HNP.
-      rewrite <- Hx in Ho.
-      rewrite ord_le_unfold in Ho.
-      specialize (Ho HNP).
-      rewrite ord_lt_unfold in Ho.
-      destruct Ho as [[] _].
+  - destruct (CNF_decide_order CNF_zero c).
+    right.
+    rewrite Hc.
+    apply ord_le_lt_trans with (CNF_denote CNF_zero).
+    apply CNF_reflects_zero.
+    auto.
+
+    left.
+    rewrite Hc.
+    transitivity (CNF_denote CNF_zero); auto.
+    apply CNF_reflects_zero.
 Qed.
 
 (** Even if we restrict our attention to the "complete" ordinals,
@@ -1459,71 +1581,32 @@ Theorem CNF_has_enough_notations_is_classical_for_complete_ordinals :
   (forall x, complete x -> x < ε 0 -> exists c:CNF, x ≈ c) ->
   excluded_middle.
 Proof.
-  intros H P.
-  destruct (H (classical.truth_ord' P)).
-  - apply classical.truth_ord'_complete.
-  - simpl.
-    unfold fixOrd.
-    rewrite <- (sup_le _ _ 3%nat).
-    unfold iter_f.
-    unfold powOmega.
-    apply ord_le_lt_trans with ω.
-    unfold classical.truth_ord'.
-    apply sup_least.
-    intro n.
-    apply lub_least.
-    apply (index_le _ 1%nat).
-    rewrite ord_le_unfold; intro  HP.
-    simpl.
-    apply index_lt.
+  intros.
+  apply classical.succ_limit_dec_EM.
+  intros.
+  destruct (H x); auto.
+  - rewrite H1.
+    rewrite ε_fixpoint.
     apply ord_le_lt_trans with (expOrd ω 1).
-    rewrite expOrd_one'. auto with ord.
+    rewrite expOrd_one'; auto with ord.
     apply (index_lt _ 0%nat).
     apply expOrd_increasing.
     apply (index_lt _ 1%nat).
+    rewrite ε_fixpoint.
     apply ord_lt_le_trans with (expOrd ω 1).
-    rewrite expOrd_one'.
+    rewrite expOrd_one'; auto with ord.
     apply (index_lt _ 1%nat).
     apply (index_lt _ 0%nat).
-    apply expOrd_monotone.
-    apply succ_least. apply expOrd_nonzero.
-  - case_eq (cantorIsFinite (proj1_sig x)).
-    + intros.
-      right; intro.
-      simpl in H0.
-      unfold CNF_denote in  H0.
-      apply cantorIsFinite_fin in H1.
-      rewrite H1 in H0.
-      destruct H0.
-      apply (ord_lt_irreflexive ω).
-      apply ord_le_lt_trans with (natOrdSize n).
-      rewrite <- H0.
-      unfold classical.truth_ord'.
-      rewrite ord_le_unfold; intro i.
-      rewrite <- (sup_le _ _ i).
-      rewrite <- lub_le2.
-      rewrite ord_lt_unfold. exists H2.
-      simpl. reflexivity.
-      apply index_lt.
-      apply proj2_sig.
-    + intro. left.
-      destruct H0.
-      assert (1 < classical.truth_ord' P).
-      apply cantorIsFinite_inf in H1.
-      apply ord_lt_le_trans with (sz x); auto.
-      simpl.
-      unfold CNF_denote.
-      rewrite <- H1.
-      rewrite <- H1.
-      rewrite addOrd_assoc.
-      rewrite <- addOrd_le1.
-      rewrite addOrd_succ.
-      rewrite addOrd_zero_r.
-      apply succ_lt.
+    apply expOrd_monotone; auto.
+    apply succ_least.
+    rewrite ε_fixpoint.
+    apply expOrd_nonzero.
 
-      rewrite ord_lt_unfold in H3.
-      destruct H3 as [[n q] Hq]; simpl in *.
-      destruct q.
-      elim (ord_lt_irreflexive 1); auto with ord.
+  - destruct (CNF_discriminate x0); auto.
+    + rewrite ord_isZero in H4.
+      elim (ord_lt_irreflexive x).
+      rewrite H3 at 1.
+      rewrite H4 at 1.
       auto.
+    + rewrite H3. auto.
 Qed.

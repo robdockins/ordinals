@@ -11,13 +11,14 @@ Ordinal/Examples.v
 Ordinal/Fixpoints.v
 Ordinal/Reflection.v
 
-
 Ordinal/VeblenDefs.v
 Ordinal/VeblenClassical.v
 Ordinal/VeblenCon.v
+Ordinal/VeblenFacts.v
 Ordinal/VeblenSymbol.v
 Ordinal/Countable.v
 
 Ordinal/CantorNotation.v
 Ordinal/VNotation.v
 Ordinal/VWNotation.v
+Ordinal/VTowerNotation.v
