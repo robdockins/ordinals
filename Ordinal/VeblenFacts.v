@@ -155,6 +155,62 @@ Proof.
 Qed.
 
 
+Lemma veblen_monotone_func f g :
+  normal_function f ->
+  normal_function g ->
+  (forall i, complete i -> f i <= g i) ->
+  forall a x, complete a -> complete x ->
+    veblen f a x <= veblen g a x.
+Proof.
+  intros Hf Hg H.
+  induction a as [A h Ha].
+  induction x as [X k Hx].
+  intros.
+  do 2 rewrite veblen_unroll.
+  apply lub_least.
+  - rewrite <- lub_le1. apply H; auto.
+  - simpl.
+    apply sup_least; intro i.
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ i).
+    unfold fixOrd.
+    apply sup_least; intro n.
+    rewrite <- (sup_le _ _ n).
+    transitivity (iter_f (veblen g (h i)) (limOrd (fun x0 : X => veblen f (ord A h) (k x0))) n).
+    { induction n; simpl iter_f.
+      reflexivity.
+      transitivity
+        (veblen g (h i)
+                (iter_f (veblen f (h i)) (limOrd (fun x : X => veblen f (ord A h) (k x))) n)).
+      apply (Ha i). apply H0.
+      apply iter_f_complete.
+      apply lim_complete; auto.
+      intros; apply veblen_complete; auto.
+      apply normal_complete; auto.
+      apply H1.
+      { red; intros. destruct (complete_directed (ord X k) H1 a1 a2) as [a' [??]].
+        exists a'; split.
+        apply veblen_monotone; auto.
+        apply normal_monotone; auto.
+        apply veblen_monotone; auto.
+        apply normal_monotone; auto. }
+      apply H1.
+      intros; apply veblen_complete; auto.
+      apply normal_complete; auto.
+      apply H0.
+      apply veblen_monotone; auto.
+      apply normal_monotone; auto. }
+
+    apply iter_f_monotone.
+    intros; apply veblen_monotone; auto.
+    apply normal_monotone; auto.
+    rewrite ord_le_unfold; intro q. simpl.
+    rewrite ord_lt_unfold; exists q; simpl.
+    apply Hx; auto.
+    apply H1.
+Qed.
+
+
 Local Hint Unfold powOmega : core.
 Local Hint Resolve veblen_complete
         onePlus_normal powOmega_normal expOrd_complete addOrd_complete
@@ -364,8 +420,6 @@ Proof.
       apply veblen_increasing; auto.
       apply veblen_fixpoints; auto.
 Qed.
-
-
 
 
 Require Import ClassicalFacts.
