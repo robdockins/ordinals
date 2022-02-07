@@ -422,6 +422,14 @@ Proof.
   apply (index_lt (ord X f) y).
 Qed.
 
+Lemma natOrdSize_add n m :
+  natOrdSize (n+m)%nat ≈ natOrdSize m + natOrdSize n.
+Proof.
+  induction n; simpl natOrdSize.
+  - symmetry. apply addOrd_zero_r.
+  - rewrite addOrd_succ.
+    rewrite IHn. reflexivity.
+Qed.
 
 (** * Ordinal multiplication *)
 
@@ -719,6 +727,17 @@ Proof.
     rewrite (mulOrd_unfold a (supOrd _)). simpl.
     rewrite (sup_unfold C (fun i => b * h i + b)). simpl.
     rewrite <- (sup_le _ _ (existT _ x i)). simpl.
+    reflexivity.
+Qed.
+
+Lemma natOrdSize_mul n m :
+  natOrdSize (n*m)%nat ≈ natOrdSize m * natOrdSize n.
+Proof.
+  induction n; simpl natOrdSize.
+  - rewrite mulOrd_zero_r; reflexivity.
+  - rewrite mulOrd_succ.
+    rewrite natOrdSize_add.
+    rewrite IHn.
     reflexivity.
 Qed.
 

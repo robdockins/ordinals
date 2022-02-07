@@ -171,26 +171,6 @@ Proof.
     apply (index_lt _ 1%nat).
 Qed.
 
-Lemma natOrdSize_add n m :
-  natOrdSize (n+m)%nat ≈ natOrdSize m + natOrdSize n.
-Proof.
-  induction n; simpl.
-  - symmetry. apply addOrd_zero_r.
-  - rewrite addOrd_succ.
-    rewrite IHn. reflexivity.
-Qed.
-
-Lemma natOrdSize_mul n m :
-  natOrdSize (n*m)%nat ≈ natOrdSize m * natOrdSize n.
-Proof.
-  induction n; simpl.
-  - rewrite mulOrd_zero_r; reflexivity.
-  - rewrite mulOrd_succ.
-    rewrite natOrdSize_add.
-    rewrite IHn.
-    reflexivity.
-Qed.
-
 Lemma mul_omega_collapse a b (n:ω) :
   a*n ≥ b -> (a + b) * ω ≤ a * ω.
 Proof.

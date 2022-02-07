@@ -469,6 +469,14 @@ Proof.
   - rewrite IHle. apply ord_lt_le. apply succ_lt.
 Qed.
 
+Lemma natOrdSize_increasing m n :
+  (m < n)%nat -> natOrdSize m < natOrdSize n.
+Proof.
+  intro H. induction H; simpl.
+  apply succ_lt.
+  transitivity (natOrdSize m0); auto with ord.
+Qed.
+
 Lemma omega_complete : complete ω.
 Proof.
   hnf; simpl; repeat split.

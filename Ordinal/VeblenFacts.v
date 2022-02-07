@@ -19,6 +19,13 @@ From Ordinal Require Import VeblenCon.
 
 Open Scope ord_scope.
 
+Lemma onePlus_complete x : complete x -> complete (1 + x).
+Proof.
+  intros; apply addOrd_complete; auto.
+  apply succ_complete; apply zero_complete.
+Qed.
+
+
 Lemma onePlus_normal : normal_function (addOrd 1).
 Proof.
   constructor.
@@ -32,7 +39,32 @@ Proof.
     apply succ_lt.
 Qed.
 
-Lemma onePlus_least_normal f :
+Lemma veblen_onePlus_complete a x :
+  complete a -> complete x -> complete (veblen (addOrd 1) a x).
+Proof.
+  intros; apply veblen_complete; auto.
+  apply onePlus_normal.
+  apply onePlus_complete.
+Qed.
+
+Lemma onePlus_nonzero : forall x, 0 < 1+x.
+Proof.
+  intros.
+  rewrite <- addOrd_le1. apply succ_lt.
+Qed.
+
+
+Lemma onePlus_finite_succ m : 
+  1 + natOrdSize m ≈ succOrd (natOrdSize m).
+Proof.
+  induction m; simpl.
+  rewrite addOrd_zero_r. auto with ord.
+  rewrite addOrd_succ.
+  rewrite IHm.
+  reflexivity.
+Qed.
+
+Theorem onePlus_least_normal f :
     normal_function f ->
     forall x, complete x -> 1+x <= f x.
 Proof.
@@ -51,7 +83,85 @@ Proof.
   apply complete_subord. auto.
 Qed.
 
-Lemma veblen_onePlus :
+Lemma onePlus_finite : forall n, natOrdSize n < 1 + natOrdSize n.
+Proof.
+  induction n; simpl.
+  rewrite addOrd_zero_r.
+  apply succ_lt.
+  rewrite addOrd_succ.
+  apply succ_trans.
+  apply succ_least.
+  auto.
+Qed.
+
+Lemma onePlus_veblen f x y :
+  normal_function f -> 
+  x > 0 ->
+  complete x ->
+  complete y ->
+  1 + veblen f x y ≈ veblen f x y.
+Proof.
+  split; intros.
+  - rewrite <- (veblen_fixpoints f H 0 x y) at 2; auto.
+    rewrite veblen_zero.
+    apply onePlus_least_normal; auto.
+    apply veblen_complete; auto.
+    apply normal_complete; auto.
+    apply zero_complete.
+  - apply addOrd_le2.
+Qed.
+
+Lemma finite_veblen f x y n :
+  normal_function f -> 
+  x > 0 ->
+  complete x ->
+  complete y ->
+  natOrdSize n + veblen f x y ≈ veblen f x y.
+Proof.
+  intros. induction n; simpl.
+  - rewrite addOrd_zero_l. reflexivity.
+  - transitivity
+      ((natOrdSize (1+n)%nat + veblen f x y)).
+    rewrite natOrdSize_add.
+    simpl.
+    rewrite addOrd_succ. rewrite addOrd_zero_r.
+    reflexivity.
+    rewrite natOrdSize_add.
+    rewrite <- addOrd_assoc.
+    simpl.
+    rewrite onePlus_veblen; auto.
+Qed.
+
+Lemma finite_veblen_lt f x y n :
+  normal_function f ->
+  x > 0 ->
+  complete x ->
+  complete y ->
+  natOrdSize n < veblen f x y.
+Proof.
+  intros.
+  apply ord_lt_le_trans with (natOrdSize n + 1).
+  rewrite addOrd_succ.
+  apply succ_trans. apply addOrd_zero_r.
+  rewrite <- (finite_veblen f x y n); auto.
+  apply addOrd_monotone; auto with ord.
+  apply succ_least. apply veblen_nonzero; auto.
+Qed.
+
+Lemma finite_veblen_le f x y n :
+  normal_function f ->
+  x > 0 ->
+  complete x ->
+  complete y ->
+  natOrdSize n <= veblen f x y.
+Proof.
+  intros.
+  rewrite <- (finite_veblen f x y n); auto.
+  apply addOrd_le1.
+Qed.
+
+
+Theorem veblen_onePlus :
   forall a x, complete a -> complete x -> veblen (addOrd 1) a x ≈ expOrd ω a + x.
 Proof.
   induction a as [A f Ha]. induction x as [X g Hx].
