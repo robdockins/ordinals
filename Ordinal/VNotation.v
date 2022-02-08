@@ -63,24 +63,6 @@ Local Hint Resolve
       veblen_onePlus_complete
       succ_complete zero_complete : core.
 
-Add Parametric Morphism : (veblen (addOrd 1))
-    with signature ord_le ==> ord_le ==> ord_le
-      as veblen_onePlus_le_mor.
-Proof.
-  intros.
-  apply veblen_le_mor; auto.
-  intros; apply addOrd_monotone; auto with ord.
-Qed.
-
-Add Parametric Morphism : (veblen (addOrd 1))
-    with signature ord_eq ==> ord_eq ==> ord_eq
-      as veblen_onePlus_eq_mor.
-Proof.
-  intros.
-  apply veblen_eq_mor; auto.
-  intros; apply addOrd_monotone; auto with ord.
-Qed.
-
 Lemma VF_denote_shrink1 : forall a x,
   VF_denote a < VF_denote (V a x).
 Proof.

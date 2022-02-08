@@ -1,3 +1,4 @@
+Require Import Setoid.
 Require Import Morphisms.
 Require Import Coq.Program.Basics.
 Require Import NArith.
@@ -320,6 +321,42 @@ Proof.
     apply H1.
 Qed.
 
+Add Parametric Morphism : (veblen (addOrd 1))
+    with signature ord_le ==> ord_le ==> ord_le
+      as veblen_onePlus_le_mor.
+Proof.
+  intros.
+  apply veblen_le_mor; auto.
+  intros; apply addOrd_monotone; auto with ord.
+Qed.
+
+Add Parametric Morphism : (veblen (addOrd 1))
+    with signature ord_eq ==> ord_eq ==> ord_eq
+      as veblen_onePlus_eq_mor.
+Proof.
+  intros.
+  apply veblen_eq_mor; auto.
+  intros; apply addOrd_monotone; auto with ord.
+Qed.
+
+Add Parametric Morphism : (veblen (expOrd ω))
+    with signature ord_le ==> ord_le ==> ord_le
+      as veblen_expOmega_le_mor.
+Proof.
+  intros.
+  apply veblen_le_mor; auto.
+  apply expOrd_monotone; auto.
+Qed.
+
+Add Parametric Morphism : (veblen (expOrd ω))
+    with signature ord_eq ==> ord_eq ==> ord_eq
+      as veblen_expOmega_eq_mor.
+Proof.
+  intros.
+  apply veblen_eq_mor; auto.
+  apply expOrd_monotone; auto.
+Qed.
+
 
 Local Hint Unfold powOmega : core.
 Local Hint Resolve veblen_complete
@@ -401,17 +438,21 @@ Proof.
   apply veblen_first_normal; auto.
 Qed.
 
-Lemma veblen_subterm1_nonzero f (Hf:normal_function f) :
-  forall a b,
+Lemma veblen_subterm1 f (Hf:normal_function f) :
+  forall a a' b,
     complete a ->
+    complete a' ->
     complete b ->
     0 < b ->
-    a < veblen f a b.
+    a <= a' ->
+    a < veblen f a' b.
 Proof.
   intros.
-  apply ord_le_lt_trans with (veblen f a 0).
+  apply ord_le_lt_trans with (veblen f a' 0).
+  transitivity (veblen f a 0).
   apply (normal_inflationary (fun i => veblen f i 0)); auto.
   apply veblen_first_normal; auto.
+  apply veblen_monotone_first; auto.
   apply veblen_increasing; auto.
 Qed.
 
