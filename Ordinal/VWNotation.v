@@ -422,35 +422,6 @@ Proof.
     + apply veblen_increasing'; simpl in *; intuition.
 Qed.
 
-Lemma succ_cancel_le x y :
-  succOrd x <= succOrd y -> x <= y.
-Proof.
-  intros.
-  do 2 rewrite succ_unfold in H.
-  destruct (ord_le_subord _ _ H tt) as [??].
-  auto.
-Qed.
-
-Lemma succ_cancel_eq x y :
-  succOrd x ≈ succOrd y -> x ≈ y.
-Proof.
-  intros; split; apply succ_cancel_le; apply H.
-Qed.
-
-Lemma natOrdSize_unique : forall m n,
-  natOrdSize m ≈ natOrdSize n -> m = n.
-Proof.
-  induction m; destruct n; simpl; intros; auto.
-  - elim (ord_lt_irreflexive 0).
-    rewrite H at 2.
-    apply succ_trans; auto with ord.
-  - elim (ord_lt_irreflexive 0).
-    rewrite <- H at 2.
-    apply succ_trans; auto with ord.
-  - f_equal. apply IHm.
-    apply succ_cancel_eq; auto.
-Qed.
-
 Theorem VF_normal_forms_unique :
   forall x y,
     VF_isNormal x ->

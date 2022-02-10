@@ -323,8 +323,8 @@ Qed.
 Lemma enum_fixpoints_func_mono f g
       (Hf: normal_function f)
       (Hg: normal_function g) :
-  (forall x, f x ≤ g x) ->
-  (forall x, enum_fixpoints f x ≤ enum_fixpoints g x).
+  (forall x, complete x -> f x ≤ g x) ->
+  (forall x, complete x -> enum_fixpoints f x ≤ enum_fixpoints g x).
 Proof.
   intros.
   induction x as [A q Hx]; simpl.
@@ -335,9 +335,26 @@ Proof.
     apply normal_monotone; auto.
     rewrite ord_le_unfold; simpl; intro a.
     rewrite ord_lt_unfold; simpl; exists a.
-    auto.
-  - apply iter_f_monotone_func; auto.
-    apply normal_monotone; auto.
+    apply Hx. apply H0.
+  - induction i; simpl; auto with ord.
+    etransitivity.
+    apply normal_monotone; [ auto | apply IHi ].
+    apply H.
+    apply iter_f_complete; auto.
+    simpl; intuition.
+    + hnf; intros.
+      destruct (complete_directed _ H0 a1 a2) as [a' [??]].
+      exists a'.
+      split; apply enum_fixpoints_monotone; auto.
+      apply normal_monotone; auto.
+      apply normal_monotone; auto.
+    + simpl in H0; intuition.
+    + apply enum_fixpoints_complete; auto.
+      intros; apply normal_inflationary; auto.
+      intros; apply normal_monotone; auto.
+      intros; apply normal_complete; auto.
+      apply H0.
+    + apply normal_complete; auto.
 Qed.
 
 Add Parametric Morphism f (Hf:normal_function f) : (enum_fixpoints f)
@@ -1403,4 +1420,3 @@ Proof.
   - apply veblen_first_normal.
     apply Γ_normal.
 Qed.
-

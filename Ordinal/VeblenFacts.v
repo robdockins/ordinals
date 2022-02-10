@@ -55,7 +55,7 @@ Proof.
 Qed.
 
 
-Lemma onePlus_finite_succ m : 
+Lemma onePlus_finite_succ m :
   1 + natOrdSize m ≈ succOrd (natOrdSize m).
 Proof.
   induction m; simpl.
@@ -96,7 +96,7 @@ Proof.
 Qed.
 
 Lemma onePlus_veblen f x y :
-  normal_function f -> 
+  normal_function f ->
   x > 0 ->
   complete x ->
   complete y ->
@@ -113,7 +113,7 @@ Proof.
 Qed.
 
 Lemma finite_veblen f x y n :
-  normal_function f -> 
+  normal_function f ->
   x > 0 ->
   complete x ->
   complete y ->
@@ -570,6 +570,105 @@ Proof.
     + apply ord_lt_le_trans with (veblen f b (veblen f a x)).
       apply veblen_increasing; auto.
       apply veblen_fixpoints; auto.
+Qed.
+
+
+
+Lemma compose_normal f g :
+  normal_function f ->
+  normal_function g ->
+  normal_function (fun x => f (g x)).
+Proof.
+  intros. constructor.
+  - intros; do 2 (apply normal_monotone; auto).
+  - intros. apply normal_increasing; auto.
+    apply normal_increasing; auto.
+  - hnf; intros A h a Hd Hc.
+    transitivity (f (supOrd (fun i => g (h i)))).
+    apply normal_monotone; auto.
+    apply normal_continuous; auto.
+    apply normal_continuous; auto.
+    hnf; intros.
+    destruct (Hd a1 a2) as [a' [??]].
+    exists a'.
+    split; apply normal_monotone; auto.
+  - intros. apply normal_complete; auto.
+  - intros; apply normal_nonzero; auto.
+Qed.
+
+Lemma veblen_first_onePlus_normal f :
+  normal_function f ->
+  normal_function (fun i => veblen f (1+i) 0).
+Proof.
+  intros.
+  apply (compose_normal (fun i => veblen f i 0) (fun i => 1+i)).
+  apply veblen_first_normal; auto.
+  apply onePlus_normal; auto.
+Qed.
+
+Lemma veblen_func_onePlus_lemma f :
+  normal_function f ->
+  forall a x b y,
+    complete a ->
+    complete x ->
+    complete b ->
+    complete y ->
+    0 < b ->
+    a <= b -> x <= y ->
+    veblen (fun i => f (1+i)) a x <= veblen f b y.
+Proof.
+  intros Hf.
+  induction a as [a Hind_a] using ordinal_induction.
+  induction x as [x Hind_x] using ordinal_induction.
+  intros b y Ha Hx Hb Hy Hb0 Hab Hxy.
+  rewrite veblen_unroll at 1.
+  apply lub_least.
+  - rewrite <- (veblen_fixpoints _ Hf 0); auto.
+    rewrite veblen_zero.
+    apply normal_monotone; auto.
+    rewrite <- onePlus_veblen; auto.
+    apply addOrd_monotone; auto with ord.
+    rewrite Hxy. apply veblen_inflationary; auto.
+  - destruct a as [A fa]; simpl; apply sup_least; intros i.
+    apply fixOrd_least; auto with ord.
+    + intros; apply veblen_monotone; auto.
+    + rewrite ord_le_unfold; simpl; intro ix.
+      rewrite (Hind_x (x ix) (index_lt x ix) b (x ix)); auto with ord.
+      apply veblen_increasing; auto.
+      apply ord_lt_le_trans with x; auto with ord.
+      apply complete_subord; auto.
+      apply complete_subord; auto.
+    + destruct (complete_zeroDec (fa i)); auto.
+      * apply Ha.
+      * transitivity (veblen (fun i0 : Ord => f (1 + i0)) 0 (veblen f b y)).
+        apply veblen_monotone_first; auto with ord.
+        rewrite <- (veblen_fixpoints _ Hf 0 b y) at 2; auto.
+        rewrite veblen_zero.
+        rewrite veblen_zero.
+        apply normal_monotone; auto.
+        apply onePlus_veblen; auto.
+      * rewrite <- (veblen_fixpoints _ Hf (fa i) b y) at 2; auto.
+        apply (Hind_a (fa i) (index_lt (ord A fa) i) (veblen f b y) (fa i) (veblen f b y)); auto with ord.
+        apply Ha.
+        apply Ha.
+        apply Ha.
+        apply ord_lt_le_trans with (ord A fa); auto with ord.
+Qed.
+
+Lemma veblen_func_onePlus f :
+  normal_function f ->
+  forall a x,
+    complete a ->
+    complete x ->
+    0 < a ->
+    veblen (fun i => f (1+i)) a x ≈ veblen f a x.
+Proof.
+  intros; split.
+  apply veblen_func_onePlus_lemma; auto with ord.
+  apply veblen_monotone_func; auto.
+  apply (compose_normal f (fun i => 1+i)); auto.
+  intros; apply normal_monotone; auto.
+  apply addOrd_le2.
 Qed.
 
 
