@@ -169,6 +169,17 @@ Proof.
   - etransitivity; [ apply Hf | apply Hg; auto ].
 Qed.
 
+Lemma fixOrd_monotone_func f g :
+  (forall x, f x ≤ g x) ->
+  (forall x y, x ≤ y -> g x ≤ g y) ->
+  forall x, fixOrd f x ≤ fixOrd g x.
+Proof.
+  intros.
+  unfold fixOrd. apply sup_ord_le_morphism.
+  intro n. apply iter_f_monotone_func; auto.
+Qed.
+
+
 Definition enum_fixpoints (f:Ord -> Ord) : Ord -> Ord :=
   fix rec (x:Ord) : Ord :=
   match x with

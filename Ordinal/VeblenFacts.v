@@ -65,6 +65,24 @@ Proof.
   reflexivity.
 Qed.
 
+Theorem onePlus_least f :
+  (forall x y, x < y -> f x < f y) ->
+  (forall x, 0 < f x) ->
+  forall x, 1+x <= f x.
+Proof.
+  intros.
+  induction x using ordinal_induction.
+  rewrite addOrd_unfold.
+  apply lub_least.
+  apply succ_least; auto.
+  apply sup_least. intro i.
+  apply succ_least.
+  rewrite (H1 (x i)).
+  apply H; auto.
+  apply index_lt.
+  apply index_lt.
+Qed.
+
 Theorem onePlus_least_normal f :
     normal_function f ->
     forall x, complete x -> 1+x <= f x.
