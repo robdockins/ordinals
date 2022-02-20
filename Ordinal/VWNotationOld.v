@@ -413,15 +413,15 @@ Proof.
     destruct x1; simpl; intuition.
     + apply veblen_nonzero; auto.
     + apply veblen_subterm1_zero_nest; simpl in *; intuition.
-    + apply veblen_subterm1_nonzero; auto.
-      apply veblen_nonzero; auto.
-    + apply veblen_subterm1_nonzero; auto.
+    + apply veblen_subterm1; auto with ord.
+      apply veblen_nonzero; auto with ord.
+    + apply veblen_subterm1; auto with ord.
       apply veblen_nonzero; auto.
   - destruct x2; simpl; intuition.
     + apply veblen_nonzero; auto.
     + apply veblen_increasing'; simpl in *; intuition.
     + simpl in H2. rewrite H2 at 1.
-      apply veblen_subterm1_nonzero; auto.
+      apply veblen_subterm1; auto with ord.
       apply veblen_nonzero; auto.
   - destruct x2; simpl; intuition.
     + destruct x1; simpl; intuition.
@@ -430,9 +430,9 @@ Proof.
         intros; apply onePlus_least_normal; auto.
         apply veblen_subterm1_zero_nest; simpl in *; intuition.
       * apply veblen_subterm1_zero_nest; simpl in *; intuition.
-    + apply veblen_subterm1_nonzero; auto.
+    + apply veblen_subterm1; auto with ord.
       apply veblen_nonzero; auto.
-    + apply veblen_subterm1_nonzero; auto.
+    + apply veblen_subterm1; auto with ord.
       apply veblen_nonzero; auto.
   - destruct x2; simpl; intuition.
     + apply veblen_nonzero; auto.
