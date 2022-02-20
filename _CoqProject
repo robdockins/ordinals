@@ -18,6 +18,7 @@ Ordinal/VeblenFacts.v
 Ordinal/VeblenSymbol.v
 Ordinal/Countable.v
 Ordinal/VTowerFin.v
+Ordinal/VTower.v
 
 Ordinal/CantorNotation.v
 
