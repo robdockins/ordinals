@@ -25,6 +25,7 @@ Ordinal/CantorNotation.v
 Ordinal/VNotation.v
 Ordinal/VWNotation.v
 Ordinal/VTowerNotation.v
+Ordinal/VTowerLargeNotation.v
 
 Ordinal/VNotationOld.v
 Ordinal/VWNotationOld.v
