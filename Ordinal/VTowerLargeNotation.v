@@ -114,7 +114,7 @@ Proof.
   rewrite veblen_zero.
   rewrite vtower_zero.
   rewrite H.
-  rewrite vtower_succ.
+  rewrite vtower_succ; auto.
   reflexivity.
 Qed.
 
@@ -142,8 +142,8 @@ Proof.
     rewrite H3.
     rewrite veblen_zero at 1.
     rewrite veblen_zero at 1.
-    rewrite (vtower_limit (VF_denote n)) at 1; auto.
-    rewrite (vtower_limit (VF_denote n)) at 1; auto.
+    rewrite (vtower_limit EM (VF_denote n)) at 1; auto.
+    rewrite (vtower_limit EM (VF_denote n)) at 1; auto.
     destruct (VF_denote n) as [N h]. simpl.
     destruct H4 as [[n0] Hl].
     transitivity (supOrd (fun i => veblen (vtower (VF_denote m))
@@ -217,8 +217,8 @@ Proof.
       rewrite H2.
       rewrite veblen_zero at 1.
       rewrite veblen_zero at 1.
-      rewrite (vtower_limit (VF_denote n)) at 1; auto.
-      rewrite (vtower_limit (VF_denote n)) at 1; auto.
+      rewrite (vtower_limit EM (VF_denote n)) at 1; auto.
+      rewrite (vtower_limit EM (VF_denote n)) at 1; auto.
       destruct (VF_denote n) as [N h]. simpl.
       destruct H3 as [[n0] Hl].
       transitivity (supOrd (fun i => veblen (vtower (VF_denote m)) (vtower (h i) (limOrd (fun i0 : VF_denote c => vtower (ord N h) (VF_denote c i0)))) 0)). 
@@ -232,7 +232,7 @@ Proof.
       destruct (Hl k') as [k'' Hk''].
       rewrite <- (sup_le _ _ k'').
       transitivity (vtower (succOrd (succOrd (h k))) (limOrd (fun i0 : VF_denote c => vtower (ord N h) (VF_denote c i0)))).
-      rewrite vtower_succ.
+      rewrite vtower_succ; auto.
       rewrite <- (veblen_fixpoints _ (vtower_normal EM (succOrd (h k))) 0); auto.
       rewrite veblen_zero.
       rewrite vtower_succ; auto.
@@ -297,17 +297,17 @@ Proof.
     apply sup_least; intro i.
     destruct (Hl i) as [j ?].
     destruct (Hl j) as [k ?].
-    rewrite (vtower_limit (ord N h) y); auto.
+    rewrite (vtower_limit EM (ord N h) y); auto.
     simpl.
     rewrite <- (sup_le _ _ k).
     transitivity (vtower (succOrd (succOrd (h i))) (limOrd (fun i0 : y => vtower (ord N h) (y i0)))).
-    rewrite vtower_succ.
+    rewrite vtower_succ; auto.
     rewrite <- (veblen_fixpoints _ (vtower_normal EM (succOrd (h i))) 0); auto.
     rewrite veblen_zero.
     transitivity (vtower 1
       (veblen (vtower (succOrd (h i)))
          (1 + limOrd (fun i0 : y => vtower (ord N h) (y i0))) 0)).
-    rewrite vtower_succ.
+    rewrite vtower_succ; auto.
     rewrite onePlus_veblen; auto.
     rewrite veblen_vtower_zero; auto.
     rewrite addOrd_zero_r.
@@ -331,7 +331,7 @@ Proof.
   - rewrite <- (veblen_fixpoints _ (vtower_normal EM n) 0) at 2; auto.
     rewrite veblen_zero.
     transitivity (vtower 1 (veblen (vtower n) x y)).
-    rewrite vtower_succ.
+    rewrite vtower_succ; auto.
     rewrite veblen_vtower_zero; auto.
     rewrite addOrd_zero_r.
     apply expOrd_monotone.
@@ -728,7 +728,7 @@ Proof.
                     rewrite veblen_zero.
                     transitivity (vtower (succOrd (VF_denote m))
                                     (veblen (vtower (VF_denote n)) (VF_denote b) (VF_denote y))).
-                    rewrite vtower_succ.
+                    rewrite vtower_succ; auto.
                     rewrite onePlus_veblen; auto.
                     reflexivity.
                     apply vtower_monotone; auto with ord.
@@ -771,7 +771,7 @@ Proof.
                       rewrite veblen_zero.
                       transitivity (vtower (succOrd (VF_denote m))
                                            (veblen (vtower (VF_denote n)) (VF_denote b) (VF_denote y))).
-                      rewrite vtower_succ.
+                      rewrite vtower_succ; auto.
                       rewrite onePlus_veblen; auto.
                       reflexivity.
                       apply vtower_monotone; auto with ord.
@@ -819,7 +819,7 @@ Proof.
                       rewrite veblen_zero.
                       transitivity (vtower (succOrd (VF_denote m))
                                            (veblen (vtower (VF_denote n)) (VF_denote b) (VF_denote y))).
-                      rewrite vtower_succ.
+                      rewrite vtower_succ; auto.
                       rewrite onePlus_veblen; auto.
                       reflexivity.
                       apply vtower_monotone; auto with ord.
@@ -927,7 +927,7 @@ Proof.
                     rewrite veblen_zero.
                     transitivity (vtower (succOrd (VF_denote n))
                                          (veblen (vtower (VF_denote m)) (VF_denote a) (VF_denote x))).
-                    rewrite vtower_succ.
+                    rewrite vtower_succ; auto.
                     rewrite onePlus_veblen; auto.
                     reflexivity.
                     apply vtower_monotone; auto with ord.
@@ -982,7 +982,7 @@ Proof.
                     rewrite veblen_zero.
                     transitivity (vtower (succOrd (VF_denote n))
                                          (veblen (vtower (VF_denote m)) (VF_denote a) (VF_denote x))).
-                    rewrite vtower_succ.
+                    rewrite vtower_succ; auto.
                     rewrite onePlus_veblen; auto.
                     reflexivity.
                     apply vtower_monotone; auto with ord.
@@ -1026,7 +1026,7 @@ Proof.
                     rewrite veblen_zero.
                     transitivity (vtower (succOrd (VF_denote n))
                                          (veblen (vtower (VF_denote m)) (VF_denote a) (VF_denote x))).
-                    rewrite vtower_succ.
+                    rewrite vtower_succ; auto.
                     rewrite onePlus_veblen; auto.
                     reflexivity.
                     apply vtower_monotone; auto with ord.
@@ -1099,8 +1099,7 @@ Proof.
   - destruct x3.
     + destruct x2; simpl in *; intuition.
       * rewrite veblen_zero.
-        apply vtower_nonzero; auto.
-        intros; apply vtower_monotone; auto with ord.
+        apply normal_nonzero; auto.
 
       * apply ord_le_lt_trans with
             (veblen (vtower (VF_denote x1)) (VF_denote x2_2) (VF_denote x2_3)).
@@ -1260,7 +1259,7 @@ Proof.
         simpl.
         rewrite VF_onePlus_correct.
         rewrite H4.
-        rewrite vtower_succ.
+        rewrite vtower_succ; auto.
         reflexivity.
         reflexivity.
       * reflexivity.
@@ -1554,7 +1553,7 @@ Proof.
   unfold LargeVeblenOrdinal at 2.
   rewrite normal_fixpoint; auto.
   rewrite <- (vtower_fixpoint EM (succOrd (sz x1)) LargeVeblenOrdinal 0).
-  rewrite vtower_succ.
+  rewrite vtower_succ; auto.
   apply veblen_monotone_first; auto.
   transitivity (1+LargeVeblenOrdinal).
   apply addOrd_le2.
@@ -1584,7 +1583,7 @@ Proof.
   exact Z.
   apply classical.ord_directed; auto.
   apply sup_least; intro x.
-  rewrite vtower_succ.
+  rewrite vtower_succ; auto.
   apply ord_lt_le.
   rewrite ord_lt_unfold.
   exists (V x (V Z Z Z) Z).
@@ -1725,14 +1724,15 @@ Proof.
       simpl in *.
       elim (ord_lt_irreflexive x).
       apply ord_lt_le_trans with (1+x); auto.
-      rewrite vtower_zero' in Hbnd; auto.
+      rewrite ord_isZero in Hz. rewrite Hz in Hbnd.
+      rewrite vtower_zero in Hbnd; auto.
       apply limit_onePlus; auto.
 
     + (* i successor case *)
       rewrite ord_isSucc in Hs.
       destruct Hs as [i' Hi'].
       rewrite Hi' in Hbnd.
-      rewrite vtower_succ in Hbnd.
+      rewrite vtower_succ in Hbnd; auto.
 
       (* is x a fixpoint of the next lower level? *)
       destruct (classical.order_total EM (vtower i' x) x).

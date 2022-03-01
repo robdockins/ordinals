@@ -57,6 +57,104 @@ Section vtower_def.
 
   Global Opaque vtower.
 
+  Lemma veblen_mono_func : forall f g,
+      (forall x y, x <= y -> g x <= g y) ->
+      (forall x, f x <= g x) ->
+      (forall a x, veblen f a x <= veblen g a x).
+  Proof.
+    intros f g Hg Hfg.
+    induction a using ordinal_induction.
+    induction x using ordinal_induction.
+    rewrite veblen_unroll.
+    rewrite veblen_unroll.
+    apply lub_least.
+    { rewrite <- lub_le1. auto. }
+    destruct a as [A h]. simpl.
+    apply sup_least; intro i.
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ i).
+    unfold fixOrd.
+    apply sup_ord_le_morphism. intro n.
+    induction n; simpl.
+    - rewrite ord_le_unfold; simpl; intro q.
+      rewrite ord_lt_unfold; simpl. exists q.
+      apply H0; auto with ord.
+    - transitivity (veblen g (h i)
+                           (iter_f (veblen f (h i))
+                                   (limOrd (fun x0 : x => veblen f (ord A h) (x x0))) n)).
+      { apply H; auto with ord. }
+      apply veblen_le_mor; auto with ord.
+  Qed.
+
+  Theorem vtower_monotone : forall a b x y, a <= b -> x <= y -> vtower a x <= vtower b y.
+  Proof.
+    intros a b x y. revert y a x.
+    induction b as [b Hb] using ordinal_induction.
+    induction y as [y Hy] using ordinal_induction.
+    intros.
+
+    rewrite (vtower_unroll a x).
+    rewrite (vtower_unroll b y).
+    apply lub_least.
+    { rewrite <- lub_le1. apply addOrd_monotone; auto with ord. }
+    apply sup_least. intro ia.
+    rewrite <- lub_le2.
+    destruct (ord_le_subord a b H ia) as [ib ?].
+    rewrite <- (sup_le _ _ ib).
+    unfold MAGIC.
+    apply sup_least; intro ix.
+    assert (1 + x <= 1 + y).
+    { apply addOrd_monotone; auto with ord; auto. }
+    destruct (ord_le_subord (1+x) (1+y) H2 ix) as [iy ?].
+    rewrite <- (sup_le _ _ iy).
+    unfold fixOrd. apply sup_ord_le_morphism.
+    intro n.
+    induction n; simpl.
+    - rewrite ord_le_unfold; simpl; intro q.
+      destruct (ord_le_subord x y H0 q) as [q' ?].
+      rewrite ord_lt_unfold. simpl. exists q'.
+      apply Hy; auto with ord.
+    - etransitivity; [ apply (veblen_mono_func (vtower ia) (vtower ib)); auto with ord |].
+      apply veblen_le_mor; auto with ord.
+  Qed.
+
+  Global Add Parametric Morphism : vtower
+      with signature ord_le ==> ord_le ==> ord_le
+        as vtower_le_mor.
+  Proof.
+    intros; apply vtower_monotone; auto.
+  Qed.
+
+  Global Add Parametric Morphism : vtower
+      with signature ord_eq ==> ord_eq ==> ord_eq
+        as vtower_eq_mor.
+  Proof.
+    unfold ord_eq.
+    intros; split; apply vtower_monotone; intuition.
+  Qed.
+
+  Lemma MAGIC_mono a' a y' y x' x :
+    a' <= a ->
+    y' <= y ->
+    x' <= x ->
+    MAGIC a' y' x' <= MAGIC a y x.
+  Proof.
+    intros.
+    unfold MAGIC.
+    apply sup_least; intro z.
+    destruct (ord_le_subord y' y H0 z) as [z' ?].
+    rewrite <- (sup_le _ _ z').
+    unfold fixOrd.
+    apply sup_ord_le_morphism.
+    intro n. induction n; simpl; auto.
+    transitivity
+      (veblen (vtower a) (sz z) (iter_f (veblen (vtower a') (sz z)) x' n)).
+    { apply veblen_mono_func; auto with ord;
+        intros; apply vtower_monotone; auto with ord. }
+    apply veblen_le_mor; auto with ord.
+    intros; apply vtower_monotone; auto with ord.
+  Qed.
+
   Lemma MAGIC_above : forall a y x, 0 < y -> x <= MAGIC a y x.
   Proof.
     intros. unfold MAGIC.
@@ -129,8 +227,6 @@ Section vtower_def.
   Section vtower_normal.
     Variable b:Ord.
     Hypothesis vtower_normal : forall a, a < b -> normal_function (vtower a).
-    Hypothesis vtower_mono_first :
-      forall a' a x, a' <= a -> a < b -> vtower a' x <= vtower a x.
 
     Lemma MAGIC_strongly_critical' : forall a y x,
         forall a',
@@ -168,8 +264,7 @@ Section vtower_def.
       rewrite <- (MAGIC_critical _ _ _ 0).
       rewrite veblen_zero.
       transitivity (vtower x0 0).
-      apply vtower_mono_first; auto with ord.
-      transitivity a; auto with ord.
+      apply vtower_monotone; auto with ord.
       apply normal_monotone; auto with ord.
       apply vtower_normal; auto with ord.
       transitivity a; auto with ord.
@@ -189,8 +284,7 @@ Section vtower_def.
       transitivity a; auto.
       apply vtower_normal.
       transitivity a; auto with ord.
-      intros. apply vtower_mono_first; auto with ord.
-      transitivity a; auto with ord.
+      intros; apply vtower_monotone; auto with ord.
       apply vtower_normal; auto.
       transitivity a; auto with ord.
       rewrite <- addOrd_le2.
@@ -201,32 +295,6 @@ Section vtower_def.
       intros. apply normal_monotone; auto with ord.
       apply veblen_normal; auto.
       auto.
-    Qed.
-
-    Lemma vtower_mono : forall x y, x <= y -> vtower b x <= vtower b y.
-    Proof.
-      intros x y. revert x.
-      induction y using ordinal_induction. intros.
-
-      rewrite (vtower_unroll b x).
-      rewrite (vtower_unroll b y).
-      apply lub_least.
-      { rewrite <- lub_le1. apply addOrd_monotone; auto with ord. }
-      apply sup_least; intro a.
-      rewrite <- lub_le2.
-      rewrite <- (sup_le _ _ a).
-      apply MAGIC_least; auto with ord.
-      + rewrite <- MAGIC_above.
-        rewrite ord_le_unfold; simpl; intro i.
-        destruct (ord_le_subord x y H0 i) as [j ?].
-        rewrite ord_lt_unfold. exists j; simpl.
-        apply H; auto with ord.
-        rewrite <- addOrd_le1.
-        auto with ord.
-      + intros.
-        rewrite <- MAGIC_critical at 2; auto with ord.
-        apply ord_lt_le_trans with (1+x); auto.
-        apply addOrd_monotone; auto with ord.
     Qed.
 
     Lemma vtower_inc : forall x y, x < y -> vtower b x < vtower b y.
@@ -253,60 +321,9 @@ Section vtower_def.
         rewrite ord_lt_unfold in H0.
         destruct H0 as [i ?].
         exists i.
-        apply vtower_mono; auto.
+        apply vtower_monotone; auto with ord.
         rewrite <- addOrd_le1.
         auto with ord.
-    Qed.
-
-    Lemma vtower_mono_first' : forall a x, a <= b -> vtower a x <= vtower b x.
-    Proof.
-      intros a x. revert a. induction x as [x Hindx] using ordinal_induction.
-      intros.
-      rewrite (vtower_unroll a x).
-      apply lub_least.
-      - rewrite (vtower_unroll b x).
-        apply lub_le1.
-      - apply sup_least. intro i.
-        destruct (ord_le_subord a b H i) as [j ?].
-        rewrite (vtower_unroll b x).
-        rewrite <- lub_le2.
-        rewrite <- (sup_le _ _ j).
-        apply MAGIC_least.
-        + apply vtower_normal; auto.
-          rewrite H0; auto with ord.
-        + rewrite <- MAGIC_above.
-          rewrite ord_le_unfold; intro q. simpl.
-          rewrite ord_lt_unfold. exists q. simpl.
-          apply Hindx; auto with ord.
-          rewrite <- addOrd_le1.
-          auto with ord.
-        + intros.
-          rewrite <- (MAGIC_critical (sz j) (1+x)
-                                         (limOrd (fun x0 : x => vtower b (x x0)))) at 2; auto.
-          apply veblen_monotone_func; auto.
-          apply vtower_normal; auto with ord.
-          rewrite H0; auto with ord.
-          apply vtower_normal; auto with ord.
-          intros. apply vtower_mono_first; auto with ord.
-          apply vtower_normal; auto with ord.
-          auto.
-    Qed.
-
-    Lemma MAGIC_mono1 a' a y x :
-      0 < y ->
-      a < b ->
-      a' <= a ->
-      MAGIC a' y x <= MAGIC a y x.
-    Proof.
-      intros. apply MAGIC_least.
-      + apply vtower_normal; auto.
-        rewrite H1; auto.
-      + apply MAGIC_above; auto.
-      + intros. rewrite <- (MAGIC_critical a y x) at 2; auto.
-        apply veblen_monotone_func; auto.
-        apply vtower_normal.
-        rewrite H1. auto.
-        auto.
     Qed.
 
     Lemma vtower_inflate : forall x, x <= vtower b x.
@@ -448,7 +465,7 @@ Section vtower_def.
         rewrite ord_lt_unfold in H.
         destruct H as [m ?].
         apply ord_le_lt_trans with (vtower (b m) (vtower b x a0)).
-        apply vtower_mono_first; auto with ord.
+        apply vtower_monotone; auto with ord.
         apply ord_lt_le_trans with
             (vtower (b m)
             (supOrd
@@ -469,11 +486,9 @@ Section vtower_def.
         rewrite veblen_zero.
         transitivity (vtower (sz k)
                              (MAGIC (sz i) (1 + x) (limOrd (fun x0 : x => vtower b (x x0))))).
-        apply vtower_mono_first; auto with ord.
+        apply vtower_monotone; auto with ord.
         apply normal_monotone; auto with ord.
-        apply MAGIC_mono1; auto with ord.
-        rewrite <- addOrd_le1.
-        apply succ_lt.
+        apply MAGIC_mono; auto with ord.
         apply vtower_normal; auto with ord.
         rewrite <- addOrd_le1.
         apply succ_lt.
@@ -556,8 +571,7 @@ Section vtower_def.
             apply vtower_normal; auto.
             transitivity a; auto with ord.
             rewrite ord_lt_unfold; eauto.
-            apply MAGIC_mono1; auto with ord.
-            rewrite <- addOrd_le1; auto with ord.
+            apply MAGIC_mono; auto with ord.
             rewrite <- addOrd_le1; auto with ord.
             auto with ord.
             rewrite <- H4.
@@ -604,20 +618,16 @@ Section vtower_def.
                rewrite veblen_zero.
                transitivity (vtower (sz i'')
                                     (MAGIC (sz i3) (1 + x) (limOrd (fun x1 : x => vtower b (x x1))))).
-               apply vtower_mono_first; auto with ord.
+               apply vtower_monotone; auto with ord.
                apply normal_monotone; auto with ord.
-               apply MAGIC_mono1; auto with ord.
-               rewrite <- addOrd_le1.
-               apply succ_lt; auto.
+               apply MAGIC_mono; auto with ord.
                apply vtower_normal; auto with ord.
                rewrite <- addOrd_le1.
                apply succ_lt; auto.
              }
 
             rewrite <- (sup_le _ _ i').
-            apply MAGIC_mono1; auto with ord.
-            rewrite <- addOrd_le1.
-            apply succ_lt; auto.
+            apply MAGIC_mono; auto with ord.
 
             etransitivity.
             { apply (normal_continuous (fun z => veblen (vtower (sz q)) z 0)); auto.
@@ -636,9 +646,7 @@ Section vtower_def.
             apply vtower_normal; auto.
             transitivity a; auto with ord.
             rewrite ord_lt_unfold; eauto.
-            apply MAGIC_mono1; auto with ord.
-            rewrite <- addOrd_le1.
-            apply succ_lt; auto.
+            apply MAGIC_mono; auto with ord.
             rewrite <- addOrd_le1.
             apply succ_lt; auto.
             auto with ord.
@@ -703,7 +711,7 @@ Section vtower_def.
             { apply veblen_monotone; auto with ord.
               intros. apply normal_monotone; auto.
               apply vtower_normal; auto with ord.
-              apply vtower_mono; auto.
+              apply vtower_monotone; auto with ord.
             }
 
             rewrite addOrd_unfold in H2.
@@ -769,11 +777,11 @@ Section vtower_def.
           apply vtower_normal; auto with ord.
           apply vtower_normal; auto with ord.
           intros.
-          apply vtower_mono_first; auto with ord.
+          apply vtower_monotone; auto with ord.
           apply veblen_monotone; auto with ord.
           intros; apply normal_monotone; auto with ord.
-          apply MAGIC_mono1; auto with ord.
-          rewrite <- addOrd_le1. auto with ord.
+
+          apply MAGIC_mono; auto with ord.
           apply vtower_normal; auto with ord.
           rewrite <- H4.
           rewrite H2.
@@ -782,44 +790,19 @@ Section vtower_def.
 
   End vtower_normal.
 
-  Lemma vtower_normal_and_mono :
-    forall b,
-      normal_function (vtower b) /\
-      (forall a x, a <= b -> vtower a x <= vtower b x).
+  Theorem vtower_normal :
+    forall b, normal_function (vtower b).
   Proof.
     induction b using ordinal_induction.
-    split.
     constructor.
-    - apply vtower_mono; auto.
-      intros; apply H; auto.
+    - intros; apply vtower_monotone; auto with ord.
     - intros; apply vtower_inc; auto.
-      intros; apply H; auto.
     - apply vtower_continuous; auto.
-      intros; apply H; auto.
-      intros; apply H; auto.
     - intros; apply classical.ord_complete; auto.
     - intros. rewrite vtower_unroll.
       rewrite <- lub_le1.
       rewrite <- addOrd_le1.
       apply succ_lt.
-    - intros. apply vtower_mono_first'; auto.
-      intros; apply H; auto.
-      intros; apply H; auto.
-  Qed.
-
-  Theorem vtower_monotone :
-    forall a x b y,
-      a <= b -> x <= y -> vtower a x <= vtower b y.
-  Proof.
-    intros. transitivity (vtower a y).
-    apply normal_monotone; auto.
-    apply vtower_normal_and_mono; auto.
-    apply vtower_normal_and_mono; auto.
-  Qed.
-
-  Theorem vtower_normal : forall a, normal_function (vtower a).
-  Proof.
-    intros; apply vtower_normal_and_mono; auto.
   Qed.
 
   Hint Resolve vtower_normal vtower_monotone : core.
@@ -828,7 +811,6 @@ Section vtower_def.
   Proof.
     intros; split.
     - apply vtower_fixpoint'; auto.
-      intros. apply vtower_monotone; auto with ord.
     - apply normal_inflationary; auto.
   Qed.
 
@@ -1021,11 +1003,215 @@ Section vtower_def.
       apply succ_lt; auto.
   Qed.
 
+
   Definition LargeVeblenOrdinal := fixOrd (fun x => vtower x 0) 0.
 
+  Lemma vtower_fin_eq : forall (i:ω) x, vtower_fin i x ≈ vtower i x.
+  Proof.
+    induction i; simpl; intros.
+    - rewrite vtower_zero. reflexivity.
+    - rewrite vtower_succ.
+      split; apply veblen_monotone_func; auto.
+      apply vtower_fin_normal.
+      intros; apply IHi.
+      apply vtower_fin_normal.
+      intros; apply IHi.
+  Qed.
+
+  Lemma SVO_vtower : SmallVeblenOrdinal ≈ vtower ω 0.
+  Proof.
+    transitivity (supOrd (fun i:ω => vtower i 0)).
+    + unfold SmallVeblenOrdinal.
+      apply sup_ord_eq_morphism. intro i.
+      apply vtower_fin_eq.
+    + split.
+      apply sup_least; intro.
+      apply vtower_monotone; auto with ord.
+      transitivity (vtower (supOrd natOrdSize) 0).
+      apply vtower_monotone; auto with ord.
+      rewrite ord_le_unfold; intro i.
+      rewrite <- (sup_le _ _ (S i)).
+      simpl.
+      apply succ_lt.
+      apply (normal_continuous (fun i => vtower i 0)); auto.
+      apply vtower_first_normal.
+      exact O.
+      hnf; intros.
+      apply (complete_directed ω) ; apply omega_complete.
+  Qed.
+
+
+  Local Hint Resolve
+      classical.ord_complete
+      vtower_normal
+      veblen_complete
+      veblen_normal
+      veblen_first_normal
+      veblen_first_onePlus_normal
+      normal_monotone
+      onePlus_normal
+      powOmega_normal
+      addOrd_complete
+      addOrd_increasing
+      succ_complete
+      zero_complete
+      natOrdSize_complete
+      zero_lt_onePlus
+  : core.
+
+
+  Lemma veblen_vtower_zero : forall a x, veblen (vtower 0) a x ≈ expOrd ω a + x.
+  Proof.
+    intros.
+    transitivity (veblen (addOrd 1) a x).
+    split; apply veblen_monotone_func; auto.
+    intros. rewrite vtower_zero. auto with ord.
+    intros. rewrite vtower_zero. auto with ord.
+    rewrite veblen_onePlus; auto.
+    reflexivity.
+  Qed.
+
+  Lemma vtower_nonzero_limit :
+    forall n,
+      n > 0 ->
+      (forall a x, limitOrdinal (veblen (vtower n) a x)) /\
+      (forall x, limitOrdinal (vtower n x)).
+  Admitted.
+(*
+  Proof.
+    induction n as [n Hindn] using ordinal_induction; intros.
+    cut (forall x, limitOrdinal (vtower n x)).
+    - intuition.
+      revert x. induction a as [a Hinda] using ordinal_induction.
+      intros.
+      apply limitOrdinal_intro.
+      apply veblen_nonzero; auto.
+      intros.
+
+      rewrite veblen_unroll in H1.
+      apply lub_lt in H1.
+      destruct H1.
+      assert (limitOrdinal (vtower n x)).
+      { apply H0. }
+      rewrite ord_isLimit in H2.
+      destruct H2.
+      destruct (H3 i) as [j [??]]; auto.
+      exists j. split; auto.
+      rewrite veblen_unroll. rewrite <- lub_le1. auto.
+
+      destruct a as [A f]. simpl in *.
+      apply sup_lt in H1.
+      destruct H1 as [a ?].
+      rewrite normal_fixpoint in H1; auto.
+      assert (limitOrdinal (
+                  veblen (vtower n) (f a)
+                         (fixOrd (veblen (vtower n) (f a))
+                                 (limOrd (fun x0 : x => veblen (vtower n) (ord A f) (x x0)))))).
+      apply Hinda; auto with ord.
+      rewrite ord_isLimit in H2.
+      destruct H2.
+      destruct (H3 i) as [j [??]]; auto.
+      exists j; split; auto.
+      rewrite veblen_unroll.
+      rewrite <- lub_le2.
+      simpl.
+      rewrite <- (sup_le _ _ a).
+      rewrite normal_fixpoint; auto.
+    - induction x as [x Hindx] using ordinal_induction.
+      apply limitOrdinal_intro.
+      apply ord_lt_le_trans with (vtower 0 x).
+      rewrite vtower_zero.
+      rewrite <- addOrd_le1.
+      apply succ_lt.
+      apply vtower_monotone; auto with ord.
+      intros.
+      rewrite vtower_unfold in H0.
+      apply lub_lt in H0.
+      destruct H0.
+      + apply sup_lt in H0.
+        destruct H0 as [Hz ?].
+        rewrite ord_isZero in Hz.
+        rewrite Hz in H.
+        elim (ord_lt_irreflexive 0); auto.
+      + apply lub_lt in H0.
+        destruct H0.
+        * apply sup_lt in H0.
+          destruct H0 as [Hs ?].
+          apply sup_lt in H0.
+          destruct H0 as [a ?].
+          destruct (classical.order_total EM (n a) 0).
+          assert (veblen (vtower (n a)) (1+x) 0 <= veblen (vtower 0) (1+x) 0).
+          apply veblen_monotone_func; auto with ord.
+          intros; apply vtower_monotone; auto with ord.
+          rewrite H2 in H0.
+          rewrite veblen_vtower_zero in H0.
+          rewrite addOrd_zero_r in H0.
+          assert (limitOrdinal (expOrd ω (1+x))).
+          { apply additively_closed_limit.
+            apply ord_lt_le_trans with (expOrd ω 1).
+            rewrite expOrd_one'; auto with ord.
+            apply omega_gt1.
+            apply omega_gt0.
+            apply expOrd_monotone; auto with ord.
+            apply addOrd_le1.
+            apply expOmega_additively_closed; auto. }
+          rewrite ord_isLimit in H3.
+          destruct H3.
+          destruct (H4 i) as [j [??]]; auto.
+          exists j; split; auto.
+          eapply ord_lt_le_trans; [ apply H6 |].
+          rewrite vtower_succ'; auto.
+          rewrite <- (sup_le _ _ a).
+          transitivity (veblen (vtower 0) (1+x) 0).
+          rewrite veblen_vtower_zero.
+          rewrite addOrd_zero_r; auto with ord.
+          apply veblen_monotone_func; auto with ord.
+          intros.
+          apply vtower_monotone; auto with ord.
+
+          assert (limitOrdinal (veblen (vtower (n a)) (1+x) 0)).
+          apply Hindn; auto with ord.
+          rewrite ord_isLimit in H2.
+          destruct H2.
+          destruct (H3 i) as [j [??]]; auto.
+          exists j; split; auto.
+          eapply ord_lt_le_trans; [ apply H5 |].
+          rewrite vtower_succ'; auto.
+          rewrite <- (sup_le _ _ a).
+          reflexivity.
+        * apply sup_lt in H0.
+          destruct H0 as [Hl ?].
+          apply sup_lt in H0.
+          destruct H0 as [a ?].
+          generalize Hl; intros Hl'.
+          rewrite ord_isLimit in Hl'.
+          destruct Hl'.
+          destruct (H2 (n a)) as [k [??]]; auto with ord.
+          assert (vtower (n a) (limOrd (fun j : x => vtower n (x j))) <=
+                  vtower k (limOrd (fun j : x => vtower n (x j)))).
+          apply vtower_monotone; auto with ord.
+          rewrite H5 in H0.
+          assert (limitOrdinal (vtower k (limOrd (fun j : x => vtower n (x j))))).
+          apply Hindn; auto with ord.
+          apply ord_le_lt_trans with (n a); auto with ord.
+          rewrite ord_isLimit in H6.
+          destruct H6.
+          destruct (H7 i) as [q [??]]; auto.
+          exists q. split; auto.
+          eapply ord_lt_le_trans; [ apply H9 | ].
+          rewrite (vtower_limit n); auto.
+          destruct n as [N n]. simpl.
+          rewrite ord_lt_unfold in H4.
+          destruct H4 as [q' ?].
+          rewrite <- (sup_le _ _ q').
+          apply vtower_monotone; auto with ord.
+  Qed.
+*)
+
 End vtower_def.
+End vtower.
 
-
+(*
 Fixpoint vtower (b:Ord) : Ord -> Ord :=
   fix inner (y:Ord) : Ord :=
     match b, y with
@@ -1833,3 +2019,4 @@ Proof.
 Qed.
 
 End vtower.
+*)
