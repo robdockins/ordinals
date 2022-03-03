@@ -122,225 +122,38 @@ Qed.
 
 Theorem Vmn_collapse : forall n m a b c,
   (VF_denote m < VF_denote n) ->
-  (successorOrdinal (VF_denote n) -> 0 < VF_denote b) ->
+  (limitOrdinal (VF_denote n) \/ 0 < VF_denote b) ->
   VF_denote a < VF_denote (V n b c) ->
   VF_denote (V m a (V n b c)) ≈ VF_denote (V n b c).
 Proof.
-  simpl VF_denote.
   intros.
   split.
-  2: { apply veblen_inflationary; auto. }
-  destruct (classical.order_total EM (VF_denote b) 0).
-  - apply veblen_collapse; auto with ord.
-    assert (VF_denote b ≈ 0).
-    { split; auto with ord. }
-    assert (limitOrdinal (VF_denote n)).
-    { destruct (classical.ordinal_discriminate EM (VF_denote n)) as [Hz|[Hs|Hz]]; auto.
-      - rewrite ord_isZero in Hz. rewrite Hz in H.
-        elim (ord_lt_irreflexive 0).
-        apply ord_le_lt_trans with (VF_denote m); auto with ord.
-      - elim (ord_lt_irreflexive 0).
-        apply ord_lt_le_trans with (VF_denote b); auto with ord. }
-    rewrite H3.
-    rewrite veblen_zero at 1.
-    rewrite veblen_zero at 1.
-    rewrite (vtower_limit EM _ onePlus_normal (VF_denote n)) at 1; auto.
-    rewrite (vtower_limit EM _ onePlus_normal (VF_denote n)) at 1; auto.
-    destruct (VF_denote n) as [N h]. simpl.
-    destruct H4 as [[n0] Hl].
-    transitivity (supOrd (fun i => veblen (vtower (VF_denote m))
-                                          (vtower (h i)
-                                                  (limOrd (fun i0 : VF_denote c => vtower (ord N h) (VF_denote c i0)))) 0)).
-    apply (normal_continuous (fun q => veblen (vtower (VF_denote m)) q 0)); auto.
-    apply classical.ord_directed; auto.
-    apply sup_least; intro i.
-    rewrite ord_lt_unfold in H.
-    destruct H as [j Hj].
-    destruct (classical.ord_directed EM N h i j) as [k [??]].
-    destruct (Hl k) as [k' Hk'].
-    destruct (Hl k') as [k'' Hk''].
-    rewrite <- (sup_le _ _ k'').
-    transitivity (vtower (succOrd (succOrd (h k)))
-      (limOrd (fun i0 : VF_denote c => vtower (ord N h) (VF_denote c i0)))).
-    rewrite vtower_succ; auto.
-    rewrite <- (veblen_fixpoints _ (vtower_normal EM _ onePlus_normal (succOrd (h k))) 0); auto.
-    rewrite veblen_zero.
-    rewrite vtower_succ; auto.
-    rewrite onePlus_veblen; auto.
-    transitivity (veblen (vtower (h k))
-                         (vtower (h i)
-                                 (limOrd (fun i0 : VF_denote c => vtower (ord N h) (VF_denote c i0))))
-                         0).
-    apply veblen_monotone_func; auto.
-    intros. apply vtower_monotone; auto with ord.
-    rewrite Hj; auto.
-    apply veblen_monotone_first; auto.
-    rewrite <- (veblen_fixpoints _ (vtower_normal EM _ onePlus_normal (succOrd (h k))) 0); auto.
-    rewrite veblen_zero.
-    apply vtower_monotone; auto.
-    rewrite H. auto with ord.
-    transitivity (1 + limOrd (fun i0 : VF_denote c => vtower (ord N h) (VF_denote c i0))).
-    apply addOrd_le2.
-    apply (normal_inflationary (fun i => veblen (vtower (succOrd (h k))) i 0)); auto.
-    apply vtower_monotone; auto with ord.
-    apply succ_least.
-    eapply ord_le_lt_trans with (h k'); auto.
-    apply succ_least; auto.
-  - rewrite <- (veblen_fixpoints _ (vtower_normal EM _ onePlus_normal (VF_denote n)) 0 (VF_denote b) (VF_denote c)) at 2; auto.
-    rewrite veblen_zero.
-    transitivity
-      (vtower (succOrd (VF_denote m))
-              (veblen (vtower (VF_denote n)) (VF_denote b) (VF_denote c))).
-    rewrite vtower_succ; auto.
-    rewrite onePlus_veblen; auto.
-    rewrite <- (veblen_fixpoints _ (vtower_normal EM _ onePlus_normal (VF_denote m)) (VF_denote a) _ 0); auto.
-    apply normal_monotone; auto.
-    apply (normal_inflationary (fun i => veblen (vtower (VF_denote m)) i 0)); auto.
-    apply vtower_monotone; auto with ord.
-    apply succ_least. auto.
+  - apply veblen_vtower_collapse; auto.
+  - apply veblen_inflationary; auto.
 Qed.
 
 Theorem Vmn_collapse2 : forall n m b c,
   (VF_denote m < VF_denote n) ->
-  (successorOrdinal (VF_denote n) -> 0 < VF_denote b) ->
+  (limitOrdinal (VF_denote n) \/ 0 < VF_denote b) ->
   VF_denote (V m (V n b c) Z) ≈ VF_denote (V n b c).
 Proof.
   intros. simpl. split.
-  - destruct (classical.order_total EM (VF_denote b) 0).
-    + assert (VF_denote b ≈ 0).
-      { split; auto with ord. }
-      assert (limitOrdinal (VF_denote n)).
-      { destruct (classical.ordinal_discriminate EM (VF_denote n)) as [Hz|[Hs|Hz]]; auto.
-        - rewrite ord_isZero in Hz. rewrite Hz in H.
-          elim (ord_lt_irreflexive 0).
-          apply ord_le_lt_trans with (VF_denote m); auto with ord.
-        - elim (ord_lt_irreflexive 0).
-          apply ord_lt_le_trans with (VF_denote b); auto with ord. }
-      rewrite H2.
-      rewrite veblen_zero at 1.
-      rewrite veblen_zero at 1.
-      rewrite (vtower_limit EM _ onePlus_normal (VF_denote n)) at 1; auto.
-      rewrite (vtower_limit EM _ onePlus_normal (VF_denote n)) at 1; auto.
-      destruct (VF_denote n) as [N h]. simpl.
-      destruct H3 as [[n0] Hl].
-      transitivity (supOrd (fun i => veblen (vtower (VF_denote m)) (vtower (h i) (limOrd (fun i0 : VF_denote c => vtower (ord N h) (VF_denote c i0)))) 0)).
-      apply (normal_continuous (fun q => veblen (vtower (VF_denote m)) q 0)); auto.
-      apply classical.ord_directed; auto.
-      apply sup_least; intro i.
-      rewrite ord_lt_unfold in H.
-      destruct H as [j Hj].
-      destruct (classical.ord_directed EM N h i j) as [k [??]].
-      destruct (Hl k) as [k' Hk'].
-      destruct (Hl k') as [k'' Hk''].
-      rewrite <- (sup_le _ _ k'').
-      transitivity (vtower (succOrd (succOrd (h k))) (limOrd (fun i0 : VF_denote c => vtower (ord N h) (VF_denote c i0)))).
-      rewrite vtower_succ; auto.
-      rewrite <- (veblen_fixpoints _ (vtower_normal EM _ onePlus_normal (succOrd (h k))) 0); auto.
-      rewrite veblen_zero.
-      rewrite vtower_succ; auto.
-      rewrite onePlus_veblen; auto.
-      transitivity (veblen (vtower (h k))
-                           (vtower (h i)
-                                   (limOrd (fun i0 : VF_denote c => vtower (ord N h) (VF_denote c i0))))
-                           0).
-      apply veblen_monotone_func; auto.
-      intros; apply vtower_monotone; auto with ord.
-      rewrite Hj; auto.
-      apply veblen_monotone_first; auto.
-      rewrite <- (veblen_fixpoints _ (vtower_normal EM _ onePlus_normal (succOrd (h k))) 0); auto.
-      rewrite veblen_zero.
-      apply vtower_monotone; auto with ord.
-      transitivity (1 + limOrd (fun i0 : VF_denote c => vtower (ord N h) (VF_denote c i0))).
-      apply addOrd_le2.
-      apply (normal_inflationary (fun q => veblen (vtower (succOrd (h k))) q 0)); auto.
-      apply vtower_monotone; auto with ord.
-      apply succ_least.
-      apply ord_le_lt_trans with (h k'); auto.
-      apply succ_least. auto.
-
-    + rewrite <- (veblen_fixpoints _ (vtower_normal EM _ onePlus_normal (VF_denote n)) 0) at 2; auto.
-      rewrite veblen_zero.
-      transitivity
-        (vtower (succOrd (VF_denote m))
-                (veblen (vtower (VF_denote n)) (VF_denote b) (VF_denote c))).
-      rewrite vtower_succ; auto.
-      rewrite onePlus_veblen; auto with ord.
-      apply vtower_monotone; auto with ord.
-      apply succ_least; auto.
+  - simpl. apply veblen_vtower_strongly_critical; auto.
   - apply (normal_inflationary (fun x => veblen (vtower (VF_denote m)) x 0)); auto.
 Qed.
 
+
 Lemma veblen_tower_epsilon :
   forall n x y,
-    (successorOrdinal n -> x > 0) ->
     n > 0 ->
+    (limitOrdinal n \/ x > 0) ->
     expOrd ω (veblen (vtower n) x y) ≈ veblen (vtower n) x y.
 Proof.
   intros.
   split.
-  destruct (classical.order_total EM x 0).
-  - assert (x ≈ 0).
-    { split; auto with ord. }
-    assert (limitOrdinal n).
-    { destruct (classical.ordinal_discriminate EM n) as [Hz|[Hs|Hl]].
-      - rewrite ord_isZero in Hz. rewrite Hz in H0.
-        elim (ord_lt_irreflexive 0); auto.
-      - elim (ord_lt_irreflexive 0); auto.
-        apply ord_lt_le_trans with x; auto.
-      - auto. }
-    rewrite H2.
-    rewrite veblen_zero at 1.
-    rewrite veblen_zero at 1.
-    destruct n as [N h].
-    rewrite vtower_limit at 1; auto.
-    destruct H3 as [[n0] Hl].
-    etransitivity. apply normal_continuous; auto.
-    apply classical.ord_directed; auto.
-    apply sup_least; intro i.
-    destruct (Hl i) as [j ?].
-    destruct (Hl j) as [k ?].
-    rewrite (vtower_limit EM _ onePlus_normal (ord N h) y); auto.
-    simpl.
-    rewrite <- (sup_le _ _ k).
-    transitivity (vtower (succOrd (succOrd (h i))) (limOrd (fun i0 : y => vtower (ord N h) (y i0)))).
-    rewrite vtower_succ; auto.
-    rewrite <- (veblen_fixpoints _ (vtower_normal EM _ onePlus_normal (succOrd (h i))) 0); auto.
-    rewrite veblen_zero.
-    transitivity (vtower 1
-      (veblen (vtower (succOrd (h i)))
-         (1 + limOrd (fun i0 : y => vtower (ord N h) (y i0))) 0)).
-    rewrite vtower_succ; auto.
-    rewrite onePlus_veblen; auto.
-    rewrite veblen_vtower_zero; auto.
-    rewrite addOrd_zero_r.
-    apply expOrd_monotone; auto.
-    rewrite <- (veblen_fixpoints _ (vtower_normal EM _ onePlus_normal (succOrd (h i))) 0); auto.
-    rewrite veblen_zero.
-    apply vtower_monotone; auto with ord.
-    transitivity (1 + limOrd (fun i0 : y => vtower (ord N h) (y i0))).
-    apply addOrd_le2.
-    apply (normal_inflationary (fun q => veblen (vtower (succOrd (h i))) q 0)).
-    apply veblen_first_normal; auto.
-    apply classical.ord_complete; auto.
-    apply vtower_monotone; auto with ord.
-    apply succ_least. apply succ_trans. auto with ord.
-    apply vtower_monotone; auto with ord.
-    apply succ_least; auto.
-    apply ord_le_lt_trans with (h j); auto.
-    apply succ_least; auto.
-    split; auto.
-
-  - rewrite <- (veblen_fixpoints _ (vtower_normal EM _ onePlus_normal n) 0) at 2; auto.
-    rewrite veblen_zero.
-    transitivity (vtower 1 (veblen (vtower n) x y)).
-    rewrite vtower_succ; auto.
-    rewrite veblen_vtower_zero; auto.
-    rewrite addOrd_zero_r.
-    apply expOrd_monotone.
-    apply addOrd_le2.
-    apply vtower_monotone; auto with ord.
-    apply succ_least; auto.
-
+  - transitivity (veblen (vtower 0) (veblen (vtower n) x y) 0).
+    rewrite veblen_vtower_zero; auto. rewrite addOrd_zero_r. auto with ord.
+    apply veblen_vtower_strongly_critical; auto.
   - apply normal_inflationary; auto.
 Qed.
 
@@ -420,13 +233,16 @@ Proof.
   intros. simpl. rewrite H. reflexivity.
 Qed.
 
+Definition stableVTerm m a :=
+  m = Z \/ limitOrdinal (VF_denote m) \/ VF_denote a > 0.
+
 Fixpoint VF_isNormal (x:VForm) : Prop :=
   match x with
   | Z => True
   | V m a b => VF_isNormal m /\
                VF_isNormal a /\
                VF_isNormal b /\
-               (successorOrdinal (VF_denote m) -> VF_denote a > 0) /\
+               stableVTerm m a /\
 
                match b with
                | Z =>
@@ -439,7 +255,7 @@ Fixpoint VF_isNormal (x:VForm) : Prop :=
                  match VF_compare m n with
                  | LT => VF_denote a >= VF_denote b
                  | EQ => VF_denote a >= VF_denote x
-                 | GT => True (*VF_denote a > 0   V m a (V n x y)   m > n *)
+                 | GT => True
                  end
                end
   end.
@@ -486,30 +302,34 @@ Lemma isSucc_spec : forall x,
     end.
 Proof.
   intro x.
-  induction x; simpl; intuition.
+  induction x; simpl; auto.
+  intros [?[?[?[??]]]].
+
   destruct x1; auto.
   destruct x2; auto.
   destruct x3; auto.
-  apply SuccOne.
-  case_eq (isSucc (V x3_1 x3_2 x3_3)); intros.
-  rewrite H7 in H6.
-  destruct v; auto.
-  apply SuccRec; auto.
-  apply SuccRec; auto.
-  auto.
-  destruct (isSucc x3); auto.
-  destruct v.
-  destruct x2_1.
-  apply SuccRec; auto.
+  - apply SuccOne.
+  - case_eq (isSucc (V x3_1 x3_2 x3_3)); intros.
+    rewrite H4 in IHx3.
+    destruct v; auto.
+    apply SuccRec; auto.
+    apply SuccRec; auto.
+    auto.
+  - destruct (isSucc x3); auto.
+    destruct v.
+    destruct x2_1.
+    apply SuccRec; auto.
 
-  apply SuccCollapse; auto.
-  simpl.
-  apply veblen_tower_epsilon.
-  simpl in H; intuition.
-  apply veblen_nonzero; auto.
+    apply SuccCollapse; auto.
+    simpl.
+    apply veblen_tower_epsilon; auto.
+    apply veblen_nonzero; auto.
+    hnf in H0.
+    unfold stableVTerm in H0.
+    intuition; try discriminate.
 
-  apply SuccRec; auto.
-  left. apply veblen_nonzero; auto.
+    apply SuccRec; auto.
+    left. apply veblen_nonzero; auto.
 Qed.
 
 Lemma succSpec_normal : forall x s,
@@ -518,32 +338,21 @@ Lemma succSpec_normal : forall x s,
     VF_isNormal s.
 Proof.
   intros. induction H0.
-  simpl; auto.
-  simpl in H.
-  simpl; intuition.
-  destruct s.
-  elim (ord_lt_irreflexive 0); auto.
-  inversion H1; subst; auto.
-  destruct s1; simpl; auto.
-  rewrite <- H6.
-  simpl.
-  transitivity (veblen (vtower 0) (VF_denote s2) 0).
-  apply (normal_inflationary (fun q => veblen (vtower 0) q 0)); auto.
-  apply normal_monotone; auto with ord.
-  destruct s.
-  destruct a; auto.
-  destruct x; auto.
-  subst; auto with ord.
+  - simpl; auto.
+  - simpl. destruct H as [?[?[?[??]]]].
+    repeat split; auto.
+    destruct s.
+    { destruct a; auto.
+      destruct H0; subst; auto with ord.
+      elim (ord_lt_irreflexive 0); auto. }
 
-  inversion H1; subst; auto.
-  destruct s1; auto.
-  rewrite <- H6.
-  simpl.
-  transitivity (veblen (vtower 0) (VF_denote s2) 0).
-  apply (normal_inflationary (fun q => veblen (vtower 0) q 0)); auto.
-  apply normal_monotone; auto with ord.
-
-  simpl in H. intuition.
+    inversion H1; subst; simpl in H5; auto.
+    destruct s1; auto.
+    rewrite <- H5. simpl.
+    transitivity (veblen (vtower 0) (VF_denote s2) 0).
+    apply (normal_inflationary (fun q => veblen (vtower 0) q 0)); auto.
+    apply normal_monotone; auto with ord.
+  - simpl in H; intuition.
 Qed.
 
 Lemma isSucc_normal : forall x,
@@ -631,10 +440,11 @@ Proof.
                rewrite addOrd_zero_r.
                apply succ_congruence.
                apply veblen_tower_epsilon.
-               simpl; intuition.
-               simpl in H.
-               intuition.
                apply veblen_nonzero; auto.
+               destruct H as [?[?[??]]].
+               simpl in H0.
+               unfold stableVTerm in *.
+               intuition; try discriminate.
                intuition.
 
         ** simpl.
@@ -701,16 +511,13 @@ Proof.
                **** assert (VF_denote b ≈ 0).
                     { split; auto with ord. }
                     assert (limitOrdinal (VF_denote n)).
-                    { generalize (isSucc_correct n Hly1).
-                      destruct (isSucc n); intros.
+                    { clear -Hly4 Hmn H2.
+                      hnf in Hly4.
+                      intuition; subst; simpl in *.
                       elim (ord_lt_irreflexive 0).
-                      rewrite <- H2 at 2.
-                      apply Hly4. rewrite ord_isSucc; eauto.
-                      destruct H3; auto.
-                      rewrite ord_isZero in H3.
-                      rewrite H3 in Hmn.
+                      apply ord_le_lt_trans with (VF_denote m); auto with ord.
                       elim (ord_lt_irreflexive 0).
-                      eapply ord_le_lt_trans with (VF_denote m); auto with ord. }
+                      rewrite <- H2 at 2. auto. }
                     rewrite H2.
                     rewrite veblen_zero at 1.
                     rewrite veblen_zero at 1.
@@ -744,16 +551,13 @@ Proof.
                  **** assert (VF_denote b ≈ 0).
                       { split; auto with ord. }
                       assert (limitOrdinal (VF_denote n)).
-                      { generalize (isSucc_correct n Hly1).
-                        destruct (isSucc n); intros.
+                      { clear -Hly4 Hmn H2.
+                        hnf in Hly4.
+                        intuition; subst; simpl in *.
                         elim (ord_lt_irreflexive 0).
-                        rewrite <- H2 at 2.
-                        apply Hly4. rewrite ord_isSucc; eauto.
-                        destruct H3; auto.
-                        rewrite ord_isZero in H3.
-                        rewrite H3 in Hmn.
+                        apply ord_le_lt_trans with (VF_denote m); auto with ord.
                         elim (ord_lt_irreflexive 0).
-                        eapply ord_le_lt_trans with (VF_denote m); auto with ord. }
+                        rewrite <- H2 at 2; auto. }
                       rewrite H2.
                       rewrite veblen_zero at 1.
                       rewrite veblen_zero at 1.
@@ -790,16 +594,13 @@ Proof.
                  **** assert (VF_denote b ≈ 0).
                       { split; auto with ord. }
                       assert (limitOrdinal (VF_denote n)).
-                      { generalize (isSucc_correct n Hly1).
-                        destruct (isSucc n); intros.
+                      { clear -Hly4 Hmn H1.
+                        hnf in Hly4.
+                        intuition; subst; simpl in *.
                         elim (ord_lt_irreflexive 0).
-                        rewrite <- H1 at 2.
-                        apply Hly4. rewrite ord_isSucc; eauto.
-                        destruct H2; auto.
-                        rewrite ord_isZero in H2.
-                        rewrite H2 in Hmn.
+                        apply ord_le_lt_trans with (VF_denote m); auto with ord.
                         elim (ord_lt_irreflexive 0).
-                        eapply ord_le_lt_trans with (VF_denote m); auto with ord. }
+                        rewrite <- H1 at 2; auto. }
                       rewrite H; simpl; auto.
                       rewrite H1.
                       rewrite veblen_zero at 1.
@@ -898,16 +699,13 @@ Proof.
                **** assert (VF_denote a ≈ 0).
                     { split; auto with ord. }
                     assert (limitOrdinal (VF_denote m)).
-                    { generalize (isSucc_correct m Hlx1).
-                      destruct (isSucc m); intros.
+                    { clear -Hlx4 H0 H3.
+                      hnf in Hlx4.
+                      intuition; subst; auto.
                       elim (ord_lt_irreflexive 0).
-                      rewrite <- H3 at 2.
-                      apply Hlx4. rewrite ord_isSucc; eauto.
-                      destruct H4; auto.
-                      rewrite ord_isZero in H4.
-                      rewrite H4 in H0.
+                      apply ord_le_lt_trans with (VF_denote n); auto with ord.
                       elim (ord_lt_irreflexive 0).
-                      eapply ord_le_lt_trans with (VF_denote n); auto with ord. }
+                      rewrite <- H3 at 2; auto with ord. }
                     rewrite <- H1. simpl.
                     rewrite H3.
                     rewrite veblen_zero at 1.
@@ -954,17 +752,13 @@ Proof.
                **** assert (VF_denote a ≈ 0).
                     { split; auto with ord. }
                     assert (limitOrdinal (VF_denote m)).
-                    { generalize (isSucc_correct m Hlx1).
-                      destruct (isSucc m); intros.
+                    { clear -Hlx4 H0 H4.
+                      hnf in Hlx4.
+                      intuition; subst; auto.
                       elim (ord_lt_irreflexive 0).
-                      rewrite <- H3 at 2.
-                      apply Hlx4. rewrite ord_isSucc; eauto.
-                      destruct H5; auto.
-                      rewrite ord_isZero in H5.
-                      rewrite H5 in H0.
+                      apply ord_le_lt_trans with (VF_denote n); auto with ord.
                       elim (ord_lt_irreflexive 0).
-                      eapply ord_le_lt_trans with (VF_denote n); auto with ord. }
-
+                      rewrite <- H4 at 2; auto with ord. }
                     rewrite H4.
                     rewrite veblen_zero at 1.
                     rewrite veblen_zero at 1.
@@ -997,17 +791,13 @@ Proof.
                **** assert (VF_denote a ≈ 0).
                     { split; auto with ord. }
                     assert (limitOrdinal (VF_denote m)).
-                    { generalize (isSucc_correct m Hlx1).
-                      destruct (isSucc m); intros.
+                    { clear -Hlx4 H0 H4.
+                      hnf in Hlx4.
+                      intuition; subst; auto.
                       elim (ord_lt_irreflexive 0).
-                      rewrite <- H3 at 2.
-                      apply Hlx4. rewrite ord_isSucc; eauto.
-                      destruct H5; auto.
-                      rewrite ord_isZero in H5.
-                      rewrite H5 in H0.
+                      apply ord_le_lt_trans with (VF_denote n); auto with ord.
                       elim (ord_lt_irreflexive 0).
-                      eapply ord_le_lt_trans with (VF_denote n); auto with ord. }
-
+                      rewrite <- H4 at 2; auto with ord. }
                     rewrite H4.
                     rewrite veblen_zero at 1.
                     rewrite veblen_zero at 1.
@@ -1045,94 +835,92 @@ Definition subterm_shrink x :=
 
 Lemma normal_subterm_shrink : forall x, VF_isNormal x -> subterm_shrink x.
 Proof.
-  induction x; simpl; intuition.
-  - destruct x3.
-    destruct x2; simpl in *; intuition.
-    * rewrite veblen_zero.
-      destruct x1; simpl in H3; intuition.
-      + simpl.
-        rewrite vtower_zero.
-        rewrite addOrd_zero_r.
-        apply succ_lt.
-      + simpl.
+  induction x; simpl; auto.
+  intros [?[?[?[??]]]].
+  - destruct x3; subst.
+    destruct x2; subst.
+    + simpl. repeat split; try (apply veblen_nonzero; auto).
+      rewrite veblen_zero.
+      hnf in H2.
+      intuition; subst.
+      * apply normal_nonzero; auto.
+      * destruct x1; simpl in H4; intuition; try discriminate.
+        { apply normal_nonzero; auto. }
+        simpl.
         apply veblen_collapse'; auto.
-        eapply ord_lt_le_trans; [ apply H3 | ].
+        eapply ord_lt_le_trans; [ apply H4 | ].
         apply (normal_inflationary (fun q => vtower q 0)); auto.
         apply vtower_first_normal; auto.
         eapply ord_lt_le_trans; [ apply H9 | ].
         apply (normal_inflationary (fun q => vtower q 0)); auto.
         apply vtower_first_normal; auto.
-
         rewrite <- (vtower_fixpoint EM _ onePlus_normal (succOrd (VF_denote x1_1))) at 2.
         rewrite vtower_succ; auto.
         apply veblen_monotone_first; auto.
         apply addOrd_le2.
-        assert (limitOrdinal (veblen (vtower (VF_denote x1_1)) (VF_denote x1_2) (VF_denote x1_3))).
-        { generalize (isSucc_correct (V x1_1 x1_2 x1_3)).
-          destruct (isSucc (V x1_1 x1_2 x1_3)).
-          intros.
-          elim (ord_lt_irreflexive 0). apply H2.
-          rewrite ord_isSucc; eauto.
-          intros [?|?]; auto.
-          rewrite ord_isZero in H8.
-          simpl in H8.
-          elim (ord_lt_irreflexive 0). rewrite <- H8 at 2.
-          apply veblen_nonzero; auto. }
-        rewrite ord_isLimit in H8.
-        destruct H8.
-        destruct (H10 (VF_denote x1_1)) as [k [??]]; auto.
+        rewrite ord_isLimit in H2.
+        destruct H2.
+        destruct (H8 (VF_denote x1_1)) as [k [??]]; auto.
         apply ord_le_lt_trans with k; auto.
         apply succ_least; auto.
-    * rewrite <- (veblen_fixpoints _ (vtower_normal EM _ onePlus_normal (VF_denote x1)) 0); auto.
-      rewrite veblen_zero.
-      apply ord_le_lt_trans with (vtower (VF_denote x1) 0).
-      apply (normal_inflationary (fun q => vtower q 0)); auto.
-      apply vtower_first_normal; auto.
-      apply normal_increasing; auto.
-      apply veblen_nonzero; auto.
-      apply veblen_nonzero; auto.
-    * rewrite veblen_unroll.
-      rewrite <- lub_le1.
-      apply ord_le_lt_trans with (vtower (VF_denote x1) 0).
-      apply (normal_inflationary (fun q => vtower q 0)); auto.
-      apply vtower_first_normal; auto.
-      apply normal_increasing; auto.
-      apply veblen_nonzero; auto.
-  - destruct x3.
-    + destruct x2; simpl in *; intuition.
-      * rewrite veblen_zero.
-        apply normal_nonzero; auto.
-
-      * apply ord_le_lt_trans with
-            (veblen (vtower (VF_denote x1)) (VF_denote x2_2) (VF_denote x2_3)).
-        apply veblen_monotone_func; auto with ord.
-        intros. apply vtower_monotone; auto with ord.
-        apply veblen_subterm1_zero_nest; simpl in *; intuition.
-    + simpl in *.
-      apply veblen_subterm1; auto with ord.
-      apply veblen_nonzero; auto.
-  - destruct x3; simpl in *; intuition.
-    + apply veblen_nonzero; auto.
-    + generalize (VF_compare_correct x1 x3_1).
-      destruct (VF_compare x1 x3_1); intros; subst.
-      * (* LT case *)
-        rewrite H4 at 1.
-        apply veblen_subterm1; auto with ord.
+      * elim (ord_lt_irreflexive 0); auto.
+    + clear H2; simpl.
+      repeat split; try (apply veblen_nonzero; auto).
+      * rewrite <- (veblen_fixpoints _ (vtower_normal EM _ onePlus_normal (VF_denote x1)) 0); auto.
+        rewrite veblen_zero.
+        apply ord_le_lt_trans with (vtower (VF_denote x1) 0).
+        apply (normal_inflationary (fun q => vtower q 0)); auto.
+        apply vtower_first_normal; auto.
+        apply normal_increasing; auto.
         apply veblen_nonzero; auto.
-      * (* EQ case *)
+        apply veblen_nonzero; auto.
+      * destruct (IHx2 H0) as [?[??]].
         apply ord_le_lt_trans with
-            (veblen (vtower (VF_denote x1)) (VF_denote x3_2) (VF_denote x3_3)).
-        apply veblen_monotone_func; auto.
-        intros; apply vtower_monotone; auto with ord.
-        apply H12; auto.
-        apply veblen_increasing'; auto.
-      * (* GT case *)
-        apply veblen_collapse'; auto.
-        eapply ord_lt_le_trans; [ apply H8 |].
-        apply veblen_inflationary; auto.
-        eapply ord_lt_le_trans; [ apply H11 |].
-        apply veblen_inflationary; auto.
-        apply (Vmn_collapse2 x1 x3_1 x2 (V x3_1 x3_2 x3_3)); auto with ord.
+            (veblen (VTower.vtower (addOrd 1) (VF_denote x1)) 
+                    (VF_denote x2_2) (VF_denote x2_3)).
+        { apply veblen_mono_func; auto with ord.
+          intros; apply vtower_monotone; auto with ord. }
+        apply veblen_subterm1_zero_nest; simpl in *; intuition.        
+    + destruct (IHx3 H1) as [?[??]].
+      repeat split.
+      * apply ord_le_lt_trans with (veblen (VTower.vtower (addOrd 1) (VF_denote x1)) (VF_denote x2) 0).
+        { rewrite veblen_unroll.
+          rewrite <- lub_le1.
+          apply (normal_inflationary (fun q => vtower q 0)); auto.
+          apply vtower_first_normal; auto. }
+        apply veblen_increasing; auto.
+        simpl; apply veblen_nonzero; auto.
+      * apply ord_le_lt_trans with (veblen (VTower.vtower (addOrd 1) (VF_denote x1)) (VF_denote x2) 0).
+        apply (normal_inflationary (fun q => veblen (vtower (VF_denote x1)) q 0)); auto.
+        apply veblen_increasing; auto.
+        simpl; apply veblen_nonzero; auto.
+      * simpl.
+        destruct H1 as [?[?[?[??]]]].
+        generalize (VF_compare_correct x1 x3_1 H H1).
+        destruct (VF_compare x1 x3_1); intros; subst.
+        ** (* LT case *)
+          rewrite H3 at 1.
+          apply veblen_subterm1; auto with ord.
+          apply veblen_nonzero; auto.
+        ** (* EQ case *)
+          apply ord_le_lt_trans with
+              (veblen (vtower (VF_denote x1)) (VF_denote x3_2) (VF_denote x3_3)).
+          apply veblen_monotone_func; auto.
+          intros; apply vtower_monotone; auto with ord.
+          apply H11; auto.
+          apply veblen_increasing'; auto.
+        ** (* GT case *)
+          apply veblen_collapse'; auto.
+          eapply ord_lt_le_trans; [ apply H5 |].
+          apply veblen_inflationary; auto.
+          eapply ord_lt_le_trans; [ apply H6 |].
+          apply veblen_inflationary; auto.
+          apply (Vmn_collapse2 x1 x3_1 x2 (V x3_1 x3_2 x3_3)); auto with ord.
+          clear -H2 H11.
+          hnf in H2.
+          intuition; subst.
+          elim (ord_lt_irreflexive 0).
+          apply ord_le_lt_trans with (VF_denote x3_1); auto with ord.
 Qed.
 
 Global Opaque VF_compare.
@@ -1147,14 +935,16 @@ Fixpoint VF_onePlus (x:VForm) :=
 Lemma VF_onePlus_normal : forall x, VF_isNormal x -> VF_isNormal (VF_onePlus x).
 Proof.
   induction x; simpl; intuition.
-  { destruct H0 as [[] ?]. }
+  { hnf; auto. }
   destruct x1; simpl in *; intuition.
   destruct x2; simpl in *; intuition.
   destruct x3; simpl in *; intuition.
-  { generalize (VF_compare_correct Z Z).
+  { clear; intuition.
+    generalize (VF_compare_correct Z Z).
     destruct (VF_compare Z Z); simpl; intuition.
     elim (ord_lt_irreflexive 0); auto.
   }
+  repeat split; auto.
   destruct x3_1; auto.
   destruct x3_2; auto.
 Qed.
@@ -1228,28 +1018,38 @@ Lemma Vnorm_equal m a b :
 Proof.
   unfold Vnorm; intros.
   destruct b; simpl.
-  - destruct a; simpl in *; intuition.
-    generalize (isSucc_correct m H).
-    destruct (isSucc m). simpl; intros.
-    rewrite veblen_zero.
-    rewrite veblen_zero.
-    rewrite H2.
-    rewrite vtower_succ; auto.
-    rewrite vtower_zero.
-    reflexivity.
+  - destruct a; simpl in *; auto with ord.
+    + generalize (isSucc_correct m H).
+      destruct (isSucc m).
+      * simpl; intros.
+        rewrite veblen_zero.
+        rewrite veblen_zero.
+        rewrite H2.
+        rewrite vtower_succ; auto.
+        rewrite vtower_zero.
+        reflexivity.
+      * simpl; intros.
+        reflexivity.
 
-    simpl; intros.
-    reflexivity.
-
-    generalize (VF_compare_correct m a1 H H2).
-    destruct (VF_compare m a1); simpl; intuition.
-    symmetry. apply Vmn_collapse2; auto.
+    + destruct H0 as [?[?[?[??]]]].
+      generalize (VF_compare_correct m a1 H H0).
+      destruct (VF_compare m a1); simpl; intros; auto.
+      * destruct H4; intros.
+        ** subst a1.
+           elim (ord_lt_irreflexive 0).
+           apply ord_le_lt_trans with (VF_denote m); auto with ord.
+        ** symmetry. apply Vmn_collapse2; auto.
+      * reflexivity.
+      * reflexivity.
 
   - generalize (VF_compare_correct m b1 H).
     destruct (VF_compare m b1); intuition.
     + generalize (VF_compare_correct a (V b1 b2 b3) H0 H1).
-      destruct (VF_compare a (V b1 b2 b3)); simpl in *; intuition.
-      symmetry. apply Vmn_collapse; auto.
+      destruct (VF_compare a (V b1 b2 b3)); simpl in *; intros; try reflexivity.
+      symmetry. apply Vmn_collapse; auto. apply H2; tauto.
+      unfold stableVTerm in H1; intuition; subst.
+      elim (ord_lt_irreflexive 0).
+      apply ord_le_lt_trans with (VF_denote m); auto with ord.
     + generalize (VF_compare_correct a b2 H0).
       destruct (VF_compare a b2); simpl; intuition.
       symmetry. apply V_collapse; simpl in *; intuition.
@@ -1275,27 +1075,36 @@ Lemma Vnorm_normal m a b :
 Proof.
   unfold Vnorm; intros.
   destruct b; simpl.
-  - destruct a; simpl in *; intuition.
+  - destruct a; simpl in *.
     + generalize (isSucc_normal m H).
       generalize (isSucc_correct m H).
       destruct (isSucc m); auto.
       * simpl; intuition.
-        destruct H4 as [[] _].
-        apply veblen_nonzero; auto.
+        hnf; auto.
+        hnf. right. right. apply veblen_nonzero; auto.
       * simpl; intuition.
-        elim (zero_not_successor (VF_denote m)); auto.
-        elim (successor_not_limit (VF_denote m)); auto.
-    + generalize (VF_compare_correct m a1 H H2).
-      destruct (VF_compare m a1); simpl; intuition.
+        hnf; auto.
+        destruct m; auto.
+        elim (ord_lt_irreflexive 0).
+        rewrite ord_isZero in H4.
+        rewrite <- H4 at 2.
+        apply veblen_nonzero; auto.
+        hnf; auto.
+    + destruct H0 as [?[?[?[??]]]].
+      generalize (VF_compare_correct m a1 H H0).
+      destruct (VF_compare m a1); intros; simpl; repeat split; auto with ord.
+      right. right.
       apply veblen_nonzero; auto.
-      apply H5.
+      apply H6.
+      right. right.
       apply veblen_nonzero; auto.
 
   - generalize (VF_compare_correct m b1 H).
-    destruct (VF_compare m b1); intuition.
+    destruct (VF_compare m b1); simpl in *; intros; repeat split.
     + generalize (VF_compare_correct a (V b1 b2 b3) H0 H1).
       destruct (VF_compare a (V b1 b2 b3)); simpl in *; intuition.
-      * rewrite H3.
+      * hnf.
+        right. right. rewrite H3.
         apply veblen_nonzero; auto.
       * generalize (VF_compare_correct m b1 H).
         destruct (VF_compare m b1); intuition.
@@ -1304,7 +1113,8 @@ Proof.
         transitivity (veblen (vtower (VF_denote b1)) (VF_denote b2) 0).
         apply (normal_inflationary (fun i => veblen (vtower (VF_denote b1)) i 0)); auto.
         apply normal_monotone; auto with ord.
-      * eapply ord_le_lt_trans; [ | apply H3 ]; auto with ord.
+      * hnf. right. right.
+        eapply ord_le_lt_trans; [ | apply H3 ]; auto with ord.
       * generalize (VF_compare_correct m b1 H H4).
         destruct (VF_compare m b1); auto with ord.
         intros.
@@ -1317,70 +1127,83 @@ Proof.
         destruct (VF_compare a b2).
         ** simpl; intuition.
         ** simpl; intuition.
-           rewrite H8.
-           apply H5.
-           rewrite <- H6. auto.
+           { hnf; hnf in H5; intuition.
+             subst. 
+             elim (ord_lt_irreflexive 0).
+             apply ord_le_lt_trans with (VF_denote a); auto with ord.
+             rewrite H6; auto.
+             rewrite H8; auto. }
            generalize (VF_compare_correct m b1 H H3).
-           destruct (VF_compare m b1); intros.
+           destruct (VF_compare m b1); intros; auto.
            elim (ord_lt_irreflexive (VF_denote m)).
            rewrite H6 at 2; auto.
            apply H8.
-           auto.
         ** simpl; intuition.
-           rewrite H6 in H9.
-           apply H5 in H9.
-           transitivity (VF_denote b2); auto.
+           { hnf; hnf in H5; intuition.
+             subst. 
+             elim (ord_lt_irreflexive 0).
+             apply ord_le_lt_trans with (VF_denote a); auto with ord.
+             rewrite H6; auto.
+             right. right.
+             eauto with ord. }
            generalize (VF_compare_correct m b1 H H3).
-           destruct (VF_compare m b1); intros.
+           destruct (VF_compare m b1); intros; auto.
            elim (ord_lt_irreflexive (VF_denote m)).
            rewrite H6 at 2; auto.
            auto with ord.
-           auto.
       * generalize (VF_compare_correct a b2 H0 H1).
         destruct (VF_compare a b2); simpl; intuition.
-        ** rewrite H8. apply H5.
-           rewrite <- H6; auto.
+        ** hnf in H5. hnf.
+           rewrite H8. rewrite H6.
+           intuition subst.
+           destruct m; auto.
+           elim (ord_lt_irreflexive 0).
+           simpl in H6. rewrite <- H6 at 2.
+           apply veblen_nonzero; auto.
         ** generalize (VF_compare_correct m b1 H H3).
-           destruct (VF_compare m b1); intros.
+           destruct (VF_compare m b1); intros; auto.
            elim (ord_lt_irreflexive (VF_denote m)).
            rewrite H6 at 2; auto.
            apply H8.
-           auto.
-        ** transitivity (VF_denote b2); auto.
-           apply H5.
-           rewrite <- H6; auto.
+        ** hnf in H5. hnf.
+           right. right.
+           apply ord_le_lt_trans with (VF_denote b2); auto with ord.
         ** generalize (VF_compare_correct m b1 H H3).
-           destruct (VF_compare m b1); intros.
+           destruct (VF_compare m b1); intros; auto.
            elim (ord_lt_irreflexive (VF_denote m)).
            rewrite H6 at 2; auto.
            auto with ord.
-           auto.
       * generalize (VF_compare_correct a b2 H0 H1).
         destruct (VF_compare a b2); simpl; intuition.
-        ** rewrite H8. apply H5.
-           rewrite <-  H6; auto.
+        ** hnf. rewrite H8. rewrite H6.
+           hnf in H5; intuition.
+           subst. 
+           destruct m; auto.
+           elim (ord_lt_irreflexive 0).
+           simpl in H6. rewrite <- H6 at 2.
+           apply veblen_nonzero; auto.
+
         ** generalize (VF_compare_correct m b1 H H3).
-           destruct (VF_compare m b1); intros.
+           destruct (VF_compare m b1); intros; auto.
            elim (ord_lt_irreflexive (VF_denote m)).
            rewrite H6 at 2; auto.
            apply H8.
-           auto.
-        ** transitivity (VF_denote b2); auto.
-           apply H5.
-           rewrite <- H6; auto.
+        ** hnf. right. right.
+           apply ord_le_lt_trans with (VF_denote b2); auto with ord.
         ** generalize (VF_compare_correct m b1 H H3).
-           destruct (VF_compare m b1); intros.
+           destruct (VF_compare m b1); intros; auto.
            elim (ord_lt_irreflexive (VF_denote m)).
            rewrite H6 at 2; auto.
            auto with ord.
-           auto.
     + simpl in *; intuition.
       destruct (VF_isZero a); subst.
       * generalize (isSucc_correct m H).
         generalize (isSucc_normal m H).
         destruct (isSucc m); simpl; intuition.
         ** apply VF_onePlus_normal; simpl; intuition.
-        ** rewrite VF_onePlus_correct.
+        ** hnf; simpl.
+           right. right.
+           rewrite VF_onePlus_correct.
            apply ord_lt_le_trans with 1; auto with ord.
            apply addOrd_le1.
         ** Transparent VF_onePlus.
@@ -1390,12 +1213,17 @@ Proof.
            rewrite H8 in H6.
            rewrite ord_lt_unfold in H6.
            destruct H6; auto.
-        ** elim (zero_not_successor (VF_denote m)); auto.
+        ** hnf.
+           destruct m; auto.
+           elim (ord_lt_irreflexive 0).
+           rewrite ord_isZero in H9.
+           rewrite <- H9 at 2.
+           simpl; apply veblen_nonzero; auto.
         ** rewrite ord_isZero in H9.
            rewrite H9 in H6.
            elim (ord_lt_irreflexive (VF_denote b1)); auto.
            apply ord_lt_le_trans with 0; auto with ord.
-        ** elim (successor_not_limit (VF_denote m)); auto.
+        ** hnf; auto.
         ** generalize (VF_compare_correct m b1 H H3).
            destruct (VF_compare m b1); intuition.
            elim (ord_lt_irreflexive (VF_denote b1)); auto.
@@ -1403,6 +1231,7 @@ Proof.
            elim (ord_lt_irreflexive (VF_denote b1)); auto.
            rewrite <- H8 at 2. auto.
       * simpl; intuition.
+        { hnf; auto. }
         generalize (VF_compare_correct m b1 H H3).
         destruct (VF_compare m b1); intuition.
         elim (ord_lt_irreflexive (VF_denote b1)); auto.
@@ -1487,6 +1316,11 @@ Proof.
           apply (normal_subterm_shrink (V m a x)); simpl; auto.
           rewrite <- H1.
           apply (normal_subterm_shrink (V m a x)); simpl; auto.
+          destruct H7; auto.
+          subst n.
+          elim (ord_lt_irreflexive 0).
+          apply ord_le_lt_trans with (VF_denote m); auto with ord.
+
         - exfalso.
           elim (ord_lt_irreflexive (veblen (vtower (VF_denote m)) (VF_denote a) (VF_denote x))).
           rewrite H1 at 1.
@@ -1497,6 +1331,10 @@ Proof.
           apply (normal_subterm_shrink (V n b y)); simpl; auto.
           rewrite H1.
           apply (normal_subterm_shrink (V n b y)); simpl; auto.
+          destruct H6; auto.
+          subst m.
+          elim (ord_lt_irreflexive 0).
+          apply ord_le_lt_trans with (VF_denote n); auto with ord.
       }
       subst n.
       assert (a = b).
@@ -1617,8 +1455,10 @@ Proof.
     + rewrite veblen_vtower_zero; auto.
       apply addOrd_eq_mor; auto with ord.
       apply veblen_tower_epsilon; auto.
-      simpl in *; intuition.
       apply veblen_nonzero; auto.
+      simpl in *; intuition.
+      hnf in H4; intuition.
+      discriminate.
 Qed.
 
 Definition VF_one := V Z Z Z.

@@ -959,6 +959,91 @@ Proof.
   reflexivity.
 Qed.
 
+Lemma veblen_vtower_strongly_critical : forall f n m b c,
+    normal_function f ->
+    m < n ->
+    (limitOrdinal n \/ 0 < b) ->
+    veblen (vtower f m) (veblen (vtower f n) b c) 0 <= veblen (vtower f n) b c.
+Proof.
+  intros f n m b c Hf Hmn H.
+  destruct (classical.order_total EM b 0).
+  - destruct H; [ | elim (ord_lt_irreflexive 0); apply ord_lt_le_trans with b; auto ].
+    assert (Hb : b ≈ 0).
+    { split; auto with ord. }
+    transitivity (veblen (vtower f m) (vtower f n c) 0).
+    { apply veblen_monotone_first; auto.
+      transitivity (veblen (vtower f n) 0 c).
+      { apply veblen_monotone_first; auto. }
+      apply veblen_zero. }
+    etransitivity.
+    { apply veblen_monotone_first; auto.
+      apply vtower_limit; auto. }
+    transitivity (vtower f n c).
+    2: { rewrite <- veblen_zero. apply veblen_monotone_first; auto with ord. }
+    rewrite vtower_limit; auto.
+    destruct n as [N h]. simpl.
+    destruct H as [[n0] Hl].
+    etransitivity.
+    { apply (normal_continuous (fun q => veblen (vtower f m) q 0)); auto.
+      apply classical.ord_directed; auto. }
+    apply sup_least; intro i.
+    rewrite ord_lt_unfold in Hmn.
+    destruct Hmn as [j Hj].
+    destruct (classical.ord_directed EM N h i j) as [k [??]].
+    destruct (Hl k) as [k' Hk'].
+    destruct (Hl k') as [k'' Hk''].
+    rewrite <- (sup_le _ _ k'').
+    transitivity (vtower f (succOrd (h k')) (limOrd (fun i0 : c => vtower f (ord N h) (c i0)))).
+    rewrite vtower_succ; auto.
+    rewrite <- (veblen_fixpoints _ (vtower_normal _ Hf (h k')) 0); auto.
+    rewrite veblen_zero.
+    transitivity (
+        vtower f (succOrd (h k))
+               (veblen (vtower f (h k'))
+                       (1 + limOrd (fun i0 : c => vtower f (ord N h) (c i0))) 0)).
+    rewrite vtower_succ.
+    transitivity (veblen (vtower f (h k))
+                         (vtower f (h i) (limOrd (fun i0 : c => vtower f (ord N h) (c i0)))) 0).
+    { apply veblen_mono_func; auto with ord.
+      intros; apply vtower_monotone; auto with ord.
+      rewrite Hj; auto. }
+    apply veblen_monotone_first; auto with ord.
+    rewrite onePlus_veblen; auto.
+    rewrite <- (veblen_fixpoints _ (vtower_normal _ Hf (h k')) 0 _); auto with ord.
+    rewrite veblen_zero.
+    apply vtower_monotone; auto with ord.
+    rewrite H; auto with ord.
+    transitivity (1 + limOrd (fun i0 : c => vtower f (ord N h) (c i0))).
+    apply addOrd_le2.
+    apply (normal_inflationary (fun q => veblen (vtower f ((h k'))) q 0)); auto.
+    auto.
+    apply vtower_monotone; auto with ord.
+    apply succ_least; auto.
+    apply vtower_monotone; auto with ord.
+    apply succ_least; auto.
+  - rewrite <- (veblen_fixpoints _ (vtower_normal _ Hf n) 0) at 2; auto.
+    rewrite veblen_zero.
+    transitivity (vtower f (succOrd m) (veblen (vtower f n) b c)).
+    rewrite vtower_succ; auto.
+    apply veblen_monotone_first; auto.
+    apply onePlus_veblen; auto with ord.
+    apply vtower_monotone; auto with ord.
+    apply succ_least; auto.
+Qed.
+
+Theorem veblen_vtower_collapse : forall f n m a b c,
+  normal_function f ->
+  (m < n) ->
+  (limitOrdinal n \/ 0 < b) ->
+  a < veblen (vtower f n) b c ->
+  veblen (vtower f m) a (veblen (vtower f n) b c) <= veblen (vtower f n) b c.
+Proof.
+  intros f n m a b c Hf Hmn H Ha.
+  apply veblen_collapse; auto with ord.
+  apply veblen_vtower_strongly_critical; auto.
+Qed.
+
+
 Lemma vtower_nonzero_limit :
   forall n,
     n > 0 ->
