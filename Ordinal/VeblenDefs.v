@@ -133,3 +133,34 @@ Proof.
   split; apply veblen_le_mor; auto with ord.
   apply H. apply H0. apply H. apply H0.
 Qed.
+
+
+Lemma veblen_mono_func : forall f g,
+    (forall x y, x <= y -> g x <= g y) ->
+    (forall x, f x <= g x) ->
+    (forall a x, veblen f a x <= veblen g a x).
+Proof.
+  intros f g Hg Hfg.
+  induction a using ordinal_induction.
+  induction x using ordinal_induction.
+  rewrite veblen_unroll.
+  rewrite veblen_unroll.
+  apply lub_least.
+  { rewrite <- lub_le1. auto. }
+  destruct a as [A h]. simpl.
+  apply sup_least; intro i.
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ i).
+  unfold fixOrd.
+  apply sup_ord_le_morphism. intro n.
+  induction n; simpl.
+  - rewrite ord_le_unfold; simpl; intro q.
+    rewrite ord_lt_unfold; simpl. exists q.
+    apply H0; auto with ord.
+  - transitivity (veblen g (h i)
+                         (iter_f (veblen f (h i))
+                                 (limOrd (fun x0 : x => veblen f (ord A h) (x x0))) n)).
+    { apply H; auto with ord. }
+    apply veblen_le_mor; auto with ord.
+Qed.
+
