@@ -21,13 +21,13 @@ Ordinal/VTowerFin.v
 Ordinal/VTower.v
 Ordinal/VTowerClassical.v
 
-Ordinal/CantorNotation.v
+Ordinal/Notation/CantorNotation.v
 
-Ordinal/VNotation.v
-Ordinal/VWNotation.v
-Ordinal/VTowerNotation.v
-Ordinal/VTowerLargeNotation.v
+Ordinal/Notation/VNotation.v
+Ordinal/Notation/VWNotation.v
+Ordinal/Notation/VTowerFinNotation.v
+Ordinal/Notation/VTowerNotation.v
 
-Ordinal/VNotationOld.v
-Ordinal/VWNotationOld.v
-Ordinal/VTowerNotationOld.v
+Ordinal/Notation/VNotationAug.v
+Ordinal/Notation/VWNotationAug.v
+Ordinal/Notation/VTowerFinNotationAug.v
