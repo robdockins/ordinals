@@ -31,6 +31,7 @@ Local Hint Resolve
       complete_subord : core.
 
 Section nextCritical.
+
 Definition nextCritical (f: Ord -> Ord) (y x:Ord) :=
   supOrd (fun z:y => fixOrd (veblen f z) x).
 
@@ -473,8 +474,10 @@ Section vtower_def.
           complete a ->
           complete x ->
           complete y ->
-          y > 0 -> a < b ->
-          a' < a -> veblen (vtower a') (nextCritical (vtower a) y x) 0 <= nextCritical (vtower a) y x.
+          y > 0 ->
+          a < b ->
+          a' < a ->
+          veblen (vtower a') (nextCritical (vtower a) y x) 0 <= nextCritical (vtower a) y x.
     Proof.
       intros a y x.
       revert a y.
