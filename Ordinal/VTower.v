@@ -123,19 +123,6 @@ Proof.
   apply fixOrd_above.
 Qed.
 
-Lemma directed_monotone :
-  forall (a:Ord) f,
-    (forall (x y:a), sz x <= sz y -> f x <= f y) ->
-    complete a ->
-    directed a f.
-Proof.
-  intros.
-  hnf; simpl; intros.
-  destruct (complete_directed a H0 a1 a2) as [a' [??]].
-  exists a'.
-  split; apply H; auto.
-Qed.
-
 Lemma nextCritical_critical :
   forall f y x y',
     normal_function f ->

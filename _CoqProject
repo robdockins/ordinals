@@ -20,6 +20,7 @@ Ordinal/Countable.v
 Ordinal/VTowerFin.v
 Ordinal/VTower.v
 Ordinal/VTowerClassical.v
+Ordinal/BHTower.v
 
 Ordinal/Notation/CantorNotation.v
 

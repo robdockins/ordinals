@@ -132,6 +132,19 @@ Proof.
   destruct o as [A f]; simpl; intuition.
 Qed.
 
+Lemma directed_monotone :
+  forall (a:Ord) f,
+    (forall (x y:a), sz x <= sz y -> f x <= f y) ->
+    complete a ->
+    directed a f.
+Proof.
+  intros.
+  hnf; simpl; intros.
+  destruct (complete_directed a H0 a1 a2) as [a' [??]].
+  exists a'.
+  split; apply H; auto.
+Qed.
+
 Lemma zero_unfold : zeroOrd = ord False (False_rect Ord).
 Proof.
   reflexivity.
