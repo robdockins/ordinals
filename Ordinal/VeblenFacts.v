@@ -283,6 +283,39 @@ Proof.
       * apply H0.
 Qed.
 
+Lemma veblen_monotone_full f g a x b y :
+  (forall x y, x <= y -> g x <= g y) ->
+  (forall x, f x <= g x) ->
+  a <= b ->
+  x <= y ->
+  veblen f a x <= veblen g b y.
+Proof.
+  revert y a x.
+  induction b as [b Hb] using ordinal_induction.
+  induction y as [y Hy] using ordinal_induction.
+
+  intros.
+  rewrite (veblen_unroll f a x).
+  rewrite (veblen_unroll g b y).
+  apply lub_least.
+  - rewrite <- lub_le1.
+    transitivity (g x); auto.
+  - destruct a as [A r]. simpl.
+    apply sup_least; intro ai.
+    rewrite <- lub_le2.
+    destruct b as [B s]; simpl.
+    destruct (ord_le_subord (ord A r) (ord B s) H1 ai) as [bi ?].
+    rewrite <- (sup_le _ _ bi).
+    unfold fixOrd. apply sup_ord_le_morphism.
+    intro m.
+    induction m; simpl.
+    + rewrite ord_le_unfold; simpl; intro xi.
+      destruct (ord_le_subord x y H2 xi) as [yi ?].
+      rewrite ord_lt_unfold. simpl. exists yi.
+      apply Hy; auto with ord.
+    + apply Hb; auto with ord.
+Qed.
+
 
 Lemma veblen_monotone_func f g :
   normal_function f ->
