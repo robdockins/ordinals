@@ -391,7 +391,7 @@ Section vtower_def.
       destruct x; apply H.
     Qed.
 
-    Lemma vtower_complete_lemma2 x (a:b) : 
+    Lemma vtower_complete_lemma2 x (a:b) :
       complete x ->
       complete
           (nextCritical (vtower (sz a)) (1 + x)
@@ -494,184 +494,183 @@ Section vtower_def.
 
       apply sup_least; intro i.
       rewrite <- (sup_le _ _ i).
-      rewrite (normal_fixpoint) at 2; auto.
 
       transitivity (vtower a (fixOrd (veblen (vtower a) (sz i)) (ord X g))).
-      rewrite vtower_unroll.
-      rewrite <- lub_le2.
-      generalize Ha; intros.
-      rewrite ord_lt_unfold in Ha0.
-      destruct Ha0.
-      rewrite <- (sup_le _ _ x).
+      { rewrite vtower_unroll.
+        rewrite <- lub_le2.
+        generalize Ha; intros.
+        rewrite ord_lt_unfold in Ha0.
+        destruct Ha0.
+        rewrite <- (sup_le _ _ x).
 
-      rewrite veblen_unroll.
-      apply lub_least.
-      rewrite <- (nextCritical_critical _ _ _ 0); auto.
-      rewrite veblen_zero.
-      transitivity (vtower x 0).
-      apply vtower_monotone; auto with ord.
-      apply normal_monotone; auto with ord.
-      apply vtower_normal; auto with ord.
-      transitivity a; auto with ord.
-      apply vtower_normal; auto with ord.
-      transitivity a; auto with ord.
-      { apply addOrd_complete; auto.
-        apply normal_fix_complete; auto.
-        apply veblen_inflationary; auto with ord.
-        intros; apply veblen_monotone; auto with ord.
-        intros; apply vtower_monotone; auto with ord.
-        apply veblen_complete; auto.
-        apply normal_complete; auto. }
-      { assert (complete (fixOrd (veblen (vtower a) (sz i)) (ord X g))).
-        { apply normal_fix_complete; auto.
-          apply normal_inflationary.
-          apply veblen_normal; auto with ord.
-          intros; apply normal_monotone; auto with ord.
-          apply veblen_normal; auto with ord.
-          apply normal_complete.
-          apply veblen_normal; auto with ord. }
-        apply lim_complete; auto.
-        simpl. intro.
-        apply normal_complete; auto.
-        apply directed_monotone; auto.
-        intros; apply vtower_monotone; auto with ord.
-        apply H0.
+        rewrite veblen_unroll.
+        apply lub_least.
+        - rewrite <- (nextCritical_critical _ _ _ 0); auto.
+          rewrite veblen_zero.
+          transitivity (vtower x 0).
+          apply vtower_monotone; auto with ord.
+          apply normal_monotone; auto with ord.
+          apply vtower_normal; auto with ord.
+          transitivity a; auto with ord.
+          apply vtower_normal; auto with ord.
+          transitivity a; auto with ord.
+          { apply addOrd_complete; auto.
+            apply normal_fix_complete; auto.
+            apply veblen_inflationary; auto with ord.
+            intros; apply veblen_monotone; auto with ord.
+            intros; apply vtower_monotone; auto with ord.
+            apply veblen_complete; auto.
+            apply normal_complete; auto. }
+          { assert (complete (fixOrd (veblen (vtower a) (sz i)) (ord X g))).
+            { apply normal_fix_complete; auto.
+              apply normal_inflationary.
+              apply veblen_normal; auto with ord.
+              intros; apply normal_monotone; auto with ord.
+              apply veblen_normal; auto with ord.
+              apply normal_complete.
+              apply veblen_normal; auto with ord. }
+            apply lim_complete; auto.
+            simpl. intro.
+            apply normal_complete; auto.
+            apply directed_monotone; auto.
+            intros; apply vtower_monotone; auto with ord.
+            apply H0.
+          }
+
+          rewrite <- addOrd_le1. auto with ord.
+
+        - simpl.
+          apply sup_least; intro.
+          apply normal_fix_least; auto.
+          + apply veblen_normal; auto.
+            apply vtower_normal; auto with ord.
+            transitivity a; auto.
+            apply complete_subord.
+            apply iter_f_complete; auto.
+            apply normal_complete; auto with ord.
+            apply veblen_normal; auto.
+          + apply nextCritical_complete; auto with ord.
+            apply vtower_normal; auto with ord.
+            transitivity a; auto with ord.
+            { apply addOrd_complete; auto.
+              apply normal_fix_complete; auto.
+              apply veblen_inflationary; auto with ord.
+              intros; apply veblen_monotone; auto with ord.
+              intros; apply vtower_monotone; auto with ord.
+              apply veblen_complete; auto.
+              apply normal_complete; auto. }
+            { apply lim_complete; auto.
+              simpl. intro.
+              apply normal_complete; auto.
+              apply complete_subord.
+              apply normal_fix_complete; auto.
+              apply normal_inflationary.
+              apply veblen_normal; auto with ord.
+              intros; apply veblen_monotone; auto.
+              intros; apply vtower_monotone; auto with ord.
+              apply normal_complete.
+              apply veblen_normal; auto with ord.
+              assert (complete (fixOrd (veblen (vtower a) (sz i)) (ord X g))).
+              { apply normal_fix_complete; auto.
+                apply normal_inflationary.
+                apply veblen_normal; auto with ord.
+                intros; apply normal_monotone; auto with ord.
+                apply veblen_normal; auto with ord.
+                apply normal_complete.
+                apply veblen_normal; auto with ord. }
+              apply directed_monotone; auto.
+              intros; apply vtower_monotone; auto with ord.
+            }
+          + rewrite ord_le_unfold; intros [].
+
+          + rewrite <- (nextCritical_critical _ _ _) at 2; auto.
+            * apply veblen_monotone_func; auto.
+              apply vtower_normal; auto.
+              transitivity a; auto.
+              apply vtower_normal.
+              transitivity a; auto with ord.
+              apply complete_subord; auto.
+              intros; apply vtower_monotone; auto with ord.
+              { apply complete_subord.
+                apply iter_f_complete; auto.
+                apply normal_complete.
+                apply veblen_normal; auto with ord. }
+              { apply nextCritical_complete; auto with ord.
+                apply vtower_normal; auto with ord.
+                transitivity a; auto with ord.
+                { apply addOrd_complete; auto.
+                  apply normal_fix_complete; auto.
+                  apply veblen_inflationary; auto with ord.
+                  intros; apply veblen_monotone; auto with ord.
+                  intros; apply vtower_monotone; auto with ord.
+                  apply veblen_complete; auto.
+                  apply normal_complete; auto. }
+                { apply lim_complete; auto.
+                  simpl. intro.
+                  apply normal_complete; auto.
+                  apply complete_subord.
+                  apply normal_fix_complete; auto.
+                  apply normal_inflationary.
+                  apply veblen_normal; auto with ord.
+                  intros; apply veblen_monotone; auto.
+                  intros; apply vtower_monotone; auto with ord.
+                  apply normal_complete.
+                  apply veblen_normal; auto with ord.
+                  assert (complete (fixOrd (veblen (vtower a) (sz i)) (ord X g))).
+                  { apply normal_fix_complete; auto.
+                    apply normal_inflationary.
+                    apply veblen_normal; auto with ord.
+                    intros; apply normal_monotone; auto with ord.
+                    apply veblen_normal; auto with ord.
+                    apply normal_complete.
+                    apply veblen_normal; auto with ord. }
+                  apply directed_monotone; auto.
+                  intros; apply vtower_monotone; auto with ord.
+                }
+              }
+            * apply vtower_normal; auto.
+              transitivity a; auto with ord.
+            * apply complete_subord.
+              apply iter_f_complete; auto.
+              apply normal_complete.
+              apply veblen_normal; auto with ord.
+            *  apply addOrd_complete.
+               apply succ_complete. apply zero_complete; auto.
+               apply normal_fix_complete; auto.
+               apply normal_inflationary.
+               apply veblen_normal; auto with ord.
+               intros; apply normal_monotone; auto with ord.
+               apply veblen_normal; auto with ord.
+               apply normal_complete.
+               apply veblen_normal; auto with ord.
+            * apply lim_complete; auto.
+              simpl. intro.
+              apply normal_complete; auto.
+              apply complete_subord.
+              apply normal_fix_complete; auto.
+              apply normal_inflationary.
+              apply veblen_normal; auto with ord.
+              intros; apply veblen_monotone; auto.
+              intros; apply vtower_monotone; auto with ord.
+              apply normal_complete.
+              apply veblen_normal; auto with ord.
+              assert (complete (fixOrd (veblen (vtower a) (sz i)) (ord X g))).
+              { apply normal_fix_complete; auto.
+                apply normal_inflationary.
+                apply veblen_normal; auto with ord.
+                intros; apply normal_monotone; auto with ord.
+                apply veblen_normal; auto with ord.
+                apply normal_complete.
+                apply veblen_normal; auto with ord. }
+              apply directed_monotone; auto.
+              intros; apply vtower_monotone; auto with ord.
+
+            * rewrite <- addOrd_le2.
+              rewrite ord_lt_unfold.
+              exists a0; auto with ord.
       }
 
-      rewrite <- addOrd_le1. auto with ord.
-
-      simpl.
-      apply sup_least; intro.
-      apply normal_fix_least; auto.
-      apply veblen_normal; auto.
-      apply vtower_normal; auto with ord.
-      transitivity a; auto.
-      apply complete_subord.
-      apply iter_f_complete; auto.
-      apply normal_complete; auto with ord.
-      apply veblen_normal; auto.
-      apply nextCritical_complete; auto with ord.
-      apply vtower_normal; auto with ord.
-      transitivity a; auto with ord.
-      { apply addOrd_complete; auto.
-        apply normal_fix_complete; auto.
-        apply veblen_inflationary; auto with ord.
-        intros; apply veblen_monotone; auto with ord.
-        intros; apply vtower_monotone; auto with ord.
-        apply veblen_complete; auto.
-        apply normal_complete; auto. }
-      { apply lim_complete; auto.
-        simpl. intro.
-        apply normal_complete; auto.
-        apply complete_subord.
-        apply normal_fix_complete; auto.
-        apply normal_inflationary.
-        apply veblen_normal; auto with ord.
-        intros; apply veblen_monotone; auto.
-        intros; apply vtower_monotone; auto with ord.
-        apply normal_complete.
-        apply veblen_normal; auto with ord.
-        assert (complete (fixOrd (veblen (vtower a) (sz i)) (ord X g))).
-        { apply normal_fix_complete; auto.
-          apply normal_inflationary.
-          apply veblen_normal; auto with ord.
-          intros; apply normal_monotone; auto with ord.
-          apply veblen_normal; auto with ord.
-          apply normal_complete.
-          apply veblen_normal; auto with ord. }
-        apply directed_monotone; auto.
-        intros; apply vtower_monotone; auto with ord.
-      }
-      rewrite ord_le_unfold; intros [].
-
-      rewrite <- (nextCritical_critical _ _ _) at 2; auto.
-      apply veblen_monotone_func; auto.
-      apply vtower_normal; auto.
-      transitivity a; auto.
-      apply vtower_normal.
-      transitivity a; auto with ord.
-      apply complete_subord; auto.
-      intros; apply vtower_monotone; auto with ord.
-      { apply complete_subord.
-        apply iter_f_complete; auto.
-        apply normal_complete.
-        apply veblen_normal; auto with ord. }
-      { apply nextCritical_complete; auto with ord.
-        apply vtower_normal; auto with ord.
-        transitivity a; auto with ord.
-        { apply addOrd_complete; auto.
-          apply normal_fix_complete; auto.
-          apply veblen_inflationary; auto with ord.
-          intros; apply veblen_monotone; auto with ord.
-          intros; apply vtower_monotone; auto with ord.
-          apply veblen_complete; auto.
-          apply normal_complete; auto. }
-        { apply lim_complete; auto.
-          simpl. intro.
-          apply normal_complete; auto.
-          apply complete_subord.
-          apply normal_fix_complete; auto.
-          apply normal_inflationary.
-          apply veblen_normal; auto with ord.
-          intros; apply veblen_monotone; auto.
-          intros; apply vtower_monotone; auto with ord.
-          apply normal_complete.
-          apply veblen_normal; auto with ord.
-          assert (complete (fixOrd (veblen (vtower a) (sz i)) (ord X g))).
-          { apply normal_fix_complete; auto.
-            apply normal_inflationary.
-            apply veblen_normal; auto with ord.
-            intros; apply normal_monotone; auto with ord.
-            apply veblen_normal; auto with ord.
-            apply normal_complete.
-            apply veblen_normal; auto with ord. }
-          apply directed_monotone; auto.
-          intros; apply vtower_monotone; auto with ord.
-        }
-      }
-
-      apply vtower_normal; auto.
-      transitivity a; auto with ord.
-
-      { apply complete_subord.
-        apply iter_f_complete; auto.
-        apply normal_complete.
-        apply veblen_normal; auto with ord. }
-      { apply addOrd_complete.
-        apply succ_complete. apply zero_complete; auto.
-        apply normal_fix_complete; auto.
-        apply normal_inflationary.
-        apply veblen_normal; auto with ord.
-        intros; apply normal_monotone; auto with ord.
-        apply veblen_normal; auto with ord.
-        apply normal_complete.
-        apply veblen_normal; auto with ord. }
-      { apply lim_complete; auto.
-        simpl. intro.
-        apply normal_complete; auto.
-        apply complete_subord.
-        apply normal_fix_complete; auto.
-        apply normal_inflationary.
-        apply veblen_normal; auto with ord.
-        intros; apply veblen_monotone; auto.
-        intros; apply vtower_monotone; auto with ord.
-        apply normal_complete.
-        apply veblen_normal; auto with ord.
-        assert (complete (fixOrd (veblen (vtower a) (sz i)) (ord X g))).
-        { apply normal_fix_complete; auto.
-          apply normal_inflationary.
-          apply veblen_normal; auto with ord.
-          intros; apply normal_monotone; auto with ord.
-          apply veblen_normal; auto with ord.
-          apply normal_complete.
-          apply veblen_normal; auto with ord. }
-        apply directed_monotone; auto.
-        intros; apply vtower_monotone; auto with ord.
-      }
-
-      rewrite <- addOrd_le2.
-      rewrite ord_lt_unfold. exists a0; auto with ord.
-
+      rewrite (normal_fixpoint) at 2; auto.
       rewrite <- veblen_zero.
       apply veblen_monotone_first; auto with ord.
       intros. apply normal_monotone; auto with ord.
@@ -818,145 +817,146 @@ Section vtower_def.
         * apply Hinda; auto with ord.
           apply Hca.
           transitivity (ord A g); auto with ord.
+
         * simpl. apply sup_least. intros.
           apply normal_fix_least; auto.
-          apply veblen_normal; auto.
-          apply vtower_normal; auto.
-          transitivity (ord A g); auto with ord.
-          apply Hca.
-          apply H0.
-          rewrite ord_le_unfold. simpl. intros.
-          assert (vtower b x a0 < vtower b x).
-          auto with ord.
-          rewrite (vtower_unroll b x) in H2 at 2.
-          apply lub_lt in H2.
-          destruct H2.
+          ** apply veblen_normal; auto.
+             apply vtower_normal; auto.
+             transitivity (ord A g); auto with ord.
+             apply Hca.
+             apply H0.
+          ** rewrite ord_le_unfold. simpl. intros.
+             assert (vtower b x a0 < vtower b x).
+             { auto with ord. }
+             rewrite (vtower_unroll b x) in H2 at 2.
+             apply lub_lt in H2.
+             destruct H2.
 
-          { apply ord_lt_le_trans with (veblen (vtower (sz q)) (ord Y h) (f x)).
-            apply veblen_increasing; auto.
-            apply vtower_normal; auto.
-            transitivity (ord A g); auto with ord.
-            apply normal_complete; auto.
-            rewrite (vtower_unroll b x).
-            rewrite ord_lt_unfold in H.
-            destruct H as [i2 ?].
-            rewrite <- lub_le2.
+             { apply ord_lt_le_trans with (veblen (vtower (sz q)) (ord Y h) (f x)).
+               apply veblen_increasing; auto.
+               apply vtower_normal; auto.
+               transitivity (ord A g); auto with ord.
+               apply normal_complete; auto.
+               rewrite (vtower_unroll b x).
+               rewrite ord_lt_unfold in H.
+               destruct H as [i2 ?].
+               rewrite <- lub_le2.
 
-            apply veblen_collapse; auto with ord.
-            apply vtower_normal; auto.
-            transitivity (ord A g); auto with ord.
-            rewrite ord_lt_unfold; eauto.
-            apply normal_complete; auto.
-            eapply ord_lt_le_trans; [ apply H1 | ].
+               apply veblen_collapse; auto with ord.
+               apply vtower_normal; auto.
+               transitivity (ord A g); auto with ord.
+               rewrite ord_lt_unfold; eauto.
+               apply normal_complete; auto.
+               eapply ord_lt_le_trans; [ apply H1 | ].
 
-            transitivity (vtower 0 (vtower b x)).
-            { rewrite (vtower_unroll 0).
-              rewrite <- lub_le1.
-              apply onePlus_least_normal; auto.
-            }
-            transitivity (vtower (g q) (vtower b x)).
-            { apply vtower_monotone; auto with ord. }
-            rewrite Hinda; auto with ord.
-            apply nextCritical_inflate_lemma; auto with ord.
-            apply Hca.
-            rewrite ord_lt_unfold. exists i2; auto with ord.
-            transitivity (ord A g); auto with ord.
+               transitivity (vtower 0 (vtower b x)).
+               { rewrite (vtower_unroll 0).
+                 rewrite <- lub_le1.
+                 apply onePlus_least_normal; auto.
+               }
+               transitivity (vtower (g q) (vtower b x)).
+               { apply vtower_monotone; auto with ord. }
+               rewrite Hinda; auto with ord.
+               apply nextCritical_inflate_lemma; auto with ord.
+               apply Hca.
+               rewrite ord_lt_unfold. exists i2; auto with ord.
+               transitivity (ord A g); auto with ord.
 
-            rewrite <- (sup_le _ _ i2).
-            rewrite <- (nextCritical_critical (vtower (sz i2)) _ _ 0); auto.
-            rewrite veblen_zero.
-            rewrite vtower_unroll.
-            rewrite <- lub_le1.
-            apply normal_monotone; auto.
-            rewrite <- nextCritical_above.
-            rewrite ord_le_unfold. intros r.
-            rewrite ord_lt_unfold; exists r. simpl.
-            apply vtower_inflate; auto.
-            rewrite <- addOrd_le1.
-            apply succ_lt.
-            apply vtower_normal; auto with ord.
-            rewrite <- addOrd_le1.
-            apply succ_lt; auto.
+               rewrite <- (sup_le _ _ i2).
+               rewrite <- (nextCritical_critical (vtower (sz i2)) _ _ 0); auto.
+               rewrite veblen_zero.
+               rewrite vtower_unroll.
+               rewrite <- lub_le1.
+               apply normal_monotone; auto.
+               rewrite <- nextCritical_above.
+               rewrite ord_le_unfold. intros r.
+               rewrite ord_lt_unfold; exists r. simpl.
+               apply vtower_inflate; auto.
+               rewrite <- addOrd_le1.
+               apply succ_lt.
+               apply vtower_normal; auto with ord.
+               rewrite <- addOrd_le1.
+               apply succ_lt; auto.
 
-            etransitivity.
-            { apply (normal_continuous (fun z => veblen (vtower (sz q)) z 0)); auto.
-              apply veblen_first_normal; auto with ord.
-              apply vtower_normal.
-              transitivity (ord A g); auto with ord.
-              rewrite ord_lt_unfold; eauto.
-              apply complete_subord; auto.
-            }
+               etransitivity.
+               { apply (normal_continuous (fun z => veblen (vtower (sz q)) z 0)); auto.
+                 apply veblen_first_normal; auto with ord.
+                 apply vtower_normal.
+                 transitivity (ord A g); auto with ord.
+                 rewrite ord_lt_unfold; eauto.
+                 apply complete_subord; auto.
+               }
 
-            apply sup_least; intro i1.
-            destruct (complete_directed b Hcomplete_b i1 i2) as [i' [??]].
-            rewrite <- (sup_le _ _ i').
+               apply sup_least; intro i1.
+               destruct (complete_directed b Hcomplete_b i1 i2) as [i' [??]].
+               rewrite <- (sup_le _ _ i').
 
-            rewrite <- (nextCritical_strongly_critical (sz i') _ _ (sz q)); auto.
-            apply veblen_monotone_first; auto with ord.
-            intros; apply normal_monotone; auto with ord.
-            apply vtower_normal; auto.
-            transitivity (ord A g); auto with ord.
-            rewrite ord_lt_unfold; eauto.
-            apply nextCritical_mono; auto with ord.
-            intros; apply vtower_monotone; auto with ord.
-            intros; apply vtower_monotone; auto with ord.
-            rewrite <- addOrd_le1; auto with ord.
-            auto with ord.
-            rewrite <- H4.
-            apply ord_lt_le_trans with (ord A g); auto with ord.
-          }
+               rewrite <- (nextCritical_strongly_critical (sz i') _ _ (sz q)); auto.
+               apply veblen_monotone_first; auto with ord.
+               intros; apply normal_monotone; auto with ord.
+               apply vtower_normal; auto.
+               transitivity (ord A g); auto with ord.
+               rewrite ord_lt_unfold; eauto.
+               apply nextCritical_mono; auto with ord.
+               intros; apply vtower_monotone; auto with ord.
+               intros; apply vtower_monotone; auto with ord.
+               rewrite <- addOrd_le1; auto with ord.
+               auto with ord.
+               rewrite <- H4.
+               apply ord_lt_le_trans with (ord A g); auto with ord.
+             }
 
-          apply sup_lt in H2.
-          destruct H2 as [i1 ?].
-          apply ord_lt_le_trans with
-            (veblen (vtower (sz q)) (ord Y h)
-                    (nextCritical (vtower (sz i1)) (1 + x) (limOrd (fun x0 : x => vtower b (x x0))))).
-          apply veblen_increasing; auto.
-          apply vtower_normal; auto.
-          transitivity (ord A g); auto with ord.
-          { rewrite ord_lt_unfold in H.
-            destruct H as [i2 ?].
-            destruct (complete_directed b Hcomplete_b i1 i2) as [i' [??]].
-            rewrite (vtower_unroll b x).
-            rewrite <- lub_le2.
-            
-            apply veblen_collapse; auto with ord.
-            apply vtower_normal.
-            transitivity (ord A g); auto with ord.
-            rewrite ord_lt_unfold. exists i2; auto.
-            apply complete_subord; auto.
-            eapply ord_lt_le_trans; [ apply H1 |].
-            
-            transitivity
-              (vtower i' (
-               supOrd
-               (fun a1 : b =>
-                  nextCritical (vtower (sz a1)) (1 + x) (limOrd (fun x1 : x => vtower b (x x1)))))).
-            rewrite (vtower_unroll (sz i')).
-            rewrite <- lub_le1.
-            transitivity (f (vtower b x)).
-            { apply onePlus_least_normal; auto. }
-            apply normal_monotone; auto.
-            apply nextCritical_inflate_lemma; auto with ord.
-            { etransitivity.
-              apply normal_continuous; auto.
-              apply vtower_normal; auto with ord.
-              apply sup_least; intro i3.
-              destruct (complete_directed b Hcomplete_b i' i3) as [i'' [??]].
-              rewrite <- (sup_le _ _ i'').
-              rewrite <- (nextCritical_critical (vtower (sz i'')) _ _ 0); auto.
-              rewrite veblen_zero.
-              transitivity (vtower (sz i'')
-                                   (nextCritical (vtower (sz i3)) (1 + x) (limOrd (fun x1 : x => vtower b (x x1))))).
-              apply vtower_monotone; auto with ord.
-              apply normal_monotone; auto with ord.
-              apply nextCritical_mono; auto with ord.
-              intros; apply vtower_monotone; auto with ord.
-              intros; apply vtower_monotone; auto with ord.
-              apply vtower_normal; auto with ord.
-              rewrite <- addOrd_le1.
-              apply succ_lt; auto.
-            }
+             apply sup_lt in H2.
+             destruct H2 as [i1 ?].
+             apply ord_lt_le_trans with
+                 (veblen (vtower (sz q)) (ord Y h)
+                         (nextCritical (vtower (sz i1)) (1 + x) (limOrd (fun x0 : x => vtower b (x x0))))).
+             { apply veblen_increasing; auto.
+               apply vtower_normal; auto.
+               transitivity (ord A g); auto with ord. }
+             rewrite ord_lt_unfold in H.
+             destruct H as [i2 ?].
+             destruct (complete_directed b Hcomplete_b i1 i2) as [i' [??]].
+             rewrite (vtower_unroll b x).
+             rewrite <- lub_le2.
+
+             apply veblen_collapse; auto with ord.
+             apply vtower_normal.
+             transitivity (ord A g); auto with ord.
+             rewrite ord_lt_unfold. exists i2; auto.
+             apply complete_subord; auto.
+             eapply ord_lt_le_trans; [ apply H1 |].
+
+             transitivity
+               (vtower i' (
+                         supOrd
+                           (fun a1 : b =>
+                              nextCritical (vtower (sz a1)) (1 + x) (limOrd (fun x1 : x => vtower b (x x1)))))).
+             rewrite (vtower_unroll (sz i')).
+             rewrite <- lub_le1.
+             transitivity (f (vtower b x)).
+             { apply onePlus_least_normal; auto. }
+             apply normal_monotone; auto.
+             apply nextCritical_inflate_lemma; auto with ord.
+             { etransitivity.
+               apply normal_continuous; auto.
+               apply vtower_normal; auto with ord.
+               apply sup_least; intro i3.
+               destruct (complete_directed b Hcomplete_b i' i3) as [i'' [??]].
+               rewrite <- (sup_le _ _ i'').
+               rewrite <- (nextCritical_critical (vtower (sz i'')) _ _ 0); auto.
+               rewrite veblen_zero.
+               transitivity (vtower (sz i'')
+                                    (nextCritical (vtower (sz i3)) (1 + x) (limOrd (fun x1 : x => vtower b (x x1))))).
+               apply vtower_monotone; auto with ord.
+               apply normal_monotone; auto with ord.
+               apply nextCritical_mono; auto with ord.
+               intros; apply vtower_monotone; auto with ord.
+               intros; apply vtower_monotone; auto with ord.
+               apply vtower_normal; auto with ord.
+               rewrite <- addOrd_le1.
+               apply succ_lt; auto.
+             }
 
             rewrite <- (sup_le _ _ i').
             apply nextCritical_mono; auto with ord.
@@ -989,11 +989,11 @@ Section vtower_def.
             apply succ_lt; auto.
             auto with ord.
             rewrite <- H5.
-            apply ord_lt_le_trans with (ord A g); auto with ord. }
+            apply ord_lt_le_trans with (ord A g); auto with ord.
 
-          apply Hindy; auto with ord.
-          apply H0.
-          transitivity (ord Y h); auto with ord.
+          ** apply Hindy; auto with ord.
+             apply H0.
+             transitivity (ord Y h); auto with ord.
     Qed.
 
     Lemma vtower_continuous : scott_continuous (vtower b).
@@ -1052,7 +1052,7 @@ Section vtower_def.
           rewrite vtower_unroll.
           rewrite <- lub_le1.
           apply normal_nonzero; auto.
-        
+
         + apply limit_least. rewrite sup_unfold.
           simpl. intros [i j]. simpl.
           rewrite <- (sup_le _ _ i).
@@ -1245,7 +1245,7 @@ Section vtower_def.
   Qed.
 
   Theorem vtower_succ :
-    forall a x, 
+    forall a x,
       complete a ->
       complete x ->
       vtower (succOrd a) x ≈ veblen (vtower a) (1+x) 0.
@@ -1514,8 +1514,8 @@ Proof.
       rewrite Hj; auto. }
     apply veblen_monotone_first; auto with ord.
     rewrite onePlus_veblen; auto.
-    transitivity 
-      (veblen (vtower f (h k')) 0 
+    transitivity
+      (veblen (vtower f (h k')) 0
               (veblen (vtower f (h k'))
               (1 + limOrd (fun i0 : c => vtower f (ord N h) (c i0))) 0)).
     rewrite veblen_zero.
@@ -1556,8 +1556,8 @@ Proof.
     { apply lim_complete; auto.
       apply directed_monotone; auto.
       destruct c; apply Hcc. }
-    
-    transitivity 
+
+    transitivity
       (veblen (vtower f (h k')) 0
       (veblen (vtower f (h k'))
               (1 + limOrd (fun i0 : c => vtower f (ord N h) (c i0))) 0)).
@@ -1769,6 +1769,3 @@ Proof.
 Qed.
 
 End vtower.
-
-
-
