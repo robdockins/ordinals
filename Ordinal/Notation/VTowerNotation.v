@@ -1404,12 +1404,13 @@ Proof.
 Qed.
 
 Definition VF_one := V Z Z Z.
-Definition VF_succ x := VF_add (VF_normalize x) VF_one.
-(*
-Definition VF_expOmega x := V O x Z.
-Definition VF_epsilon x  := V 1 VF_one x.
-Definition VF_Gamma x    := V 2 VF_one x.
-*)
+Definition VF_two := V Z Z (V Z Z Z).
+Definition VF_succ x     := VF_add (VF_normalize x) VF_one.
+Definition VF_expOmega x := V Z x Z.
+Definition VF_omega      := V Z VF_one Z.
+Definition VF_epsilon x  := V VF_one VF_one x.
+Definition VF_Gamma x    := V VF_two VF_one x.
+Definition VF_SVO        := V VF_omega Z Z.
 
 Lemma VF_one_correct : VF_denote VF_one ≈ 1.
 Proof.
@@ -1418,6 +1419,19 @@ Proof.
   rewrite addOrd_zero_r.
   reflexivity.
 Qed.
+
+Lemma VF_two_correct : VF_denote VF_two ≈ 2.
+Proof.
+  simpl.
+  rewrite veblen_vtower_zero; auto.
+  rewrite veblen_vtower_zero; auto.
+  rewrite addOrd_zero_r.
+  rewrite expOrd_zero.
+  rewrite addOrd_succ.
+  rewrite addOrd_zero_r.
+  reflexivity.
+Qed.
+
 
 Lemma VF_succ_correct x : VF_denote (VF_succ x) ≈ succOrd (VF_denote x).
 Proof.
@@ -1429,6 +1443,178 @@ Proof.
   rewrite addOrd_zero_r.
   apply VF_normalize_equal.
   apply VF_normalize_isNormal.
+Qed.
+
+Lemma VF_expOmega_correct x : VF_denote (VF_expOmega x) ≈ expOrd ω (VF_denote x).
+Proof.
+  simpl.
+  rewrite veblen_vtower_zero; auto.
+  rewrite addOrd_zero_r. reflexivity.
+Qed.
+
+Lemma VF_omega_correct : VF_denote (VF_omega) ≈ ω.
+Proof.
+  transitivity (VF_denote (VF_expOmega VF_one)).
+  reflexivity.
+  rewrite VF_expOmega_correct.
+  rewrite VF_one_correct.
+  rewrite expOrd_one'; auto with ord.
+  apply omega_gt0.
+Qed.
+
+Opaque VF_one.
+Opaque VF_two.
+Opaque VF_omega.
+
+Lemma VF_epsilon_correct x : VF_denote (VF_epsilon x) ≈ ε (VF_denote x).
+Proof.
+  simpl.
+  transitivity
+     (veblen (VTower.vtower (addOrd 1) 1) 1 (VF_denote x)).
+  split; apply veblen_monotone_full; auto with ord.
+  intros; apply vtower_monotone; auto with ord.
+  apply VF_one_correct.
+  apply VF_one_correct.
+  intros; apply vtower_monotone; auto with ord.
+  apply VF_one_correct.
+  apply VF_one_correct.
+  rewrite veblen_succ; auto with ord.
+  unfold ε.
+  transitivity (enum_fixpoints (fun i => powOmega (1+i)) (VF_denote x)).
+  split; apply enum_fixpoints_func_mono; auto with ord.
+  apply compose_normal.
+  apply powOmega_normal.
+  apply onePlus_normal.
+  intros.
+  rewrite veblen_zero; auto.
+  rewrite vtower_succ; auto.
+  rewrite veblen_vtower_zero; auto.
+  rewrite addOrd_zero_r. reflexivity.
+  apply compose_normal.
+  apply powOmega_normal.
+  apply onePlus_normal.
+  intros.
+  rewrite veblen_zero; auto.
+  rewrite vtower_succ; auto.
+  rewrite veblen_vtower_zero; auto.
+  rewrite addOrd_zero_r. reflexivity.
+  split.
+  - generalize (VF_denote_complete x).
+    generalize (VF_denote x).
+    induction o as [A f Hind].
+    intros.
+    apply enum_least.
+    apply compose_normal.
+    apply powOmega_normal.
+    apply onePlus_normal.
+    apply enum_fixpoints_complete; auto.
+    intros. apply normal_inflationary; auto with ord.
+    rewrite enum_are_fixpoints at 2; auto.
+    apply expOrd_monotone; auto.
+    rewrite enum_are_fixpoints at 2; auto.
+    apply onePlus_least_normal; auto.
+    apply enum_fixpoints_complete; auto.
+    intros. apply normal_inflationary; auto with ord.
+    intros.
+    rewrite ord_lt_unfold in H0.
+    destruct H0 as [a ?].
+    apply ord_le_lt_trans with (enum_fixpoints (fun i : Ord => powOmega (1 + i)) (f a)).
+    apply enum_fixpoints_monotone; auto.
+    rewrite (Hind a); auto.
+    apply enum_fixpoints_increasing; auto with ord.
+    apply H.
+  - apply enum_fixpoints_func_mono; auto with ord.
+    apply compose_normal.
+    apply powOmega_normal.
+    apply onePlus_normal.
+    intros. apply expOrd_monotone; auto.
+    apply addOrd_le2.
+Qed.
+
+Lemma VF_Gamma_correct x : VF_denote (VF_Gamma x) ≈ Γ (VF_denote x).
+Proof.
+  simpl.
+  transitivity (veblen (vtower 2) 1 (VF_denote x)).
+  split; apply veblen_monotone_full; auto with ord.
+  intros. rewrite VF_two_correct. reflexivity.
+  apply VF_one_correct.
+  intros. rewrite VF_two_correct. reflexivity.
+  apply VF_one_correct.
+  rewrite veblen_succ; auto.
+  unfold Γ.
+  transitivity (enum_fixpoints (fun b : Ord => veblen powOmega (1+b) 0) (VF_denote x)).
+  { split; apply enum_fixpoints_func_mono; auto with ord.
+    intros.
+    rewrite veblen_zero.
+    rewrite vtower_succ; auto.
+    transitivity (veblen (fun i => powOmega (1+i)) (1+x0) 0).
+    apply veblen_monotone_func; auto.
+    apply compose_normal.
+    apply powOmega_normal.
+    apply onePlus_normal.
+    intros. rewrite vtower_succ; auto.
+    rewrite veblen_vtower_zero; auto.
+    rewrite addOrd_zero_r. reflexivity.
+    rewrite veblen_func_onePlus; auto with ord.
+
+    intros.
+    rewrite veblen_zero.
+    rewrite vtower_succ; auto.
+    transitivity (veblen (fun i => powOmega (1+i)) (1+x0) 0).
+    rewrite veblen_func_onePlus; auto with ord.
+    apply veblen_monotone_func; auto.
+    apply compose_normal.
+    apply powOmega_normal.
+    apply onePlus_normal.
+    intros. rewrite vtower_succ; auto.
+    rewrite veblen_vtower_zero; auto.
+    rewrite addOrd_zero_r. reflexivity. }
+  split.
+  - generalize (VF_denote_complete x).
+    generalize (VF_denote x).
+    induction o as [A f Hind].
+    intros.
+    apply enum_least.
+    apply (compose_normal (fun o => veblen powOmega o 0) (addOrd 1)).
+    apply veblen_first_normal.
+    apply powOmega_normal.
+    apply onePlus_normal.
+    apply enum_fixpoints_complete; auto.
+    intros. apply (normal_inflationary (fun o => veblen powOmega o 0)); auto with ord.
+    intros; apply veblen_monotone_first; auto.
+    rewrite enum_are_fixpoints at 2; auto.
+    apply veblen_monotone_first; auto.
+    rewrite enum_are_fixpoints at 2; auto.
+    apply (onePlus_least_normal (fun o => veblen powOmega o 0)).
+    apply veblen_first_normal.
+    apply powOmega_normal.
+    apply enum_fixpoints_complete; auto.
+    intros. apply (normal_inflationary (fun o => veblen powOmega o 0)); auto with ord.
+    intros; apply veblen_monotone_first; auto.
+
+    intros.
+    rewrite ord_lt_unfold in H0.
+    destruct H0 as [a ?].
+    apply ord_le_lt_trans with
+        (enum_fixpoints (fun b : Ord => veblen powOmega (1 + b) 0) (f a)); auto.
+    apply enum_fixpoints_monotone; auto.
+    intros. apply veblen_monotone_first; auto.
+    rewrite (Hind a).
+    apply enum_fixpoints_increasing; auto with ord.
+    intros. apply veblen_monotone_first; auto.
+    apply H.
+  - apply enum_fixpoints_func_mono; auto with ord.
+    intros. apply veblen_monotone_first; auto.
+    apply addOrd_le2.
+Qed.
+
+Lemma VF_SVO_correct : VF_denote (VF_SVO) ≈ SmallVeblenOrdinal.
+Proof.
+  simpl.
+  rewrite veblen_zero.
+  rewrite VF_omega_correct.
+  symmetry.
+  apply SVO_vtower.
 Qed.
 
 
