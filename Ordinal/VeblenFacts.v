@@ -283,6 +283,20 @@ Proof.
       * apply H0.
 Qed.
 
+Lemma veblen_fixpoint_zero f a x :
+  normal_function f ->
+  0 < a ->
+  complete a ->
+  complete x ->
+  f (veblen f a x) <= veblen f a x.
+Proof.
+  intros.
+  transitivity (veblen f 0 (veblen f a x)).
+  rewrite veblen_zero. reflexivity.
+  apply veblen_fixpoints; auto.
+  apply zero_complete.
+Qed.
+
 Lemma veblen_monotone_full f g a x b y :
   (forall x y, x <= y -> g x <= g y) ->
   (forall x, f x <= g x) ->
