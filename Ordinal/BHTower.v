@@ -1359,7 +1359,324 @@ Proof.
 Qed.
 
 
-(* Goal (bhtower 3 (addOrd 1) 3 0 ≈ LargeVeblenOrdinal). ??? *)
+Goal (bhtower 3 (addOrd 1) 2 0 ≈ LargeVeblenOrdinal).
+Proof.
+  rewrite bhtower_succ_zero; auto.
+  unfold LargeVeblenOrdinal.
+  split.
+  - apply normal_fix_least; auto.
+    apply bhtower_normal; auto.
+    apply onePlus_normal; auto.
+    apply normal_fix_complete; auto.
+    intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto.
+    apply vtower_first_normal; auto.
+    apply onePlus_normal; auto.
+    intros.
+    apply vtower_monotone; auto with ord.
+    apply onePlus_normal; auto.
+    intros. apply (normal_complete (fun x => vtower (addOrd 1) x 0)); auto.
+    apply vtower_first_normal; auto.
+    apply onePlus_normal; auto.
+    auto with ord.
+    rewrite bhtower_one; auto.
+    rewrite bhtower_index_two; auto.
+    rewrite  normal_fixpoint at 2; auto.
+    apply vtower_monotone; auto with ord.
+    apply onePlus_normal; auto.
+    rewrite  normal_fixpoint at 2; auto.
+    apply (onePlus_least_normal (fun x => vtower (addOrd 1) x 0)); auto.
+    apply vtower_first_normal; auto.
+    apply onePlus_normal; auto.
+    apply normal_fix_complete; auto.
+    intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto.
+    apply vtower_first_normal; auto.
+    apply onePlus_normal; auto.
+    intros.
+    apply vtower_monotone; auto with ord.
+    apply onePlus_normal; auto.
+    intros. apply (normal_complete (fun x => vtower (addOrd 1) x 0)); auto.
+    apply vtower_first_normal; auto.
+    apply onePlus_normal; auto.
+    apply vtower_first_normal; auto.
+    apply onePlus_normal; auto.
+    apply vtower_first_normal; auto.
+    apply onePlus_normal; auto.
+    apply onePlus_normal; auto.
+    apply addOrd_complete; auto.
+    apply normal_fix_complete; auto.
+    intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto.
+    apply vtower_first_normal; auto.
+    apply onePlus_normal; auto.
+    intros.
+    apply vtower_monotone; auto with ord.
+    apply onePlus_normal; auto.
+    intros. apply (normal_complete (fun x => vtower (addOrd 1) x 0)); auto.
+    apply vtower_first_normal; auto.
+    apply onePlus_normal; auto.
+    apply onePlus_normal; auto. 
+    apply normal_fix_complete; auto.
+    intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto.
+    apply vtower_first_normal; auto.
+    apply onePlus_normal; auto.
+    intros.
+    apply vtower_monotone; auto with ord.
+    apply onePlus_normal; auto.
+    intros. apply (normal_complete (fun x => vtower (addOrd 1) x 0)); auto.
+    apply vtower_first_normal; auto.
+    apply onePlus_normal; auto.
+  - apply normal_fix_least.
+    apply vtower_first_normal; auto.
+    apply onePlus_normal; auto.
+    apply normal_fix_complete; auto.
+    intros. apply normal_inflationary; auto.
+    apply bhtower_normal; auto with ord.
+    apply onePlus_normal; auto.
+    intros; apply bhtower_monotone; auto with ord.
+    intros; apply addOrd_monotone; auto with ord.
+    apply normal_complete.
+    apply bhtower_normal; auto.
+    apply onePlus_normal; auto.
+    auto with ord.
+    rewrite normal_fixpoint at 2; auto.
+    rewrite bhtower_one; auto with ord.
+    rewrite bhtower_index_two; auto.
+    apply vtower_monotone; auto with ord.
+    apply onePlus_normal; auto.
+    apply addOrd_le2.
+    apply onePlus_normal; auto.
+    apply addOrd_complete; auto.
+    apply normal_fix_complete; auto with ord.
+    apply normal_inflationary; auto.
+    apply bhtower_normal; auto.
+    apply onePlus_normal; auto.
+    apply normal_monotone; auto.
+    apply bhtower_normal; auto.
+    apply onePlus_normal; auto.
+    apply normal_complete; auto.
+    apply bhtower_normal; auto.
+    apply onePlus_normal; auto.
+    apply onePlus_normal; auto.
+    apply normal_fix_complete; auto with ord.
+    apply normal_inflationary; auto.
+    apply bhtower_normal; auto.
+    apply onePlus_normal; auto.
+    apply normal_monotone; auto.
+    apply bhtower_normal; auto.
+    apply onePlus_normal; auto.
+    apply normal_complete; auto.
+    apply bhtower_normal; auto.
+    apply onePlus_normal; auto.
+    apply bhtower_normal; auto.
+    apply onePlus_normal; auto.
+  - apply onePlus_normal; auto.
+Qed.
+    
+Definition BachmanHoward := supOrd (fun n:nat => bhtower n (addOrd 1) 2 0).
+
+Fixpoint each {A:Type} (P:A -> Prop) (xs:list A) : Prop :=
+  match xs with
+  | [] => True
+  | (x::xs) => P x /\ each P xs
+  end.
+
+Fixpoint BH_stack (f:Ord -> Ord) (x:Ord) (xs:list Ord) : Ord :=
+  match xs with
+  | [] => f x
+  | (y::ys) => BH_stack (bhtower (S (length ys)) f x) y ys
+  end.
 
 
-(* Definition BachmanHoward := supOrd (fun n:nat => bhtower n (addOrd 1) (sz n) 0). *)
+Require Import ClassicalFacts.
+From Ordinal Require Import Classical.
+
+(* humm... doesn't seem right *)
+
+
+Lemma bhtower_decompose (EM:excluded_middle) f (Hf:normal_function f) :
+  forall n x (Hlim : limitOrdinal x),
+    x < bhtower (S n) f x 0 ->
+    (forall i, i < x -> bhtower n f i x ≤ x) ->
+    exists a b, x ≈ bhtower (S n) f a b /\ 0 < a /\ a < x /\ b < x.
+Proof.
+  intro n.
+  induction x as [x Hind] using ordinal_induction.
+  intros Hlim Hx1 Hx2.
+  assert (Hnonzero : 0 < x).
+  { rewrite ord_isLimit in Hlim. intuition. }
+  assert (Hfx : f x <= x).
+  { rewrite <- (Hx2 0 Hnonzero) at 2.
+    rewrite bhtower_zero. reflexivity. }
+  set (P a := a > 0 /\ exists b, b < x /\ x <= bhtower (S n) f a b).
+  destruct (classical.ord_well_ordered EM P x) as [a [[Ha0 Ha] Hleast]]; auto.
+  { red. split; auto.
+    exists 0. split; auto with ord. }
+  
+  destruct Ha as [b0 Hb0].
+  set (Q b := b < x /\ x <= bhtower (S n) f a b).
+  destruct (classical.ord_well_ordered EM Q b0) as [b [[Hb Hab] Hbleast]]; auto.
+  unfold P in *.
+  unfold Q in *.
+
+  assert (Hle : bhtower (S n) f a b ≤ x).
+  { destruct (classical.order_total EM (bhtower (S n) f a b) x) as [H|H]; auto.
+    exfalso.
+    rewrite bhtower_unroll in H.
+    apply lub_lt in H.
+    destruct H.
+    - apply (ord_lt_irreflexive x).
+      apply ord_lt_le_trans with (f b); auto.
+      transitivity (f x); auto.
+      apply normal_monotone; auto.
+      intuition.
+    - apply sup_lt in H.
+      destruct H as [i H].
+
+      unfold nextCritical in H.
+      apply sup_lt in H.
+      destruct H as [z H].
+      unfold fixOrd in H.
+      apply sup_lt in H.
+      destruct H as [m ?].
+      apply (ord_lt_irreflexive x).
+      eapply ord_lt_le_trans. apply H.
+      clear H.
+      induction m; simpl.
+      * rewrite ord_le_unfold; simpl; intro q.
+        destruct (classical.order_total EM x (bhtower (S n) f a (b q))) as [H|H]; auto. exfalso.
+        assert (Hbq : b <= b q).
+        { apply Hbleast; split; auto.
+          transitivity b; auto with ord. }
+        elim (ord_lt_irreflexive b).
+        rewrite Hbq at 1.
+        apply index_lt.
+
+      * transitivity (bhtower n (bhtower (S n) f i) z x).
+        apply bhtower_monotone; auto with ord.
+        clear m IHm.
+
+        destruct (classical.order_total EM (bhtower n (bhtower (S n) f i) z x) x) as [H|H]; auto. exfalso.
+
+        assert (Hai : a <= i).
+        { apply Hleast.
+          split.
+          - destruct (classical.order_total EM i 0); auto.
+            elim (ord_lt_irreflexive x).
+            apply ord_lt_le_trans with (bhtower n (bhtower (S n) f i) z x); auto.
+            transitivity (bhtower n (bhtower (S n) f 0) z x).
+            apply bhtower_monotone; auto with ord.
+            transitivity (bhtower n f z x).
+            apply bhtower_monotone; auto with ord.
+            intros. rewrite bhtower_zero. auto with ord.
+            apply Hx2.
+            apply ord_lt_le_trans with (1+b); auto with ord.
+            rewrite onePlus_succ.
+            apply succ_least. auto.
+
+          - assert (Hxsup1 : x ≈ supOrd (fun i => x i)).
+            { destruct x as [X h].
+              apply ascending_sup_lim.
+              destruct Hlim; auto.
+            }
+            assert (Hxsup2 : bhtower n (bhtower (S n) f i) z x ≤ bhtower n (bhtower (S n) f i) z (supOrd (fun i : x => x i))).
+            { apply bhtower_monotone; auto with ord.
+              apply Hxsup1. }
+            assert (Hxsup3 : bhtower n (bhtower (S n) f i) z (supOrd (fun j : x => x j)) <=
+                             supOrd (fun j => bhtower n (bhtower (S n) f i) z (x j))).
+            { rewrite ord_lt_unfold in Hnonzero. destruct Hnonzero; auto.
+              apply normal_continuous; auto.
+              apply bhtower_normal; auto.
+              apply bhtower_normal; auto.
+              apply classical.ord_complete; auto.
+              apply classical.ord_complete; auto.
+              apply classical.ord_directed; auto.
+              intros; apply classical.ord_complete; auto. }
+            rewrite Hxsup2 in H.
+            rewrite Hxsup3 in H.
+            apply sup_lt in H.
+            destruct H as [j Hj].
+            clear Hxsup1 Hxsup2 Hxsup3.
+
+            admit. (* ?????? really not clear *)
+            (* exists (x j); split; auto with ord. *)
+
+        }
+
+        apply (ord_lt_irreflexive a).
+        rewrite Hai at 1.
+        auto with ord. }
+
+  assert (Hax : a < x).
+  { destruct (classical.order_total EM x a); auto. exfalso.
+    elim (ord_lt_irreflexive x).
+    apply ord_lt_le_trans with (bhtower (S n) f x 0); auto.
+    rewrite <- Hle at 2.
+    apply bhtower_monotone; auto with ord.
+  }
+
+  exists a, b; intuition.
+  split; auto.
+Admitted.
+
+
+Fixpoint stackZeros (n:nat) (x:Ord) : list Ord :=
+  match n with
+  | O => [x]
+  | S n' => 0 :: stackZeros n' x
+  end.
+
+Lemma stackZeros_length n x : length (stackZeros n x) = S n.
+Proof.
+  induction n; simpl; auto.
+Qed.
+
+Lemma BH_stack_zeros n f a b : bhtower (S n) f a b ≈ BH_stack f a (stackZeros n b).
+Proof.
+  destruct n; simpl; auto with ord.
+  rewrite stackZeros_length.
+  generalize (bhtower (S (S n)) f a).
+  induction n; simpl; intros.
+  rewrite bhtower_zero; auto with ord.
+  rewrite <- IHn.
+  rewrite bhtower_zero. auto with ord.
+Qed.
+
+(*
+Lemma bhstack_decompose (EM:excluded_middle) :
+  forall n f x (Hf:normal_function f) (Hlim : limitOrdinal x),
+    x < bhtower n f x 0 ->
+    f x ≤ x ->
+    exists v vs,
+      length vs = n /\
+      BH_stack f v vs ≈ x /\
+      each (fun v' => v' < x) (v::vs).
+Proof.
+  induction n.
+  - simpl; intros.
+    rewrite bhtower_index_zero in H.
+    elim (ord_lt_irreflexive (f x)).
+    rewrite H0 at 1.
+    apply ord_lt_le_trans with (f 0); auto.
+    apply normal_monotone; auto with ord.
+  - intros.
+    destruct (classical.order_total EM (bhtower n f x 0) x).
+    + destruct (bhtower_decompose EM f Hf n x Hlim H H0) as [a [b [?[?[??]]]]].
+      exists a. exists (stackZeros n b).
+      split. apply stackZeros_length.
+      split.
+      rewrite <- BH_stack_zeros.
+      symmetry; auto with ord.
+      simpl. split; auto.
+      assert (0 < x).
+      { rewrite <- H0. apply normal_nonzero; auto. }
+      clear -H5 H6.
+      induction n; simpl; auto.
+
+    + destruct (IHn f x Hf Hlim H1 H0) as [v [vs [?[??]]]].
+      exists 0, (v::vs).
+      simpl; split; auto.
+      split.
+      { admit. (* BH_tower proper wrt its function *)  }
+      simpl in *; intuition.
+      rewrite <- H0. apply normal_nonzero; auto.
+Qed.
+*)
