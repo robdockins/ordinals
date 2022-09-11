@@ -4,7 +4,7 @@ Require Import Coq.Program.Basics.
 
 Require Import List.
 Require Import Relations.
-Require Import Wf.
+Require Import Program.Wf.
 Require Import Wellfounded.Transitive_Closure.
 
 Import ListNotations.
