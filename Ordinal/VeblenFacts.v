@@ -747,96 +747,60 @@ Lemma veblen_decompose (EM:excluded_middle) f (Hf:normal_function f) :
     f x ≤ x ->
     exists a b, x ≈ veblen f a b /\ 0 < a /\ a < x /\ b < x.
 Proof.
-  induction x as [x Hx] using ordinal_induction; intros Hlim Hx1 Hx2.
+  intros x Hlim Hx1 Hx2.
+
   set (P a := a > 0 /\ exists b, b < x /\ x <= veblen f a b).
   destruct (classical.ord_well_ordered EM P x) as [a [[Ha0 Ha] Hleast]]; auto.
   { red. split. rewrite <- Hx2. apply normal_nonzero; auto.
     exists 0. split; auto with ord. rewrite <- Hx2. apply normal_nonzero; auto. }
-
   destruct Ha as [b0 Hb0].
+
   set (Q b := b < x /\ x <= veblen f a b).
   destruct (classical.ord_well_ordered EM Q b0) as [b [[Hb Hab] Hbleast]]; auto.
   unfold P in *.
   unfold Q in *.
 
   assert (Hle : veblen f a b ≤ x).
-  { destruct (classical.order_total EM (veblen f a b) x) as [H|H]; auto.
-    exfalso.
-    rewrite veblen_unroll in H.
-    apply lub_lt in H.
-    destruct H.
-    - apply (ord_lt_irreflexive x).
-      apply ord_lt_le_trans with (f b); auto.
-      transitivity (f x); auto.
-      apply normal_monotone; auto.
-      intuition.
-
-    - case_eq a; intros A g Hg.
-      rewrite Hg in H. simpl in H.
-      apply sup_lt in H.
-      destruct H as [i H].
-
-      unfold fixOrd in H.
-      apply sup_lt in H.
-      destruct H as [n ?].
-      apply (ord_lt_irreflexive x).
-      eapply ord_lt_le_trans. apply H.
-      clear H.
-      induction n; simpl.
-      * rewrite ord_le_unfold; simpl; intro q.
-        destruct (classical.order_total EM x (veblen f (ord A g) (b q))) as [H|H]; auto. exfalso.
-        rewrite <- Hg in H.
-        assert (Hbq : b <= b q).
-        { apply Hbleast; split; auto.
-          transitivity b; auto with ord. }
+  { rewrite veblen_unroll.
+    apply lub_least.
+    - rewrite <- Hx2.
+      apply normal_monotone; auto with ord.
+    - apply boundedSup_least. intros i Hi.
+      apply normal_fix_least; auto.
+      + apply veblen_normal; auto.
+        apply classical.ord_complete; auto.
+      + apply classical.ord_complete; auto.
+      + rewrite ord_le_unfold; simpl; intros.
+        destruct (classical.order_total EM x (veblen f a (b a0))) as [H|H]; auto.
         elim (ord_lt_irreflexive b).
-        rewrite Hbq at 1.
-        apply index_lt.
-
-      * transitivity (veblen f (g i) x).
-        apply veblen_monotone; auto.
-
-        clear n IHn.
-        destruct (classical.order_total EM (veblen f (g i) x) x) as [H|H]; auto. exfalso.
-        assert (Hai : a <= g i).
-        { apply Hleast.
-          split.
-          - destruct (classical.order_total EM (g i) 0); auto.
-            elim (ord_lt_irreflexive x).
-            apply ord_lt_le_trans with (veblen f (g i) x); auto.
-            transitivity (veblen f 0 x).
-            apply veblen_monotone_first; auto.
-            rewrite veblen_zero; auto.
-          - assert (Hxsup1 : x ≈ supOrd (fun i => x i)).
-            { destruct x as [X h].
-              apply ascending_sup_lim.
-              destruct Hlim; auto.
-            }
-            assert (Hxsup2 : veblen f (g i) x ≤ veblen f (g i) (supOrd (fun i : x => x i))).
-            { apply veblen_monotone; auto. apply Hxsup1. }
-            assert (Hxsup3 : veblen f (g i) (supOrd (fun j : x => x j)) <=
-                    supOrd (fun j => veblen f (g i) (x j))).
-            { assert (Hx0 : x > 0).
-              { rewrite <- Hx2. apply normal_nonzero; auto. }
-              rewrite ord_lt_unfold in Hx0. destruct Hx0; auto.
-              apply veblen_continuous; auto.
-              apply classical.ord_complete; auto.
-              apply classical.ord_directed; auto.
-              intros; apply classical.ord_complete; auto. }
-            rewrite Hxsup2 in H.
-            rewrite Hxsup3 in H.
-            apply sup_lt in H.
-            destruct H as [j Hj].
-            exists (x j); split; auto with ord. }
-        apply (ord_lt_irreflexive a).
-        rewrite Hai at 1.
-        rewrite Hg.
-        apply (index_lt (ord A g) i). }
+        apply ord_le_lt_trans with (b a0); auto with ord.
+        apply Hbleast; split; auto with ord.
+        apply ord_lt_trans with b; auto with ord.
+      + destruct (classical.order_total EM i 0) as [Hi0|Hi0].
+        { apply ord_le_trans with (veblen f 0 x).
+          apply veblen_monotone_first; auto.
+          rewrite veblen_zero. auto. }
+        transitivity (veblen f i (boundedSup x (fun i => i))).
+        { apply veblen_monotone; auto.
+          apply limit_boundedSup; auto. }
+        transitivity (supOrd (fun q => veblen f i (x q))).
+        { destruct x as [X g]; simpl.
+          rewrite ord_lt_unfold in Hb. destruct Hb.
+          apply veblen_continuous; auto.
+          apply classical.ord_complete; auto.
+          apply classical.ord_directed; auto.
+          intros; apply classical.ord_complete; auto. }
+        apply sup_least; intro q.
+        destruct (classical.order_total EM (veblen f i (x q)) x) as [H|H]; auto.
+        elim (ord_lt_irreflexive a).
+        apply ord_le_lt_trans with i; auto.
+        apply Hleast; split; eauto with ord.
+  }
 
   assert (Hax : a < x).
   { destruct (classical.order_total EM x a); auto. exfalso.
     elim (ord_lt_irreflexive x).
-    apply ord_lt_le_trans with (veblen f x 0); auto.
+    apply ord_lt_le_trans with (veblen f x 0); [ exact Hx1 | ].
     transitivity (veblen f a 0).
     apply veblen_monotone_first; auto.
     rewrite <- Hle.
