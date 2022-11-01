@@ -1547,12 +1547,19 @@ Fixpoint each {A:Type} (P:A -> Prop) (xs:list A) : Prop :=
   | (x::xs) => P x /\ each P xs
   end.
 
+Definition each_lt (x:Ord) (vs:list Ord) := each (fun v => v < x) vs.
+
 Fixpoint BH_stack (f:Ord -> Ord) (x:Ord) (xs:list Ord) : Ord :=
   match xs with
   | [] => f x
   | (y::ys) => BH_stack (bhtower (S (length ys)) f x) y ys
   end.
 
+Definition BH_full_stack (xs:list Ord) : Ord :=
+  match xs with
+  | [] => 0
+  | (x::xs) => BH_stack (addOrd 1) x xs
+  end.
 
 Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
@@ -1589,9 +1596,10 @@ Lemma BH_stack_decompose (EM:excluded_middle) :
       i < x ->
       x < bhtower (S n) f i x ->
 
-      exists v, exists vs, x ≈ BH_stack f v vs /\ length vs = S n /\ v < x /\ each (fun v' => v' < x) vs.
+      exists v, exists vs, x ≈ BH_stack f v vs /\ length vs = S n /\ each_lt x (v::vs).
 Proof.
   induction n; intros f Hf x Hlim i Hfx Hi Hix.
+
   - rewrite bhtower_index_one in Hix; auto.
     destruct (veblen_decompose EM f Hf x Hlim) as [a [b [?[?[??]]]]]; auto.
     + eapply ord_lt_le_trans; [ exact Hix | ].
@@ -1602,7 +1610,7 @@ Proof.
       apply classical.ord_complete; auto.
       apply classical.ord_complete; auto.
       apply classical.ord_complete; auto.
-    + exists a, (b::nil); simpl; intuition.
+    + exists a, (b::nil); unfold each_lt; simpl; intuition.
       rewrite bhtower_index_one; auto.
 
   - induction i as [i Hind] using ordinal_induction.
@@ -1638,7 +1646,7 @@ Proof.
            *** unfold f'. apply bhtower_normal; auto.
                apply classical.ord_complete; auto.
            *** exists i', (v::vs).
-               simpl. rewrite H2; intuition.
+               unfold each_lt; simpl. rewrite H2; intuition.
                transitivity i; auto with ord.
                rewrite Hi'; auto with ord.
         ** assert (forall j, j < x -> bhtower (S n) f' j x <= x).
@@ -1672,8 +1680,7 @@ Proof.
            apply ord_lt_le_trans with (1+x); auto with ord.
            apply limit_onePlus; auto.
 
-       * unfold f' in H0.
-         apply (Hind i'); auto with ord.
+       * apply (Hind i'); auto with ord.
          rewrite Hi'. auto with ord.
          transitivity i; auto with ord.
          rewrite Hi'; auto with ord.
@@ -1707,11 +1714,11 @@ Proof.
 
       destruct (classical.order_total EM (bhtower (S (S n)) f i x0) x).
       * exists i. exists (stackZeros (S n) x0).
-        simpl. rewrite stackZeros_length.
-        intuition.
+        unfold each_lt. rewrite stackZeros_length.
+        split.
         rewrite <- BH_stack_zeros.
-        rewrite bhtower_zero.
         split; auto.
+        simpl; intuition.
         apply ord_le_lt_trans with x0; auto with ord.
         clear - H0.
         induction n; simpl; intuition.
@@ -1760,7 +1767,7 @@ Lemma BH_stack_decompose2 (EM:excluded_middle) :
   forall n f (Hf:normal_function f) x (Hlim:limitOrdinal x),
       f x <= x ->
       x < apex n f ->
-      exists v, exists vs, x ≈ BH_stack f v vs /\ length vs = S n /\ v < x /\ each (fun v' => v' < x) vs.
+      exists v, exists vs, x ≈ BH_stack f v vs /\ length vs = S n /\ each_lt x (v::vs).
 Proof.
   intros.
   unfold apex in H0.
@@ -1820,4 +1827,19 @@ Proof.
 
   destruct Hbnd as [i [??]].
   apply BH_stack_decompose with i; auto.
+Qed.
+
+Theorem BachmanHoward_limit_decompose (EM:excluded_middle) :
+  forall x (Hlim:limitOrdinal x),
+    x < BachmanHoward ->
+    exists vs, x ≈ BH_full_stack vs /\ each_lt x vs.
+Proof.
+  unfold BachmanHoward.
+  intros x Hlim H.
+  apply sup_lt in H.
+  destruct H as [n H].
+  destruct (BH_stack_decompose2 EM n (addOrd 1) (onePlus_normal) x Hlim) as [v [vs [?[??]]]]; auto.
+  apply limit_onePlus; auto.
+  exists (v::vs).
+  unfold BH_full_stack; split; auto.
 Qed.
