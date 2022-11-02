@@ -1321,6 +1321,18 @@ Proof.
   apply bhtower_normal; auto.
 Qed.
 
+
+Definition apex n f := fixOrd (bhtower (S n) f 1) 0.
+
+Definition BachmanHoward := supOrd (fun n:nat => apex n (addOrd 1)).
+
+Local Hint Resolve
+  onePlus_normal veblen_normal veblen_first_normal
+  bhtower_normal bhtower_first_normal bhtower_monotone
+  powOmega_normal normal_monotone normal_complete normal_inflationary
+  vtower_monotone vtower_normal vtower_first_normal
+  : core.
+
 Goal (bhtower 0 (addOrd 1) 0 0 ≈ 1).
 Proof.
   rewrite bhtower_index_zero.
@@ -1335,202 +1347,89 @@ Proof.
   rewrite addOrd_zero_r.
   rewrite expOrd_one'; auto with ord.
   apply omega_gt0.
-  apply onePlus_normal.
 Qed.
 
-Goal (bhtower 2 (addOrd 1) 2 0 ≈ ε 0).
+Lemma apex_alternate n f :
+  (n > 0)%nat ->
+  normal_function f ->
+  apex n f ≈ bhtower (S n) f 2 0.
 Proof.
-  rewrite bhtower_succ_zero; auto.
-  2: { apply onePlus_normal. }
+  intros.
+  rewrite bhtower_succ; auto with ord.
+  transitivity (bhtower n (bhtower (S n) f 1) 1 0).
+  unfold apex.
+  destruct n. lia.
+  rewrite bhtower_one_zero; auto with ord.
+  split; apply bhtower_monotone; auto with ord.
+  rewrite addOrd_zero_r; auto with ord.
+  rewrite addOrd_zero_r; auto with ord.
+Qed.
+
+Lemma apex1 : apex 1 (addOrd 1) ≈ ε 0.
+Proof.
+  unfold apex.
   assert (forall x, complete x -> bhtower 2 (addOrd 1) 1 x ≈ powOmega (1+x)).
   { intros.
     rewrite bhtower_one; auto.
-    rewrite bhtower_index_one.
+    rewrite bhtower_index_one; auto.
     rewrite veblen_onePlus; auto.
-    rewrite addOrd_zero_r; auto with ord.
-    apply onePlus_normal; auto.
-    apply onePlus_normal; auto. }
+    rewrite addOrd_zero_r; auto with ord. }
   unfold ε.
-  rewrite enum_fixpoints_zero.
-  2: { apply powOmega_normal. }
+  rewrite enum_fixpoints_zero; auto.
   split.
   - apply normal_fix_least; auto with ord.
-    apply bhtower_normal; auto with ord.
-    apply onePlus_normal.
     apply normal_fix_complete; auto with ord.
-    intros; apply normal_inflationary; auto.
-    apply powOmega_normal; auto.
-    intros; apply expOrd_monotone; auto.
-    intros; apply normal_complete; auto.
-    apply powOmega_normal; auto.
     rewrite H; auto.
-    rewrite normal_fixpoint at 2.
+    rewrite normal_fixpoint at 2; auto.
     apply expOrd_monotone; auto.
-    rewrite normal_fixpoint at 2.
+    rewrite normal_fixpoint at 2; auto.
     apply onePlus_least_normal; auto.
-    apply powOmega_normal.
     apply normal_fix_complete; auto with ord.
-    intros; apply normal_inflationary; auto.
-    apply powOmega_normal; auto.
-    intros; apply expOrd_monotone; auto.
-    intros; apply normal_complete; auto.
-    apply powOmega_normal; auto.
-    apply powOmega_normal; auto.
-    auto with ord.
-    apply powOmega_normal; auto.
-    auto with ord.
     apply normal_fix_complete; auto with ord.
-    intros; apply normal_inflationary; auto.
-    apply powOmega_normal; auto.
-    intros; apply expOrd_monotone; auto.
-    intros; apply normal_complete; auto.
-    apply powOmega_normal; auto.
   - apply normal_fix_least; auto with ord.
-    apply powOmega_normal; auto.
     apply normal_fix_complete; auto with ord.
-    intros; apply normal_inflationary; auto.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
-    intros; apply bhtower_monotone; auto with ord.
-    intros; apply addOrd_monotone; auto with ord.
-    intros; apply normal_complete; auto.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
     rewrite (normal_fixpoint (bhtower 2 (addOrd 1) 1)) at 2; auto with ord.
     rewrite H.
     apply expOrd_monotone; auto with ord.
     apply addOrd_le2.
     apply normal_fix_complete; auto with ord.
-    intros; apply normal_inflationary; auto.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
-    intros; apply bhtower_monotone; auto with ord.
-    intros; apply addOrd_monotone; auto with ord.
-    intros; apply normal_complete; auto.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
 Qed.
 
-
-Goal (bhtower 3 (addOrd 1) 2 0 ≈ LargeVeblenOrdinal).
+Lemma apex2 : apex 2 (addOrd 1) ≈ LargeVeblenOrdinal.
 Proof.
-  rewrite bhtower_succ_zero; auto.
+  unfold apex.
   unfold LargeVeblenOrdinal.
   split.
-  - apply normal_fix_least; auto.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
-    apply normal_fix_complete; auto.
-    intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto.
-    apply vtower_first_normal; auto.
-    apply onePlus_normal; auto.
-    intros.
-    apply vtower_monotone; auto with ord.
-    apply onePlus_normal; auto.
-    intros. apply (normal_complete (fun x => vtower (addOrd 1) x 0)); auto.
-    apply vtower_first_normal; auto.
-    apply onePlus_normal; auto.
-    auto with ord.
-    rewrite bhtower_one; auto.
-    rewrite bhtower_index_two; auto.
+  - apply normal_fix_least; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto with ord.
+    rewrite bhtower_one; auto with arith.
+    rewrite bhtower_index_two; auto with ord.
+    rewrite normal_fixpoint at 2; auto.
+    intros; apply vtower_monotone; auto with ord.
     rewrite  normal_fixpoint at 2; auto.
-    apply vtower_monotone; auto with ord.
-    apply onePlus_normal; auto.
-    rewrite  normal_fixpoint at 2; auto.
-    apply (onePlus_least_normal (fun x => vtower (addOrd 1) x 0)); auto.
-    apply vtower_first_normal; auto.
-    apply onePlus_normal; auto.
-    apply normal_fix_complete; auto.
-    intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto.
-    apply vtower_first_normal; auto.
-    apply onePlus_normal; auto.
-    intros.
-    apply vtower_monotone; auto with ord.
-    apply onePlus_normal; auto.
-    intros. apply (normal_complete (fun x => vtower (addOrd 1) x 0)); auto.
-    apply vtower_first_normal; auto.
-    apply onePlus_normal; auto.
-    apply vtower_first_normal; auto.
-    apply onePlus_normal; auto.
-    apply vtower_first_normal; auto.
-    apply onePlus_normal; auto.
-    apply onePlus_normal; auto.
+    apply (onePlus_least_normal (fun x => vtower (addOrd 1) x 0)); auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto with ord.
     apply addOrd_complete; auto.
     apply normal_fix_complete; auto.
     intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto.
     apply vtower_first_normal; auto.
-    apply onePlus_normal; auto.
-    intros.
-    apply vtower_monotone; auto with ord.
-    apply onePlus_normal; auto.
-    intros. apply (normal_complete (fun x => vtower (addOrd 1) x 0)); auto.
-    apply vtower_first_normal; auto.
-    apply onePlus_normal; auto.
-    apply onePlus_normal; auto.
     apply normal_fix_complete; auto.
     intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto.
     apply vtower_first_normal; auto.
-    apply onePlus_normal; auto.
-    intros.
-    apply vtower_monotone; auto with ord.
-    apply onePlus_normal; auto.
-    intros. apply (normal_complete (fun x => vtower (addOrd 1) x 0)); auto.
-    apply vtower_first_normal; auto.
-    apply onePlus_normal; auto.
-  - apply normal_fix_least.
-    apply vtower_first_normal; auto.
-    apply onePlus_normal; auto.
+  - apply normal_fix_least; auto with ord.
     apply normal_fix_complete; auto.
-    intros. apply normal_inflationary; auto.
-    apply bhtower_normal; auto with ord.
-    apply onePlus_normal; auto.
-    intros; apply bhtower_monotone; auto with ord.
-    intros; apply addOrd_monotone; auto with ord.
-    apply normal_complete.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
-    auto with ord.
-    rewrite normal_fixpoint at 2; auto.
+    rewrite normal_fixpoint at 2; auto with ord.
     rewrite bhtower_one; auto with ord.
     rewrite bhtower_index_two; auto.
     apply vtower_monotone; auto with ord.
-    apply onePlus_normal; auto.
     apply addOrd_le2.
-    apply onePlus_normal; auto.
     apply addOrd_complete; auto.
     apply normal_fix_complete; auto with ord.
-    apply normal_inflationary; auto.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
-    apply normal_monotone; auto.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
-    apply normal_complete; auto.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
-    apply onePlus_normal; auto.
     apply normal_fix_complete; auto with ord.
-    apply normal_inflationary; auto.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
-    apply normal_monotone; auto.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
-    apply normal_complete; auto.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
-    apply bhtower_normal; auto.
-    apply onePlus_normal; auto.
-  - apply onePlus_normal; auto.
 Qed.
 
-Definition apex n f := fixOrd (bhtower (S n) f 1) 0.
-
-Definition BachmanHoward := supOrd (fun n:nat => apex n (addOrd 1)).
-
-Local Hint Resolve onePlus_normal veblen_normal : core.
 
 Lemma apex_unreachable : forall n f a x,
     normal_function f ->
@@ -1546,21 +1445,13 @@ Proof.
     apply ord_lt_le_trans with (f (fixOrd (bhtower 1 f 1) 0)).
     apply normal_increasing; auto.
     apply normal_fix_complete; auto.
-    intros; apply normal_inflationary; auto.
-    apply bhtower_normal; auto.
-    intros; apply bhtower_monotone; auto with ord.
-    intros; apply bhtower_complete; auto with ord.
-    intros; apply bhtower_normal; auto with ord.
     rewrite bhtower_unroll; auto with ord.
-    intros; apply bhtower_normal; auto with ord.
 
   - eapply ord_lt_le_trans.
     apply normal_increasing.
     apply bhtower_normal; auto.
     2: apply H3.
     apply normal_fix_complete; auto with ord.
-    intros; apply normal_inflationary; auto. apply bhtower_normal; auto.
-    intros; apply normal_complete; auto. apply bhtower_normal; auto.
     rewrite normal_fixpoint at 2; auto with ord.
     rewrite bhtower_succ; auto with arith ord.
     rewrite <- bhtower_fixpoint with (f:=bhtower (S (S n)) f 0) (a:=a); auto with arith ord.
@@ -1569,30 +1460,17 @@ Proof.
     transitivity (1 + fixOrd (bhtower (S (S n)) f 1) 0).
     apply normal_inflationary with (f := addOrd 1); auto with ord.
     apply normal_fix_complete; auto with ord.
-    intros; apply normal_inflationary; auto. apply bhtower_normal; auto.
-    intros; apply normal_complete; auto. apply bhtower_normal; auto.
     apply normal_inflationary with (f := fun a => bhtower (S n) (bhtower (S (S n)) f 0) a 0).
     apply bhtower_first_normal; auto with ord.
-    apply bhtower_normal; auto with ord.
     apply addOrd_complete; auto with ord.
     apply normal_fix_complete; auto with ord.
-    intros; apply normal_inflationary; auto. apply bhtower_normal; auto.
-    intros; apply normal_complete; auto. apply bhtower_normal; auto.
-    apply bhtower_normal; auto with ord.
     apply addOrd_complete; auto with ord.
     apply normal_fix_complete; auto with ord.
-    intros; apply normal_inflationary; auto. apply bhtower_normal; auto.
-    intros; apply normal_complete; auto. apply bhtower_normal; auto.
     apply ord_le_lt_trans with (1+a).
     apply normal_inflationary; auto with ord.
     apply normal_increasing; auto with ord.
     apply normal_fix_complete; auto with ord.
-    intros; apply normal_inflationary; auto. apply bhtower_normal; auto.
-    intros; apply normal_complete; auto. apply bhtower_normal; auto.
     apply normal_fix_complete; auto with ord.
-    intros; apply normal_inflationary; auto. apply bhtower_normal; auto.
-    intros; apply normal_complete; auto. apply bhtower_normal; auto.
-    apply bhtower_normal; auto with ord.
 Qed.
 
 
@@ -1872,7 +1750,6 @@ Proof.
       elim (ord_lt_irreflexive x).
       eapply ord_lt_le_trans; [ apply H0 | ].
       apply normal_fix_least; auto with ord.
-      apply bhtower_normal; auto.
       apply classical.ord_complete; auto.
       destruct (classical.order_total EM (bhtower (S n) f 1 x) x); auto.
       assert (x <= 1).
