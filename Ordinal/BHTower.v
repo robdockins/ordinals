@@ -1807,19 +1807,6 @@ Proof.
   - intros; apply bhtower_monotone; auto with ord.
 Qed.
 
-
-Lemma lim_normal_complete : forall (x:Ord) (f:Ord -> Ord),
-    normal_function f ->
-    complete x ->
-    complete (@limOrd x f).
-Proof.
-  intros.
-  apply lim_complete.
-  intros; apply normal_complete; auto.
-  intros; apply directed_monotone; auto.
-  destruct x as [X g]; simpl in *; intuition.
-Qed.
-
 Lemma critical_shrink_step : forall
   m f x v
   (Hf : normal_function f)

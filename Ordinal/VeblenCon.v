@@ -40,6 +40,20 @@ Proof.
   * apply Hc.
 Qed.
 
+Lemma lim_normal_complete : forall (x:Ord) (f:Ord -> Ord),
+    normal_function f ->
+    complete x ->
+    complete (@limOrd x f).
+Proof.
+  intros.
+  apply lim_complete.
+  intros; apply normal_complete; auto.
+  apply complete_subord; auto.
+  intros; apply directed_monotone; auto.
+  intros; apply normal_monotone; auto.
+  destruct x as [X g]; simpl in *; intuition.
+Qed.
+
 (* We say a function f enumerates a class of ordinals P if
    f x is the least element of P that is strictly above
    all f y for y < x. *)
