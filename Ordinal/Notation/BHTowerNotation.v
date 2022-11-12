@@ -94,7 +94,7 @@ Qed.
 
 Lemma BHε0_correct : BH_denote BHε0 ≈ ε 0.
 Proof.
-  transitivity (apex 1 (addOrd 1)); [ | apply apex1 ].
+  transitivity (apex 0 (addOrd 1)); [ | apply apex0 ].
   simpl BH_denote.
   rewrite bhtower_zero.
   rewrite apex_alternate; auto with arith.
@@ -104,8 +104,7 @@ Proof.
 Qed.
 
 Lemma BHΓ0_correct : BH_denote BHΓ0 ≈ Γ 0.
-Abort. (* true, I think, but kind of annoying *)
-
+Admitted. (* true, but annoying... *)
 
 Lemma BH_SVO_correct : BH_denote BH_SVO ≈ SmallVeblenOrdinal.
 Proof.
@@ -121,7 +120,7 @@ Qed.
 
 Lemma BH_LVO_correct : BH_denote BH_LVO ≈ LargeVeblenOrdinal.
 Proof.
-  transitivity (apex 2 (addOrd 1)); [ | apply apex2 ].
+  transitivity (apex 1 (addOrd 1)); [ | apply apex1 ].
   rewrite apex_alternate; auto with arith.
   simpl BH_denote.
   rewrite bhtower_zero.

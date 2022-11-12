@@ -1502,8 +1502,65 @@ Proof.
 Qed.
 
 
-Definition apex n f := fixOrd (bhtower (S n) f 1) 0.
+Lemma bhtower_collapse n :
+  forall f (Hf:normal_function f),
+  forall a b c,
+    complete a ->
+    complete b ->
+    complete c ->
+    a < c ->
+    b <= c ->
+    bhtower (S n) f c 0 <= c ->
+    bhtower (S n) f a b <= c.
+Proof.
+  intros.
+  transitivity (bhtower (S n) f c 0); auto.
+  rewrite <- (bhtower_fixpoint (S n) f a c 0); auto with arith ord.
+  apply normal_monotone; auto with ord.
+  transitivity c; auto.
+  apply (normal_inflationary (fun x => bhtower (S n) f x 0)); auto.
+Qed.
 
+Lemma bhtower_collapse' n :
+  forall f (Hf:normal_function f),
+  forall a b c,
+    complete a ->
+    complete b ->
+    complete c ->
+    a < c ->
+    b < c ->
+    bhtower (S n) f c 0 <= c ->
+    bhtower (S n) f a b < c.
+Proof.
+  intros.
+  apply ord_lt_le_trans with (bhtower (S n) f c 0); auto.
+  rewrite <- (bhtower_fixpoint (S n) f a c 0); auto with arith ord.
+  apply normal_increasing; auto with ord.
+  apply ord_lt_le_trans with c; auto.
+  apply (normal_inflationary (fun x => bhtower (S n) f x 0)); auto.
+Qed.
+
+
+Definition apex n f := fixOrd (fun x => bhtower (S n) f x 0) 0.
+
+Lemma apex_complete : forall n f,
+    normal_function f ->
+    complete (apex n f).
+Proof.
+  intros.
+  apply normal_fix_complete; auto with ord.
+  intros. apply (normal_inflationary (fun x => bhtower (S n) f x 0)); auto with ord.
+Qed.
+
+Local Hint Resolve apex_complete: core.
+
+Lemma apex_fixpoint : forall n f,
+    normal_function f ->
+    apex n f ≈ bhtower (S n) f (apex n f) 0.
+Proof.
+  intros. unfold apex at 1.
+  rewrite normal_fixpoint; auto with ord.
+Qed.
 
 Theorem apex_unreachable : forall n f a x,
     normal_function f ->
@@ -1511,40 +1568,11 @@ Theorem apex_unreachable : forall n f a x,
     complete x ->
     a < apex n f ->
     x < apex n f ->
-    bhtower n f a x < apex n f.
+    bhtower (S n) f a x < apex n f.
 Proof.
-  induction n; unfold apex; simpl; intros.
-  - rewrite bhtower_index_zero.
-    rewrite normal_fixpoint; auto with ord.
-    apply ord_lt_le_trans with (f (fixOrd (bhtower 1 f 1) 0)).
-    apply normal_increasing; auto.
-    apply normal_fix_complete; auto.
-    rewrite bhtower_unroll; auto with ord.
-
-  - eapply ord_lt_le_trans.
-    apply normal_increasing.
-    apply bhtower_normal; auto.
-    2: apply H3.
-    apply normal_fix_complete; auto with ord.
-    rewrite normal_fixpoint at 2; auto with ord.
-    rewrite bhtower_succ; auto with arith ord.
-    rewrite <- bhtower_fixpoint with (f:=bhtower (S (S n)) f 0) (a:=a); auto with arith ord.
-    apply bhtower_monotone; auto with ord.
-    intros; rewrite bhtower_unroll; auto with ord.
-    transitivity (1 + fixOrd (bhtower (S (S n)) f 1) 0).
-    apply normal_inflationary with (f := addOrd 1); auto with ord.
-    apply normal_fix_complete; auto with ord.
-    apply normal_inflationary with (f := fun a => bhtower (S n) (bhtower (S (S n)) f 0) a 0).
-    apply bhtower_first_normal; auto with ord.
-    apply addOrd_complete; auto with ord.
-    apply normal_fix_complete; auto with ord.
-    apply addOrd_complete; auto with ord.
-    apply normal_fix_complete; auto with ord.
-    apply ord_le_lt_trans with (1+a).
-    apply normal_inflationary; auto with ord.
-    apply normal_increasing; auto with ord.
-    apply normal_fix_complete; auto with ord.
-    apply normal_fix_complete; auto with ord.
+  intros.
+  apply bhtower_collapse'; auto.
+  apply apex_fixpoint; auto.
 Qed.
 
 Lemma limitOrdinal_intro' : forall x,
@@ -1559,37 +1587,29 @@ Proof.
   - hnf. intros. apply H0.
 Qed.
 
-
 Theorem apex_limit : forall n f,
-    (n > 0)%nat ->
     normal_function f ->
     limitOrdinal (apex n f).
 Proof.
   intros.
   apply limitOrdinal_intro'.
-  - unfold apex.
-    rewrite normal_fixpoint; auto with ord.
+  - rewrite apex_fixpoint; auto with ord.
     apply normal_nonzero; auto with ord.
-  - assert (complete (apex n f)).
-    { unfold apex.
-      apply normal_fix_complete; auto with ord. }
-    intro i.
+
+  - intro i.
     assert (succOrd i < apex n f).
-    { destruct n.
-      - lia.
-      - apply ord_le_lt_trans with (bhtower (S n) f i i); auto.
-        apply succ_reachable; auto.
-        apply apex_unreachable; auto with ord.
-    }
-    rewrite ord_lt_unfold in H2.
-    destruct H2 as [j Hj].
+    { apply ord_le_lt_trans with (bhtower (S n) f i i); auto.
+      apply succ_reachable; auto.
+      apply apex_unreachable; auto with ord. }
+
+    rewrite ord_lt_unfold in H0.
+    destruct H0 as [j Hj].
     exists j.
     rewrite <- Hj.
     auto with ord.
 Qed.
 
 Theorem apex_least_unreachable : forall n f q,
-    (n > 0)%nat ->
     normal_function f ->
     complete q ->
     limitOrdinal q ->
@@ -1598,20 +1618,19 @@ Theorem apex_least_unreachable : forall n f q,
         complete x ->
         a < q ->
         x < q ->
-        bhtower n f a x < q) ->
+        bhtower (S n) f a x < q) ->
     apex n f <= q.
 Proof.
   intros.
   unfold apex.
   apply normal_fix_least; auto with ord.
-  rewrite bhtower_one; auto with ord.
-  destruct n. lia.
   rewrite bhtower_unroll.
   apply lub_least.
   - transitivity (bhtower (S n) f 0 0).
     rewrite bhtower_unroll; auto with ord.
-    rewrite ord_isLimit in H2.
-    apply ord_lt_le. apply H3; intuition auto with ord.
+    rewrite ord_isLimit in H1.
+    apply ord_lt_le. apply H2; intuition auto with ord.
+
   - apply sup_least. simpl.
     intro a.
     transitivity (nextCritical n (bhtower (S n) f a) 1 0).
@@ -1620,8 +1639,8 @@ Proof.
       rewrite ord_le_unfold; intros []. }
     apply nextCritical_least; auto with ord.
     intros.
-    rewrite ord_lt_unfold in H5.
-    destruct H5 as [[] ?]. simpl in H5.
+    rewrite ord_lt_unfold in H4.
+    destruct H4 as [[] ?]. simpl in H4.
     transitivity (bhtower n (bhtower (S n) f a) 0 q).
     apply bhtower_monotone; auto with ord.
     rewrite bhtower_zero.
@@ -1631,21 +1650,19 @@ Proof.
       apply limit_boundedSup; auto. }
     transitivity (supOrd (fun i:q => bhtower (S n) f a i)).
     { destruct q as [Q q]. simpl.
-      destruct H2 as [Hz Hlim].
+      destruct H1 as [Hz Hlim].
       destruct Hz.
       apply normal_continuous; intuition.
-      hnf in H1; intuition.
-      hnf in H1; intuition.
+      hnf in H0; intuition.
+      hnf in H0; intuition.
+      hnf in H0; intuition.
     }
     apply sup_least; intro i.
-    apply ord_lt_le. apply H3; auto with ord.
-    apply ord_lt_le_trans with (1+q); auto with ord.
-    apply limit_onePlus; auto.
+    apply ord_lt_le. apply H2; auto with ord.
 Qed.
 
 
 Lemma succ_not_unreachable : forall n f i,
-    (n > 0)%nat ->
     normal_function f ->
     complete i ->
     (forall a x,
@@ -1653,66 +1670,69 @@ Lemma succ_not_unreachable : forall n f i,
         complete x ->
         a < succOrd i ->
         x < succOrd i ->
-        bhtower n f a x < succOrd i) ->
+        bhtower (S n) f a x < succOrd i) ->
     False.
 Proof.
   intros.
   elim (ord_lt_irreflexive (succOrd i)).
-  apply ord_le_lt_trans with (bhtower n f i i).
-  - destruct n. lia.
-    apply succ_reachable; auto.
-  - apply (H2 i i); auto with ord.
+  apply ord_le_lt_trans with (bhtower (S n) f i i).
+  apply succ_reachable; auto.
+  apply (H1 i i); auto with ord.
 Qed.
-
 
 Lemma apex_alternate n f :
-  (n > 0)%nat ->
   normal_function f ->
-  apex n f ≈ bhtower (S n) f 2 0.
+  apex n f ≈ bhtower (S (S n)) f 2 0.
 Proof.
   intros.
-  rewrite bhtower_succ; auto with ord.
-  transitivity (bhtower n (bhtower (S n) f 1) 1 0).
-  unfold apex.
-  destruct n. lia.
-  rewrite bhtower_one_zero; auto with ord.
-  split; apply bhtower_monotone; auto with ord.
-  rewrite addOrd_zero_r; auto with ord.
-  rewrite addOrd_zero_r; auto with ord.
+  rewrite bhtower_succ; auto with ord arith.
+  transitivity (bhtower (S n) (bhtower (S (S n)) f 1) 1 0).
+  { rewrite bhtower_one_zero; auto with ord.
+    split.
+    - unfold apex.
+      apply fixOrd_least; auto with ord.
+      rewrite normal_fixpoint at 2; auto with ord.
+      rewrite bhtower_one; auto with ord arith.
+      apply bhtower_monotone; auto with ord.
+      apply addOrd_le2.
+      apply normal_fix_complete; auto with ord.
+    - apply fixOrd_least; auto with ord.
+      rewrite apex_fixpoint at 2; auto.
+      rewrite bhtower_one; auto with ord arith.
+      apply bhtower_monotone; auto with ord.
+      apply limit_onePlus. apply apex_limit; auto. }
+  - split; apply bhtower_monotone; auto with ord.
+    rewrite addOrd_zero_r; auto with ord.
+    rewrite addOrd_zero_r; auto with ord.
 Qed.
 
-
-Lemma apex1 : apex 1 (addOrd 1) ≈ ε 0.
+Lemma apex0 : apex 0 (addOrd 1) ≈ ε 0.
 Proof.
   unfold apex.
-  assert (forall x, complete x -> bhtower 2 (addOrd 1) 1 x ≈ powOmega (1+x)).
+  assert (forall x, complete x -> bhtower 1 (addOrd 1) x 0 ≈ powOmega x).
   { intros.
-    rewrite bhtower_one; auto.
     rewrite bhtower_index_one; auto.
     rewrite veblen_onePlus; auto.
     rewrite addOrd_zero_r; auto with ord. }
+
   unfold ε.
   rewrite enum_fixpoints_zero; auto.
   split.
   - apply normal_fix_least; auto with ord.
     apply normal_fix_complete; auto with ord.
     rewrite H; auto.
-    rewrite normal_fixpoint at 2; auto.
-    apply expOrd_monotone; auto.
-    rewrite normal_fixpoint at 2; auto.
-    apply onePlus_least_normal; auto.
-    apply normal_fix_complete; auto with ord.
+    rewrite normal_fixpoint at 2; auto with ord.
     apply normal_fix_complete; auto with ord.
   - apply normal_fix_least; auto with ord.
     apply normal_fix_complete; auto with ord.
-    rewrite (normal_fixpoint (bhtower 2 (addOrd 1) 1)) at 2; auto with ord.
-    rewrite H.
-    apply expOrd_monotone; auto with ord.
-    apply addOrd_le2.
+    intros. apply (normal_inflationary (fun x => bhtower 1 (addOrd 1) x 0)); auto with ord.
+    rewrite normal_fixpoint at 2; auto with ord.
+    rewrite H; auto with ord.
     apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun x => bhtower 1 (addOrd 1) x 0)); auto with ord.
 Qed.
 
-Lemma apex2 : apex 2 (addOrd 1) ≈ LargeVeblenOrdinal.
+Lemma apex1 : apex 1 (addOrd 1) ≈ LargeVeblenOrdinal.
 Proof.
   unfold apex.
   unfold LargeVeblenOrdinal.
@@ -1720,33 +1740,20 @@ Proof.
   - apply normal_fix_least; auto with ord.
     apply normal_fix_complete; auto with ord.
     intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto with ord.
-    rewrite bhtower_one; auto with arith.
     rewrite bhtower_index_two; auto with ord.
     rewrite normal_fixpoint at 2; auto.
     intros; apply vtower_monotone; auto with ord.
-    rewrite  normal_fixpoint at 2; auto.
-    apply (onePlus_least_normal (fun x => vtower (addOrd 1) x 0)); auto with ord.
     apply normal_fix_complete; auto with ord.
     intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto with ord.
-    apply addOrd_complete; auto.
-    apply normal_fix_complete; auto.
-    intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto.
-    apply vtower_first_normal; auto.
-    apply normal_fix_complete; auto.
-    intros. apply (normal_inflationary (fun x => vtower (addOrd 1) x 0)); auto.
-    apply vtower_first_normal; auto.
   - apply normal_fix_least; auto with ord.
     apply normal_fix_complete; auto.
+    intros. apply (normal_inflationary (fun x => bhtower 2 (addOrd 1) x 0)); auto with ord.
+    intros; apply bhtower_monotone; auto with ord.
     rewrite normal_fixpoint at 2; auto with ord.
-    rewrite bhtower_one; auto with ord.
-    rewrite bhtower_index_two; auto.
-    apply vtower_monotone; auto with ord.
-    apply addOrd_le2.
-    apply addOrd_complete; auto.
+    rewrite bhtower_index_two; auto with ord.
     apply normal_fix_complete; auto with ord.
-    apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun x => bhtower 2 (addOrd 1) x 0)); auto with ord.
 Qed.
-
 
 
 Definition BachmanHoward := supOrd (fun n:nat => apex n (addOrd 1)).
@@ -1798,6 +1805,177 @@ Proof.
   - intros; apply bhtower_monotone; auto with ord.
   - eapply pairwise_length; eauto.
   - intros; apply bhtower_monotone; auto with ord.
+Qed.
+
+
+Lemma lim_normal_complete : forall (x:Ord) (f:Ord -> Ord),
+    normal_function f ->
+    complete x ->
+    complete (@limOrd x f).
+Proof.
+  intros.
+  apply lim_complete.
+  intros; apply normal_complete; auto.
+  intros; apply directed_monotone; auto.
+  destruct x as [X g]; simpl in *; intuition.
+Qed.
+
+Lemma critical_shrink_step : forall
+  m f x v
+  (Hf : normal_function f)
+  (Hx : complete x)
+  (Hv : complete v)
+  (Hlim : limitOrdinal x)
+  (Hfix : bhtower (S (S m)) f x 0 ≤ x)
+  (Hvx : v < x),
+  bhtower (S m) (bhtower (S (S m)) f v) x 0 ≤ x.
+Proof.
+  intros.
+  transitivity (supOrd (fun i:x =>
+                          bhtower (S m) (bhtower (S (S m)) f v) i 0)).
+  { transitivity (bhtower (S m) (bhtower (S (S m)) f v) (boundedSup x (fun i => i)) 0).
+    apply bhtower_monotone; auto with ord.
+    apply limit_boundedSup; auto.
+    destruct x as [X g]. simpl in *.
+    destruct Hlim. destruct H as [x0].
+    apply (normal_continuous (fun x => bhtower (S m) (bhtower (S (S m)) f v) x 0)); intuition.
+  }
+  apply sup_least; intro i.
+  rewrite (bhtower_unroll m).
+  apply lub_least.
+  + rewrite <- Hfix.
+    apply bhtower_monotone; auto with ord.
+  + apply sup_least; intro j.
+    apply nextCritical_least; auto with ord.
+    rewrite ord_le_unfold; intros [].
+    intros y' Hy'c Hy'.
+    transitivity (bhtower m (bhtower (S m) (bhtower (S (S m)) f v) (sz j)) 0 x).
+    { apply bhtower_monotone; auto with ord.
+      rewrite addOrd_zero_r in Hy'.
+      rewrite ord_lt_unfold in Hy'.
+      destruct Hy' as [[] Hy']. simpl in Hy'.
+      auto with ord.
+    }
+    rewrite bhtower_zero.
+    transitivity (supOrd (fun k:x =>
+                            bhtower (S m) (bhtower (S (S m)) f v) (sz j) k)).
+    { transitivity (bhtower (S m) (bhtower (S (S m)) f v) j (boundedSup x (fun i => i))).
+      apply bhtower_monotone; auto with ord.
+      apply limit_boundedSup; auto.
+      destruct x as [X g]. simpl in *.
+      destruct Hlim. destruct H as [x0].
+      apply (normal_continuous (bhtower (S m) (bhtower (S (S m)) f v) j)); intuition.
+    }
+
+    apply sup_least; intro k.
+
+    transitivity (bhtower (S (S m)) f x 0); auto.
+    destruct (complete_directed x Hx i k) as [l [Hl1 Hl2]].
+    rewrite ord_lt_unfold in Hvx.
+    destruct Hvx as [q ?].
+    destruct (complete_directed x Hx l q) as [r [Hr1 Hr2]].
+    assert (Hr': exists r':x, r < r').
+    { destruct x as [X g]; simpl in *; intuition. }
+    destruct Hr' as [r' Hr'].
+    rewrite ord_lt_unfold in Hr'.
+    destruct Hr' as [q' Hr'].
+    rewrite (bhtower_unroll (S m)).
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ r').
+    rewrite <- nextCritical_fix; auto with ord.
+    rewrite (bhtower_unroll (S m)).
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ q').
+    rewrite <- nextCritical_critical.
+    * apply bhtower_monotone; auto with ord.
+      intros. apply bhtower_monotone; auto with ord.
+      rewrite H. rewrite Hr2. auto.
+      rewrite <- nextCritical_fix; auto with ord.
+      ** transitivity (bhtower (S (S m)) f q' 0).
+         transitivity q'.
+         rewrite Hl2. rewrite Hr1. auto.
+         apply (normal_inflationary (fun x => bhtower (S (S m)) f x 0)); auto with ord.
+         apply bhtower_monotone; auto with ord.
+      ** apply lim_normal_complete; auto with ord.
+         apply nextCritical_complete; auto with ord.
+         apply lim_normal_complete; auto with ord.
+      ** apply addOrd_complete; auto with ord.
+         apply nextCritical_complete; auto with ord.
+         apply lim_normal_complete; auto with ord.
+      ** rewrite <- addOrd_le1. auto with ord.
+    * auto with ord.
+    * auto with ord.
+    * auto with ord.
+    * apply addOrd_complete; auto with ord.
+      apply nextCritical_complete; auto with ord.
+      apply lim_normal_complete; auto with ord.
+    * apply lim_normal_complete; auto with ord.
+      apply nextCritical_complete; auto with ord.
+      apply lim_normal_complete; auto with ord.
+    * apply ord_lt_le_trans with i; auto with ord.
+      rewrite <- addOrd_le2.
+      rewrite <- nextCritical_fix; auto with ord.
+      transitivity r'.
+      { rewrite Hl1. rewrite Hr1. rewrite Hr'. auto with ord. }
+      transitivity (bhtower (S (S m)) f r' 0).
+      { apply (normal_inflationary (fun x => bhtower (S (S m)) f x 0)); auto with ord. }
+      apply bhtower_monotone; auto with ord.
+      apply lim_normal_complete; auto with ord.
+      rewrite <- addOrd_le1; auto with ord.
+    * apply lim_normal_complete; auto with ord.
+    * rewrite <- addOrd_le1; auto with ord.
+Qed.
+
+Lemma BH_stack_unreachable :
+  forall m x f v vs,
+    length vs = S m ->
+    normal_function f ->
+    each_lt x (v::vs) ->
+    complete x ->
+    limitOrdinal x ->
+    each complete (v::vs) ->
+    bhtower (S m) f x 0 <= x ->
+    BH_stack f v vs < x.
+Proof.
+  induction m; intros x f v vs Hlen Hf Hlt Hx Hlim Hcs Hfix.
+  - destruct vs. simpl in Hlen. congruence.
+    destruct vs.
+    2: { simpl in Hlen. congruence. }
+    unfold each_lt in *.
+    simpl in *.
+    rewrite bhtower_index_one in *; auto.
+    apply veblen_collapse'; intuition.
+  - destruct vs as [|v' vs]; inversion Hlen.
+    unfold each_lt in *.
+    simpl in *.
+    rewrite H0 in *.
+    apply IHm; intuition.
+    apply critical_shrink_step; auto.
+Qed.
+
+Lemma BH_stack_unreachable_apex :
+  forall f n v vs,
+    normal_function f ->
+    each_lt (apex n f) (v::vs) ->
+    each complete (v::vs) ->
+    length vs = S n ->
+    BH_stack f v vs < apex n f.
+Proof.
+  intros. apply BH_stack_unreachable with n; auto.
+  apply apex_limit; auto.
+  apply apex_fixpoint; auto.
+Qed.
+
+Lemma BH_full_stack_unreachable_apex :
+  forall n vs,
+    length vs = (2 + n)%nat ->
+    each complete vs ->
+    each_lt (apex n (addOrd 1)) vs ->
+    BH_full_stack vs < apex n (addOrd 1).
+Proof.
+  intros.
+  destruct vs; simpl in *; inversion H.
+  apply BH_stack_unreachable_apex; auto with ord.
 Qed.
 
 
@@ -1875,7 +2053,7 @@ Proof.
       { apply ord_lt_le_trans with (bhtower (S (S n)) f i x); auto.
         apply bhtower_monotone; auto with ord.
         apply Hi'. }
-      rewrite bhtower_succ in H; auto with arith.
+      rewrite bhtower_succ in H; auto with arith; (try apply classical.ord_complete; auto).
 
       set (f' := bhtower (S (S n)) f i').
       destruct (classical.order_total EM (f' x) x).
@@ -1923,9 +2101,6 @@ Proof.
          rewrite Hi'. auto with ord.
          transitivity i; auto with ord.
          rewrite Hi'; auto with ord.
-
-      * apply classical.ord_complete; auto.
-      * apply classical.ord_complete; auto.
 
     + (* limit case *)
       assert (exists q:x, x < bhtower (S (S n)) f i q).
@@ -2002,7 +2177,7 @@ Proof.
 Qed.
 
 
-Lemma BH_stack_decompose2 (EM:excluded_middle) :
+Lemma BH_stack_decompose_apex (EM:excluded_middle) :
   forall n f (Hf:normal_function f) x (Hlim:limitOrdinal x),
       f x <= x ->
       x < apex n f ->
@@ -2029,14 +2204,25 @@ Proof.
       eapply ord_lt_le_trans; [ apply H0 | ].
       apply normal_fix_least; auto with ord.
       apply classical.ord_complete; auto.
-      destruct (classical.order_total EM (bhtower (S n) f 1 x) x); auto.
-      assert (x <= 1).
-      { transitivity i; auto. }
+      destruct (classical.order_total EM (bhtower (S n) f x 0) x); auto.
       elim (ord_lt_irreflexive x).
-      apply ord_le_lt_trans with 1; auto.
-      apply ord_lt_le_trans with ω.
-      apply (index_lt _ 1%nat).
-      apply omega_least; auto.
+      apply ord_le_lt_trans with i; auto.
+      assert (bhtower (S n) f x 0 <= supOrd (fun i:x => bhtower (S n) f i 0)).
+      { transitivity (bhtower (S n) f (boundedSup x (fun i => i)) 0).
+        apply bhtower_monotone; auto with ord.
+        apply limit_boundedSup; auto.
+        destruct x as [X g]; simpl in *; intuition.
+        destruct H3.
+        apply (normal_continuous (fun x => bhtower (S n) f x 0)); intuition.
+        apply classical.ord_directed; auto.
+        apply classical.ord_complete; auto.
+      }
+      rewrite H3 in H2.
+      apply sup_lt in H2.
+      destruct H2.
+      apply ord_le_lt_trans with x0; auto with ord.
+      apply Hi2. auto.
+      apply ord_lt_le_trans with (bhtower (S n) f x0 0); auto with ord.
   }
 
   destruct Hbnd as [i [??]].
@@ -2052,7 +2238,7 @@ Proof.
   intros x Hlim H.
   apply sup_lt in H.
   destruct H as [n H].
-  destruct (BH_stack_decompose2 EM n (addOrd 1) (onePlus_normal) x Hlim) as [v [vs [?[??]]]]; auto.
+  destruct (BH_stack_decompose_apex EM n (addOrd 1) (onePlus_normal) x Hlim) as [v [vs [?[??]]]]; auto.
   apply limit_onePlus; auto.
   exists (v::vs).
   unfold BH_full_stack; split; auto.
