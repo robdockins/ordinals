@@ -1562,6 +1562,20 @@ Proof.
   rewrite normal_fixpoint; auto with ord.
 Qed.
 
+Lemma apex_monotone : forall n m f g,
+    (m <= n)%nat ->
+    normal_function f ->
+    normal_function g ->
+    (forall x, f x <= g x) ->
+    apex m f <= apex n g.
+Proof.
+  intros.
+  unfold apex at 1.
+  apply fixOrd_least; auto with ord.
+  rewrite apex_fixpoint at 2; auto.
+  apply bhtower_monotone_strong; auto with ord arith.
+Qed.
+
 Theorem apex_unreachable : forall n f a x,
     normal_function f ->
     complete a ->
@@ -1587,15 +1601,22 @@ Proof.
   - hnf. intros. apply H0.
 Qed.
 
+Theorem apex_nonzero : forall n f,
+    normal_function f ->
+    0 < apex n f.
+Proof.
+  intros.
+  rewrite apex_fixpoint; auto with ord.
+  apply normal_nonzero; auto with ord.
+Qed.
+
 Theorem apex_limit : forall n f,
     normal_function f ->
     limitOrdinal (apex n f).
 Proof.
   intros.
   apply limitOrdinal_intro'.
-  - rewrite apex_fixpoint; auto with ord.
-    apply normal_nonzero; auto with ord.
-
+  - apply apex_nonzero; auto.
   - intro i.
     assert (succOrd i < apex n f).
     { apply ord_le_lt_trans with (bhtower (S n) f i i); auto.
@@ -1807,6 +1828,113 @@ Proof.
   - intros; apply bhtower_monotone; auto with ord.
 Qed.
 
+Lemma BH_stack_leading_zero :
+  forall f x xs,
+    normal_function f ->
+    BH_stack f 0 (x::xs) ≈ BH_stack f x xs.
+Proof.
+  intros; split; simpl.
+  - simpl.
+    apply BH_stack_monotone; auto with ord.
+    intros. rewrite bhtower_zero; auto with ord.
+    { clear. induction xs; simpl; auto with ord.
+      - constructor.
+      - constructor; auto with ord. }
+  - apply BH_stack_monotone; auto with ord.
+    intros. rewrite bhtower_zero; auto with ord.
+    { clear. induction xs; simpl; auto with ord.
+      - constructor.
+      - constructor; auto with ord. }
+Qed.
+
+Lemma BH_full_stack_leading_zero :
+  forall xs, (length xs > 0)%nat ->
+    BH_full_stack (0::xs) ≈ BH_full_stack xs.
+Proof.
+  simpl; intros.
+  destruct xs; simpl in *. lia.
+  apply BH_stack_leading_zero; auto with ord.
+Qed.
+
+Fixpoint stackZeros (n:nat) (xs:list Ord) : list Ord :=
+  match n with
+  | O => xs
+  | S n' => 0 :: stackZeros n' xs
+  end.
+
+Lemma stackZeros_length n xs : length (stackZeros n xs) = (n + length xs)%nat.
+Proof.
+  induction n; simpl; auto.
+Qed.
+
+Lemma BH_stack_zeros' n :
+  forall f a x xs,
+    (forall a b, a <= b -> f a <= f b) ->
+    BH_stack f a (stackZeros n (x::xs)) ≈ BH_stack (bhtower (n + length (x::xs)) f a) x xs.
+Proof.
+  induction n; simpl; auto with ord.
+
+  intros.
+  rewrite IHn; auto with ord.
+
+  split; apply BH_stack_monotone; auto with ord.
+  intros. rewrite bhtower_zero; auto with ord.
+  simpl. rewrite stackZeros_length; simpl; auto with ord.
+  { clear. induction xs; constructor; auto with ord. }
+  intros. rewrite bhtower_zero; auto with ord.
+  simpl. rewrite stackZeros_length; simpl; auto with ord.
+  { clear. induction xs; constructor; auto with ord. }
+Qed.
+
+Lemma BH_stack_zeros n f a b :
+  BH_stack f a (stackZeros n [b]) ≈ bhtower (S n) f a b.
+Proof.
+  destruct n; simpl; auto with ord.
+  rewrite stackZeros_length.
+  simpl.
+  replace (S (n+1)) with (S (S n)) by lia.
+  generalize (bhtower (S (S n)) f a).
+  induction n; simpl; intros.
+  rewrite bhtower_zero; auto with ord.
+  rewrite IHn.
+  rewrite bhtower_zero. auto with ord.
+Qed.
+
+Lemma BH_stack_leading_succ_zero :
+  forall f x n,
+    (n > 0)%nat ->
+    normal_function f ->
+    complete x ->
+    BH_stack f (succOrd x) (stackZeros (S n) [0]) ≈ BH_stack f x (stackZeros n [1;0]).
+Proof.
+  intros.
+  rewrite BH_stack_zeros'; auto with ord.
+  simpl.
+  destruct n. lia.
+  simpl.
+  rewrite BH_stack_zeros'; auto with ord.
+  simpl.
+  rewrite bhtower_succ; auto with ord arith.
+  rewrite bhtower_index_one; auto with ord.
+  rewrite veblen_succ; auto with ord.
+  rewrite enum_fixpoints_zero; auto with ord.
+  transitivity (bhtower (S (n + 1)) (bhtower (S (S (n + 1))) f x) 1 0).
+  { split; apply bhtower_monotone; auto with ord;
+      rewrite addOrd_zero_r; auto with ord. }
+  rewrite bhtower_one_zero; auto with ord.
+  rewrite stackZeros_length. simpl.
+  replace (S (S (n+1))) with (S (n+2)) by lia.
+  split; apply fixOrd_least; auto with ord.
+  - rewrite normal_fixpoint at 2; auto with ord.
+    rewrite veblen_zero.
+    rewrite bhtower_zero.
+    auto with ord.
+  - rewrite veblen_zero.
+    rewrite bhtower_zero.
+    rewrite normal_fixpoint at 2; auto with ord.
+Qed.
+
+
 Lemma critical_shrink_step : forall
   m f x v
   (Hf : normal_function f)
@@ -1914,8 +2042,8 @@ Proof.
 Qed.
 
 Lemma BH_stack_unreachable :
-  forall m x f v vs,
-    length vs = S m ->
+  forall (m:ω) x f v vs,
+    (length vs <= S m)%nat ->
     normal_function f ->
     each_lt x (v::vs) ->
     complete x ->
@@ -1924,20 +2052,35 @@ Lemma BH_stack_unreachable :
     bhtower (S m) f x 0 <= x ->
     BH_stack f v vs < x.
 Proof.
-  induction m; intros x f v vs Hlen Hf Hlt Hx Hlim Hcs Hfix.
-  - destruct vs. simpl in Hlen. congruence.
-    destruct vs.
-    2: { simpl in Hlen. congruence. }
-    unfold each_lt in *.
-    simpl in *.
-    rewrite bhtower_index_one in *; auto.
-    apply veblen_collapse'; intuition.
-  - destruct vs as [|v' vs]; inversion Hlen.
-    unfold each_lt in *.
-    simpl in *.
-    rewrite H0 in *.
-    apply IHm; intuition.
-    apply critical_shrink_step; auto.
+  unfold each_lt.
+  induction m using size_induction.
+  intros x f v vs Hlen Hf Hlt Hx Hlim Hcs Hfix.
+  simpl in *.
+  destruct vs.
+  - simpl.
+    apply ord_lt_le_trans with (f x); auto with ord.
+    apply normal_increasing; intuition.
+    rewrite <- Hfix at 2.
+    rewrite <- bhtower_fixpoint with (a:=0); auto with ord.
+    rewrite bhtower_zero.
+    apply normal_monotone; auto with ord.
+    apply (normal_inflationary (fun x => bhtower (S m) f x 0)); auto with ord.
+    auto with arith.
+    rewrite <- Hfix.
+    apply normal_nonzero; auto with ord.
+  - simpl in *.
+    assert (length vs <= m)%nat by lia.
+    destruct m.
+    + destruct vs; simpl in *.
+      apply bhtower_collapse'; intuition.
+      lia.
+    + apply (H m); intuition.
+      apply natOrdSize_increasing. lia.
+      transitivity (bhtower (S m) (bhtower (S (S m)) f v) x 0).
+      apply bhtower_monotone; auto with ord.
+      intros.
+      apply bhtower_monotone_strong; auto with ord.
+      apply critical_shrink_step; auto.
 Qed.
 
 Lemma BH_stack_unreachable_apex :
@@ -1945,52 +2088,136 @@ Lemma BH_stack_unreachable_apex :
     normal_function f ->
     each_lt (apex n f) (v::vs) ->
     each complete (v::vs) ->
-    length vs = S n ->
+    (length vs <= S n)%nat ->
     BH_stack f v vs < apex n f.
 Proof.
-  intros. apply BH_stack_unreachable with n; auto.
+  intros. unfold each_lt in *.
+  apply BH_stack_unreachable with n; auto with ord.
   apply apex_limit; auto.
   apply apex_fixpoint; auto.
 Qed.
 
 Lemma BH_full_stack_unreachable_apex :
   forall n vs,
-    length vs = (2 + n)%nat ->
+    (length vs <= 2 + n)%nat ->
     each complete vs ->
     each_lt (apex n (addOrd 1)) vs ->
     BH_full_stack vs < apex n (addOrd 1).
 Proof.
   intros.
-  destruct vs; simpl in *; inversion H.
+  destruct vs; simpl.
+  apply apex_nonzero; auto.
   apply BH_stack_unreachable_apex; auto with ord.
+  simpl in *. lia.
 Qed.
+
+Theorem BH_full_stack_uneachable :
+  forall vs,
+    each complete vs ->
+    each_lt BachmanHoward vs ->
+    BH_full_stack vs < BachmanHoward.
+Proof.
+  unfold each_lt in *; intros.
+  assert (Hk: exists k, (length vs <= k)%nat /\ each (fun x => x < apex k (addOrd 1)) vs).
+  { induction vs; simpl in *.
+    { exists 0%nat. auto. }
+    destruct IHvs as [k_tail Htail]; intuition.
+    unfold BachmanHoward in H.
+    apply sup_lt in H.
+    destruct H as [k_head Hhead].
+    exists (max k_head (S k_tail)).
+    split; [ lia | split ].
+    * apply ord_lt_le_trans with (apex k_head (addOrd 1)); auto.
+      apply apex_monotone; auto with ord arith.
+    * clear -H4.
+      induction vs; simpl in *; intuition.
+      apply ord_lt_le_trans with (apex k_tail (addOrd 1)); auto.
+      apply apex_monotone; auto with ord arith.
+      lia.
+  }
+  destruct Hk as [k [Hk1 Hk2]].
+  unfold BachmanHoward.
+  rewrite <- (sup_le _ _ k).
+  destruct vs. simpl.
+  apply apex_nonzero; auto with ord.
+  simpl.
+  apply BH_stack_unreachable_apex; simpl; auto with ord.
+  simpl in *.
+  lia.
+Qed.
+
+
+Lemma BH_stack_nonzero :
+  forall xs f x,
+    normal_function f ->
+    each complete (x::xs) ->
+    0 < BH_stack f x xs.
+Proof.
+  induction xs; simpl; intros.
+  - apply normal_nonzero; auto.
+  - apply IHxs; simpl; intuition.
+Qed.
+
+Theorem BachmanHoward_nonzero :
+  0 < BachmanHoward.
+Proof.
+  unfold BachmanHoward.
+  rewrite <- (sup_le _ _ 0%nat).
+  unfold apex.
+  rewrite normal_fixpoint; auto with ord.
+  apply bhtower_normal; auto with ord.
+  apply normal_fix_complete; auto with ord.
+  intros. apply (normal_inflationary (fun x => bhtower 1 (addOrd 1) x 0)); auto with ord.
+Qed.
+
+Theorem BachmanHoward_complete :
+  complete BachmanHoward.
+Proof.
+  unfold BachmanHoward.
+  apply sup_complete; auto with ord.
+  hnf; intros.
+  exists (max a1 a2); split; apply apex_monotone; auto with ord arith.
+  left.
+  exists 0%nat.
+  unfold apex.
+  rewrite normal_fixpoint; auto with ord.
+  apply bhtower_normal; auto with ord.
+  apply normal_fix_complete; auto with ord.
+  intros. apply (normal_inflationary (fun x => bhtower 1 (addOrd 1) x 0)); auto with ord.
+Qed.
+
+Theorem BachmanHoward_limit :
+  limitOrdinal BachmanHoward.
+Proof.
+  apply limitOrdinal_intro.
+  - apply BachmanHoward_nonzero.
+  - unfold BachmanHoward.
+    intros.
+    apply sup_lt in H.
+    destruct H as [k Hk].
+    assert (limitOrdinal (apex k (addOrd 1))).
+    { apply apex_limit; auto with ord. }
+    rewrite ord_isLimit in H. destruct H.
+    destruct (H0 i) as [j [Hj1 Hj2]]; auto.
+    exists j. split; auto.
+    rewrite <- (sup_le _ _ k). auto.
+Qed.
+
+Lemma BH_stack_complete : forall xs f x,
+  normal_function f ->
+  each complete (x::xs) ->
+  complete (BH_stack f x xs).
+Proof.
+  induction xs; simpl; intros.
+  - apply normal_complete; intuition.
+  - apply IHxs; simpl; intuition.
+Qed.
+
+
 
 
 Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
-
-
-Fixpoint stackZeros (n:nat) (x:Ord) : list Ord :=
-  match n with
-  | O => [x]
-  | S n' => 0 :: stackZeros n' x
-  end.
-
-Lemma stackZeros_length n x : length (stackZeros n x) = S n.
-Proof.
-  induction n; simpl; auto.
-Qed.
-
-Lemma BH_stack_zeros n f a b : BH_stack f a (stackZeros n b) ≈ bhtower (S n) f a b.
-Proof.
-  destruct n; simpl; auto with ord.
-  rewrite stackZeros_length.
-  generalize (bhtower (S (S n)) f a).
-  induction n; simpl; intros.
-  rewrite bhtower_zero; auto with ord.
-  rewrite IHn.
-  rewrite bhtower_zero. auto with ord.
-Qed.
 
 Require VeblenFacts.
 
@@ -2114,12 +2341,13 @@ Proof.
       destruct H as [[H0 H1] H2].
 
       destruct (classical.order_total EM (bhtower (S (S n)) f i x0) x).
-      * exists i. exists (stackZeros (S n) x0).
+      * exists i. exists (stackZeros (S n) [x0]).
         unfold each_lt. rewrite stackZeros_length.
         split.
         rewrite BH_stack_zeros.
         split; auto.
         simpl; intuition.
+        lia.
         apply ord_le_lt_trans with x0; auto with ord.
         clear - H0.
         induction n; simpl; intuition.

@@ -26,10 +26,13 @@ Open Scope ord_scope.
 
 Local Hint Resolve
       bhtower_normal
+      bhtower_first_normal
       bhtower_complete
       bhtower_monotone
       normal_complete
       normal_monotone
+      normal_fix_complete
+      normal_inflationary
       veblen_complete
       veblen_normal
       veblen_first_normal
@@ -52,7 +55,55 @@ Fixpoint BH_denote (v:BHForm) : Ord :=
   | BH l => BH_full_stack (map BH_denote l)
   end.
 
-Definition BH0    := BH nil.
+Definition BHForm_induction : forall
+  (P:BHForm -> Prop)
+  (Hind: forall xs, each P xs -> P (BH xs)),
+  forall x, P x :=
+
+  fun P Hind =>
+  fix outer (x:BHForm) : P x :=
+    match x as x' return P x' with
+    | BH xs0 =>
+        Hind xs0
+          ((fix inner (xs:list BHForm) : each P xs :=
+              match xs as xs' return each P xs' with
+              | nil => I
+              | (y::ys) => conj (outer y) (inner ys)
+              end
+           ) xs0)
+    end.
+
+Lemma BHForm_complete: forall x:BHForm, complete (BH_denote x).
+Proof.
+  induction x using BHForm_induction.
+  induction xs; simpl each in *; simpl BH_denote in *; auto with ord.
+  apply BH_stack_complete; simpl; intuition.
+  clear -H1.
+  induction xs; simpl in *; intuition.
+Qed.
+
+Lemma BHForm_each_complete: forall xs, each complete (map BH_denote xs).
+Proof.
+  induction xs; simpl; intuition.
+  apply BHForm_complete.
+Qed.
+
+Local Hint Resolve BHForm_complete BHForm_each_complete: core.
+
+
+Theorem BHForm_bounded : forall x:BHForm, BH_denote x < BachmanHoward.
+Proof.
+  intro x.
+  induction x using BHForm_induction.
+
+  simpl.
+  apply BH_full_stack_uneachable; auto.
+  unfold each_lt.
+  induction xs; simpl in *; intuition.
+Qed.
+
+
+Definition BH0    := BH [].
 Definition BH1    := BH [BH0].
 Definition BH2    := BH [BH1].
 Definition BHω    := BH [BH1; BH0].
