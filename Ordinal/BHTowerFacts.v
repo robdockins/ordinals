@@ -1189,6 +1189,52 @@ Proof.
   intros. apply limit_unreachable; auto.
 Qed.
 
+Lemma BH_full_stack_epsilon1:
+  forall ys,
+    each complete ys ->
+    hasNonzeroIndex ys ->
+    expOrd ω (BH_full_stack (1::ys)) <= BH_full_stack (1::ys).
+Proof.
+  intros. simpl.
+  destruct ys; simpl in *; [ lia | ].
+  rewrite <- BH_stack_fixpoint2 at 2; auto with ord.
+  rewrite bhtower_one; auto with ord arith.
+  transitivity (bhtower 1 (addOrd 1) (1+BH_stack (bhtower (S (length ys)) (addOrd 1) 1) o ys) 0).
+  { rewrite bhtower_index_one; auto with ord.
+    rewrite veblen_onePlus; auto with ord.
+    rewrite addOrd_zero_r.
+    apply expOrd_monotone; auto with ord.
+    apply addOrd_le2.
+    apply addOrd_complete; auto with ord.
+    apply BH_stack_complete; auto with ord. }
+  apply bhtower_monotone_strong; auto with ord.
+  destruct ys; simpl in *; intuition.
+  destruct ys; simpl in *; intuition.
+  apply BH_stack_complete; auto with ord.
+Qed.
+
+Lemma BH_full_stack_epsilon2:
+  forall y ys,
+    each complete (y::ys) ->
+    y > 1 ->
+    (length ys > 1)%nat ->
+    expOrd ω (BH_full_stack (y::ys)) <= BH_full_stack (y::ys).
+Proof.
+  intros. simpl.
+  destruct ys; simpl in *; [ lia | ].
+  apply BH_stack_fixpoint1; simpl; intuition auto with ord.
+  rewrite <- bhtower_fixpoint with (a:=1) at 2; auto with ord arith.
+  rewrite bhtower_one; auto with ord arith.
+  transitivity (bhtower 1 (addOrd 1) (1+bhtower (S (length ys)) (addOrd 1) y z) 0).
+  { rewrite bhtower_index_one; auto with ord.
+    rewrite veblen_onePlus; auto with ord.
+    rewrite addOrd_zero_r.
+    auto with ord. }
+  apply bhtower_monotone_strong; auto with ord.
+  lia.
+Qed.
+
+
 Lemma BH_full_stack_limit1:
   forall ys,
     each complete ys ->
