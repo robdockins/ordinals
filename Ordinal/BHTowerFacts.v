@@ -1268,6 +1268,25 @@ Proof.
   apply bhtower_onePlus_limit; auto with ord.
 Qed.
 
+Lemma BH_full_stack_limit : 
+  forall x xs,
+    each complete (x::xs) ->
+    (x ≈ 1 \/ x > 1) ->
+    (length xs > 1)%nat ->
+    limitOrdinal (BH_full_stack (x::xs)).
+Proof.
+  intuition.
+  - assert (BH_full_stack (x::xs) ≈ BH_full_stack (1::xs)).
+    { simpl.
+      destruct H2; split; apply BH_stack_monotone; auto with ord.
+      clear. induction xs; constructor; auto with ord.
+      clear. induction xs; constructor; auto with ord. }
+    rewrite H0.
+    apply BH_full_stack_limit1; simpl in *; intuition.
+  - apply BH_full_stack_limit2; auto with ord.
+Qed.
+
+
 Lemma compare_stack_lt_short :
   forall x y xs ys f,
     each complete (x::xs) ->
@@ -1354,7 +1373,6 @@ Proof.
       simpl in *; intuition.
       apply BH_stack_complete; auto.
 Qed.
-
 
 
 Require Import ClassicalFacts.
