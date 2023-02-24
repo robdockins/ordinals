@@ -24,40 +24,6 @@ From Ordinal Require Import BHTower.
 
 Open Scope ord_scope.
 
-Definition succ_unreachable (x:Ord) :=
-  forall a, a < x -> succOrd a < x.
-
-Add Parametric Morphism : succ_unreachable with signature
-    ord_eq ==> impl as succ_unreachable_eq_mor.
-Proof.
-  intros. hnf; intros.
-  unfold succ_unreachable.
-  intro i.
-  rewrite <- H.
-  apply H0.
-Qed.
-
-
-Lemma limit_unreachable y :
-    limitOrdinal y ->
-    succ_unreachable y.
-Proof.
-  intros Hlim x Hxy.
-  rewrite ord_isLimit in Hlim.
-  destruct Hlim as [Hz Hlim].
-  destruct (Hlim x) as [q [??]]; auto.
-  apply ord_le_lt_trans with q; auto.
-  apply succ_least; auto.
-Qed.
-
-Lemma unreachable_limit y :
-  y > 0 -> succ_unreachable y -> limitOrdinal y.
-Proof.
-  intros. rewrite ord_isLimit; split; auto.
-  intros.
-  exists (succOrd i). split; auto with ord.
-Qed.
-
 
 Local Hint Resolve
   bhtower_monotone nextCritical_monotone
@@ -388,13 +354,6 @@ Qed.
 
 Definition BachmanHoward := supOrd (fun n:nat => apex n (addOrd 1)).
 
-
-Fixpoint each {A:Type} (P:A -> Prop) (xs:list A) : Prop :=
-  match xs with
-  | [] => True
-  | (x::xs) => P x /\ each P xs
-  end.
-
 Definition each_lt (x:Ord) (vs:list Ord) := each (fun v => v < x) vs.
 
 Fixpoint BH_stack (f:Ord -> Ord) (x:Ord) (xs:list Ord) : Ord :=
@@ -408,17 +367,6 @@ Definition BH_full_stack (xs:list Ord) : Ord :=
   | [] => 0
   | (x::xs) => BH_stack (addOrd 1) x xs
   end.
-
-Inductive pairwise {A B} (R:A -> B -> Prop) : list A -> list B -> Prop :=
-  | pairwise_nil : pairwise R nil nil
-  | pairwise_cons : forall x xs y ys,
-      R x y -> pairwise R xs ys -> pairwise R (x::xs) (y::ys).
-
-Lemma pairwise_length A B (R:A -> B -> Prop) xs ys :
-  pairwise R xs ys -> length xs = length ys.
-Proof.
-  intro H; induction H; simpl; auto.
-Qed.
 
 Lemma BH_stack_monotone f g x y xs ys :
   (forall a b, a <= b -> f a <= g b) ->
@@ -1212,6 +1160,24 @@ Proof.
   destruct ys; simpl in *; intuition.
   apply BH_stack_complete; auto with ord.
 Qed.
+
+Lemma BH_full_stack_epsilon1':
+  forall y ys,
+    each complete ys ->
+    hasNonzeroIndex ys ->
+    y ≈ 1 ->
+    expOrd ω (BH_full_stack (y::ys)) <= BH_full_stack (y::ys).
+Proof.
+  intros.
+  transitivity (expOrd ω (BH_full_stack (1 :: ys))).
+  apply expOrd_monotone; auto with ord.
+  apply BH_stack_monotone; auto with ord. apply H1.
+  clear. induction ys; constructor; auto with ord.
+  rewrite BH_full_stack_epsilon1; auto.
+  apply BH_stack_monotone; auto with ord. apply H1.
+  clear. induction ys; constructor; auto with ord.
+Qed.
+
 
 Lemma BH_full_stack_epsilon2:
   forall y ys,

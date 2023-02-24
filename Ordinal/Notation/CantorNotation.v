@@ -323,7 +323,7 @@ Proof.
         apply CNF_compare_correct_lemma with c; auto.
 Qed.
 
-Theorem CNF_lt_reflects : reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> PROP) ord_lt CantorNormalForm_lt.
+Theorem CNF_lt_reflects : reflects CantorNormalForm CNF_denote (fun _ => True) (ORD ==> ORD ==> PROP) ord_lt CantorNormalForm_lt.
 Proof.
   simpl. intros x [a Ha] Hxa y [b Hb] Hyb.
   unfold CNF_denote, CantorNormalForm_lt in *; simpl in *.
@@ -332,28 +332,28 @@ Proof.
   - destruct (cantorCompare a b); auto.
     + elim (ord_lt_irreflexive x).
       apply ord_lt_le_trans with y; auto.
-      rewrite Hyb. rewrite <- H. apply Hxa.
+      rewrite H2. rewrite <- H. apply H0.
     + elim (ord_lt_irreflexive x).
       apply ord_lt_le_trans with y; auto.
-      rewrite Hyb. rewrite Hxa. auto with ord.
-  - rewrite H0 in H. rewrite Hxa. rewrite Hyb.
+      rewrite H2. rewrite H0. auto with ord.
+  - rewrite H4 in H. rewrite H0. rewrite H2.
     auto.
 Qed.
 
-Theorem CNF_le_reflects : reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> PROP) ord_le CantorNormalForm_le.
+Theorem CNF_le_reflects : reflects CantorNormalForm CNF_denote (fun _ => True) (ORD ==> ORD ==> PROP) ord_le CantorNormalForm_le.
 Proof.
   simpl. intros x [a Ha] Hxa y [b Hb] Hyb.
   unfold CNF_denote, CantorNormalForm_le in *; simpl in *.
   generalize (CNF_compare_correct a b Ha Hb).
   intuition.
-  - rewrite H1 in H.
+  - rewrite H5 in H.
     elim (ord_lt_irreflexive x).
     apply ord_le_lt_trans with y; auto.
-    rewrite Hyb. rewrite Hxa.
+    rewrite H2. rewrite H0.
     auto.
   - destruct (cantorCompare a b); intuition.
-    + rewrite Hxa. rewrite Hyb. auto with ord.
-    + rewrite Hxa. rewrite Hyb. apply H.
+    + rewrite H0. rewrite H2. auto with ord.
+    + rewrite H0. rewrite H2. apply H.
 Qed.
 
 Theorem CNF_decide_order (x y:CNF) : {x < y} + {x ≥ y}.
@@ -699,26 +699,27 @@ Definition CNF_zero  : CNF := exist _ CF_zero  CF_zero_normal.
 Definition CNF_one   : CNF := exist _ CF_one   CF_one_normal.
 Definition CNF_omega : CNF := exist _ CF_omega CF_omega_normal.
 
-Theorem CNF_reflects_zero : reflects CantorNormalForm CNF_denote ORD 0 CNF_zero.
+Theorem CNF_reflects_zero : reflects CantorNormalForm CNF_denote (fun _ => True) ORD 0 CNF_zero.
 Proof.
   red; simpl.
-  unfold CNF_denote. simpl. reflexivity.
+  unfold CNF_denote. simpl. split; auto with ord.
 Qed.
 
 Opaque expOrd.
 Opaque mulOrd.
 Opaque addOrd.
 
-Theorem CNF_reflects_one : reflects CantorNormalForm CNF_denote ORD 1 CNF_one.
+Theorem CNF_reflects_one : reflects CantorNormalForm CNF_denote (fun _ => True) ORD 1 CNF_one.
 Proof.
   red; simpl.
   unfold CNF_denote.
   simpl.
   rewrite expOrd_zero.
+  split; auto.
   symmetry. apply addOrd_zero_r.
 Qed.
 
-Theorem CNF_reflects_omega : reflects CantorNormalForm CNF_denote ORD ω CNF_omega.
+Theorem CNF_reflects_omega : reflects CantorNormalForm CNF_denote (fun _ => True) ORD ω CNF_omega.
 Proof.
   red; simpl.
   unfold CNF_denote.
@@ -792,7 +793,7 @@ Qed.
 
 
 (** This defines the addition algorithm on cantor normal forms.
-    It esseentially consists of appending to the two sequences,
+    It essentially consists of appending to the two sequences,
     followed by a normalization step where any terms on the left
     with strictly smaller exponents than the leading term on the right
     are discarded.
@@ -879,11 +880,13 @@ Definition CNF_add (x y : CNF) : CNF
   := exist _ (CF_add (proj1_sig x) (proj1_sig y))
              (CF_add_normal _ _ (proj2_sig x) (proj2_sig y)).
 
-Theorem CNF_add_reflects : reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> ORD) addOrd CNF_add.
+
+Theorem CNF_add_reflects : reflects CantorNormalForm CNF_denote (fun _ => True) (ORD ==> ORD ==> ORD) addOrd CNF_add.
 Proof.
-  hnf; simpl. unfold CNF_denote. intros x [a Ha] Hxa y [b Hb] Hyb; simpl in *.
+  hnf; simpl. unfold CNF_denote. intros x [a Ha] [Hxa _] y [b Hb] [Hyb _]; simpl in *.
   rewrite Hxa. rewrite Hyb.
   destruct a as [xs]. destruct b as [ys].
+  split; auto.
   apply (cantorSum_add_correct xs ys); auto.
 Qed.
 
@@ -1040,13 +1043,13 @@ Definition CNF_mul (x y : CNF) : CNF
   := exist _ (CF_mul (proj1_sig x) (proj1_sig y))
            (CF_mul_normal _ _ (proj2_sig x) (proj2_sig y)).
 
-Theorem CNF_mul_reflects : reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> ORD) mulOrd CNF_mul.
+Theorem CNF_mul_reflects : reflects CantorNormalForm CNF_denote (fun _ => True) (ORD ==> ORD ==> ORD) mulOrd CNF_mul.
 Proof.
-  hnf; simpl. unfold CNF_denote. intros x [a Ha] Hxa y [b Hb] Hyb; simpl in *.
+  hnf; simpl. unfold CNF_denote. intros x [a Ha] [Hxa _] y [b Hb] [Hyb _]; simpl in *.
   rewrite Hxa. rewrite Hyb.
+  split; auto.
   symmetry. apply CF_mul_correct; auto.
 Qed.
-
 
 Definition CF_nat (n:nat) : CF := CantorSum (repeat CF_zero n).
 
@@ -1287,10 +1290,12 @@ Definition CNF_exp (x y:CNF) : CNF :=
   exist _ (CF_exp (proj1_sig x) (proj1_sig y))
           (CF_exp_normal _ _ (proj2_sig x) (proj2_sig y)).
 
-Theorem CNF_exp_reflects : reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> ORD) expOrd CNF_exp.
+
+Theorem CNF_exp_reflects : reflects CantorNormalForm CNF_denote (fun _ => True) (ORD ==> ORD ==> ORD) expOrd CNF_exp.
 Proof.
-  hnf; simpl. unfold CNF_denote. intros x [a Ha] Hxa y [b Hb] Hyb; simpl in *.
+  hnf; simpl. unfold CNF_denote. intros x [a Ha] [Hxa _] y [b Hb] [Hyb _]; simpl in *.
   rewrite Hxa. rewrite Hyb.
+  split; auto.
   symmetry. apply CF_exp_correct; auto.
 Qed.
 
@@ -1299,7 +1304,7 @@ Qed.
     for CNF values x and y, then we could compute ω↑↑ω = ε₀, which is too large.
   *)
 Theorem CNF_reflects_KnuthUp2_impossible :
-  ~exists f, reflects CantorNormalForm CNF_denote (ORD ==> ORD ==> ORD) (KnuthUp 2) f.
+  ~exists f, reflects CantorNormalForm CNF_denote (fun _ => True) (ORD ==> ORD ==> ORD) (KnuthUp 2) f.
 Proof.
   intros [f Hf].
   hnf in Hf.
@@ -1307,6 +1312,7 @@ Proof.
   hnf in Hf.
   specialize (Hf ω CNF_omega CNF_reflects_omega).
   red in Hf.
+  destruct Hf as [Hf _].
   rewrite KnuthUp_epsilon in Hf.
   apply (ord_lt_irreflexive (ε 0)).
   rewrite Hf at 1.
@@ -1405,7 +1411,7 @@ Proof.
     transitivity (CNF_denote (CNF_exp CNF_omega cnf)); [ | apply index_le ].
     apply CNF_exp_reflects.
     apply CNF_reflects_omega.
-    simpl; reflexivity.
+    simpl; split; auto with ord.
 Qed.
 
 Theorem CNF_is_ε0 : CNF ≈ ε 0.
@@ -1469,6 +1475,7 @@ Proof.
     apply CNF_add_reflects; auto.
     apply CNF_exp_reflects; auto.
     apply CNF_reflects_omega.
+    simpl; split; auto.
 Qed.
 
 (** Here, we explicitly show that the above result requires EM,

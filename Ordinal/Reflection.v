@@ -39,34 +39,36 @@ Fixpoint reflShape (S:Shape) (X:Type) : Type :=
   | ARROW S1 S2 => reflShape S1 X -> reflShape S2 X
   end.
 
-Fixpoint reflects (A:Type) (f:A -> Ord) (S:Shape) : ordShape S -> reflShape S A -> Prop :=
+Fixpoint reflects (A:Type) (f:A -> Ord) (P:A -> Prop) (S:Shape) : ordShape S -> reflShape S A -> Prop :=
   match S as S' return ordShape S' -> reflShape S' A -> Prop with
   | PROP => fun p q => p <-> q
-  | ORD  => fun x a => x ≈ f a
-  | PROD S1 S2 => fun x a => reflects A f S1 (fst x) (fst a) /\ reflects A f S2 (snd x) (snd a)
-  | ARROW S1 S2 => fun g h => forall x a, reflects A f S1 x a -> reflects A f S2 (g x) (h a)
+  | ORD  => fun x a => x ≈ f a /\ P a
+  | PROD S1 S2 => fun x a => reflects A f P S1 (fst x) (fst a) /\ reflects A f P S2 (snd x) (snd a)
+  | ARROW S1 S2 => fun g h => forall x a, reflects A f P S1 x a -> reflects A f P S2 (g x) (h a)
   end.
 
 
 Remark ε0_least_exp_closed :
-  forall X denote zeroX succX expOmegaX,
-    reflects X denote ORD 0 zeroX ->
-    reflects X denote (ORD ==> ORD) succOrd succX ->
-    reflects X denote (ORD ==> ORD) (expOrd ω) expOmegaX ->
+  forall X denote P zeroX succX expOmegaX,
+    (forall x:X, exists x', denote x ≈ denote x' /\ P x') ->
+    reflects X denote P ORD 0 zeroX ->
+    reflects X denote P (ORD ==> ORD) succOrd succX ->
+    reflects X denote P (ORD ==> ORD) (expOrd ω) expOmegaX ->
 
     ε 0 ≤ ord X denote.
 Proof.
-  intros X denote zeroX succX expOmegaX Hzero Hsucc HexpOmega.
+  intros X denote P zeroX succX expOmegaX Hnorm Hzero Hsucc HexpOmega.
 
   assert (Hlimit : limitOrdinal (ord X denote)).
   { simpl; split.
     - exact (inhabits zeroX).
     - hnf; simpl; intros.
-      exists (succX a).
+      destruct (Hnorm a) as [a' [Ha1 Ha2]].
+      exists (succX a').
       apply ord_lt_le_trans with (succOrd (denote a)).
       apply succ_lt.
       apply Hsucc.
-      simpl; reflexivity. }
+      simpl; split; auto. }
 
   apply ε0_least_expOmega_closed; auto.
   transitivity (expOrd ω (supOrd denote)).
@@ -75,8 +77,9 @@ Proof.
   - etransitivity; [ apply expOrd_continuous |].
     exact zeroX.
     apply sup_least; intro x.
-    transitivity (denote (expOmegaX x)).
-    apply HexpOmega. simpl; reflexivity.
+    destruct (Hnorm x) as [x' [Hx1 Hx2]].
+    transitivity (denote (expOmegaX x')).
+    apply HexpOmega. simpl; split; auto.
     apply (index_le (ord X denote)).
 Qed.
 

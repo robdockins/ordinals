@@ -416,3 +416,24 @@ Proof.
   apply (hasMax_ascending_contradiction A f); auto.
 Qed.
 
+Require Import List.
+Import ListNotations.
+
+Fixpoint each {A:Type} (P:A -> Prop) (xs:list A) : Prop :=
+  match xs with
+  | [] => True
+  | (x::xs) => P x /\ each P xs
+  end.
+
+Inductive pairwise {A B} (R:A -> B -> Prop) : list A -> list B -> Prop :=
+  | pairwise_nil : pairwise R nil nil
+  | pairwise_cons : forall x xs y ys,
+      R x y -> pairwise R xs ys -> pairwise R (x::xs) (y::ys).
+
+Lemma pairwise_length A B (R:A -> B -> Prop) xs ys :
+  pairwise R xs ys -> length xs = length ys.
+Proof.
+  intro H; induction H; simpl; auto.
+Qed.
+
+

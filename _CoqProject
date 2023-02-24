@@ -25,6 +25,8 @@ Ordinal/BHTowerFacts.v
 
 Ordinal/Notation/CantorNotation.v
 
+Ordinal/Notation/CantorDecomposition.v
+
 Ordinal/Notation/VNotation.v
 Ordinal/Notation/VWNotation.v
 Ordinal/Notation/VTowerFinNotation.v
