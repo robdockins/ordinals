@@ -54,17 +54,6 @@ Proof.
   rewrite <- addOrd_le1. apply succ_lt.
 Qed.
 
-
-Lemma onePlus_finite_succ m :
-  1 + natOrdSize m ≈ succOrd (natOrdSize m).
-Proof.
-  induction m; simpl.
-  rewrite addOrd_zero_r. auto with ord.
-  rewrite addOrd_succ.
-  rewrite IHm.
-  reflexivity.
-Qed.
-
 Theorem onePlus_least f :
   (forall x y, x < y -> f x < f y) ->
   (forall x, 0 < f x) ->

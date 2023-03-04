@@ -39,7 +39,6 @@ Record has_cantor_decomposition (A:Type) (f:A -> Ord) (P: A -> Prop) :=
   { cantor_decomp_compare : A -> A -> ordering
   ; cantor_decompose : A -> list A
   ; cantor_recompose : list A -> A
-
   ; cantor_decomp_complete: forall x, complete (f x)
 
   ; cantor_decomp_compare_correct :
@@ -125,6 +124,29 @@ Section cantor_arithmetic.
       reflexivity.
   Qed.
 
+  Definition cantor_nat (n:nat) :=
+    cantor_recompose X (repeat cantor_zero n).
+
+  Theorem cantor_nat_correct n : f (cantor_nat n) ≈ sz n /\ P (cantor_nat n).
+  Proof.
+    unfold cantor_nat.
+    destruct (cantor_recompose_correct X (repeat cantor_zero n)).
+    - induction n; simpl; intuition.
+      unfold cantor_zero.
+      destruct (cantor_recompose_correct X []); simpl; auto.
+    - induction n; simpl; intuition.
+      destruct n; simpl; intuition.
+    - split; auto.
+      rewrite <- H0.
+      clear H H0.
+      induction n; simpl; auto with ord.
+      unfold cantor_zero.
+      destruct (cantor_recompose_correct X []); simpl; auto.
+      rewrite <- H0. simpl.
+      rewrite expOrd_zero.
+      rewrite IHn; auto.
+      apply onePlus_finite_succ.
+  Qed.
 
   Fixpoint cantor_add_loop xs y ys :=
     match xs with
@@ -334,8 +356,8 @@ Section cantor_arithmetic.
     | Some xs' => Some (cantor_recompose X xs')
     end.
 
-  Lemma cantor_succ_test_correct : forall x, 
-      P x ->    
+  Lemma cantor_succ_test_correct : forall x,
+      P x ->
       match cantor_succ_test x with
       | None => succ_unreachable (f x)
       | Some x' => P x' /\ succOrd (f x') ≈ f x
@@ -395,11 +417,11 @@ Section cantor_arithmetic.
         end
     end.
 
-  Lemma cantor_list_if_finite_correct xs:
+  Lemma cantor_list_is_finite_correct xs:
     each P xs ->
     cantor_ordered f xs ->
     match cantor_list_is_finite xs with
-    | None => exists a b, cantor_denote f xs ≈ expOrd ω a + b /\ a > 0
+    | None => exists a b, xs = a::b /\ f a > 0
     | Some n => cantor_denote f xs ≈ sz n
     end.
   Proof.
@@ -428,7 +450,7 @@ Section cantor_arithmetic.
       destruct xs; auto with ord.
       rewrite H2; auto.
 
-    - exists (f a), (cantor_denote f xs).
+    - exists a, xs.
       split; auto with ord.
       rewrite H4.
       rewrite <- addOrd_le1.
@@ -586,5 +608,336 @@ Section cantor_arithmetic.
     reflexivity.
   Qed.
 
+
+  (** Compute the value x^(ωᵉ). This algorithm has quite a few special cases,
+      which are commented inline.
+   *)
+  Definition cantor_exp_single (x:list A) (e:list A) : list A :=
+    match x with
+
+    (* 0 ^ (ω^e) = 1 *)
+    | [] => [ cantor_zero ]
+
+    | (x1::xs) =>
+        match cantor_list_is_finite (x1::xs) with
+        | Some 0 => [ cantor_zero ] (* shouldn't happen, but eh... *)
+        | Some 1 => [ cantor_zero ]
+        | Some (S _) =>
+            match cantor_list_is_finite e with
+            (* n ^ (ω^0) = n *)
+            | Some 0 => x
+            (* n ^ (ω^(1+m)) = ω^(ω^m) for finite n > 1, finite m *)
+            | Some (S m) => [ cantor_recompose X [ cantor_nat m ] ]
+            (* n ^ (ω^e) = ω^(ω^e)  for e >= ω, finite n > 1 *)
+            | None => [ cantor_recompose X [ cantor_recompose X e ] ]
+            end
+
+        | None =>
+            match e with
+
+            (* x^ (ω^0) = x *)
+            | [] => x
+
+            (* (ω^x₁ + b) ^ (ω^e) = ω^(x₁ * ω^e)  when x₁ >= 1, e > 0 *)
+            | _ => [ cantor_recompose X (cantor_mul_single (cantor_decompose X x1) e) ]
+            end
+        end
+    end.
+
+  Lemma cantor_exp_single_prop_ordered:
+    forall x e,
+      each P x ->
+      each P e ->
+      cantor_ordered f x ->
+      cantor_ordered f e ->
+      each P (cantor_exp_single x e) /\ cantor_ordered f (cantor_exp_single x e).
+  Proof.
+    unfold cantor_exp_single; intros.
+    destruct x as [|x1 xs]; simpl; auto.
+    { intuition. unfold cantor_zero.
+      destruct (cantor_recompose_correct X []); auto. }
+    case_eq (cantor_decompose X x1); simpl; intros.
+    - case_eq (cantor_list_is_finite e); simpl; intros.
+      case_eq (length xs); intros.
+      simpl; intuition.
+      unfold cantor_zero.
+      destruct (cantor_recompose_correct X []); simpl; auto.
+      destruct n; simpl in *; intuition.
+      destruct (cantor_recompose_correct X [cantor_nat n]); simpl; intuition.
+      apply cantor_nat_correct.
+      case_eq (length xs); intros.
+      simpl; intuition.
+      unfold cantor_zero.
+      destruct (cantor_recompose_correct X []); simpl; auto.
+      destruct (cantor_recompose_correct X e); simpl; intuition.
+      destruct (cantor_recompose_correct X [cantor_recompose X e]); simpl; intuition.
+    - destruct e; simpl in *; intuition.
+      apply cantor_recompose_correct; simpl; intuition.
+      apply cantor_recompose_correct; simpl; intuition.
+      apply cantor_add_prop; simpl; auto.
+      apply cantor_decompose_correct; auto.
+      destruct (cantor_decompose_correct X x1); auto.
+      rewrite H3 in H2. simpl in *. intuition.
+      apply cantor_add_ordered; simpl; intuition.
+      apply cantor_decompose_correct; auto.
+      destruct (cantor_decompose_correct X x1); auto.
+      rewrite H3 in H2. simpl in *. intuition.
+      apply cantor_decompose_correct; auto.
+      destruct (cantor_decompose_correct X x1); auto.
+      rewrite H3 in H2. simpl in *. intuition.
+  Qed.
+
+  Lemma leading_zero_finite:
+    forall xs x,
+      cantor_ordered f (x::xs) ->
+      f x ≈ 0 ->
+      cantor_denote f (x::xs) ≈ sz (length xs+1)%nat.
+  Proof.
+    induction xs; simpl; intuition.
+    rewrite H0. rewrite addOrd_zero_r.
+    rewrite expOrd_zero. auto with ord.
+    rewrite H0.
+    rewrite expOrd_zero.
+    simpl in IHxs.
+    rewrite IHxs; auto.
+    apply (onePlus_finite_succ (length xs + 1)).
+    split; auto with ord.
+    rewrite H1. apply H0.
+  Qed.
+
+  Opaque cantor_mul_single.
+
+  Lemma cantor_exp_single_correct:
+    forall x e,
+      each P x ->
+      each P e ->
+      cantor_ordered f x ->
+      cantor_ordered f e ->
+      cantor_denote f (cantor_exp_single x e) ≈ expOrd (cantor_denote f x) (expOrd ω (cantor_denote f e)).
+  Proof.
+    unfold cantor_exp_single. intros.
+    destruct x; simpl.
+    { rewrite addOrd_zero_r.
+      unfold cantor_zero.
+      destruct (cantor_recompose_correct X []); simpl; intuition.
+      rewrite <- H4. simpl.
+      rewrite expOrd_zero.
+      split.
+      apply succ_least. apply expOrd_nonzero.
+      rewrite expOrd_unfold.
+      apply lub_least; auto with ord.
+      apply sup_least. intro i.
+      rewrite mulOrd_zero_r.
+      apply ord_lt_le; apply succ_lt. }
+    simpl in *; intuition.
+    destruct (cantor_decompose_correct X a); intuition.
+    case_eq (cantor_decompose X a); intros.
+    - case_eq (length x); intros.
+      + simpl. rewrite H6 in H8.
+        simpl in *.
+        destruct x; simpl in *; try discriminate.
+        repeat rewrite addOrd_zero_r.
+        rewrite H8.
+        rewrite expOrd_zero.
+        unfold cantor_zero.
+        destruct (cantor_recompose_correct X []); simpl; auto.
+        rewrite <- H11. simpl.
+        rewrite expOrd_zero.
+        symmetry. apply expOrd_one_base.
+      + generalize (cantor_list_is_finite_correct e H0 H2).
+        destruct (cantor_list_is_finite e); intros.
+        * destruct n0.
+          ** rewrite H10; simpl.
+             rewrite expOrd_zero.
+             rewrite expOrd_one'.
+             auto with ord.
+             rewrite <- addOrd_le1.
+             apply expOrd_nonzero.
+          ** destruct (cantor_recompose_correct X [cantor_nat n0]); simpl; intuition.
+             apply cantor_nat_correct.
+             rewrite (@leading_zero_finite x a).
+             rewrite H10.
+             transitivity (expOrd (sz (length x + 1)%nat) (expOrd ω (1+sz n0))).
+             rewrite expNatToOmegaPow.
+             simpl.
+             rewrite addOrd_zero_r.
+             apply expOrd_eq_mor; auto with ord.
+             rewrite <- H12.
+             simpl.
+             rewrite addOrd_zero_r.
+             apply expOrd_eq_mor; auto with ord.
+             apply cantor_nat_correct.
+             simpl.
+             replace (length x + 1)%nat with (S (length x)) by lia.
+             simpl.
+             apply succ_trans.
+             rewrite H9.
+             simpl.
+             apply succ_monotone; auto with ord.
+             simpl.
+             rewrite onePlus_finite_succ. reflexivity.
+             simpl; auto.
+             destruct (cantor_decompose_correct X a); auto.
+             destruct H14.
+             rewrite H15.
+             rewrite H6.
+             simpl. reflexivity.
+        * rewrite (@leading_zero_finite x a).
+          destruct (cantor_recompose_correct X e); simpl; auto.
+          destruct (cantor_recompose_correct X [cantor_recompose X e]); simpl; auto.
+          rewrite addOrd_zero_r.
+          rewrite <- H14.
+          assert (cantor_denote f e ≈ 1 + cantor_denote f e).
+          { destruct H10 as [s [t [??]]].
+            rewrite H10.
+            simpl.
+            rewrite addOrd_assoc.
+            apply addOrd_eq_mor; auto with ord.
+            split. apply addOrd_le2.
+            apply limit_onePlus.
+            apply additively_closed_limit.
+            apply ord_lt_le_trans with (expOrd ω 1).
+            rewrite expOrd_one'.
+            apply omega_gt1.
+            apply omega_gt0.
+            apply expOrd_monotone.
+            apply succ_least; auto.
+            apply expOmega_additively_closed; auto.
+            apply (cantor_decomp_complete X). }
+          rewrite H15.
+          rewrite (expNatToOmegaPow).
+          simpl.
+          rewrite addOrd_zero_r.
+          rewrite <- H12.
+          reflexivity.
+          simpl.
+          replace (length x + 1)%nat with (1 + length x)%nat by lia.
+          simpl. apply succ_increasing.
+          rewrite H9.
+          simpl.
+          auto with ord.
+          simpl; auto.
+          rewrite H8.
+          rewrite H6.
+          simpl.
+          reflexivity.
+    - destruct e; simpl in *.
+      { rewrite expOrd_zero.
+        rewrite expOrd_one'; auto with ord.
+        rewrite <- addOrd_le1.
+        apply expOrd_nonzero. }
+      rewrite addOrd_zero_r.
+      rewrite H6 in *.
+      destruct (cantor_recompose_correct X (cantor_mul_single (a0::l) (a1::e))).
+      apply cantor_mul_single_prop_ordered; simpl in *; intuition.
+      apply cantor_mul_single_prop_ordered; simpl in *; intuition.
+      rewrite <- H10.
+      rewrite cantor_mul_single_correct; simpl in *; intuition.
+      rewrite expOrd_mul.
+      split.
+      + apply expOrd_monotone_base; auto with ord.
+        rewrite H8.
+        apply addOrd_le1.
+      + rewrite H8.
+        rewrite expToOmega_collapse_tower with (length x); auto with ord.
+        transitivity (expOrd ω 1).
+        { rewrite expOrd_one'; auto with ord.
+          apply ord_lt_le.
+          apply additively_closed_omega; auto with ord.
+          apply omega_gt1. apply omega_gt0. }
+        apply expOrd_monotone; auto with ord.
+        apply succ_least. rewrite <- addOrd_le1. apply expOrd_nonzero.
+        rewrite <- H8.
+        { revert H H5; clear.
+          induction x; simpl; intuition.
+          rewrite IHx.
+          rewrite <- onePlus_finite_succ.
+          rewrite ordDistrib_left.
+          rewrite mulOrd_one_r.
+          apply addOrd_monotone; auto with ord.
+          apply expOrd_monotone; auto with ord.
+          destruct x; auto.
+          eauto with ord.
+          auto. }
+        apply addOrd_complete; auto with ord.
+        apply expOrd_complete.
+        apply omega_gt0.
+        apply omega_complete.
+        apply (cantor_decomp_complete X).
+        apply cantor_denote_complete.
+        rewrite <- addOrd_le1.
+        apply expOrd_nonzero.
+  Qed.
+
+  Definition cantor_exp_list (xs:list A) (ys:list A) : list A :=
+    fold_right (fun y s => cantor_mul_list (cantor_exp_single xs (cantor_decompose X y)) s) [cantor_zero] ys.
+
+  Lemma cantor_exp_list_prop_ordered xs ys :
+    each P xs ->
+    each P ys ->
+    cantor_ordered f xs ->
+    cantor_ordered f ys ->
+    each P (cantor_exp_list xs ys) /\ cantor_ordered f (cantor_exp_list xs ys).
+  Proof.
+    intros. induction ys; simpl; auto.
+    { intuition.
+      unfold cantor_zero.
+      destruct (cantor_recompose_correct X []); simpl; intuition. }
+    simpl in *.
+    destruct H0; destruct H2.
+    destruct IHys; simpl in *; auto.
+    destruct (cantor_decompose_correct X a) as [?[??]]; auto.
+    destruct (cantor_exp_single_prop_ordered xs (cantor_decompose X a)); auto.
+    apply cantor_mul_list_prop_ordered; auto.
+  Qed.
+
+  Lemma cantor_exp_list_correct xs ys :
+    each P xs ->
+    each P ys ->
+    cantor_ordered f xs ->
+    cantor_ordered f ys ->
+    cantor_denote f (cantor_exp_list xs ys) ≈ expOrd (cantor_denote f xs) (cantor_denote f ys).
+  Proof.
+    intros; induction  ys; simpl; auto.
+    { rewrite addOrd_zero_r.
+      rewrite expOrd_zero.
+      unfold cantor_zero.
+      destruct (cantor_recompose_correct X []); auto.
+      rewrite <- H4. simpl.
+      rewrite expOrd_zero. reflexivity. }
+    simpl in *. intuition.
+    destruct (cantor_decompose_correct X a) as [?[??]]; auto.
+    destruct (cantor_exp_list_prop_ordered xs ys); auto.
+    destruct (cantor_exp_single_prop_ordered xs (cantor_decompose X a)); auto.
+    rewrite cantor_mul_list_correct; auto.
+    rewrite expOrd_add.
+    rewrite H6.
+    rewrite cantor_exp_single_correct; auto.
+    rewrite <- H8.
+    reflexivity.
+  Qed.
+
+  Definition cantor_exp (x y:A) :=
+    cantor_recompose X (cantor_exp_list (cantor_decompose X x) (cantor_decompose X y)).
+
+  Theorem cantor_exp_reflects : reflects A f P (ORD ==> ORD ==> ORD) expOrd cantor_exp.
+  Proof.
+    simpl; intros.
+    destruct H, H0.
+    unfold cantor_exp.
+    destruct (cantor_decompose_correct X a) as [?[??]]; auto.
+    destruct (cantor_decompose_correct X a0) as [?[??]]; auto.
+    destruct (cantor_recompose_correct X (cantor_exp_list (cantor_decompose X a) (cantor_decompose X a0))); auto.
+    apply cantor_exp_list_prop_ordered; auto.
+    apply cantor_exp_list_prop_ordered; auto.
+    split; auto.
+    rewrite <- H10.
+    rewrite cantor_exp_list_correct; auto.
+    rewrite <- H5.
+    rewrite <- H8.
+    rewrite <- H.
+    rewrite <- H0.
+    reflexivity.
+  Qed.
 
 End cantor_arithmetic.

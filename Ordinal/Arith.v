@@ -1283,3 +1283,14 @@ Qed.
 
 
 Global Opaque addOrd mulOrd expOrd.
+
+
+Lemma onePlus_finite_succ m :
+  1 + natOrdSize m ≈ succOrd (natOrdSize m).
+Proof.
+  induction m; simpl.
+  rewrite addOrd_zero_r. auto with ord.
+  rewrite addOrd_succ.
+  rewrite IHm.
+  reflexivity.
+Qed.
