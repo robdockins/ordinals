@@ -2147,11 +2147,142 @@ Definition BH_has_cantor_decomposition : has_cantor_decomposition BH_denote norm
     BHcantor_decomp_correct
     BHcantor_recomp_correct.
 
+Definition BH_zero := BH [].
+Definition BH_one  := BH [BH_zero].
 
-(* TODO: need to build and prove correct a normalization procedure.
-   We can use the cantor_decide procedure to build the stabalization
-   subroutine.
-*)
+Lemma BH_zero_correct : BH_denote BH_zero ≈ 0.
+Proof.
+  simpl. reflexivity.
+Qed.
+
+Lemma BH_one_correct : BH_denote BH_one ≈ 1.
+  simpl.
+  rewrite addOrd_zero_r.
+  reflexivity.
+Qed.
+
+Definition BH_succ := cantor_succ BH_has_cantor_decomposition.
+Definition BH_add  := cantor_add BH_has_cantor_decomposition.
+Definition BH_mul  := cantor_mul BH_has_cantor_decomposition.
+Definition BH_exp  := cantor_exp BH_has_cantor_decomposition.
+
+Definition BH_onePlus x := BH_add BH_one x.
+
+Lemma BH_onePlus_correct: forall x,
+    normal_form x ->
+    BH_denote (BH_onePlus x) ≈ 1 + BH_denote x.
+Proof.
+  unfold BH_onePlus.
+  intros.
+  rewrite <- BH_one_correct.
+  symmetry. apply cantor_add_reflects; simpl; intuition.
+  unfold BH_one; simpl.
+  rewrite normal_form_BH; simpl; intuition.
+  red; simpl; intuition.
+  constructor. simpl; auto.
+  unfold BH_zero; simpl.
+  rewrite normal_form_BH; simpl; intuition.
+  hnf; simpl; intuition.
+  constructor; simpl; auto.
+Qed.
+
+Definition stabalize_zeros x n :=
+  match n with
+  | 0 => (x, [BH_zero])
+  | S m =>
+      match cantor_succ_test BH_has_cantor_decomposition x with
+      | None    => (x , repeat BH_zero m ++ [BH_zero; BH_zero])
+      | Some x' => (x', repeat BH_zero m ++ [BH_one; BH_zero])
+      end
+  end.
+
+Lemma BH_stack_leading_succ_zero' :
+  forall f x n,
+    normal_function f ->
+    complete x ->
+    BH_stack f (succOrd x) (stackZeros (S n) [0]) ≈ BH_stack f x (stackZeros n [1;0]).
+Proof.
+  intros.
+  destruct n.
+  { simpl.
+    rewrite bhtower_zero.
+    rewrite bhtower_succ; auto with ord.
+    split; apply bhtower_monotone; auto with ord.
+    rewrite addOrd_zero_r; auto with ord.
+    rewrite addOrd_zero_r; auto with ord. }
+  apply BH_stack_leading_succ_zero; auto with arith.
+Qed.
+
+Lemma stabalize_zeros_stable:
+  forall x n,
+    normal_form x ->
+    let (x',xs) := stabalize_zeros x n in
+    stable_list (map BH_denote (x'::xs)).
+Proof.
+  intros. unfold stabalize_zeros.
+  destruct n; simpl.
+  { constructor. simpl; auto. }
+  generalize (cantor_succ_test_correct BH_has_cantor_decomposition x H).
+  destruct (cantor_succ_test BH_has_cantor_decomposition x).
+  - simpl; intuition.
+    admit.
+  - intros.
+    admit.
+Admitted.    
+
+
+Lemma stabalize_zeros_correct:
+  forall f x n,
+    normal_function f ->
+    normal_form x ->
+    let (x',xs) := stabalize_zeros x n in
+      BH_stack f (BH_denote x) (stackZeros n [0])  ≈
+      BH_stack f (BH_denote x') (map BH_denote xs).
+Proof.
+  unfold stabalize_zeros; simpl; intros.
+  destruct n; simpl; auto with ord.
+  generalize (cantor_succ_test_correct BH_has_cantor_decomposition x H0).
+  destruct (cantor_succ_test BH_has_cantor_decomposition x).
+  - simpl; intuition.
+    rewrite stackZeros_length.
+    simpl.
+    transitivity (BH_stack f (BH_denote x) (stackZeros (S n) [0])).
+    { simpl; auto with ord.
+      rewrite stackZeros_length.
+      simpl; auto with ord. }
+    transitivity (BH_stack f (succOrd (BH_denote b)) (stackZeros (S n) [0])).
+    { split; apply BH_stack_monotone; auto with ord.
+      apply H3.
+      apply pairwise_le_refl.
+      apply H3.
+      apply pairwise_le_refl. }
+    rewrite BH_stack_leading_succ_zero'; auto with ord.
+    split; apply BH_stack_monotone; auto with ord.
+    + clear.
+      induction n; simpl; auto.
+      constructor.
+      rewrite addOrd_zero_r. auto with ord.
+      constructor; auto with ord.
+      constructor.
+      constructor; auto with ord.
+    + clear.
+      induction n; simpl; auto.
+      constructor.
+      rewrite addOrd_zero_r. auto with ord.
+      constructor; auto with ord.
+      constructor.
+      constructor; auto with ord.
+  - intros.
+    transitivity (BH_stack f (BH_denote x) (stackZeros (S n) [0])).
+    simpl. auto with ord.
+    split; apply BH_stack_monotone; auto with ord.
+    + clear.
+      induction n; simpl; intuition; repeat (constructor; auto with ord).
+    + clear.
+      induction n; simpl; intuition; repeat (constructor; auto with ord).
+Qed.
+
+
 
 (*
 Fixpoint zerosAndArgument x xs : option (nat * BHForm) :=
@@ -2167,9 +2298,6 @@ Fixpoint zerosAndArgument x xs : option (nat * BHForm) :=
       | _ => None
       end
   end.
-
-
-Fixpoint stabalize_zeros x n :=
 
 
 
