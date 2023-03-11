@@ -422,9 +422,12 @@ Definition rank (x:BHForm) :=
 
 Inductive stable_list : list Ord -> Prop :=
 | stable_short : forall xs, (length xs <= 2)%nat -> stable_list xs
+| stable_long : forall x xs, succ_unreachable x \/ hasNonzeroIndex xs -> stable_list xs -> stable_list (x::xs).
+
+(*
 | stable_zero_head : forall x xs, x ≈ 0 -> stable_list xs -> stable_list (x::xs)
 | stable_limit_head : forall x xs, limitOrdinal x -> stable_list xs -> stable_list (x::xs)
-| stable_succ_head: forall x xs, successorOrdinal x -> hasNonzeroIndex xs -> stable_list xs -> stable_list (x::xs).
+| stable_succ_head: forall x xs, successorOrdinal x -> hasNonzeroIndex xs -> stable_list xs -> stable_list (x::xs). *)
 
 Definition no_leading_zeros (xs:list Ord) : Prop :=
   match xs with
@@ -505,14 +508,12 @@ Proof.
   inversion Hstable; subst.
   - apply compare_stack_lt_short; simpl; intuition.
     repeat rewrite map_length; auto.
-  - elim (ord_lt_irreflexive (BH_denote y)).
-    rewrite H2 at 1.
+  - apply compare_stack_lt_long; simpl; auto.
+    repeat rewrite map_length; auto.
+    intuition.
+    left.
+    apply unreachable_limit; auto.
     apply ord_le_lt_trans with (BH_denote x); auto with ord.
-  - apply compare_stack_lt_long; simpl; intuition.
-    repeat rewrite map_length; auto.
-    rewrite <- Heq. auto.
-  - apply compare_stack_lt_long; simpl; intuition.
-    repeat rewrite map_length; auto.
     rewrite <- Heq. auto.
 Qed.
 
@@ -607,41 +608,34 @@ Proof.
     simpl in Hstable. inversion Hstable; subst; simpl in *.
     + rewrite map_length in *.
       destruct ys; simpl in *; try lia.
-    + elim (ord_lt_irreflexive (BH_denote y)).
-      rewrite H12 at 1.
-      apply ord_le_lt_trans with (BH_denote x); auto with ord.
 
     + apply bhtower_collapse; auto with ord.
       rewrite H8 at 2.
-      rewrite <- BH_stack_fixpoint1 with (g:=bhtower (S (S (length xs))) f (succOrd (BH_denote x)));
+      rewrite map_length. rewrite <- H0.
+      destruct H12.
+      * rewrite <- BH_stack_fixpoint1 with (g:=bhtower (S (S (length xs))) f (succOrd (BH_denote x)));
         simpl; auto with ord.
-      rewrite map_length. rewrite <- H0.
-      rewrite bhtower_succ; auto with ord arith.
-      apply bhtower_monotone; auto with ord.
-      rewrite H8; auto with ord.
-      rewrite map_length. rewrite <- H0. auto with ord.
-      apply addOrd_le2.
-      apply BH_stack_complete; simpl; auto.
-
-      intros.
-      rewrite map_length. rewrite <- H0.
-      apply bhtower_fixpoint; auto with ord arith.
-      apply limit_unreachable; auto.
-
-    + apply bhtower_collapse; auto with ord.
-      rewrite H8 at 2.
-      rewrite map_length. rewrite <- H0.
-      rewrite <- BH_stack_fixpoint2; simpl; auto with ord.
-      transitivity (bhtower (S (S (length xs))) f (succOrd (BH_denote x))
-        (BH_stack (bhtower (S (S (length xs))) f (BH_denote y)) (BH_denote y1) (map BH_denote ys))).
-      { rewrite bhtower_succ; auto with ord arith.
-        apply bhtower_monotone; auto with ord arith.
-        rewrite H8.
-        rewrite map_length. rewrite <- H0.
+        rewrite bhtower_succ; auto with ord arith.
+        apply bhtower_monotone; auto with ord.
+        rewrite H8; auto with ord.
+        rewrite map_length. rewrite <- H0. auto with ord.
         apply addOrd_le2.
-        apply BH_stack_complete; simpl; auto. }
-      apply bhtower_monotone; auto with ord.
-      apply succ_least; auto.
+        apply BH_stack_complete; simpl; auto.
+
+        intros.
+        apply bhtower_fixpoint; auto with ord arith.
+
+      * rewrite <- BH_stack_fixpoint2; simpl; auto with ord.
+        transitivity (bhtower (S (S (length xs))) f (succOrd (BH_denote x))
+                        (BH_stack (bhtower (S (S (length xs))) f (BH_denote y)) (BH_denote y1) (map BH_denote ys))).
+        { rewrite bhtower_succ; auto with ord arith.
+          apply bhtower_monotone; auto with ord arith.
+          rewrite H8.
+          rewrite map_length. rewrite <- H0.
+          apply addOrd_le2.
+          apply BH_stack_complete; simpl; auto. }
+        apply bhtower_monotone; auto with ord.
+        apply succ_least; auto.
 Qed.
 
 Lemma short_stack_check_lt_invariant x xs y ys:
@@ -682,50 +676,32 @@ Proof.
     apply BH_stack_complete; simpl; auto.
     inversion H2; subst.
     * simpl in *. rewrite map_length in *. lia.
-    * elim (ord_lt_irreflexive (BH_denote y)).
-      rewrite H10 at 1. auto.
     * destruct ys; simpl in *. lia.
       rewrite map_length.
-      transitivity (bhtower (S (length ys)) (addOrd 1) 1
-                      (BH_stack (bhtower (S (length ys)) (addOrd 1) (BH_denote y)) (BH_denote b0) (map BH_denote ys))).
-      { rewrite bhtower_one; auto with ord arith.
-        apply bhtower_monotone_strong; auto with ord arith.
-        apply addOrd_le2.
-        destruct ys; simpl in *; lia.
-        apply BH_stack_complete; simpl; auto. }
-      apply BH_stack_fixpoint1; simpl; auto.
-      intros.
-      apply bhtower_fixpoint; auto with ord arith.
-      apply limit_unreachable; auto.
-    * destruct ys; simpl in *. lia.
-      rewrite map_length.
-      rewrite <- BH_stack_fixpoint2 at 2; simpl; auto with ord.
-      assert (exists y', BH_denote y ≈ succOrd y' /\ complete y').
-      { clear - H10.
-        assert (complete (BH_denote y)) by auto.
-        destruct (BH_denote y) as [Y fy]; simpl in *.
-        destruct H10 as [q ?].
-        exists (fy q). split.
-        split.
-        rewrite ord_le_unfold; simpl; intros.
-        rewrite ord_lt_unfold; simpl. exists tt. auto.
-        apply succ_least.
-        rewrite ord_lt_unfold. exists q. auto.
-        apply H. }
-
-      destruct H8 as [y' [??]].
-      transitivity (bhtower (S (length ys)) (addOrd 1) (succOrd y')
-                      (BH_stack (bhtower (S (length ys)) (addOrd 1) (BH_denote y)) (BH_denote b0) (map BH_denote ys))).
-      { rewrite bhtower_succ; auto with ord arith.
-        apply bhtower_monotone_strong; auto with ord.
-        - intros. rewrite bhtower_unroll. auto with ord.
-        - lia.
-        - apply addOrd_le2.
-        - lia.
-        - apply BH_stack_complete; simpl; auto. }
-
-      apply bhtower_monotone; auto with ord.
-      apply H8.
+      destruct H10.
+      **  transitivity (bhtower (S (length ys)) (addOrd 1) 1
+                          (BH_stack (bhtower (S (length ys)) (addOrd 1) (BH_denote y)) (BH_denote b0) (map BH_denote ys))).
+          { rewrite bhtower_one; auto with ord arith.
+            apply bhtower_monotone_strong; auto with ord arith.
+            apply addOrd_le2.
+            destruct ys; simpl in *; lia.
+            apply BH_stack_complete; simpl; auto. }
+          apply BH_stack_fixpoint1; simpl; auto.
+          intros.
+          apply bhtower_fixpoint; auto with ord arith.
+      ** rewrite <- BH_stack_fixpoint2 at 2; simpl; auto with ord.
+         transitivity (bhtower (S (length ys)) (addOrd 1) 1
+                         (BH_stack (bhtower (S (length ys)) (addOrd 1) (BH_denote y)) (BH_denote b0) (map BH_denote ys))).
+         { rewrite bhtower_succ; auto with ord arith.
+           apply bhtower_monotone_strong; auto with ord.
+           - intros. rewrite bhtower_unroll. auto with ord.
+           - lia.
+           - apply addOrd_le2.
+           - lia.
+           - apply BH_stack_complete; simpl; auto. }
+         
+         apply bhtower_monotone; auto with ord.
+         apply succ_least; auto.
 Qed.
 
 Lemma ordering_correct_normal:
@@ -1064,7 +1040,6 @@ Proof.
         clear. revert a.
         induction xs; simpl; constructor; auto with ord.
         constructor.
-
 Qed.
 
 Lemma termSize_lemma1 : forall x xs ytop n,
@@ -1416,37 +1391,25 @@ Proof.
   destruct Hlim as [?|[Hlim1 Hlim2]]; [ lia |].
   inversion Hy1.
   + simpl in *. rewrite map_length in H1. lia.
-  + rewrite H3 in Hord.
-    elim (ord_lt_irreflexive 0).
-    apply ord_le_lt_trans with (BH_denote x); auto with ord.
   + generalize (compare_stack_lt_long (BH_denote x) (BH_denote y)
                   (map BH_denote (x1::xs)) (map BH_denote (y1::ys)) f).
     simpl. repeat rewrite map_length.
     rewrite H0.
-    intro Hcut; apply Hcut; clear Hcut; intuition.
+    intro Hcut; apply Hcut; clear Hcut; auto.
+    intuition.
+    left. apply unreachable_limit; auto.
+    apply ord_le_lt_trans with (BH_denote x); auto with ord.
     rewrite map_length in Hlim2. auto.
     unfold each_lt. simpl; auto; split.
     * rewrite <- Heq.
-      rewrite map_length in H13. rewrite <- H0.
-      assumption.
-    * revert H14.
+      rewrite map_length in Hx2. rewrite <- H0.
+      intuition.
+    * rewrite map_length in Hy2.
+      destruct Hx2 as [_ [_ Hx2]].
+      revert Hx2.
       apply each_implies. intro q.
-      rewrite map_length. rewrite H0.
-      rewrite Heq. auto.
-  + generalize (compare_stack_lt_long (BH_denote x) (BH_denote y)
-                  (map BH_denote (x1::xs)) (map BH_denote (y1::ys)) f).
-    simpl. repeat rewrite map_length.
-    rewrite H0.
-    intro Hcut; apply Hcut; clear Hcut; intuition.
-    rewrite map_length in Hlim2. auto.
-    unfold each_lt. simpl; split.
-    * rewrite <- Heq.
-      rewrite map_length in H14. rewrite <- H0.
-      assumption.
-    * revert H15.
-      apply each_implies. intro q.
-      rewrite map_length. rewrite H0.
-      rewrite Heq. auto.
+      rewrite map_length.
+      rewrite <- Heq. rewrite Hlen. auto.
 Qed.
 
 
@@ -1650,10 +1613,6 @@ Proof.
 
     - rewrite map_length in *. lia.
 
-    - destruct ys; simpl in *. lia.
-      elim (ord_lt_irreflexive 0).
-      rewrite <- H6 at 2. auto.
-
     - apply compare_stack_lt_long; simpl; auto.
       split. apply zero_complete.
       clear.
@@ -1663,29 +1622,9 @@ Proof.
       rewrite stackZeros_length. simpl.
       repeat rewrite map_length.
       lia.
+      intuition; auto.
+      left. apply unreachable_limit; auto.
       destruct ys; simpl in *; auto.
-      lia.
-
-      destruct Hxs as [?[? Heach]].
-      unfold each_lt; simpl.
-
-      clear -Heach Heq.
-      induction n; simpl stackZeros.
-      revert Heach; apply each_implies; simpl; auto.
-      intros. rewrite <- Heq; auto.
-      simpl; split.
-      apply BH_stack_nonzero; auto.
-      simpl; auto.
-      auto.
-
-    - apply compare_stack_lt_long; simpl; auto.
-      split. apply zero_complete.
-      clear.
-      induction n; simpl; auto.
-      split; auto.
-      apply zero_complete.
-      rewrite stackZeros_length. simpl.
-      repeat rewrite map_length.
       lia.
       destruct ys; simpl in *; auto.
       lia.
@@ -2117,12 +2056,11 @@ Proof.
     hnf in H3. simpl in *; intuition.
     inversion H4; subst; auto.
     + simpl in *. lia.
-    + elim (ord_lt_irreflexive (BH_denote a)).
-      rewrite H22 at 1. auto.
     + rewrite <- H0 in H22.
-      elim (successor_not_limit 1); auto.
-      rewrite ord_isSucc.
-      exists 0. reflexivity.
+      destruct H22 as [Hunreach|?] ; auto.
+      hnf in Hunreach.
+      elim (ord_lt_irreflexive 1).
+      apply Hunreach; auto with ord.
     + symmetry. assumption.
   - rewrite addOrd_zero_r in H0.
     rewrite ord_lt_unfold in H0.
@@ -2146,6 +2084,7 @@ Definition BH_has_cantor_decomposition : has_cantor_decomposition BH_denote norm
     (fun x y Hx Hy => bhcompare_correct x y (normal_is_stable x Hx) (normal_is_stable y Hy))
     BHcantor_decomp_correct
     BHcantor_recomp_correct.
+
 
 Definition BH_zero := BH [].
 Definition BH_one  := BH [BH_zero].
@@ -2213,23 +2152,82 @@ Proof.
   apply BH_stack_leading_succ_zero; auto with arith.
 Qed.
 
+Lemma stable_nonzeroIndex_zeros10 n :
+  stable_list (map BH_denote (repeat BH_zero n ++ [BH_one; BH_zero])) /\
+  hasNonzeroIndex (map BH_denote (repeat BH_zero n ++ [BH_one; BH_zero])).
+Proof.
+  induction n; simpl; intuition.
+  apply stable_short; simpl; auto.
+  apply stable_long; auto.
+  destruct n; simpl in *; intuition.
+Qed.
+
+
+Lemma BH_zero_normal : normal_form BH_zero.
+Proof.
+  unfold BH_zero. rewrite normal_form_BH.
+  simpl; intuition.
+  hnf; simpl; intuition.
+  apply stable_short; simpl; auto.
+Qed.
+
+Lemma BH_one_normal: normal_form BH_one.
+Proof.
+  unfold BH_one.
+ rewrite normal_form_BH.
+  simpl; intuition.
+  hnf; simpl; intuition.
+  apply stable_short; simpl; auto.
+  apply BH_zero_normal.
+Qed.
+
+Lemma zero_succ_unreachable: succ_unreachable 0.
+Proof.
+  hnf; intros.
+  elim (ord_lt_irreflexive a).
+  apply ord_lt_le_trans with 0; auto with ord.
+Qed.
+
 Lemma stabalize_zeros_stable:
   forall x n,
     normal_form x ->
     let (x',xs) := stabalize_zeros x n in
-    stable_list (map BH_denote (x'::xs)).
+    stable_list (map BH_denote (x'::xs)) /\
+    length xs = S n /\
+    each normal_form (x'::xs) /\
+    (BH_denote x > 0 -> hasNonzeroIndex (map BH_denote (x'::xs))).
 Proof.
   intros. unfold stabalize_zeros.
   destruct n; simpl.
-  { constructor. simpl; auto. }
+  { split.
+    constructor. simpl; auto.
+    intuition.
+    apply BH_zero_normal. }
   generalize (cantor_succ_test_correct BH_has_cantor_decomposition x H).
   destruct (cantor_succ_test BH_has_cantor_decomposition x).
   - simpl; intuition.
-    admit.
+    destruct (stable_nonzeroIndex_zeros10 n).
+    apply stable_long; auto.
+    rewrite app_length. rewrite repeat_length; simpl. lia.
+    { clear. induction n; simpl; intuition.
+      apply BH_one_normal.
+      apply BH_zero_normal.
+      apply BH_zero_normal. }
+    destruct (stable_nonzeroIndex_zeros10 n).
+    destruct n; simpl; auto.
   - intros.
-    admit.
-Admitted.    
-
+    split.
+    apply stable_long; auto.
+    induction n; simpl; intuition.
+    apply stable_short; simpl; auto.
+    apply stable_long; auto.
+    left. apply zero_succ_unreachable.
+    split.
+    rewrite app_length. rewrite repeat_length; simpl. lia.
+    intuition.
+    { clear; induction n; simpl; intuition; apply BH_zero_normal. }
+    destruct n; simpl; intuition.
+Qed.
 
 Lemma stabalize_zeros_correct:
   forall f x n,
@@ -2283,51 +2281,393 @@ Proof.
 Qed.
 
 
-
-(*
-Fixpoint zerosAndArgument x xs : option (nat * BHForm) :=
+Fixpoint stabalize_list x xs : (nat * BHForm) + (BHForm * list BHForm) :=
   match xs with
-  | [] => Some (0%nat, x)
-  | x1::xs =>
-      match x1 with
-      | BH [] =>
-          match zerosAndArgument x1 xs with
-          | None => None
-          | Some (n,arg) => Some (S n, arg)
+  | [] => inl (0%nat, x)
+  | (x1::x2) =>
+      match stabalize_list x1 x2 with
+      | inl (n, arg) => 
+          match x with
+          | BH [] => inl (S n, arg)
+          | _     =>
+              match n with
+              | 0 => inr (x, [arg])
+              | S m =>
+                  match cantor_succ_test BH_has_cantor_decomposition x with
+                  | None => inr (x, repeat BH_zero n ++ [arg])
+                  | Some xpred => 
+                      let (arg', xs') := stabalize_zeros (BH_onePlus arg) m in
+                      inr (xpred, arg' :: xs')
+                  end
+              end
           end
-      | _ => None
+      | inr (x',xs') => inr (x, x'::xs')
       end
   end.
 
 
+Lemma stabalize_list_correct :
+  forall xs x,
+    each normal_form (x::xs) ->
+    match stabalize_list x xs with
+    | inl (n, arg) => x::xs = repeat BH_zero n ++ [arg] /\ normal_form arg
+    | inr (x', xs') => 
+        stable_list (map BH_denote (x'::xs')) /\
+        hasNonzeroIndex (map BH_denote (x'::xs')) /\
+        length xs = length xs' /\
+        each normal_form (x'::xs') /\
+        forall f,
+          normal_function f ->
+          BH_stack f (BH_denote x) (map BH_denote xs) ≈
+          BH_stack f (BH_denote x') (map BH_denote xs')
+    end.
+Proof.
+  induction xs; simpl; intuition.
+  generalize (IHxs a).
+  destruct (stabalize_list a xs) as [[n arg]|[a' xs']]; intro Haxs.
+  - destruct x as [l]. destruct l.
+    { destruct Haxs; simpl; auto.
+      split; auto. rewrite H1. auto.
+    }
+    destruct n; simpl.
+    { split; auto with ord.
+      apply stable_short. simpl. auto.
+      split.
+      left. apply BH_stack_nonzero; auto with ord.
+      simpl; auto.
+      simpl in *. destruct Haxs; simpl; auto.
+      destruct xs; inversion H1. subst; simpl.
+      split; auto.
+      split; auto.
+      simpl; intros.
+      reflexivity. }
 
+    generalize (cantor_succ_test_correct BH_has_cantor_decomposition (BH (b::l)) H0).
+    destruct (cantor_succ_test BH_has_cantor_decomposition (BH (b::l))); simpl.
+    + intros.
+      assert (normal_form (BH_onePlus arg) /\ BH_denote (BH_onePlus arg) ≈ 1 + BH_denote arg).
+      { unfold BH_onePlus.
+        destruct (cantor_add_reflects BH_has_cantor_decomposition) with 1 BH_one (BH_denote arg) arg;
+        simpl in *; intuition.
+        rewrite addOrd_zero_r. reflexivity.
+        unfold BH_one.
+        rewrite normal_form_BH; simpl; intuition.
+        hnf; simpl; intuition.
+        apply stable_short; simpl; auto.
+        unfold BH_zero.
+        rewrite normal_form_BH; simpl; intuition.
+        hnf; simpl; intuition.
+        apply stable_short; simpl; auto. }
+      destruct H3.
 
-Fixpoint stabalize x xs {struct xs} :=
-  match xs with
-  | [] => [x]
-  | [x1] => [x;x1]
-  | x1::xs =>
-      match cantor_list_pred BH_has_cantor_decomposition (BH_cantor_decompose x) with
-      | Some l =>
-          match zerosAndArgument x1 xs with
-          | None => x :: stabalize x1 xs
-          | Some (n,arg) => BH_cantor_recompose l :: stabalize_zeros arg n
-          end
-      | None => x :: stabalize x1 xs
-      end
-  end.
+      generalize (stabalize_zeros_stable (BH_onePlus arg) n).
+      case_eq (stabalize_zeros (BH_onePlus arg) n); intuition.
+      * apply stable_long; simpl; auto.
+        right. apply H11.
+        rewrite H4.
+        rewrite <- addOrd_le1.
+        auto with ord.
+      * simpl in H11.
+        simpl. right.
+        apply H11.
+        rewrite H4.
+        rewrite <- addOrd_le1.
+        auto with ord.
+      * simpl; auto.
+        destruct Haxs; simpl; auto.
+        simpl in H10; inversion H10; subst.
+        rewrite app_length; simpl.
+        rewrite repeat_length; auto.
+        lia.
+      * destruct Haxs; simpl; auto.
+        simpl in H12. inversion H12. subst.
+        simpl. 
+        repeat rewrite map_length; simpl.
+        repeat rewrite app_length; simpl.
+        repeat rewrite repeat_length.
+        rewrite H8.
+        replace (S (n + 1))%nat with (S (S n)) by lia.
+        transitivity (BH_stack (bhtower (S (S n)) f (BH_denote b0)) (BH_denote (BH_onePlus arg)) (stackZeros n [0])).
+        2: { generalize (stabalize_zeros_correct 
+                           (bhtower (S (S n)) f (BH_denote b0))
+                           (BH_onePlus arg) n).
+             rewrite H1. simpl. intro.
+             apply H14; auto with ord. }
+        transitivity (BH_stack (bhtower (S (S n)) f (succOrd (BH_denote b0))) 0
+                         (stackZeros n [BH_denote arg])).
+        split; apply BH_stack_monotone; auto with ord.
+        intros. apply bhtower_monotone; auto with ord.
+        apply H6.
+        { clear. induction n; simpl; intuition; constructor; auto with ord.
+          constructor. }
+        intros. apply bhtower_monotone; auto with ord.
+        apply H6.
+        { clear. induction n; simpl; intuition; constructor; auto with ord.
+          constructor. }
+        repeat rewrite BH_stack_zeros.
+        rewrite bhtower_zero.
+        rewrite bhtower_succ; auto with ord arith.
+        split; apply bhtower_monotone; auto with ord.
+        apply H4. apply H4.
+    + intros; simpl; intuition.
+      apply stable_long; auto.
+      { clear.
+        apply stable_long. left. apply zero_succ_unreachable.
+        induction n; simpl; intuition.
+        apply stable_short; simpl; auto.
+        apply stable_long; auto.
+        left. apply zero_succ_unreachable. }
+      left. apply BH_stack_nonzero; auto with ord.
+      simpl; auto.
+      destruct Haxs. simpl; auto.
+      simpl in H3. inversion H3; subst.
+      reflexivity.
+      apply BH_zero_normal.
+      { destruct Haxs; simpl; auto.
+        clear -H4.
+        induction n; simpl; intuition; apply BH_zero_normal. }
 
+      destruct Haxs. simpl; auto.
+      simpl in H4. inversion H4; subst.
+      split; apply BH_stack_monotone; auto with ord.
+      apply pairwise_le_refl.
+      apply pairwise_le_refl.
 
-Fixpoint dropLeadingZeros x xs :=
+  - destruct Haxs; simpl in * ; intuition.
+    apply stable_long; auto.
+    repeat rewrite map_length.
+    rewrite H3.
+    apply H7; auto with ord.
+Qed.    
+
+Fixpoint drop_leading_zeros x xs :=
   match xs with
   | [] => [x]
   | x1::xs =>
       match x with
-      | BH [] => dropLeadingZeros x1 xs
-      | _     => stabalize x (x1::xs)
+      | BH [] => drop_leading_zeros x1 xs
+      | _     => x::x1::xs
       end
   end.
-*)
+
+Definition stabalize_stack xs :=
+  match xs with
+  | [] => []
+  | x1::xs' => 
+      match stabalize_list x1 xs' with
+      | inl (n,arg) => [arg]
+      | inr (x1',xs'') => drop_leading_zeros x1' xs''
+      end
+  end.
+
+Lemma drop_leading_zeros_correct:
+  forall xs x y ys f,
+    normal_function f ->
+    y::ys = drop_leading_zeros x xs ->
+    BH_stack f (BH_denote x) (map BH_denote xs) ≈
+    BH_stack f (BH_denote y) (map BH_denote ys).
+Proof.
+  induction xs; simpl; intros.
+  inversion H0; subst; simpl; auto with ord.
+  destruct x. destruct l; simpl.
+  rewrite map_length.
+  rewrite IHxs; eauto.
+  split; apply BH_stack_monotone; auto with ord.
+  intros. rewrite bhtower_zero; auto.
+  apply pairwise_le_refl.
+  intros. rewrite bhtower_zero; auto.
+  apply pairwise_le_refl.
+  inversion H0; subst.
+  simpl; auto with ord.
+Qed.
+
+Lemma stabalize_stack_correct:
+  forall xs,
+    each normal_form xs ->
+    stable_list (map BH_denote (stabalize_stack xs)) /\
+    each normal_form (stabalize_stack xs) /\
+    no_leading_zeros (map BH_denote (stabalize_stack xs)) /\
+    BH_denote (BH xs) ≈ BH_denote (BH (stabalize_stack xs)).
+Proof.
+  unfold stabalize_stack; simpl; intros.
+  destruct xs as [|x xs].
+  { simpl. intuition auto with ord.
+    apply stable_short; auto with ord. }
+  generalize (stabalize_list_correct xs x H).
+  destruct (stabalize_list x xs) as [[n arg]|[x' xs']].
+  - simpl. intuition.
+    apply stable_short; simpl; auto.
+    clear -H1. revert x xs H1.
+    induction n; simpl; intuition.
+    inversion H1; subst. simpl; auto with ord.
+    inversion H1; subst. simpl; auto with ord.
+    destruct n.
+    simpl; rewrite bhtower_zero. auto with ord.
+    rewrite <- (IHn BH_zero (repeat BH_zero n ++ [arg])); auto.
+    simpl repeat. simpl map.
+    rewrite BH_stack_leading_zero; auto with ord.
+  - intuition.
+    + clear -H1.
+      revert x' H1; induction xs'; simpl; intuition.
+      case_eq x'; simpl; intuition.
+      destruct l; auto.
+      apply IHxs'.
+      inversion H1; subst; auto.
+      simpl in H0.
+      apply stable_short. simpl. lia.
+      simpl.
+      inversion H1; subst; auto.
+    + clear -H3. revert x' H3. induction xs'; simpl; intuition.
+      destruct x'. destruct l; simpl; auto.
+      apply IHxs'. simpl; auto.
+    + clear. revert x'; induction xs'; simpl; auto.
+      destruct x'. destruct l; simpl; intuition.
+      apply BH_stack_nonzero; auto with ord.
+      simpl; auto.
+    + simpl.
+      rewrite H5; auto with ord.
+      case_eq (drop_leading_zeros x' xs').
+      { clear. intro. exfalso.
+        revert x' H. induction xs'; simpl; intuition.
+        inversion H. destruct x'; intuition.
+        destruct l; intuition eauto.
+        discriminate. }
+      intros.
+      simpl.
+      apply drop_leading_zeros_correct; auto.
+Qed.      
+      
+Fixpoint find_equal_subterm (xs:list BHForm) (orig:BHForm) : option BHForm :=
+  match xs with
+  | [] => None
+  | x::xs' => 
+      match bhcompare x orig with
+      | LT => find_equal_subterm xs' orig
+      | _  => Some x
+      end
+  end.
+
+Lemma find_equal_subterm_correct : forall xs orig,
+    each normal_form xs -> stable_form orig ->
+    match find_equal_subterm xs orig with
+    | None => each (fun x => BH_denote x < BH_denote orig) xs
+    | Some x => BH_denote x >= BH_denote orig /\ normal_form x /\ In x xs
+    end.
+Proof.
+  induction xs; simpl; intros; auto.
+  destruct H.
+  generalize (bhcompare_correct a orig (normal_is_stable _ H) H0).
+  destruct (bhcompare a orig); simpl; intuition; auto with ord.
+  generalize (IHxs orig H1 H0).
+  destruct (find_equal_subterm xs orig); intuition.
+  apply H2.
+Qed.  
+    
+Definition normalize_list (xs:list BHForm) : BHForm :=
+  let xs' := stabalize_stack xs in
+  match find_equal_subterm xs' (BH xs') with
+  | Some x => x
+  | None   => BH xs'
+  end.
+                 
+Lemma each_map A B : forall (P:B -> Prop) (f:A->B) (xs:list A),
+    each P (map f xs) <-> each (fun x => P (f x)) xs.
+Proof.
+  induction xs; simpl; intuition.
+Qed.
+
+Lemma BH_stack_arg_le: forall x xs f,
+  complete x ->
+  normal_function f -> x <= BH_stack f x xs.
+Proof.
+  intros.
+  destruct xs.
+  simpl; apply normal_inflationary; auto.
+  transitivity (BH_stack f x (stackZeros (length xs) [0])).
+  rewrite BH_stack_zeros.
+  apply (normal_inflationary (fun q => bhtower (S (length xs)) f q 0)); auto.
+  apply BH_stack_monotone; auto with ord.
+  revert o. induction xs; simpl; intuition.
+  constructor; auto with ord.
+  constructor.
+  constructor; auto with ord.
+Qed.
+
+Lemma BH_stack_subterm_le : forall x ys y f,
+    In x ys ->
+    normal_function f ->
+    BH_denote x <= BH_stack f (BH_denote y) (map BH_denote ys).
+Proof.
+  intro x. induction ys; simpl; intuition subst.
+  apply BH_stack_arg_le; auto.
+  apply IHys; simpl; auto.
+Qed.  
+
+Lemma BH_full_stack_subterm_le: forall x xs,
+    In x xs ->
+    BH_denote x <= BH_full_stack (map BH_denote xs).
+Proof.
+  intros.
+  destruct xs; simpl in *; intuition.
+  subst. apply BH_stack_arg_le; auto.
+  apply BH_stack_subterm_le; auto.
+Qed.  
+
+Lemma normalize_list_correct: forall xs,
+    each normal_form xs ->
+    normal_form (normalize_list xs) /\
+    BH_denote (BH xs) ≈ BH_denote (normalize_list xs).
+Proof.
+  unfold normalize_list. intros.
+  destruct (stabalize_stack_correct xs H) as [Hstable [Hnorm [Hzeros Heq]]].
+  assert (Heach_stable: each stable_form (stabalize_stack xs)).
+  { revert Hnorm. apply each_implies. apply normal_is_stable. }
+  generalize (find_equal_subterm_correct (stabalize_stack xs) (BH (stabalize_stack xs))).
+  simpl in *.
+  rewrite stable_form_BH.
+  destruct (find_equal_subterm (stabalize_stack xs) (BH (stabalize_stack xs))); intuition.
+  rewrite Heq.
+  split; auto.
+  apply BH_full_stack_subterm_le; auto.
+  rewrite normal_form_BH.
+  split; auto.
+  hnf; simpl; intuition.
+  rewrite each_map. auto.
+Qed.
+
+Fixpoint normalize (x:BHForm) :=
+  match x with
+  | BH xs => normalize_list (map normalize xs)
+  end.
+        
+Lemma normalize_correct : forall x,
+  normal_form (normalize x) /\ BH_denote x ≈ BH_denote (normalize x).
+Proof.
+  induction x using BHForm_induction; simpl.
+  assert (Hnf : each normal_form (map normalize xs)).
+  { rewrite each_map.
+    revert H. apply each_implies; intuition. }
+  split. apply normalize_list_correct; auto.
+  transitivity (BH_full_stack (map BH_denote (map normalize xs))).
+  2: { apply normalize_list_correct; auto. }
+  destruct xs; simpl; auto with ord.
+  simpl in *; intuition.
+  split; apply BH_stack_monotone; auto with ord.
+  apply H4.
+  { clear -H1.
+    induction xs; simpl in *; intuition.
+    constructor.
+    constructor; auto with ord.
+    apply H2. }
+  apply H4.
+  { clear -H1.
+    induction xs; simpl in *; intuition.
+    constructor.
+    constructor; auto with ord.
+    apply H2. }
+Qed.
+
+
 
 
 Require Import ClassicalFacts.
@@ -2346,8 +2686,14 @@ Proof.
     rewrite Hs; auto with ord.
     transitivity x; auto with ord.
     rewrite Hs; auto with ord.
-
-    admit. (* annoying... we need a to be normal here *)
+    exists (BH_succ (normalize a)).
+    rewrite Hs.
+    unfold BH_succ.
+    destruct (cantor_succ_reflects BH_has_cantor_decomposition) with o (normalize a).
+    rewrite <- Ha.
+    destruct (normalize_correct a); auto.
+    rewrite H0.
+    reflexivity.
 
   - destruct (BachmanHoward_limit_decompose EM x Hlim H) as [xs [Hxs1 Hxs2]].
     assert (exists vs, pairwise ord_eq (map BH_denote vs) xs).
@@ -2371,61 +2717,4 @@ Proof.
     apply H.
     clear -Hvs. induction Hvs; constructor; auto.
     apply H.
-Abort.
-
-
-(*
-
-Fixpoint BH_compare (x:BHForm) : BHForm -> ordering :=
-  fix inner (y:BHForm) : ordering :=
-    match x, y with
-    | BH xs0, BH ys0 =>
-        (fix compare_sequence (xs:list BHForm) : list BHForm -> ordering :=
-           fix compare_sequence_inner (ys:list BHForm) : ordering :=
-             match xs with
-             | []  => if bh_isZero y then EQ else LT
-             | [x] =>  match ys with
-                       | []  => GT
-                       | [y] => BH_compare x y
-                       | _   => LT
-                       end
-             | (x::xs) =>
-                 if bh_isZero x then compare_sequence xs ys else
-                   match ys with
-                   | []  => GT
-                   | (y::ytail) =>
-                       if isNil ytail then LT else
-                         if bh_isZero y then compare_sequence_inner ytail else
-                           match nat_compare (length xs) (length ytail) with
-                           | LT => LT
-                           | EQ => match BH_compare x y with
-                                   | LT => (fix check_lt (xs:list BHForm) :=
-                                              match xs with
-                                              | [] => LT
-                                              | (x'::xs') =>
-                                                  match BH_compare x' y with
-                                                  | LT => check_lt xs'
-                                                  | EQ => if bh_allZero (x'::xs') then EQ else GT
-                                                  | GT => GT
-                                                  end
-                                              end
-                                           ) xs
-                                   | EQ => compare_sequence xs ytail
-                                   | GT => (fix check_gt (ys':list BHForm) :=
-                                              match ys' with
-                                              | [] => GT
-                                              | (y'::ys'') =>
-                                                  match inner y' with
-                                                  | LT => LT
-                                                  | EQ => if bh_allZero ys' then EQ else LT
-                                                  | GT => check_gt ys''
-                                                  end
-                                              end
-                                           ) ytail
-                                   end
-                           | GT => GT
-                           end
-                   end
-             end) xs0 ys0
-    end.
-*)
+Qed.
