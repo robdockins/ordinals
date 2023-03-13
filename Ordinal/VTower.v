@@ -1515,4 +1515,42 @@ Proof.
     apply (complete_directed ω) ; apply omega_complete.
 Qed.
 
+
+Lemma LVO_complete : complete LargeVeblenOrdinal.
+Proof.
+  unfold LargeVeblenOrdinal.
+  apply normal_fix_complete; auto with ord.
+  intros.
+  apply (normal_inflationary (fun q => vtower (addOrd 1) q 0)); auto.
+  apply vtower_first_normal; auto.
+Qed.
+
+Lemma LVO_limit : limitOrdinal LargeVeblenOrdinal.
+Proof.
+  unfold LargeVeblenOrdinal.
+  rewrite normal_fixpoint; auto.
+  apply vtower_gt_one_limit; auto.
+  apply LVO_complete.
+  rewrite normal_fixpoint; auto.
+  rewrite <- vtower_fixpoint.
+  rewrite vtower_zero.
+  rewrite <- (addOrd_zero_r 1) at 1.
+  apply addOrd_increasing.
+  apply normal_nonzero; auto.
+  apply vtower_normal; auto.
+  apply LVO_complete.
+  auto.
+  auto.
+  apply LVO_complete.
+  auto.
+  rewrite normal_fixpoint; auto.
+  apply normal_nonzero; auto.
+  apply vtower_normal; auto.
+  apply LVO_complete.
+  apply vtower_first_normal; auto.
+  apply vtower_first_normal; auto.
+  apply vtower_first_normal; auto.
+Qed.
+
+
 End vtower.
