@@ -1340,6 +1340,23 @@ Proof.
       apply BH_stack_complete; auto.
 Qed.
 
+Lemma BH_stack_arg_le: forall x xs f,
+  complete x ->
+  normal_function f -> x <= BH_stack f x xs.
+Proof.
+  intros.
+  destruct xs.
+  simpl; apply normal_inflationary; auto.
+  transitivity (BH_stack f x (stackZeros (length xs) [0])).
+  rewrite BH_stack_zeros.
+  apply (normal_inflationary (fun q => bhtower (S (length xs)) f q 0)); auto.
+  apply BH_stack_monotone; auto with ord.
+  revert o. induction xs; simpl; intuition.
+  constructor; auto with ord.
+  constructor.
+  constructor; auto with ord.
+Qed.
+
 
 Require Import ClassicalFacts.
 From Ordinal Require Import Classical.

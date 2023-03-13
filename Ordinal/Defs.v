@@ -425,6 +425,20 @@ Fixpoint each {A:Type} (P:A -> Prop) (xs:list A) : Prop :=
   | (x::xs) => P x /\ each P xs
   end.
 
+Lemma each_implies A (P Q:A -> Prop) (xs: list A) :
+  (forall x, P x -> Q x) ->
+  each P xs -> each Q xs.
+Proof.
+  induction xs; simpl; intuition.
+Qed.
+                 
+Lemma each_map A B : forall (P:B -> Prop) (f:A->B) (xs:list A),
+    each P (map f xs) <-> each (fun x => P (f x)) xs.
+Proof.
+  induction xs; simpl; intuition.
+Qed.
+
+
 Inductive pairwise {A B} (R:A -> B -> Prop) : list A -> list B -> Prop :=
   | pairwise_nil : pairwise R nil nil
   | pairwise_cons : forall x xs y ys,
@@ -436,4 +450,13 @@ Proof.
   intro H; induction H; simpl; auto.
 Qed.
 
+Lemma pairwise_le_refl xs : pairwise ord_le xs xs.
+Proof.
+  induction xs; constructor; auto with ord.
+Qed.
 
+Lemma pairwise_eq_refl xs : pairwise ord_eq xs xs.
+Proof.
+  induction xs; constructor; auto with ord.
+  reflexivity.
+Qed.

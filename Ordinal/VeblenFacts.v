@@ -575,6 +575,20 @@ Proof.
   apply veblen_monotone_first; auto.
 Qed.
 
+Lemma ordering_correct_normal:
+  forall f x y o,
+    normal_function f ->
+    complete x ->
+    complete y ->
+    ordering_correct o x y ->
+    ordering_correct o (f x) (f y).
+Proof.
+  intros. destruct o; simpl in *.
+  apply normal_increasing; auto.
+  destruct H2; split; apply normal_monotone; auto with ord.
+  apply normal_increasing; auto.
+Qed.
+
 Lemma veblen_compare_correct f (Hf:normal_function f) :
   forall oab oxy oxVby oVaxy a b x y,
     complete a ->

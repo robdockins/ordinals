@@ -1197,6 +1197,12 @@ Proof.
   apply H0.
 Qed.
 
+Lemma zero_succ_unreachable: succ_unreachable 0.
+Proof.
+  hnf; intros.
+  elim (ord_lt_irreflexive a).
+  apply ord_lt_le_trans with 0; auto with ord.
+Qed.
 
 Lemma limit_unreachable y :
     limitOrdinal y ->

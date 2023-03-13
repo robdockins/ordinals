@@ -26,8 +26,8 @@ From Ordinal Require Import BHTowerFacts.
 
 From Ordinal Require Import Notation.CantorDecomposition.
 
-
 Open Scope ord_scope.
+
 
 Local Hint Resolve
       bhtower_normal
@@ -134,7 +134,7 @@ Proof.
   simpl.
   apply BH_full_stack_uneachable; auto.
   unfold each_lt.
-  induction xs; simpl in *; intuition.
+  rewrite each_map. auto.
 Qed.
 
 
@@ -142,10 +142,10 @@ Definition BH0    := BH [].
 Definition BH1    := BH [BH0].
 Definition BH2    := BH [BH1].
 Definition BHω    := BH [BH1; BH0].
-Definition BHε0   := BH [BH2; BH0; BH0].
-Definition BHΓ0   := BH [BH2; BH1; BH0].
+Definition BHε x  := BH [BH1; BH1; x].
+Definition BHΓ x  := BH [BH2; BH1; x].
 Definition BH_SVO := BH [BHω; BH0; BH0].
-Definition BH_LVO := BH [BH2; BH0; BH0; BH0].
+Definition BH_LVO := BH [BH1; BH0; BH1; BH0].
 
 Lemma BH0_correct : BH_denote BH0 ≈ 0.
 Proof.
@@ -178,19 +178,146 @@ Proof.
   apply omega_gt0.
 Qed.
 
-Lemma BHε0_correct : BH_denote BHε0 ≈ ε 0.
+Lemma BHε_correct : forall x, BH_denote (BHε x) ≈ ε (BH_denote x).
 Proof.
-  transitivity (apex 0 (addOrd 1)); [ | apply apex0 ].
-  simpl BH_denote.
-  rewrite bhtower_zero.
-  rewrite apex_alternate; auto with arith.
+  simpl BH_denote. intro x.
+  transitivity (bhtower 1 (bhtower 2 (addOrd 1) 1) 1 (BH_denote x)).
   split; apply bhtower_monotone; auto with ord.
-  apply BH2_correct.
-  apply BH2_correct.
+  intros; apply bhtower_monotone; auto with ord.
+  rewrite addOrd_zero_r. reflexivity.
+  rewrite addOrd_zero_r. reflexivity.
+  intros; apply bhtower_monotone; auto with ord.
+  rewrite addOrd_zero_r. reflexivity.
+  rewrite addOrd_zero_r. reflexivity.
+  rewrite bhtower_index_one; auto.
+  rewrite veblen_succ; auto.
+  unfold ε.
+
+  split; apply enum_fixpoints_func_mono'; auto with ord.
+  - intros.
+    apply normal_fix_least; auto with ord.
+    apply fixOrd_above.
+    rewrite veblen_zero.
+    rewrite bhtower_one; auto with ord.
+    rewrite bhtower_index_one; auto.
+    rewrite veblen_onePlus; auto with ord.
+    rewrite addOrd_zero_r.
+    rewrite normal_fixpoint at 2; auto with ord.
+    apply expOrd_monotone; auto with ord.
+    rewrite normal_fixpoint at 2; auto with ord.
+    apply onePlus_least_normal; auto with ord.
+  - intros.
+    apply normal_fix_least; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    apply fixOrd_above.
+    rewrite normal_fixpoint at 2; auto with ord.
+    rewrite veblen_zero.
+    rewrite bhtower_one; auto with ord.
+    rewrite bhtower_index_one; auto.
+    rewrite veblen_onePlus; auto with ord.
+    rewrite addOrd_zero_r.
+    apply expOrd_monotone; auto with ord.
+    apply addOrd_le2.
+    apply addOrd_complete; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    apply normal_fix_complete; auto with ord.
 Qed.
 
-Lemma BHΓ0_correct : BH_denote BHΓ0 ≈ Γ 0.
-Admitted. (* true, but annoying... *)
+Lemma BHΓ_correct : forall x, BH_denote (BHΓ x) ≈ Γ (BH_denote x).
+Proof.
+  simpl. intro x.
+  transitivity (bhtower 1 (bhtower 2 (addOrd 1) 2) 1 (BH_denote x)).
+  split; apply bhtower_monotone; auto with ord.
+  intros; apply bhtower_monotone; auto with ord.
+  rewrite addOrd_zero_r.
+  rewrite addOrd_succ.
+  rewrite addOrd_zero_r.
+  reflexivity.
+  rewrite addOrd_zero_r.
+  reflexivity.
+  intros; apply bhtower_monotone; auto with ord.
+  rewrite addOrd_zero_r.
+  rewrite addOrd_succ.
+  rewrite addOrd_zero_r.
+  reflexivity.
+  rewrite addOrd_zero_r.
+  reflexivity.
+  rewrite bhtower_index_one; auto.
+  rewrite veblen_succ; auto.
+  unfold Γ.
+
+  split; apply enum_fixpoints_func_mono'; auto with ord.
+  - intros.
+    apply normal_fix_least; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun q => veblen powOmega q 0)); auto.
+    intros. apply veblen_monotone_first; auto with ord.
+    apply fixOrd_above.
+    rewrite veblen_zero.
+    rewrite bhtower_succ; auto with ord.
+    rewrite bhtower_index_one; auto with ord.
+    rewrite normal_fixpoint at 2; auto with ord.
+    transitivity (veblen (fun q => powOmega (1+q)) (fixOrd (fun b : Ord => veblen powOmega b 0) x0) 0).
+    transitivity (veblen (fun q => powOmega (1+q)) (1 + fixOrd (fun b : Ord => veblen powOmega b 0) x0) 0).
+    apply veblen_monotone_func; auto with ord.
+    apply compose_normal; auto with ord.
+    intros.
+    rewrite bhtower_one; auto with ord.
+    rewrite bhtower_index_one; auto with ord.
+    rewrite veblen_onePlus; auto with ord.
+    rewrite addOrd_zero_r.
+    reflexivity.
+    apply addOrd_complete; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun q => veblen powOmega q 0)); auto with ord.
+    intros. apply veblen_monotone_first; auto with ord.
+    apply veblen_monotone_first; auto with ord.
+    rewrite normal_fixpoint at 2; auto with ord.
+    apply (onePlus_least_normal (fun q => veblen powOmega q 0)); auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun q => veblen powOmega q 0)); auto with ord.
+    intros. apply veblen_monotone_first; auto with ord.
+    apply veblen_func_onePlus; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun q => veblen powOmega q 0)); auto with ord.
+    intros. apply veblen_monotone_first; auto with ord.
+    rewrite normal_fixpoint; auto with ord.
+    apply normal_nonzero; auto with ord.
+    apply veblen_normal; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun q => veblen powOmega q 0)); auto with ord.
+    intros. apply veblen_monotone_first; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun q => veblen powOmega q 0)); auto with ord.
+    intros. apply veblen_monotone_first; auto with ord.
+  - intros.
+    apply normal_fix_least; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros; apply normal_inflationary; auto with ord.
+    intros; apply normal_monotone; auto with ord.
+    apply fixOrd_above.
+    rewrite normal_fixpoint at 2; auto with ord.
+    rewrite veblen_zero.
+    rewrite bhtower_succ; auto with ord.
+    rewrite bhtower_index_one; auto with ord.
+    transitivity (veblen powOmega (1 + fixOrd (veblen (bhtower 2 (addOrd 1) 2) 0) x0) 0).
+    apply veblen_monotone_first; auto with ord.
+    apply addOrd_le2.
+    apply veblen_monotone_func; auto with ord.
+    intros.
+    rewrite bhtower_one; auto with ord.
+    rewrite bhtower_index_one; auto with ord.
+    rewrite veblen_onePlus; auto with ord.
+    rewrite addOrd_zero_r.
+    apply expOrd_monotone; auto with ord.
+    apply addOrd_complete; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros; apply normal_inflationary; auto with ord.
+    intros; apply normal_monotone; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros; apply normal_inflationary; auto with ord.
+    intros; apply normal_monotone; auto with ord.
+Qed.
 
 Lemma BH_SVO_correct : BH_denote BH_SVO ≈ SmallVeblenOrdinal.
 Proof.
@@ -206,15 +333,194 @@ Qed.
 
 Lemma BH_LVO_correct : BH_denote BH_LVO ≈ LargeVeblenOrdinal.
 Proof.
-  transitivity (apex 1 (addOrd 1)); [ | apply apex1 ].
-  rewrite apex_alternate; auto with arith.
+  unfold LargeVeblenOrdinal.
   simpl BH_denote.
-  rewrite bhtower_zero.
-  rewrite bhtower_zero.
-  split; apply bhtower_monotone; auto with ord.
-  apply BH2_correct.
-  apply BH2_correct.
+  transitivity (bhtower 1 (bhtower 2 (bhtower 3 (addOrd 1) 1) 0) 1 0).
+  { split; apply bhtower_monotone; auto with ord.
+    intros; apply bhtower_monotone; auto with ord.
+    intros; apply bhtower_monotone; auto with ord.
+    rewrite addOrd_zero_r; auto with ord.
+    rewrite addOrd_zero_r; auto with ord.
+    intros; apply bhtower_monotone; auto with ord.
+    intros; apply bhtower_monotone; auto with ord.
+    rewrite addOrd_zero_r; auto with ord.
+    rewrite addOrd_zero_r; auto with ord. }
+  rewrite bhtower_index_one; auto with ord.
+  rewrite veblen_succ; auto with ord.
+  rewrite enum_fixpoints_zero; auto with ord.
+  split.
+  - apply normal_fix_least; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun q => vtower (addOrd 1) q 0)); auto.
+    apply vtower_first_normal; auto with ord.
+    intros. apply vtower_monotone; auto with ord.
+    intros; apply vtower_complete; auto with ord.
+    intros. apply vtower_normal; auto with ord.
+    rewrite veblen_zero.
+    rewrite bhtower_zero.
+    rewrite bhtower_one; auto with ord.
+    rewrite bhtower_index_two; auto with ord.
+    rewrite normal_fixpoint at 2; auto with ord.
+    apply vtower_monotone; auto with ord.
+    rewrite normal_fixpoint at 2; auto with ord.
+    apply (onePlus_least_normal (fun q => vtower (addOrd 1) q 0)); auto with ord.
+    apply vtower_first_normal; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun q => vtower (addOrd 1) q 0)); auto.
+    apply vtower_first_normal; auto with ord.
+    intros; apply vtower_monotone; auto with ord.
+    intros; apply vtower_complete; auto with ord.
+    intros; apply vtower_normal; auto with ord.
+    intros; apply vtower_first_normal; auto with ord.
+    intros; apply vtower_first_normal; auto with ord.
+    apply addOrd_complete; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun q => vtower (addOrd 1) q 0)); auto.
+    apply vtower_first_normal; auto with ord.
+    intros. apply vtower_monotone; auto with ord.
+    intros; apply vtower_complete; auto with ord.
+    intros. apply vtower_normal; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros. apply (normal_inflationary (fun q => vtower (addOrd 1) q 0)); auto.
+    apply vtower_first_normal; auto with ord.
+    intros. apply vtower_monotone; auto with ord.
+    intros; apply vtower_complete; auto with ord.
+    intros. apply vtower_normal; auto with ord.
+  - apply normal_fix_least; auto with ord.
+    intros; apply vtower_first_normal; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros. apply normal_inflationary; auto with ord.
+    intros. apply veblen_monotone; auto with ord.
+    rewrite normal_fixpoint at 2; auto with ord.
+    rewrite veblen_zero.
+    rewrite bhtower_zero.
+    rewrite bhtower_one; auto with ord.
+    rewrite bhtower_index_two; auto with ord.
+    apply vtower_monotone; auto with ord.
+    apply addOrd_le2.
+    apply addOrd_complete; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros; apply normal_inflationary; auto with ord.
+    intros; apply normal_monotone; auto with ord.
+    apply normal_fix_complete; auto with ord.
+    intros; apply normal_inflationary; auto with ord.
+    intros; apply normal_monotone; auto with ord.
 Qed.
+
+
+Lemma BH_stack_subterm_le : forall x ys y f,
+    In x ys ->
+    normal_function f ->
+    BH_denote x <= BH_stack f (BH_denote y) (map BH_denote ys).
+Proof.
+  intro x. induction ys; simpl; intuition subst.
+  apply BH_stack_arg_le; auto.
+  apply IHys; simpl; auto.
+Qed.
+
+Lemma BH_full_stack_subterm_le: forall x xs,
+    In x xs ->
+    BH_denote x <= BH_full_stack (map BH_denote xs).
+Proof.
+  intros.
+  destruct xs; simpl in *; intuition.
+  subst. apply BH_stack_arg_le; auto.
+  apply BH_stack_subterm_le; auto.
+Qed.
+
+
+Inductive stable_list : list Ord -> Prop :=
+| stable_short : forall xs, (length xs <= 2)%nat -> stable_list xs
+| stable_long : forall x xs, succ_unreachable x \/ hasNonzeroIndex xs -> stable_list xs -> stable_list (x::xs).
+
+Definition no_leading_zeros (xs:list Ord) : Prop :=
+  match xs with
+  | [] => True
+  | [_] => True
+  | x::x'::xs => x > 0
+  end.
+
+Definition normal_list (xs:list Ord) : Prop :=
+  no_leading_zeros xs /\ stable_list xs /\ each (fun x => x < BH_full_stack xs) xs.
+
+Definition stable_form (x:BHForm) : Prop :=
+  BH_each (fun xs => stable_list (map BH_denote xs)) x.
+
+Definition normal_form (x:BHForm) : Prop :=
+  BH_each (fun xs => normal_list (map BH_denote xs)) x.
+
+Lemma stable_form_BH : forall xs,
+    stable_form (BH xs) <-> (stable_list (map BH_denote xs) /\ each stable_form xs).
+Proof.
+  intros. unfold stable_form.
+  rewrite BH_each_unfold.
+  intuition.
+Qed.
+
+Lemma normal_form_BH : forall xs,
+    normal_form (BH xs) <-> (normal_list (map BH_denote xs) /\ each normal_form xs).
+Proof.
+  intros. unfold normal_form.
+  rewrite BH_each_unfold.
+  intuition.
+Qed.
+
+Lemma stable_list_cons : forall x xs,
+  stable_list (x::xs) -> stable_list xs.
+Proof.
+  intros. inversion H; auto.
+  simpl in *. apply stable_short. lia.
+Qed.
+
+Lemma stable_form_cons : forall x xs,
+  stable_form (BH (x::xs)) -> stable_form (BH xs).
+Proof.
+  intros.
+  rewrite stable_form_BH in *.
+  simpl in *; intuition.
+  eapply stable_list_cons; eauto.
+Qed.
+
+Global Opaque stable_form.
+
+Local Hint Resolve stable_form_cons stable_list_cons : core.
+
+Lemma BH0_normal: normal_form BH0.
+Proof.
+  unfold BH0.
+  rewrite normal_form_BH.
+  simpl; intuition.
+  hnf. simpl; intuition.
+  apply stable_short; simpl; auto.
+Qed.
+Local Hint Resolve BH0_normal: core.
+
+Lemma BH1_normal: normal_form BH1.
+Proof.
+  unfold BH1.
+  rewrite normal_form_BH.
+  simpl; intuition.
+  hnf. simpl; intuition.
+  apply stable_short; simpl; auto.
+Qed.
+Local Hint Resolve BH1_normal: core.
+
+Lemma BHω_normal: normal_form BHω.
+Proof.
+  unfold BHω.
+  rewrite normal_form_BH.
+  simpl; intuition.
+  hnf. simpl; intuition.
+  apply stable_short; simpl; auto.
+  rewrite bhtower_index_one; auto.
+  rewrite veblen_onePlus; auto.
+  repeat rewrite addOrd_zero_r.
+  rewrite expOrd_one'.
+  apply omega_gt1.
+  apply omega_gt0.
+  apply normal_nonzero; auto.
+Qed.
+Local Hint Resolve BHω_normal: core.
 
 
 
@@ -337,35 +643,6 @@ Scheme compare_graph_ind := Induction for BH_compare_graph Sort Prop
  with compare_phase2_ind := Induction for BH_compare_phase2 Sort Prop
  with check_lt_ind := Induction for check_lt_graph Sort Prop.
 
-Lemma compare_stack_lt1 :
-  forall xs x q y f,
-    normal_function f ->
-    In q xs ->
-    y < BH_denote q ->
-    y < BH_stack f (BH_denote x) (map BH_denote xs).
-Proof.
-  induction xs; simpl; intuition; subst.
-  - apply ord_lt_le_trans with (BH_denote q); auto.
-    destruct xs.
-    + simpl.
-      apply normal_inflationary; auto.
-    + transitivity (BH_stack (bhtower (S (length (map BH_denote (b::xs)))) f (BH_denote x)) (BH_denote q)
-        (stackZeros (length xs) [0])).
-      rewrite BH_stack_zeros.
-      apply (normal_inflationary (fun z =>
-             bhtower (S (length xs)) (bhtower (S (length (map BH_denote (b::xs)))) f (BH_denote x)) z 0)); auto with ord.
-      apply BH_stack_monotone; auto with ord.
-      clear. revert b. induction xs; simpl; intros.
-      * constructor; auto with ord. constructor.
-      * constructor; auto with ord.
-        apply IHxs.
-  - apply IHxs with q; auto.
-Qed.
-
-Lemma pairwise_le_refl xs : pairwise ord_le xs xs.
-Proof.
-  induction xs; constructor; auto with ord.
-Qed.
 
 (* wierdly annoying... *)
 Lemma BH_small_dec (x:BHForm) :
@@ -413,110 +690,6 @@ Proof.
       rewrite H. auto with ord.
       transitivity 1; auto with ord.
 Qed.
-
-Definition rank (x:BHForm) :=
-  match x with
-  | BH xs => length xs
-  end.
-
-
-Inductive stable_list : list Ord -> Prop :=
-| stable_short : forall xs, (length xs <= 2)%nat -> stable_list xs
-| stable_long : forall x xs, succ_unreachable x \/ hasNonzeroIndex xs -> stable_list xs -> stable_list (x::xs).
-
-(*
-| stable_zero_head : forall x xs, x ≈ 0 -> stable_list xs -> stable_list (x::xs)
-| stable_limit_head : forall x xs, limitOrdinal x -> stable_list xs -> stable_list (x::xs)
-| stable_succ_head: forall x xs, successorOrdinal x -> hasNonzeroIndex xs -> stable_list xs -> stable_list (x::xs). *)
-
-Definition no_leading_zeros (xs:list Ord) : Prop :=
-  match xs with
-  | [] => True
-  | [_] => True
-  | x::x'::xs => x > 0
-  end.
-
-Definition normal_list (xs:list Ord) : Prop :=
-  no_leading_zeros xs /\ stable_list xs /\ each (fun x => x < BH_full_stack xs) xs.
-
-Definition stable_form (x:BHForm) : Prop :=
-  BH_each (fun xs => stable_list (map BH_denote xs)) x.
-
-Definition normal_form (x:BHForm) : Prop :=
-  BH_each (fun xs => normal_list (map BH_denote xs)) x.
-
-Lemma stable_form_BH : forall xs,
-    stable_form (BH xs) <-> (stable_list (map BH_denote xs) /\ each stable_form xs).
-Proof.
-  intros. unfold stable_form.
-  rewrite BH_each_unfold.
-  intuition.
-Qed.
-
-Lemma normal_form_BH : forall xs,
-    normal_form (BH xs) <-> (normal_list (map BH_denote xs) /\ each normal_form xs).
-Proof.
-  intros. unfold normal_form.
-  rewrite BH_each_unfold.
-  intuition.
-Qed.
-
-Lemma stable_list_cons : forall x xs,
-  stable_list (x::xs) -> stable_list xs.
-Proof.
-  intros. inversion H; auto.
-  simpl in *. apply stable_short. lia.
-Qed.
-
-Lemma stable_form_cons : forall x xs,
-  stable_form (BH (x::xs)) -> stable_form (BH xs).
-Proof.
-  intros.
-  rewrite stable_form_BH in *.
-  simpl in *; intuition.
-  eapply stable_list_cons; eauto.
-Qed.
-
-Global Opaque stable_form.
-
-Local Hint Resolve stable_form_cons stable_list_cons : core.
-
-Lemma compare_stack_lt2:
-  forall x y xs ys f ytop,
-    normal_function f ->
-    length xs = length ys ->
-    BH_denote x < BH_denote y ->
-    stable_list (map BH_denote (y::ys)) ->
-    (forall x : BHForm, In x xs -> BH_denote x < BH_denote ytop) ->
-    ((length ys <= 1)%nat \/ limitOrdinal (BH_denote ytop)) ->
-    BH_denote ytop ≈ BH_stack f (BH_denote y) (map BH_denote ys) ->
-    BH_stack f (BH_denote x) (map BH_denote xs) < BH_stack f (BH_denote y) (map BH_denote ys).
-Proof.
-  intros x y xs ys f ytop Hf Hlen Hxy Hstable Hlts H Heq.
-  simpl in Hstable.
-  assert (Hlts' : each_lt (BH_stack f (BH_denote y) (map BH_denote ys)) (map BH_denote xs)).
-  { clear -Hlts Heq.
-    unfold each_lt.
-    induction xs; simpl in *; intuition.
-    rewrite <- Heq.
-    auto. }
-  destruct H.
-  { apply compare_stack_lt_short; simpl; intuition.
-    repeat rewrite map_length; auto.
-    repeat rewrite map_length; auto. }
-
-  inversion Hstable; subst.
-  - apply compare_stack_lt_short; simpl; intuition.
-    repeat rewrite map_length; auto.
-  - apply compare_stack_lt_long; simpl; auto.
-    repeat rewrite map_length; auto.
-    intuition.
-    left.
-    apply unreachable_limit; auto.
-    apply ord_le_lt_trans with (BH_denote x); auto with ord.
-    rewrite <- Heq. auto.
-Qed.
-
 
 Lemma BH_large_limit: forall x xs,
     x <> BH [] ->
@@ -699,23 +872,9 @@ Proof.
            - apply addOrd_le2.
            - lia.
            - apply BH_stack_complete; simpl; auto. }
-         
+
          apply bhtower_monotone; auto with ord.
          apply succ_least; auto.
-Qed.
-
-Lemma ordering_correct_normal:
-  forall f x y o,
-    normal_function f ->
-    complete x ->
-    complete y ->
-    ordering_correct o x y ->
-    ordering_correct o (f x) (f y).
-Proof.
-  intros. destruct o; simpl in *.
-  apply normal_increasing; auto.
-  destruct H2; split; auto with ord.
-  apply normal_increasing; auto.
 Qed.
 
 
@@ -1042,6 +1201,7 @@ Proof.
         constructor.
 Qed.
 
+
 Lemma termSize_lemma1 : forall x xs ytop n,
   (BH_listSize (x::xs) + BH_termSize ytop < n)%nat ->
   (BH_termSize x + BH_termSize ytop < n)%nat.
@@ -1317,13 +1477,6 @@ Proof.
 Qed.
 
 
-Lemma each_implies A (P Q:A -> Prop) (xs: list A) :
-  (forall x, P x -> Q x) ->
-  each P xs -> each Q xs.
-Proof.
-  induction xs; simpl; intuition.
-Qed.
-
 Lemma unique_denote_lt_impossible:
   forall
     x1 xs y1 ys x y f
@@ -1532,12 +1685,12 @@ Lemma unique_denote_length_lt_impossible
     (Hxs2 : stable_form x /\ each stable_form xs)
     (Hys2 : stable_form y /\ each stable_form ys)
     (Heq : BH_stack (addOrd 1) (BH_denote x) (map BH_denote xs)
-      ≈ BH_stack (addOrd 1) (BH_denote y) (map BH_denote ys))
+         ≈ BH_stack (addOrd 1) (BH_denote y) (map BH_denote ys))
     (Hlen: (length xs < length ys)%nat) :
   forall (P:Prop), P.
 Proof.
   assert (H: BH_stack (addOrd 1) (BH_denote x) (map BH_denote xs) ≈
-            BH_full_stack (stackZeros (length ys - length xs) (map BH_denote (x::xs)))).
+             BH_full_stack (stackZeros (length ys - length xs) (map BH_denote (x::xs)))).
   { symmetry. apply leading_stack_zeros. }
 
   assert (Hlt: BH_stack (addOrd 1) (BH_denote x) (map BH_denote xs) <
@@ -1755,7 +1908,7 @@ Proof.
   induction xs; simpl in *; intuition.
 Qed.
 
-Theorem normal_forms_unique : forall x y,
+Theorem normal_forms_unique : forall (x y:BHForm),
     normal_form x ->
     normal_form y ->
     BH_denote x ≈ BH_denote y ->
@@ -1844,10 +1997,6 @@ Lemma BHcantor_recomp_correct:
       cantor_denote BH_denote xs ≈ BH_denote (BH_cantor_recompose xs).
 Proof.
   induction xs; simpl; intuition.
-  - unfold BH0.
-    rewrite normal_form_BH. simpl; intuition.
-    hnf; simpl; intuition.
-    constructor; simpl; auto.
   - destruct a as [ys].
     destruct ys; simpl; auto.
     rewrite normal_form_BH; simpl; intuition.
@@ -1973,11 +2122,7 @@ Proof.
   { simpl in *; intuition. }
   destruct xs as [|b xs].
   { simpl in *.
-    unfold BH0.
     rewrite normal_form_BH in *; simpl; intuition.
-    - rewrite normal_form_BH in *; simpl; auto.
-      split; auto. hnf; simpl; intuition.
-      constructor; simpl; auto with arith.
     -  hnf in H2. simpl in *.
        case_eq (BH_cantor_decompose a); intros; auto.
        rewrite H5 in *. simpl in *.
@@ -2086,52 +2231,51 @@ Definition BH_has_cantor_decomposition : has_cantor_decomposition BH_denote norm
     BHcantor_recomp_correct.
 
 
-Definition BH_zero := BH [].
-Definition BH_one  := BH [BH_zero].
-
-Lemma BH_zero_correct : BH_denote BH_zero ≈ 0.
-Proof.
-  simpl. reflexivity.
-Qed.
-
-Lemma BH_one_correct : BH_denote BH_one ≈ 1.
-  simpl.
-  rewrite addOrd_zero_r.
-  reflexivity.
-Qed.
-
 Definition BH_succ := cantor_succ BH_has_cantor_decomposition.
 Definition BH_add  := cantor_add BH_has_cantor_decomposition.
 Definition BH_mul  := cantor_mul BH_has_cantor_decomposition.
 Definition BH_exp  := cantor_exp BH_has_cantor_decomposition.
 
-Definition BH_onePlus x := BH_add BH_one x.
+Definition BH_onePlus x := BH_add BH1 x.
 
-Lemma BH_onePlus_correct: forall x,
+Theorem BH_onePlus_correct: forall x,
     normal_form x ->
     BH_denote (BH_onePlus x) ≈ 1 + BH_denote x.
 Proof.
   unfold BH_onePlus.
   intros.
-  rewrite <- BH_one_correct.
+  rewrite <- BH1_correct.
   symmetry. apply cantor_add_reflects; simpl; intuition.
-  unfold BH_one; simpl.
-  rewrite normal_form_BH; simpl; intuition.
-  red; simpl; intuition.
-  constructor. simpl; auto.
-  unfold BH_zero; simpl.
-  rewrite normal_form_BH; simpl; intuition.
-  hnf; simpl; intuition.
-  constructor; simpl; auto.
 Qed.
+
+Theorem BH_succ_reflects: reflects BHForm BH_denote normal_form (ORD ==> ORD) succOrd BH_succ.
+Proof.
+  apply cantor_succ_reflects.
+Qed.
+
+Theorem BH_add_reflects: reflects BHForm BH_denote normal_form (ORD ==> ORD ==> ORD) addOrd BH_add.
+Proof.
+  apply cantor_add_reflects.
+Qed.
+
+Theorem BH_mul_reflects: reflects BHForm BH_denote normal_form (ORD ==> ORD ==> ORD) mulOrd BH_mul.
+Proof.
+  apply cantor_mul_reflects.
+Qed.
+
+Theorem BH_exp_reflects: reflects BHForm BH_denote normal_form (ORD ==> ORD ==> ORD) expOrd BH_exp.
+Proof.
+  apply cantor_exp_reflects.
+Qed.
+
 
 Definition stabalize_zeros x n :=
   match n with
-  | 0 => (x, [BH_zero])
+  | 0 => (x, [BH0])
   | S m =>
       match cantor_succ_test BH_has_cantor_decomposition x with
-      | None    => (x , repeat BH_zero m ++ [BH_zero; BH_zero])
-      | Some x' => (x', repeat BH_zero m ++ [BH_one; BH_zero])
+      | None    => (x , repeat BH0 m ++ [BH0; BH0])
+      | Some x' => (x', repeat BH0 m ++ [BH1; BH0])
       end
   end.
 
@@ -2153,8 +2297,8 @@ Proof.
 Qed.
 
 Lemma stable_nonzeroIndex_zeros10 n :
-  stable_list (map BH_denote (repeat BH_zero n ++ [BH_one; BH_zero])) /\
-  hasNonzeroIndex (map BH_denote (repeat BH_zero n ++ [BH_one; BH_zero])).
+  stable_list (map BH_denote (repeat BH0 n ++ [BH1; BH0])) /\
+  hasNonzeroIndex (map BH_denote (repeat BH0 n ++ [BH1; BH0])).
 Proof.
   induction n; simpl; intuition.
   apply stable_short; simpl; auto.
@@ -2162,31 +2306,6 @@ Proof.
   destruct n; simpl in *; intuition.
 Qed.
 
-
-Lemma BH_zero_normal : normal_form BH_zero.
-Proof.
-  unfold BH_zero. rewrite normal_form_BH.
-  simpl; intuition.
-  hnf; simpl; intuition.
-  apply stable_short; simpl; auto.
-Qed.
-
-Lemma BH_one_normal: normal_form BH_one.
-Proof.
-  unfold BH_one.
- rewrite normal_form_BH.
-  simpl; intuition.
-  hnf; simpl; intuition.
-  apply stable_short; simpl; auto.
-  apply BH_zero_normal.
-Qed.
-
-Lemma zero_succ_unreachable: succ_unreachable 0.
-Proof.
-  hnf; intros.
-  elim (ord_lt_irreflexive a).
-  apply ord_lt_le_trans with 0; auto with ord.
-Qed.
 
 Lemma stabalize_zeros_stable:
   forall x n,
@@ -2201,18 +2320,14 @@ Proof.
   destruct n; simpl.
   { split.
     constructor. simpl; auto.
-    intuition.
-    apply BH_zero_normal. }
+    intuition. }
   generalize (cantor_succ_test_correct BH_has_cantor_decomposition x H).
   destruct (cantor_succ_test BH_has_cantor_decomposition x).
   - simpl; intuition.
     destruct (stable_nonzeroIndex_zeros10 n).
     apply stable_long; auto.
     rewrite app_length. rewrite repeat_length; simpl. lia.
-    { clear. induction n; simpl; intuition.
-      apply BH_one_normal.
-      apply BH_zero_normal.
-      apply BH_zero_normal. }
+    { clear. induction n; simpl; intuition. }
     destruct (stable_nonzeroIndex_zeros10 n).
     destruct n; simpl; auto.
   - intros.
@@ -2225,7 +2340,7 @@ Proof.
     split.
     rewrite app_length. rewrite repeat_length; simpl. lia.
     intuition.
-    { clear; induction n; simpl; intuition; apply BH_zero_normal. }
+    { clear; induction n; simpl; intuition. }
     destruct n; simpl; intuition.
 Qed.
 
@@ -2286,7 +2401,7 @@ Fixpoint stabalize_list x xs : (nat * BHForm) + (BHForm * list BHForm) :=
   | [] => inl (0%nat, x)
   | (x1::x2) =>
       match stabalize_list x1 x2 with
-      | inl (n, arg) => 
+      | inl (n, arg) =>
           match x with
           | BH [] => inl (S n, arg)
           | _     =>
@@ -2294,8 +2409,8 @@ Fixpoint stabalize_list x xs : (nat * BHForm) + (BHForm * list BHForm) :=
               | 0 => inr (x, [arg])
               | S m =>
                   match cantor_succ_test BH_has_cantor_decomposition x with
-                  | None => inr (x, repeat BH_zero n ++ [arg])
-                  | Some xpred => 
+                  | None => inr (x, repeat BH0 n ++ [arg])
+                  | Some xpred =>
                       let (arg', xs') := stabalize_zeros (BH_onePlus arg) m in
                       inr (xpred, arg' :: xs')
                   end
@@ -2310,8 +2425,8 @@ Lemma stabalize_list_correct :
   forall xs x,
     each normal_form (x::xs) ->
     match stabalize_list x xs with
-    | inl (n, arg) => x::xs = repeat BH_zero n ++ [arg] /\ normal_form arg
-    | inr (x', xs') => 
+    | inl (n, arg) => x::xs = repeat BH0 n ++ [arg] /\ normal_form arg
+    | inr (x', xs') =>
         stable_list (map BH_denote (x'::xs')) /\
         hasNonzeroIndex (map BH_denote (x'::xs')) /\
         length xs = length xs' /\
@@ -2347,17 +2462,9 @@ Proof.
     + intros.
       assert (normal_form (BH_onePlus arg) /\ BH_denote (BH_onePlus arg) ≈ 1 + BH_denote arg).
       { unfold BH_onePlus.
-        destruct (cantor_add_reflects BH_has_cantor_decomposition) with 1 BH_one (BH_denote arg) arg;
+        destruct (cantor_add_reflects BH_has_cantor_decomposition) with 1 BH1 (BH_denote arg) arg;
         simpl in *; intuition.
-        rewrite addOrd_zero_r. reflexivity.
-        unfold BH_one.
-        rewrite normal_form_BH; simpl; intuition.
-        hnf; simpl; intuition.
-        apply stable_short; simpl; auto.
-        unfold BH_zero.
-        rewrite normal_form_BH; simpl; intuition.
-        hnf; simpl; intuition.
-        apply stable_short; simpl; auto. }
+        rewrite addOrd_zero_r. reflexivity. }
       destruct H3.
 
       generalize (stabalize_zeros_stable (BH_onePlus arg) n).
@@ -2381,14 +2488,14 @@ Proof.
         lia.
       * destruct Haxs; simpl; auto.
         simpl in H12. inversion H12. subst.
-        simpl. 
+        simpl.
         repeat rewrite map_length; simpl.
         repeat rewrite app_length; simpl.
         repeat rewrite repeat_length.
         rewrite H8.
         replace (S (n + 1))%nat with (S (S n)) by lia.
         transitivity (BH_stack (bhtower (S (S n)) f (BH_denote b0)) (BH_denote (BH_onePlus arg)) (stackZeros n [0])).
-        2: { generalize (stabalize_zeros_correct 
+        2: { generalize (stabalize_zeros_correct
                            (bhtower (S (S n)) f (BH_denote b0))
                            (BH_onePlus arg) n).
              rewrite H1. simpl. intro.
@@ -2422,10 +2529,9 @@ Proof.
       destruct Haxs. simpl; auto.
       simpl in H3. inversion H3; subst.
       reflexivity.
-      apply BH_zero_normal.
       { destruct Haxs; simpl; auto.
         clear -H4.
-        induction n; simpl; intuition; apply BH_zero_normal. }
+        induction n; simpl; intuition. }
 
       destruct Haxs. simpl; auto.
       simpl in H4. inversion H4; subst.
@@ -2438,7 +2544,7 @@ Proof.
     repeat rewrite map_length.
     rewrite H3.
     apply H7; auto with ord.
-Qed.    
+Qed.
 
 Fixpoint drop_leading_zeros x xs :=
   match xs with
@@ -2453,7 +2559,7 @@ Fixpoint drop_leading_zeros x xs :=
 Definition stabalize_stack xs :=
   match xs with
   | [] => []
-  | x1::xs' => 
+  | x1::xs' =>
       match stabalize_list x1 xs' with
       | inl (n,arg) => [arg]
       | inr (x1',xs'') => drop_leading_zeros x1' xs''
@@ -2503,7 +2609,7 @@ Proof.
     inversion H1; subst. simpl; auto with ord.
     destruct n.
     simpl; rewrite bhtower_zero. auto with ord.
-    rewrite <- (IHn BH_zero (repeat BH_zero n ++ [arg])); auto.
+    rewrite <- (IHn BH0 (repeat BH0 n ++ [arg])); auto.
     simpl repeat. simpl map.
     rewrite BH_stack_leading_zero; auto with ord.
   - intuition.
@@ -2535,12 +2641,12 @@ Proof.
       intros.
       simpl.
       apply drop_leading_zeros_correct; auto.
-Qed.      
-      
+Qed.
+
 Fixpoint find_equal_subterm (xs:list BHForm) (orig:BHForm) : option BHForm :=
   match xs with
   | [] => None
-  | x::xs' => 
+  | x::xs' =>
       match bhcompare x orig with
       | LT => find_equal_subterm xs' orig
       | _  => Some x
@@ -2561,64 +2667,21 @@ Proof.
   generalize (IHxs orig H1 H0).
   destruct (find_equal_subterm xs orig); intuition.
   apply H2.
-Qed.  
-    
-Definition normalize_list (xs:list BHForm) : BHForm :=
+Qed.
+
+Definition BH_normalize (xs:list BHForm) : BHForm :=
   let xs' := stabalize_stack xs in
   match find_equal_subterm xs' (BH xs') with
   | Some x => x
   | None   => BH xs'
   end.
-                 
-Lemma each_map A B : forall (P:B -> Prop) (f:A->B) (xs:list A),
-    each P (map f xs) <-> each (fun x => P (f x)) xs.
-Proof.
-  induction xs; simpl; intuition.
-Qed.
 
-Lemma BH_stack_arg_le: forall x xs f,
-  complete x ->
-  normal_function f -> x <= BH_stack f x xs.
-Proof.
-  intros.
-  destruct xs.
-  simpl; apply normal_inflationary; auto.
-  transitivity (BH_stack f x (stackZeros (length xs) [0])).
-  rewrite BH_stack_zeros.
-  apply (normal_inflationary (fun q => bhtower (S (length xs)) f q 0)); auto.
-  apply BH_stack_monotone; auto with ord.
-  revert o. induction xs; simpl; intuition.
-  constructor; auto with ord.
-  constructor.
-  constructor; auto with ord.
-Qed.
-
-Lemma BH_stack_subterm_le : forall x ys y f,
-    In x ys ->
-    normal_function f ->
-    BH_denote x <= BH_stack f (BH_denote y) (map BH_denote ys).
-Proof.
-  intro x. induction ys; simpl; intuition subst.
-  apply BH_stack_arg_le; auto.
-  apply IHys; simpl; auto.
-Qed.  
-
-Lemma BH_full_stack_subterm_le: forall x xs,
-    In x xs ->
-    BH_denote x <= BH_full_stack (map BH_denote xs).
-Proof.
-  intros.
-  destruct xs; simpl in *; intuition.
-  subst. apply BH_stack_arg_le; auto.
-  apply BH_stack_subterm_le; auto.
-Qed.  
-
-Lemma normalize_list_correct: forall xs,
+Lemma BH_normalize_correct: forall xs,
     each normal_form xs ->
-    normal_form (normalize_list xs) /\
-    BH_denote (BH xs) ≈ BH_denote (normalize_list xs).
+    normal_form (BH_normalize xs) /\
+    BH_denote (BH xs) ≈ BH_denote (BH_normalize xs).
 Proof.
-  unfold normalize_list. intros.
+  unfold BH_normalize. intros.
   destruct (stabalize_stack_correct xs H) as [Hstable [Hnorm [Hzeros Heq]]].
   assert (Heach_stable: each stable_form (stabalize_stack xs)).
   { revert Hnorm. apply each_implies. apply normal_is_stable. }
@@ -2637,19 +2700,19 @@ Qed.
 
 Fixpoint normalize (x:BHForm) :=
   match x with
-  | BH xs => normalize_list (map normalize xs)
+  | BH xs => BH_normalize (map normalize xs)
   end.
-        
-Lemma normalize_correct : forall x,
-  normal_form (normalize x) /\ BH_denote x ≈ BH_denote (normalize x).
+
+Theorem normalize_correct : forall x:BHForm,
+  normal_form (normalize x) /\ BH_denote (normalize x) ≈ BH_denote x.
 Proof.
   induction x using BHForm_induction; simpl.
   assert (Hnf : each normal_form (map normalize xs)).
   { rewrite each_map.
     revert H. apply each_implies; intuition. }
-  split. apply normalize_list_correct; auto.
+  split. apply BH_normalize_correct; auto.
   transitivity (BH_full_stack (map BH_denote (map normalize xs))).
-  2: { apply normalize_list_correct; auto. }
+  { symmetry. apply BH_normalize_correct; auto. }
   destruct xs; simpl; auto with ord.
   simpl in *; intuition.
   split; apply BH_stack_monotone; auto with ord.
@@ -2666,7 +2729,6 @@ Proof.
     constructor; auto with ord.
     apply H2. }
 Qed.
-
 
 
 
@@ -2688,10 +2750,9 @@ Proof.
     rewrite Hs; auto with ord.
     exists (BH_succ (normalize a)).
     rewrite Hs.
-    unfold BH_succ.
-    destruct (cantor_succ_reflects BH_has_cantor_decomposition) with o (normalize a).
+    destruct BH_succ_reflects with o (normalize a).
     rewrite <- Ha.
-    destruct (normalize_correct a); auto.
+    destruct (normalize_correct a); intuition.
     rewrite H0.
     reflexivity.
 
