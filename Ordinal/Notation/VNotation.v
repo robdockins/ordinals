@@ -423,33 +423,6 @@ Proof.
   apply cantor_exp_reflects.
 Qed.
 
-
-
-Lemma succ_cancel_le x y :
-  succOrd x ≤ succOrd y -> x ≤ y.
-Proof.
-  intros.
-  do 2 rewrite succ_unfold in H.
-  destruct (ord_le_subord _ _ H tt); auto.
-Qed.
-
-Lemma succ_cancel x y :
-  succOrd x ≈ succOrd y -> x ≈ y.
-Proof.
-  intro H. split; apply succ_cancel_le; apply H.
-Qed.
-
-Lemma add_cancel_finite (n:ω) x y :
-  x + sz n ≈ y + sz n -> x ≈ y.
-Proof.
-  induction n; simpl; intro H.
-  do 2 rewrite addOrd_zero_r in H; auto.
-  do 2 rewrite addOrd_succ in H.
-  apply succ_cancel in H.
-  auto.
-Qed.
-
-
 Theorem VF_reflects_expOmega : reflects VForm VF_denote VF_normal (ORD ==> ORD) (expOrd ω) VF_expOmega.
 Proof.
   simpl; intuition.

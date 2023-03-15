@@ -495,6 +495,7 @@ Proof.
 Qed.
 
 
+
 (** * Ordinal multiplication *)
 
 Fixpoint mulOrd (x:Ord) (y:Ord) : Ord :=
@@ -1284,6 +1285,16 @@ Qed.
 
 Global Opaque addOrd mulOrd expOrd.
 
+
+Lemma add_cancel_finite (n:ω) x y :
+  x + sz n ≈ y + sz n -> x ≈ y.
+Proof.
+  induction n; simpl; intro H.
+  do 2 rewrite addOrd_zero_r in H; auto.
+  do 2 rewrite addOrd_succ in H.
+  apply succ_cancel_eq in H.
+  auto.
+Qed.
 
 Lemma onePlus_finite_succ m :
   1 + natOrdSize m ≈ succOrd (natOrdSize m).
