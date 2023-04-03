@@ -50,10 +50,9 @@ Proof.
 Qed.
 
 Lemma additively_closed_mul_omega x :
-  additively_closed x ->
   additively_closed (x * ω).
 Proof.
-  intros H a b Ha Hb.
+  intros a b Ha Hb.
   rewrite mulOrd_unfold in Ha.
   rewrite mulOrd_unfold in Hb.
   apply sup_lt in Ha.
@@ -101,7 +100,6 @@ Proof.
   hnf; simpl; intros.
   rewrite <- (mulOrd_one_l ω).
   apply additively_closed_mul_omega.
-  + apply additively_closed_one.
   + rewrite (mulOrd_one_l ω); auto.
   + rewrite (mulOrd_one_l ω); auto.
 Qed.
@@ -136,8 +134,6 @@ Proof.
   rewrite <- lub_le2.
   rewrite <- (sup_le _ _ c').
   apply additively_closed_mul_omega; auto.
-  - red; intros. apply H; auto.
-    apply Hc.
   - eapply ord_lt_le_trans; [ apply H0 | ].
     apply mulOrd_monotone1.
     apply expOrd_monotone.
@@ -157,7 +153,6 @@ Proof.
   - rewrite <- ε_fixpoint. auto.
   - rewrite <- ε_fixpoint. auto.
 Qed.
-
 
 
 Lemma expOrd_add_collapse b c :
