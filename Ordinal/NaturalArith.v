@@ -549,146 +549,6 @@ Proof.
 Qed.
 
 
-Fixpoint cantorPairs_denote (xs:list (nat * Ord)) : Ord :=
-  match xs with
-  | nil => 0
-  | ((n,x)::xs') => cantorPairs_denote xs' + expOrd ω x * sz (S n)
-  end.
-
-Fixpoint cantorPairs_denote_alt (xs:list (nat * Ord)) : Ord :=
-  match xs with
-  | nil => 0
-  | ((n,x)::xs') => cantorPairs_denote_alt xs' ⊕ expOrd ω x * sz (S n)
-  end.
-
-Definition cantorPairs_less (x:Ord) (xs:list (nat*Ord)) : Prop :=
-  match xs with
-  | nil => True
-  | ((n,y)::_) => x < y
-  end.
-
-Fixpoint cantorPairs_ordered (xs:list (nat * Ord)) : Prop :=
-  match xs with
-  | nil => True
-  | ((n,x)::xs') =>
-      cantorPairs_less x xs' /\
-      cantorPairs_ordered xs'
-  end.
-
-Lemma cantorPairs_denote_app : forall ps qs,
-  cantorPairs_denote (ps ++ qs) ≈ cantorPairs_denote qs + cantorPairs_denote ps.
-Proof.
-  induction ps; simpl; intuition.
-  - rewrite addOrd_zero_r. reflexivity.
-  - rewrite IHps.
-    rewrite addOrd_assoc.
-    reflexivity.
-Qed.
-
-Lemma expOrd_less_decompose :
-  forall a i, complete a -> i < expOrd ω a ->
-      exists ps,
-        cantorPairs_ordered ps /\
-          i <= cantorPairs_denote ps /\
-          cantorPairs_denote ps < expOrd ω a /\
-          (forall n b, List.In (n,b) ps -> b < a).
-Proof.
-  induction a as [a Hind] using ordinal_induction.
-  intros i Ha Hi.
-  rewrite expOrd_unfold in Hi.
-  apply lub_lt in Hi.
-  destruct Hi as [Hi|Hi].
-  { exists nil.
-    simpl; intuition.
-    rewrite ord_lt_unfold in Hi.
-    destruct Hi; auto.
-    apply expOrd_nonzero. }
-  apply sup_lt in Hi.
-  destruct Hi as [q Hi].
-  rewrite mulOrd_unfold in Hi.
-  apply sup_lt in Hi.
-  destruct Hi as [m Hi].
-  induction m as [m Hindm] using size_induction.
-  rewrite addOrd_unfold in Hi.
-  apply lub_lt in Hi.
-  destruct Hi as [Hi|Hi].
-  { destruct m. simpl in Hi.
-    rewrite mulOrd_zero_r in Hi.
-    elim ord_lt_irreflexive with 0.
-    apply ord_le_lt_trans with i; auto with ord.
-    simpl in Hi.
-    rewrite mulOrd_succ in Hi.
-    apply (Hindm m); simpl; auto with ord. }
-  apply sup_lt in Hi.
-  destruct Hi as [j Hi].
-  rewrite ord_lt_unfold in Hi.
-  destruct Hi as [[] Hi]; simpl in *.
-  destruct Hind with (y:=a q) (i:=sz j) as [ps [?[?[??]]]]; auto with ord.
-  apply complete_subord; auto.
-  exists (ps ++ match m with O => nil | S m' => (m', a q) :: nil end).
-  destruct m.
-  { rewrite <- List.app_nil_end.
-    simpl in Hi.
-    rewrite mulOrd_zero_r in Hi.
-    rewrite addOrd_zero_l in Hi.
-    intuition.
-    rewrite Hi; auto.
-    rewrite H1.
-    apply expOrd_increasing; auto with ord.
-    apply omega_gt1.
-    transitivity (a q); eauto with ord. }
-  intuition.
-  - clear - H H2.
-    induction ps; simpl in *; intuition.
-    destruct a0.
-    destruct ps; simpl.
-    intuition.
-    eapply H2; simpl; auto.
-    destruct p as [k b].
-    simpl in IHps.
-    destruct IHps; simpl; intuition.
-    simpl in H1; intuition.
-    simpl in H1; intuition.
-    inversion H3; subst.
-    eapply H2; simpl; eauto.
-    eapply H2; simpl; eauto.
-  - rewrite Hi.
-    rewrite cantorPairs_denote_app.
-    simpl.
-    rewrite addOrd_zero_l.
-    apply addOrd_monotone; auto with ord.
-  - rewrite cantorPairs_denote_app; simpl.
-    rewrite addOrd_zero_l.
-    apply expOmega_additively_closed; auto.
-    rewrite (expOrd_unfold _ a).
-    rewrite <- lub_le2.
-    rewrite <- (sup_le _ _ q).
-    rewrite (mulOrd_unfold _ ω).
-    rewrite <- (sup_le _ _ (S m)).
-    simpl.
-    apply ord_lt_le_trans with (expOrd ω (a q) * succOrd (natOrdSize m) + 1).
-    { rewrite addOrd_succ.
-      apply succ_trans.
-      apply addOrd_le1. }
-    apply addOrd_monotone; auto with ord.
-    apply succ_least. apply expOrd_nonzero.
-    rewrite H1.
-    apply expOrd_increasing; auto with ord.
-    apply omega_gt1.
-  - apply List.in_app_or in H3.
-    simpl in H3; intuition eauto.
-    transitivity (a q); eauto with ord.
-    inversion H3; subst.
-    auto with ord.
-Qed.
-
-Fixpoint cantorPairs_complete (xs:list (nat*Ord)) : Prop :=
-  match xs with
-  | nil => True
-  | (n,x)::xs' => complete x /\ cantorPairs_complete xs'
-  end.
-
-
 Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
@@ -1045,168 +905,184 @@ Proof.
   intros. apply nadd_closed; auto.
 Qed.
 
-
-Lemma redenote_single (EM:excluded_middle) :
-  forall N xs q,
-    cantorPairs_ordered xs ->
-    cantorPairs_complete xs ->
-    cantorPairs_denote xs <= N ->
-    match xs with
-    | nil => True
-    | (_,x0)::_ => q < expOrd ω x0
-    end ->
-    cantorPairs_denote xs ⊕ q <= cantorPairs_denote xs + q.
+Lemma cantor_denote_app: forall xs ys,
+  cantor_denote (xs ++ ys) ≈ cantor_denote xs + cantor_denote ys.
 Proof.
-  induction N as [N HindN] using ordinal_induction.
-  intros xs q. revert xs.
-  induction q as [q Hindq] using ordinal_induction.
-  intros xs Hxs_ord Hxs_comp HxsN Hxsq.
-  apply naddOrd_least3.
-  - intros i Hi.
-    destruct xs as [|[n x] xs].
-    { simpl in Hi. rewrite ord_lt_unfold in Hi. destruct Hi as [[] _]. }
-    simpl in *.
-    rewrite mulOrd_succ in Hi.
-    rewrite addOrd_assoc in Hi.
-    rewrite addOrd_unfold in Hi.
-    apply lub_lt in Hi.
-    destruct Hi as [Hi|Hi].
-    + destruct n.
-      * simpl in *.
-        rewrite mulOrd_zero_r in Hi.
-        rewrite addOrd_zero_r in Hi.
-        rewrite mulOrd_one_r.
-        apply ord_lt_le_trans with (cantorPairs_denote xs ⊕ q).
-        { apply naddOrd_increasing1. auto. }
-        rewrite (HindN (cantorPairs_denote xs)); intuition.
-        rewrite <- addOrd_assoc.
-        apply addOrd_monotone; auto with ord.
-        apply addOrd_le2.
-        rewrite <- HxsN.
-        rewrite mulOrd_one_r.
-        apply ord_le_lt_trans with (cantorPairs_denote xs + 0).
-        { rewrite addOrd_zero_r. reflexivity. }
-        apply addOrd_increasing. apply expOrd_nonzero.
-        destruct xs; simpl in *; auto.
-        destruct p; simpl in *.
-        transitivity (expOrd ω x); auto with ord.
-        apply expOrd_increasing; auto with ord.
-        apply omega_gt1.
-      * simpl in *.
-        apply ord_lt_le_trans with (cantorPairs_denote ((n,x)::xs) ⊕ q).
-        { apply naddOrd_increasing1. simpl; auto. }
-        rewrite (HindN (cantorPairs_denote ((n,x)::xs))); intuition.
-        apply addOrd_monotone; auto with ord.
-        simpl.
-        apply addOrd_monotone; auto with ord.
-        apply mulOrd_monotone2. simpl; auto with ord.
-        simpl. auto.
-        simpl; auto.
-        rewrite <- HxsN.
-        simpl.
-        apply addOrd_increasing.
-        apply mulOrd_increasing2.
-        apply expOrd_nonzero.
-        simpl; auto with ord.
-        simpl; auto.
-        simpl; auto.
-
-    + apply sup_lt in Hi.
-      destruct Hi as [s Hi].
-      rewrite ord_lt_unfold in Hi. simpl in Hi.
-      destruct Hi as [[] Hi].
-      rewrite Hi.
-      rewrite add_nadd_assoc2.
-      * rewrite mulOrd_succ.
-        rewrite <- addOrd_assoc.
-        rewrite <- addOrd_assoc.
-        apply addOrd_increasing.
-        rewrite <- addOrd_assoc.
-        apply addOrd_increasing.
-        rewrite <- addOrd_le1.
-
-        apply nadd_closed; intuition.
-
-      * intros.
-        destruct n.
-        ** simpl. rewrite mulOrd_zero_r.
-           repeat rewrite addOrd_zero_r.
-           apply (HindN (cantorPairs_denote xs)); intuition.
-           rewrite <- HxsN.
-           simpl. rewrite mulOrd_one_r.
-           apply ord_le_lt_trans with (cantorPairs_denote xs + 0).
-           { rewrite addOrd_zero_r. reflexivity. }
-           apply addOrd_increasing. apply expOrd_nonzero.
-           destruct xs; simpl in *; intuition.
-           destruct p.
-           rewrite H; auto.
-           apply ord_lt_le_trans with (expOrd ω x); auto.
-           apply expOrd_monotone; auto with ord.
-        ** simpl.
-           apply HindN with (y:=cantorPairs_denote ((n,x)::xs)) (xs := ((n,x)::xs)); simpl; intuition.
-           rewrite <- HxsN.
-           apply addOrd_increasing.
-           apply mulOrd_increasing2.
-           apply expOrd_nonzero.
-           apply succ_trans. simpl. reflexivity.
-           rewrite H. auto.
-
-  - intros.
-    rewrite Hindq; auto with ord.
-    apply addOrd_increasing; auto.
-    destruct xs; auto with ord.
-    destruct p.
-    transitivity q; auto.
-Qed.
-
-
-Lemma redenote1 (EM:excluded_middle):
-  forall xs,
-    cantorPairs_ordered xs ->
-    cantorPairs_complete xs ->
-    cantorPairs_denote_alt xs <= cantorPairs_denote xs.
-Proof.
-  induction xs as [|[n x] xs Hindx]; simpl; auto with ord.
-  intuition.
-  rewrite H4.
-  eapply redenote_single; eauto.
+  induction xs; simpl; intros.
+  { rewrite addOrd_zero_l. reflexivity. }
+  rewrite IHxs.
+  rewrite addOrd_assoc.
   reflexivity.
-  destruct xs as [|[m y] xs]; simpl in *; intuition.
-  rewrite ord_lt_unfold in H1.
-  destruct H1 as [j H1].
-  rewrite (expOrd_unfold _ y).
-  rewrite <- lub_le2.
-  rewrite <- (sup_le _ _ j).
-  apply ord_le_lt_trans with (expOrd ω (y j) * succOrd (sz n)).
-  apply mulOrd_monotone1.
-  apply expOrd_monotone; auto.
-  apply mulOrd_increasing2.
-  apply expOrd_nonzero.
-  rewrite ord_lt_unfold.
-  exists (S n); simpl; auto with ord.
 Qed.
 
-Lemma redenote2:
-  forall xs,
-    cantorPairs_denote xs <= cantorPairs_denote_alt xs.
+
+Lemma each_app: forall A (P:A -> Prop) xs ys,
+    each P (xs ++ ys) -> each P xs /\ each P ys.
 Proof.
-  induction xs as [|[n x] xs Hindx]; simpl; auto with ord.
-  rewrite Hindx.
+  intros A P xs ys.
+  induction xs; simpl; intuition.
+Qed.
+
+Lemma cantor_sequence_le1:
+  forall xs x,
+    cantor_sequence x xs ->
+    forall x', List.In x' xs -> x' <= x.
+Proof.
+  induction xs; simpl; intuition subst; auto.
+  rewrite <- H0.
+  apply IHxs; auto.
+Qed.
+
+Lemma cantor_sequence_le:
+  forall xs x ys,
+    cantor_sequence x (xs++ys) ->
+    forall x' y,
+      List.In x' xs ->
+      List.In y ys ->
+      y <= x'.
+Proof.
+  induction xs; simpl; intuition subst.
+  apply cantor_sequence_le1 with (xs++ys); auto.
+  apply List.in_or_app; auto.
+  eapply IHxs; eauto.
+Qed.
+
+Lemma cantor_denote_nadd_add (EM:excluded_middle):
+  forall xs b,
+    each complete xs ->
+    (forall a, List.In a xs -> a >= b) ->
+    forall q, q <= expOrd ω b ->
+      cantor_denote xs ⊕ q <= cantor_denote xs + q.
+Proof.
+  induction xs as [|x xs] using List.rev_ind; simpl; auto with ord.
+  { intros.
+    rewrite naddOrd_comm. rewrite <- naddOrd_zero.
+    rewrite addOrd_zero_l. reflexivity. }
+  intros b Hxs1 Hxs2.
+  intros q Hq.
+  apply each_app in Hxs1.
+  rewrite cantor_denote_app. simpl.
+  rewrite addOrd_zero_r.
+  rewrite add_nadd_assoc2.
+  - rewrite <- addOrd_assoc.
+    apply addOrd_monotone; auto with ord.
+    revert Hq.
+    induction q as [q Hindq] using ordinal_induction.
+    intro Hq.
+    apply naddOrd_least3.
+    + intros i Hi.
+      eapply nadd_closed_technical1 with (n:=O); simpl; auto.
+      simpl in *; intuition.
+      intros; apply nadd_closed; auto.
+      rewrite mulOrd_one_r.
+      rewrite Hq.
+      apply expOrd_monotone.
+      apply Hxs2.
+      apply List.in_or_app.
+      simpl; auto.
+    + intros j Hj.
+      rewrite Hindq; auto with ord.
+      apply addOrd_increasing; auto.
+      rewrite Hj; auto.
+  - intros. apply IHxs with b; simpl in *; intuition.
+    rewrite H. auto.
+Qed.
+
+Fixpoint cantor_denote_nadd (xs:list Ord) : Ord :=
+  match xs with
+  | nil => 0
+  | x::xs' => expOrd ω x ⊕ cantor_denote_nadd xs'
+  end.
+
+
+Lemma cantor_denote_nadd_app: forall xs ys,
+  cantor_denote_nadd (xs ++ ys) ≈ cantor_denote_nadd xs ⊕ cantor_denote_nadd ys.
+Proof.
+  induction xs; simpl; intros.
+  { rewrite naddOrd_comm. rewrite <- naddOrd_zero. reflexivity. }
+  rewrite IHxs.
+  rewrite naddOrd_assoc.
+  reflexivity.
+Qed.
+
+Lemma cantor_sequence_app1:
+  forall xs x ys,
+    cantor_sequence x (xs ++ ys) -> cantor_sequence x xs.
+Proof.
+  induction xs; simpl; intuition eauto.
+Qed.
+
+Theorem cantor_denote_nadd_eq (EM:excluded_middle) :
+  forall xs x,
+    each complete xs ->
+    cantor_sequence x xs ->
+    cantor_denote xs ≈ cantor_denote_nadd xs.
+Proof.
+  induction xs as [|x xs IHxs] using List.rev_ind; simpl; auto with ord.
+  intros b Hxs Hb.
+  apply each_app in Hxs.
+  rewrite cantor_denote_app.
+  rewrite cantor_denote_nadd_app.
+  simpl.
+  rewrite addOrd_zero_r.
+  rewrite <- naddOrd_zero.
+  rewrite <- IHxs with b.
+  split.
   apply add_nadd_le.
+  apply cantor_denote_nadd_add with x; intuition auto with ord.
+  eapply cantor_sequence_le; eauto.
+  simpl; auto.
+  intuition.
+  apply cantor_sequence_app1 in Hb. auto.
 Qed.
 
+Inductive merge_lists {A:Type} : list A -> list A -> list A -> Prop :=
+| merge_lists_nil : merge_lists nil nil nil
+| merge_lists_left:
+    forall x xs ys zs,
+           merge_lists xs ys zs ->
+           merge_lists (x::xs) ys (x::zs)
+| merge_lists_right:
+    forall xs y ys zs,
+           merge_lists xs ys zs ->
+           merge_lists xs (y::ys) (y::zs).
 
-Lemma redenote (EM:excluded_middle):
-  forall xs,
-    cantorPairs_ordered xs ->
-    cantorPairs_complete xs ->
-    cantorPairs_denote_alt xs ≈ cantorPairs_denote xs.
+Lemma cantor_denote_nadd_merge:
+  forall xs ys zs,
+    merge_lists xs ys zs ->
+    cantor_denote_nadd xs ⊕ cantor_denote_nadd ys ≈ cantor_denote_nadd zs.
 Proof.
-  intros. split.
-  apply redenote1; auto.
-  apply redenote2.
+  intros xs ys zs H.
+  induction H; simpl.
+  - rewrite <- naddOrd_zero. reflexivity.
+  - rewrite <- naddOrd_assoc.
+    rewrite IHmerge_lists.
+    reflexivity.
+  - rewrite naddOrd_comm.
+    rewrite <- naddOrd_assoc.
+    rewrite (naddOrd_comm (cantor_denote_nadd ys)).
+    rewrite IHmerge_lists.
+    reflexivity.
 Qed.
 
+Theorem nadd_cantor_sequences (EM:excluded_middle):
+  forall xs ys zs,
+    merge_lists xs ys zs ->
+    forall a b c,
+    cantor_sequence a xs ->
+    cantor_sequence b ys ->
+    cantor_sequence c zs ->
+    cantor_denote xs ⊕ cantor_denote ys ≈ cantor_denote zs.
+Proof.
+  intros xs ys zs Hmerge a b c Hxs Hys Hzs.
+  rewrite (cantor_denote_nadd_eq EM xs a); auto.
+  rewrite (cantor_denote_nadd_eq EM ys b); auto.
+  rewrite (cantor_denote_nadd_eq EM zs c); auto.
+  apply cantor_denote_nadd_merge; auto.
+  clear -EM. induction zs; simpl; intuition. apply classical.ord_complete; auto.
+  clear -EM. induction ys; simpl; intuition. apply classical.ord_complete; auto.
+  clear -EM. induction xs; simpl; intuition. apply classical.ord_complete; auto.
+Qed.
 
 
 (** * Natural multiplication *)
