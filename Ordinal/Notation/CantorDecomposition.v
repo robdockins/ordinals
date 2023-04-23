@@ -15,6 +15,9 @@ From Ordinal Require Import Cantor.
 From Ordinal Require Import Fixpoints.
 From Ordinal Require Import Reflection.
 
+Require Import ClassicalFacts.
+From Ordinal Require Import Classical.
+
 Open Scope ord_scope.
 
 Local Set Implicit Arguments.
@@ -938,6 +941,81 @@ Section cantor_arithmetic.
     rewrite <- H.
     rewrite <- H0.
     reflexivity.
+  Qed.
+
+  Definition has_interpolants (z:Ord) :=
+    forall i:Ord, i < z -> exists y:A, P y /\ i <= f y /\ f y < z.
+
+  Definition has_all_interpolants :=
+    forall (a:A), P a -> has_interpolants (f a).
+
+  Definition has_enough_notations :=
+    forall (a:A) (x:Ord), P a -> x <= f a -> exists b, P b /\ f b ≈ x.
+
+  Lemma has_enough_notations_has_all_interpolants:
+    has_enough_notations -> has_all_interpolants.
+  Proof.
+    intros H a Ha i Hi.
+    destruct (H a i) as [x [Hx1 Hx2]]; auto with ord.
+    exists x; split; auto.
+    split. apply Hx2. rewrite Hx2. auto.
+  Qed.
+
+  Lemma has_enough_notations_EM: has_enough_notations -> excluded_middle.
+  Proof.
+    intros H Q.
+    hnf in H.
+    destruct (cantor_nat_correct 1%nat) as [Hn1 Hn2].
+    destruct (H (cantor_nat 1%nat) (classical.truth_ord Q)) as [z [Hz1 Hz2]]; auto.
+    - rewrite Hn1. simpl.
+      rewrite ord_le_unfold; simpl; intros.
+      apply succ_lt.
+    - generalize (cantor_zero_reflects). simpl; intros [Hzero1 Hzero2].
+      generalize (cantor_decomp_compare_correct X cantor_zero z Hzero2 Hz1).
+      destruct (cantor_decomp_compare X cantor_zero z); simpl;
+        rewrite <- Hzero1; rewrite Hz2; intro Hord.
+      + rewrite ord_lt_unfold in Hord.
+        destruct Hord as [HQ _]. auto.
+      + right; intro HQ.
+        destruct Hord as [Hord1 Hord2].
+        rewrite ord_le_unfold in Hord2.
+        specialize (Hord2 HQ).
+        rewrite ord_lt_unfold in Hord2. destruct Hord2 as [[] _].
+      + rewrite ord_lt_unfold in Hord. destruct Hord as [[] _].
+  Qed.
+
+  Lemma has_interpolants_has_enough_notations:
+    excluded_middle ->
+    has_all_interpolants ->
+    has_enough_notations.
+  Proof.
+    intros EM Hinterp a i Ha Hi.
+
+    set (Q:= fun o => exists v:A, P v /\ i <= f v /\ o ≈ f v).
+    assert (HP: exists o, Q o).
+    { subst Q. exists (f a), a; intuition. }
+    destruct HP as [o0 Ho0].
+    destruct (classical.ord_well_ordered EM Q o0) as [z [Hz1 Hz2]]; auto.
+    destruct Hz1 as [v [Hv1[Hv2 Hv3]]].
+    exists v; split; auto. split; auto.
+    destruct (classical.order_total EM (f v) i); auto.
+    destruct Hinterp with v i as [q [Hq1 [Hq2 Hq3]]]; auto.
+    assert (HQq: Q (f q)).
+    { hnf. exists q. intuition. }
+    apply Hz2 in HQq.
+    elim (ord_lt_irreflexive z).
+    rewrite HQq at 1.
+    rewrite Hv3.
+    auto.
+  Qed.
+
+  Theorem has_all_interpolants_EM_iff_has_enough_notations:
+    (has_all_interpolants /\ excluded_middle) <-> has_enough_notations.
+  Proof.
+    intuition.
+    apply has_interpolants_has_enough_notations; auto.
+    apply has_enough_notations_has_all_interpolants; auto.
+    apply has_enough_notations_EM; auto.
   Qed.
 
 End cantor_arithmetic.
