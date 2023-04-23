@@ -604,6 +604,36 @@ From Ordinal Require Import Classical.
 Theorem VF_has_enough_notations (EM:excluded_middle) :
   forall x:Ord, x < ε 0 -> exists c:VF, x ≈ c.
 Proof.
+  intros.
+  set (P:= fun o => exists v:VForm, VF_normal v /\ x <= VF_denote v /\ o ≈ VF_denote v).
+  assert (HP: exists o, P o).
+  { subst P.
+    rewrite <- VF_ε₀ in H.
+    rewrite ord_lt_unfold in H.
+    destruct H as [b Hb]. simpl in Hb.
+    exists (VF_denote b), (Vnormalize b); intuition.
+    - apply Vnormalize_normal.
+    - rewrite Hb. apply Vnormalize_equal.
+    - symmetry. apply Vnormalize_equal. }
+  destruct HP as [o0 Ho0].
+  destruct (classical.ord_well_ordered EM P o0) as [z [Hz1 Hz2]]; auto.
+  destruct Hz1 as [v [Hv1[Hv2 Hv3]]].
+  exists v; split; auto.
+  destruct (classical.order_total EM (sz v) x); auto.
+  destruct VNotationInterpolate with v x as [q [Hq1 [Hq2 Hq3]]]; auto.
+  assert (HPq: P (VF_denote q)).
+  { hnf. exists q. intuition. }
+  apply Hz2 in HPq.
+  elim (ord_lt_irreflexive z).
+  rewrite HPq at 1.
+  rewrite Hv3.
+  auto.
+Qed.
+
+
+Theorem VF_has_enough_notations' (EM:excluded_middle) :
+  forall x:Ord, x < ε 0 -> exists c:VF, x ≈ c.
+Proof.
   induction x as [x Hx] using ordinal_induction. intro H.
   destruct (classical.ordinal_discriminate EM x) as [Hzero|[Hsucc|Hlimit]].
   - (* Zero ordinal, exhibit Z *)
