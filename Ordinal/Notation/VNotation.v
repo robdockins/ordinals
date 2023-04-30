@@ -12,6 +12,7 @@ Unset Printing Records.
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
+From Ordinal Require Import NaturalArith.
 From Ordinal Require Import Cantor.
 From Ordinal Require Import Fixpoints.
 From Ordinal Require Import Reflection.
@@ -446,188 +447,65 @@ Proof.
     apply VF_reflects_expOmega.
 Qed.
 
-
-Definition has_interpolants z :=
-  forall i,
-    i < z ->
-    exists y:VForm,
-      VF_normal y /\ i <= VF_denote y /\ VF_denote y < z.
-
-Lemma iter_veblen_has_interpolants:
-  forall a,
-    (forall b, complete b -> has_interpolants b -> has_interpolants (veblen (addOrd 1) (VF_denote a) b)) ->
-    forall m b,
-      complete b ->
-      has_interpolants b ->
-      has_interpolants (iter_f (veblen (addOrd 1) (VF_denote a)) b m).
-  intros a Ha2.
-  induction m; simpl; auto.
-  intros b Hb1 Hb2.
-  apply Ha2; auto with ord.
-  apply iter_f_complete; auto.
-Qed.
-
-Lemma veblen_interpolants:
-  forall a b,
-    VF_normal a ->
-    (forall x, VF_normal x -> VF_denote x <= VF_denote a -> has_interpolants (VF_denote x)) ->
-    complete b ->
-    has_interpolants b ->
-    has_interpolants (veblen (addOrd 1) (VF_denote a) b).
+Theorem VF_has_all_interpolants:
+  has_all_interpolants VF_denote VF_normal.
 Proof.
-  induction a as [a Hinda] using (size_induction VF).
-  intros b Ha1 Ha2 Hb1 Hb2 i Hi.
-  rewrite veblen_unroll in Hi.
-  apply lub_lt in Hi.
-  destruct Hi as [Hi|Hi].
-  - rewrite addOrd_unfold in Hi.
-    apply lub_lt in Hi. destruct Hi as [Hi|Hi].
-    + rewrite ord_lt_unfold in Hi.
-      destruct Hi as [[] Hi]; simpl in Hi.
-      exists Z; simpl; intuition.
-      apply veblen_nonzero; auto.
-    + apply sup_lt in Hi.
-      destruct Hi as [j Hi].
-      rewrite ord_lt_unfold in Hi.
-      destruct Hi as [[] Hi]; simpl in Hi.
-      destruct Hb2 with (i:=b j) as [y [Hy1 [Hy2 Hy3]]]; auto with ord.
-      exists (VF_add VF_one y).
-      destruct  VF_add_reflects with 1 VF_one (VF_denote y) y; simpl; intuition.
-      rewrite veblen_zero. rewrite addOrd_zero_r. reflexivity.
-      rewrite Hi. rewrite <- H.
-      apply addOrd_monotone; auto with ord.
-      rewrite <- H.
-      rewrite veblen_unroll.
-      rewrite <- lub_le1.
-      apply addOrd_increasing; auto.
-  - case_eq (VF_denote a). intros A f HA.
-    rewrite HA in Hi. simpl in Hi.
-    apply sup_lt in Hi.
-    destruct Hi as [j Hi].
-    unfold fixOrd in Hi.
-    apply sup_lt in Hi.
-    destruct Hi as [m Hi].
-    set (b' := limOrd (fun x : b => veblen (addOrd 1) (ord A f) (b x))).
-    assert (Hb' : has_interpolants b').
-    { unfold b'. intros i0 Hi0.
-      rewrite ord_lt_unfold in Hi0. simpl in Hi0.
-      destruct Hi0 as [k Hi0].
-      destruct (Hb2 (b k)) as [q [Hq1 [Hq2 Hq3]]]; auto with ord.
-      exists (Vnorm a q).
-      split.
-      apply Vnorm_normal; auto.
-      split.
-      { rewrite <- Vnorm_V.
-        simpl.
-        rewrite Hi0.
-        rewrite HA.
-        apply veblen_monotone; auto with ord.
-        intros; apply addOrd_monotone; auto with ord. }
-      rewrite <- Vnorm_V.
-      rewrite ord_lt_unfold; simpl.
-      rewrite ord_lt_unfold in Hq3.
-      destruct Hq3 as [k' Hq3].
-      exists k'.
-      rewrite HA.
-      apply veblen_monotone; auto with ord.
-      intros; apply addOrd_monotone; auto with ord. }
-    destruct Ha2 with (x:=a) (i:=f j) as [y [Hy1 [Hy2 Hy3]]]; auto with ord.
-    rewrite HA. auto with ord.
-    assert (Hi' : i < iter_f (veblen (addOrd 1) (VF_denote y)) b' m).
-    { eapply ord_lt_le_trans; [ apply Hi |].
-      apply iter_f_monotone_func.
-      intros.
-      apply veblen_monotone_first; auto with ord.
-      intros; apply addOrd_monotone; auto with ord.
-      intros; apply veblen_monotone; auto with ord.
-      intros; apply addOrd_monotone; auto with ord. }
-    destruct iter_veblen_has_interpolants with (a:=y) (b:=b') (m:=m) (i:=i) as [z [Hz1 [Hz2 Hz3]]]; auto.
-    + intros. apply Hinda; auto with ord.
-      intros. apply Ha2; auto with ord.
-      rewrite H2. auto with ord.
-    + unfold b'.
-      apply lim_complete.
-      intros.
-      apply veblen_complete; auto.
-      intros. apply addOrd_complete; auto with ord.
-      rewrite <- HA; auto.
-      apply complete_subord; auto.
-      apply directed_monotone; auto.
-      intros. apply veblen_monotone; auto with ord.
-      intros; apply addOrd_monotone; auto with ord.
-      destruct b. apply Hb1.
-    + exists z; intuition.
-      eapply ord_lt_le_trans; [ apply Hz3 | ].
-      rewrite veblen_unroll.
-      rewrite <- lub_le2.
-      simpl.
-      rewrite ord_lt_unfold in Hy3.
-      rewrite HA in Hy3.
-      destruct Hy3 as [zq Hy3].
-      rewrite <- (sup_le A _ zq).
-      unfold fixOrd.
-      rewrite <- (sup_le _ _ m).
-      apply iter_f_monotone_func.
-      intros. apply veblen_monotone_first; auto with ord.
-      intros; apply addOrd_monotone; auto with ord.
-      intros. apply veblen_monotone; auto with ord.
-      intros; apply addOrd_monotone; auto with ord.
-Qed.
-
-Theorem VNotationInterpolate :
-  forall (x:VForm),
-    VF_normal x ->
-    has_interpolants (VF_denote x).
-Proof.
+  intro x.
   induction x as [x Hindx] using (size_induction VF).
-  intros Hnorm i Hi.
+  intros Hnorm.
   destruct x as [|a b].
-  { simpl in *. rewrite ord_lt_unfold in Hi. destruct Hi as [[] _]. }
-  simpl in Hi.
+  { rewrite has_interpolants_unfold.
+    intros i Hi. rewrite ord_lt_unfold in Hi. destruct Hi as [[] _]. }
 
-  simpl.
-  apply veblen_interpolants; auto.
+  apply veblen_interpolants 
+    with (f:=VF_denote) (P:=VF_normal) (g:=addOrd 1) (a:=a) (b:=VF_denote b) (vr:=Vnorm); auto.
+  - apply VF_has_cantor_decomposition.
+  - intros. apply onePlus_interpolants with (zr:=Z) (pr:=VF_add VF_one); auto.
+    apply VF_reflects_zero.
+    hnf; intros; auto.
+    apply VF_add_reflects; simpl in *; intuition.
+    rewrite veblen_zero. rewrite addOrd_zero_r.
+    reflexivity.
+  - hnf; simpl; intuition.
+    rewrite <- Vnorm_V. simpl; auto.
+    apply veblen_onePlus_eq_mor; auto.
+    apply Vnorm_normal; auto.
   - simpl in Hnorm; intuition.
-  - intros.
-    apply Hindx; auto.
-    simpl.
-    rewrite H0. apply VF_denote_shrink1; auto.
-  - hnf; intros. apply Hindx; auto.
+  - intros; apply Hindx; auto.
+    simpl. apply VF_denote_shrink1.
+    simpl in Hnorm; intuition.
+  - apply Hindx; auto.
     apply VF_denote_shrink2; auto.
     simpl in Hnorm; intuition.
 Qed.
 
 
+Definition VF_nadd := cantor_nadd VF_has_cantor_decomposition.
+
+Theorem VF_reflects_nadd: reflects VForm VF_denote VF_normal (ORD ==> ORD ==> ORD) naddOrd VF_nadd.
+Proof.
+  apply cantor_nadd_reflects.
+  apply VF_has_all_interpolants.
+Qed.
+
 Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 Theorem VF_has_enough_notations (EM:excluded_middle) :
-  forall x:Ord, x < ε 0 -> exists c:VF, x ≈ c.
+  forall x:Ord, x < ε 0 -> exists c:VF, c ≈ x.
 Proof.
-  intros.
-  set (P:= fun o => exists v:VForm, VF_normal v /\ x <= VF_denote v /\ o ≈ VF_denote v).
-  assert (HP: exists o, P o).
-  { subst P.
-    rewrite <- VF_ε₀ in H.
-    rewrite ord_lt_unfold in H.
-    destruct H as [b Hb]. simpl in Hb.
-    exists (VF_denote b), (Vnormalize b); intuition.
-    - apply Vnormalize_normal.
-    - rewrite Hb. apply Vnormalize_equal.
-    - symmetry. apply Vnormalize_equal. }
-  destruct HP as [o0 Ho0].
-  destruct (classical.ord_well_ordered EM P o0) as [z [Hz1 Hz2]]; auto.
-  destruct Hz1 as [v [Hv1[Hv2 Hv3]]].
-  exists v; split; auto.
-  destruct (classical.order_total EM (sz v) x); auto.
-  destruct VNotationInterpolate with v x as [q [Hq1 [Hq2 Hq3]]]; auto.
-  assert (HPq: P (VF_denote q)).
-  { hnf. exists q. intuition. }
-  apply Hz2 in HPq.
-  elim (ord_lt_irreflexive z).
-  rewrite HPq at 1.
-  rewrite Hv3.
-  auto.
+  intros x H.
+  rewrite <- VF_ε₀ in H.
+  assert (HVF: has_enough_notations VF_denote VF_normal).
+  { apply has_interpolants_has_enough_notations with (A:=VForm) (f:=VF_denote) (P:=VF_normal); auto.
+    apply VF_has_all_interpolants. }
+  hnf in HVF.
+  rewrite ord_lt_unfold in H.
+  destruct H as [a Ha].
+  destruct (HVF (Vnormalize a) x) as [c [Hc1 Hc2]].
+  apply Vnormalize_normal.
+  rewrite Vnormalize_equal. auto.
+  exists c; auto.
 Qed.
 
 
