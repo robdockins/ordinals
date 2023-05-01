@@ -12,6 +12,7 @@ Unset Printing Records.
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
+From Ordinal Require Import NaturalArith.
 From Ordinal Require Import Cantor.
 From Ordinal Require Import Fixpoints.
 From Ordinal Require Import Reflection.
@@ -985,10 +986,94 @@ Proof.
 Qed.
 
 
+Theorem VF_has_all_interpolants:
+  has_all_interpolants VF_denote VF_isNormal.
+Proof.
+  intro x.
+  induction x as [x Hindx] using (size_induction VF).
+  intros Hnorm.
+  destruct x as [|n a b].
+  - rewrite has_interpolants_unfold.
+    simpl; intros i Hi. rewrite ord_lt_unfold in Hi. destruct Hi as [[] _].
+  - simpl.
+    apply veblen_interpolants
+      with (f:=VF_denote) (P:=VF_isNormal) (g:=vtower_fin n) (a:=a) (b:=VF_denote b) (vr:=Vnorm n); auto.
+    + apply VF_has_cantor_decomposition.
+    + clear Hnorm.
+      induction n as [n Hindn] using (size_induction ω).
+      destruct n; intros.
+      { apply onePlus_interpolants with (zr:=Z) (pr:=VF_add (VF_succ Z)); auto.
+        hnf; simpl; intuition.
+        hnf; intros.
+        apply VF_add_reflects; auto with ord.
+        destruct (VF_succ_reflects 0 Z); simpl; intuition. }
+      simpl.
+      apply veblen_interpolants_first with (vr:=Vnorm n); auto.
+      * apply VF_has_cantor_decomposition.
+      * intros. apply Hindn; auto with ord.
+        simpl. auto with ord.
+        intros. apply Hindx; auto.
+        eapply ord_lt_le_trans; [ apply H3 |].
+        simpl.
+        apply veblen_monotone_func; auto.
+        intros. apply vtower_fin_succ_monotone; auto.
+      * hnf; simpl; intuition.
+        rewrite Vnorm_equal; auto with ord.
+        simpl.
+        split; apply veblen_monotone_full; auto with ord.
+        apply H2. apply H4.
+        apply H2. apply H4.
+        apply Vnorm_normal; auto.
+      * apply onePlus_interpolants with (zr:=Z) (pr:=VF_add (VF_succ Z)); auto.
+        hnf; simpl; intuition.
+        hnf; intros.
+        apply VF_add_reflects; auto with ord.
+        destruct (VF_succ_reflects 0 Z); simpl; intuition.
+    + hnf; simpl; intuition.
+      rewrite Vnorm_equal; auto with ord.
+      simpl.
+      split; apply veblen_monotone_full; auto with ord.
+      apply H0. apply H2.
+      apply H0. apply H2.
+      apply Vnorm_normal; auto.
+    + simpl in Hnorm; intuition.
+    + apply Hindx.
+      destruct (normal_subterm_shrink _ Hnorm); auto.
+      simpl in Hnorm; intuition.
+    + apply Hindx.
+      destruct (normal_subterm_shrink _ Hnorm); auto.
+      simpl in Hnorm; intuition.
+Qed.
+
+Definition VF_nadd := cantor_nadd VF_has_cantor_decomposition.
+
+Theorem VF_reflects_nadd: reflects VForm VF_denote VF_isNormal (ORD ==> ORD ==> ORD) naddOrd VF_nadd.
+Proof.
+  apply cantor_nadd_reflects.
+  apply VF_has_all_interpolants.
+Qed.
+
 Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 Theorem VF_has_enough_notations (EM:excluded_middle) :
+  forall x, x < SmallVeblenOrdinal -> exists v:VF, v ≈ x.
+Proof.
+  intros x H.
+  rewrite <- VF_SVO in H.
+  assert (HVF: has_enough_notations VF_denote VF_isNormal).
+  { apply has_interpolants_has_enough_notations with (A:=VForm) (f:=VF_denote) (P:=VF_isNormal); auto.
+    apply VF_has_all_interpolants. }
+  hnf in HVF.
+  rewrite ord_lt_unfold in H.
+  destruct H as [a Ha].
+  destruct (HVF (VF_normalize a) x) as [c [Hc1 Hc2]].
+  apply VF_normalize_isNormal.
+  rewrite VF_normalize_equal. auto.
+  exists c; auto.
+Qed.
+
+Theorem VF_has_enough_notations' (EM:excluded_middle) :
   forall x, x < SmallVeblenOrdinal -> exists v:VF, v ≈ x.
 Proof.
   (* main induction on x *)
