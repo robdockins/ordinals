@@ -13,6 +13,7 @@ Unset Printing Records.
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
+From Ordinal Require Import NaturalArith.
 From Ordinal Require Import Cantor.
 From Ordinal Require Import Fixpoints.
 From Ordinal Require Import Reflection.
@@ -2728,6 +2729,455 @@ Proof.
     constructor.
     constructor; auto with ord.
     apply H2. }
+Qed.
+
+Definition BH_tower n a b := BH_normalize (a :: repeat BH0 n ++ [b]).
+
+Lemma BH_tower_reflects n: reflects BHForm BH_denote normal_form (ORD ==> ORD ==> ORD) (bhtower (S n) (addOrd 1)) (BH_tower n).
+Proof.
+  simpl. intros x a [Hx Ha] y b [Hy Hb].
+  unfold BH_tower.
+  destruct (BH_normalize_correct (a :: repeat BH0 n ++ [b])) as [H1 H2].
+  { simpl. split; auto. induction n; simpl; intuition. }
+  split; auto.
+  rewrite <- H2.
+  simpl.
+  transitivity (BH_stack (addOrd 1) (BH_denote a) (stackZeros n [BH_denote b])).
+  rewrite BH_stack_zeros.
+  split; apply bhtower_monotone; auto with ord.
+  apply Hx. apply Hy.
+  apply Hx. apply Hy.
+  split; apply BH_stack_monotone; auto with ord.
+  { clear; induction n; simpl; intuition.
+    apply pairwise_cons; auto with ord.
+    apply pairwise_nil.
+    apply pairwise_cons; auto with ord. }
+  { clear; induction n; simpl; intuition.
+    apply pairwise_cons; auto with ord.
+    apply pairwise_nil.
+    apply pairwise_cons; auto with ord. }
+Qed.
+
+
+Fixpoint BH_aug_stack f (xs:list Ord) (n:nat) : Ord -> Ord :=
+  match xs with
+  | [] => f
+  | (y::ys) => BH_aug_stack (bhtower (S (length ys + n)) f y) ys n
+  end.
+
+Lemma BH_aug_stack_normal:
+  forall xs f n,
+    normal_function f ->
+    each complete xs ->
+    normal_function (BH_aug_stack f xs n).
+Proof.
+  induction xs; simpl; intuition.
+Qed.
+
+Local Hint Resolve BH_aug_stack_normal normal_monotone: core.
+
+Lemma BH_aug_stack_snoc:
+  forall xs n a x f,
+    BH_aug_stack f (xs ++ [a]) n x ≈ bhtower (S n) (BH_aug_stack f xs (S n)) a x.
+Proof.
+  induction xs; simpl; intuition.
+  rewrite IHxs.
+  rewrite app_length. simpl.
+  replace (length xs + 1 + n)%nat with (length xs + S n)%nat by lia.
+  reflexivity.
+Qed.
+
+Lemma BH_stack_app :
+  forall xs f x y ys,
+    BH_stack f x (xs++y::ys) = BH_stack (BH_aug_stack f (x::xs) (length ys)) y ys.
+Proof.
+  induction xs; simpl; intros; auto with ord.
+  rewrite IHxs. simpl.
+  repeat rewrite app_length. simpl.
+  rewrite PeanoNat.Nat.add_succ_r.
+  reflexivity.
+Qed.
+
+Lemma BH_aug_stack_step:
+  forall xs f y1 y2 ys,
+    BH_stack (BH_aug_stack f xs (S (length ys))) y1 (y2::ys) =
+    BH_stack (BH_aug_stack f (xs++[y1]) (length ys)) y2 ys.
+Proof.
+  destruct xs as [|x xs]; simpl; auto.
+  intros.
+  transitivity (BH_stack f x (xs++(y1::y2::ys))).
+  symmetry. apply BH_stack_app.
+  transitivity (BH_stack f x ((xs++[y1]) ++ y2::ys)).
+  rewrite <- app_assoc. reflexivity.
+  apply BH_stack_app.
+Qed.
+
+Lemma BH_stack_repeat0 :
+  forall n f a b,
+    normal_function f ->
+    BH_stack f a (map BH_denote (repeat BH0 n ++ [b])) ≈
+    bhtower (S n) f a (BH_denote b).
+Proof.
+  intros.
+  transitivity (BH_stack f a (stackZeros n [BH_denote b])).
+  split; apply BH_stack_monotone; auto with ord.
+  induction n; simpl; constructor; auto with ord. constructor.
+  induction n; simpl; constructor; auto with ord. constructor.
+  apply BH_stack_zeros.
+Qed.
+
+
+Lemma BH_aug_stack_reflects :
+  forall xs n,
+    each normal_form xs ->
+    reflects BHForm BH_denote normal_form (ORD ==> ORD)
+      (BH_aug_stack (addOrd 1) (map BH_denote xs) n)
+      (fun a => BH_normalize (xs ++ repeat BH0 n ++ [a])).
+Proof.
+  simpl. intros xs n Hxs z a [Ha1 Ha2].
+  destruct (BH_normalize_correct (xs ++ repeat BH0 n ++ [a])) as [H1 H2].
+  { intuition. induction xs; simpl in *; intuition.
+    induction n; simpl; intuition. }
+  split; auto.
+  rewrite <- H2.
+  simpl.
+  destruct xs as [|x1 xs]; simpl.
+  { clear H1 H2.
+    induction n; simpl.
+    rewrite Ha1; auto with ord.
+    destruct n. simpl.
+    rewrite bhtower_zero.
+    rewrite Ha1; auto with ord.
+    simpl map.
+    rewrite BH_stack_leading_zero; auto. }
+  destruct n.
+  { simpl.
+    rewrite map_app. simpl map.
+    rewrite BH_stack_app.
+    simpl.
+    split; apply normal_monotone; auto.
+    apply Ha1.
+    apply Ha1. }
+
+  rewrite map_app.
+  simpl map. simpl app.
+  rewrite BH_stack_app.
+  simpl.
+  repeat rewrite app_length.
+  repeat rewrite map_length.
+  rewrite BH_stack_repeat0; auto.
+  rewrite bhtower_zero.
+  repeat rewrite app_length.
+  repeat rewrite repeat_length.
+  simpl.
+  repeat rewrite PeanoNat.Nat.add_succ_r.
+  repeat rewrite PeanoNat.Nat.add_0_r.
+  split; apply normal_monotone; auto.
+  apply Ha1.
+  apply Ha1.
+Qed.
+
+
+Theorem bhtower_interpolants:
+  forall n xs,
+    each normal_form xs ->
+    let f := BH_aug_stack (addOrd 1) (map BH_denote xs) n in
+    (forall x,
+        complete x ->
+        has_interpolants BH_denote normal_form x ->
+        has_interpolants BH_denote normal_form (f x)) ->
+    (forall a b,
+        normal_form a ->
+        has_interpolants BH_denote normal_form (BH_denote a) ->
+        complete b ->
+        has_interpolants BH_denote normal_form b ->
+        has_interpolants BH_denote normal_form (bhtower n f (BH_denote a) b)) /\
+      (forall a,
+          complete a ->
+          has_interpolants BH_denote normal_form a ->
+          has_interpolants BH_denote normal_form (bhtower n f a 0)).
+Proof.
+  induction n; intros xs Hxs f Hf.
+  { split.
+    - intros a b Ha1 Ha2 Hb1 Hb2.
+      rewrite bhtower_index_zero.
+      apply Hf; auto.
+    - intros a Ha1 Ha2.
+      rewrite bhtower_index_zero.
+      apply Hf; auto.
+      rewrite has_interpolants_unfold.
+      intros i Hi.
+      rewrite ord_lt_unfold in Hi.
+      destruct Hi as [[] _]. }
+  assert (Hbhtower1:
+           forall (a : BHForm) (b : Ord),
+             normal_form a ->
+             has_interpolants BH_denote normal_form (BH_denote a) ->
+             complete b ->
+             has_interpolants BH_denote normal_form b ->
+             has_interpolants BH_denote normal_form (bhtower (S n) f (BH_denote a) b)).
+  - induction a as [a Hinda] using (size_induction (ord BHForm BH_denote)).
+    induction b as [b Hindb] using ordinal_induction.
+    intros Ha1 Ha2 Hb1 Hb2. rewrite has_interpolants_unfold. intros i Hi.
+    rewrite bhtower_unroll in Hi.
+    apply lub_lt in Hi.
+    destruct Hi as [Hi|Hi].
+    + specialize (Hf b Hb1 Hb2).
+      rewrite has_interpolants_unfold in Hf.
+      destruct Hf with i as [y [Hy1 [Hy2 [Hy3 Hy4]]]]; auto.
+      exists y; intuition.
+      rewrite bhtower_unroll.
+      rewrite <- lub_le1.
+      auto.
+    + apply sup_lt in Hi.
+      destruct Hi as [j Hi].
+      set (b' := limOrd (fun x : b => bhtower (S n) f (BH_denote a) (b x))).
+      assert (Hb' : has_interpolants BH_denote normal_form b').
+      { unfold b'. rewrite has_interpolants_unfold.
+        intros i0 Hi0.
+        rewrite ord_lt_unfold in Hi0. simpl in Hi0.
+        destruct Hi0 as [k Hi0].
+        rewrite has_interpolants_unfold in Hb2.
+        destruct (Hb2 (b k)) as [q [Hq1 [Hq2 [Hq3 Hq4]]]]; auto with ord.
+
+        exists (BH_normalize ((xs ++ [a]) ++ repeat BH0 n ++ [q])).
+        destruct (BH_aug_stack_reflects (xs++[a]) n) with (BH_denote q) q as [H1 H2];
+          auto with ord.
+        rewrite each_app. simpl; intuition.
+        intuition.
+        rewrite Hi0.
+        rewrite <- H1.
+        rewrite map_app. simpl.
+        rewrite BH_aug_stack_snoc.
+        apply bhtower_monotone; auto with ord.
+
+        rewrite <- H1.
+        rewrite ord_lt_unfold; simpl.
+        rewrite ord_lt_unfold in Hq3.
+        destruct Hq3 as [k' Hq3].
+        exists k'.
+        rewrite map_app. simpl.
+        rewrite BH_aug_stack_snoc; auto with ord.
+        apply bhtower_monotone; auto with ord.
+        apply normal_monotone. apply BH_aug_stack_normal; auto.
+
+        rewrite <- H1.
+        rewrite map_app. simpl.
+        rewrite BH_aug_stack_snoc; auto.
+      }
+      rewrite has_interpolants_unfold in Ha2.
+      destruct Ha2 with (i:=j) as [y [Hy1 [Hy2 [Hy3 Hy4]]]]; auto with ord.
+      assert (Hi' : i < nextCritical n (bhtower (S n) f (BH_denote y)) (1+b) b').
+      { eapply ord_lt_le_trans; [ apply Hi |].
+        unfold f.
+        apply nextCritical_monotone; auto with ord. }
+      assert (Hcrit: has_interpolants BH_denote normal_form (nextCritical n (bhtower (S n) f (BH_denote y)) (1+b) b')).
+      { rewrite has_interpolants_unfold.
+        intros k Hk.
+        unfold nextCritical in Hk.
+        apply sup_lt in Hk.
+        destruct Hk as [q Hk].
+        assert (Hb: has_interpolants BH_denote normal_form (1+b)).
+        { apply onePlus_interpolants with BH0 (BH_add BH1); auto.
+          simpl; intuition.
+          hnf; simpl; intros. apply BH_add_reflects; intuition.
+          simpl. rewrite addOrd_zero_r. reflexivity. }
+        rewrite has_interpolants_unfold in Hb.
+        destruct (Hb q) as [r [Hr1 [Hr2 [Hr3 Hr4]]]]; auto with ord.
+
+        assert (Hfix: has_interpolants BH_denote normal_form
+                        (fixOrd (bhtower n (bhtower (S n) f (BH_denote y)) (BH_denote r)) b')).
+        { apply fix_has_interpolants; auto.
+          + subst f.
+            intros. apply normal_complete; auto.
+          + destruct IHn with (xs := xs ++ [y]).
+            rewrite each_app; simpl; intuition.
+            intros.
+            rewrite map_app. simpl.
+            rewrite BH_aug_stack_snoc; auto.
+            intros z Hz1 Hz2.
+            assert (H1 : bhtower n (bhtower (S n) f (BH_denote y)) (BH_denote r) z ≈
+                         bhtower n (BH_aug_stack (addOrd 1) (map BH_denote (xs ++ [y])) n)
+           (BH_denote r) z).
+            { subst f.
+              split; apply bhtower_monotone; auto with ord.
+              intros. rewrite map_app; simpl. rewrite BH_aug_stack_snoc; auto with ord.
+              intros. rewrite map_app; simpl. rewrite BH_aug_stack_snoc; auto with ord. }
+            rewrite H1.
+            apply H; auto.
+          + unfold b'.
+            apply lim_complete.
+            intros.
+            subst f.
+            apply bhtower_complete; auto.
+            apply complete_subord; auto.
+            subst f.
+            apply directed_monotone; auto.
+            destruct b. apply Hb1. }
+        rewrite has_interpolants_unfold in Hfix.
+        destruct (Hfix k) as [s [Hs1 [Hs2 [Hs3 Hs4]]]]; auto.
+        eapply ord_lt_le_trans; [ apply Hk | ].
+
+        apply fixOrd_monotone_func; subst f; auto with ord.
+        exists s; intuition.
+        unfold nextCritical.
+        rewrite ord_lt_unfold in Hr3.
+        destruct Hr3 as [z Hr3].
+        rewrite <- (sup_le _ _ z).
+        eapply ord_lt_le_trans; [ apply Hs3 |].
+        apply fixOrd_monotone_func; subst f; auto with ord. }
+
+      rewrite has_interpolants_unfold in Hcrit.
+      destruct (Hcrit i) as [z [Hz1 [Hz2 [Hz3 Hz4]]]]; auto.
+      exists z; intuition.
+      eapply ord_lt_le_trans; [ apply Hz3 | ].
+      rewrite bhtower_unroll.
+      rewrite <- lub_le2.
+      rewrite ord_lt_unfold in Hy3.
+      destruct Hy3 as [zq Hy3].
+      rewrite <- (sup_le _ _ zq).
+      apply nextCritical_monotone; subst f; auto with ord.
+
+  - split; auto.
+    induction a as [a Hinda] using ordinal_induction.
+    intros Ha1 Ha2.
+    rewrite has_interpolants_unfold. intros i Hi.
+    rewrite bhtower_unroll in Hi.
+    apply lub_lt in Hi.
+    destruct Hi as [Hi|Hi].
+    + assert (has_interpolants BH_denote normal_form (f 0)).
+      { apply Hf; auto with ord.
+        rewrite has_interpolants_unfold.
+        intros j Hj. rewrite ord_lt_unfold in Hj.
+        destruct Hj as [[] _]. }
+      rewrite has_interpolants_unfold in H.
+      destruct (H i) as [y [Hy1 [Hy2 [Hy3 Hy4]]]]; auto.
+      exists y; intuition.
+      rewrite bhtower_unroll. rewrite <- lub_le1. auto.
+    + apply sup_lt in Hi.
+      destruct Hi as [j Hi].
+      rewrite has_interpolants_unfold in Ha2.
+      destruct (Ha2 (sz j)) as [k [Hk1 [Hk2 [Hk3 Hk4]]]]; auto with ord.
+      assert (Hi' : i < nextCritical n (bhtower (S n) f (BH_denote k)) 1 0).
+      { eapply ord_lt_le_trans; [ apply Hi |].
+        apply nextCritical_monotone; subst f; auto with ord.
+        rewrite addOrd_zero_r. reflexivity.
+        rewrite ord_le_unfold; simpl; intros []. }
+
+      unfold nextCritical in Hi'.
+      apply sup_lt in Hi'.
+      simpl in Hi'.
+      destruct Hi' as [[] Hi'].
+
+      assert (Hfix: has_interpolants BH_denote normal_form (fixOrd (bhtower (S n) f (BH_denote k)) 0)).
+      { apply fix_has_interpolants.
+        + intros; apply bhtower_complete; subst f; auto with ord.
+        + intros b Hb1 Hb2.
+          apply (Hbhtower1 k b); auto.
+        + apply zero_complete.
+        + rewrite has_interpolants_unfold.
+          intros l Hl.
+          rewrite ord_lt_unfold in Hl. destruct Hl as [[] _]. }
+      rewrite has_interpolants_unfold in Hfix.
+      destruct (Hfix i) as [y [Hy1 [Hy2 [Hy3 Hy4]]]]; auto.
+      eapply ord_lt_le_trans; [ apply Hi' |].
+      apply fixOrd_monotone_func; subst f; auto with ord.
+      intros.
+      rewrite bhtower_zero. reflexivity.
+      exists y; intuition.
+      rewrite bhtower_unroll.
+      rewrite <- lub_le2.
+      simpl.
+      rewrite ord_lt_unfold in Hk3.
+      destruct Hk3 as [q Hq]. simpl in Hq.
+      rewrite <- (sup_le _ _ q).
+      eapply ord_lt_le_trans; [ apply Hy3 |].
+      transitivity (nextCritical n (bhtower (S n) f (sz q)) 1 0).
+      unfold nextCritical.
+      simpl.
+      rewrite <- (sup_le _ _ tt).
+      apply fixOrd_monotone_func; subst f; auto with ord.
+      intros. rewrite bhtower_zero.
+      apply bhtower_monotone; auto with ord.
+      apply nextCritical_monotone; subst f; auto with ord.
+      rewrite addOrd_zero_r. reflexivity.
+Qed.
+
+Theorem BH_stack_interpolants:
+  forall ys y xs,
+    each normal_form xs ->
+    each normal_form (y::ys) ->
+    each (has_interpolants BH_denote normal_form) (map BH_denote (y::ys)) ->
+    let f := BH_aug_stack (addOrd 1) (map BH_denote xs) (length ys) in
+    (forall x,
+        complete x ->
+        has_interpolants BH_denote normal_form x ->
+        has_interpolants BH_denote normal_form (f x)) ->
+    has_interpolants BH_denote normal_form (BH_stack f (BH_denote y) (map BH_denote ys)).
+Proof.
+  induction ys; simpl; intuition.
+  assert (has_interpolants BH_denote normal_form
+            (BH_stack (BH_aug_stack (addOrd 1) (map BH_denote (xs++[y])) (length ys)) (BH_denote a) (map BH_denote ys))).
+  { apply IHys; simpl; intuition.
+    rewrite each_app; simpl; intuition.
+    rewrite map_app; simpl.
+    rewrite BH_aug_stack_snoc.
+    apply bhtower_interpolants; auto. }
+  rewrite map_app in H5; simpl in H5.
+  generalize (BH_aug_stack_step (map BH_denote xs) (addOrd 1) (BH_denote y) (BH_denote a) (map BH_denote ys)).
+  rewrite map_length. intro.
+  rewrite <- H8 in H5.
+  simpl in *.
+  rewrite map_length in H5.
+  auto.
+Qed.
+
+Theorem BH_full_stack_interpolants:
+  forall ys,
+    each normal_form ys ->
+    each (has_interpolants BH_denote normal_form) (map BH_denote ys) ->
+    has_interpolants BH_denote normal_form (BH_full_stack (map BH_denote ys)).
+Proof.
+  intros. unfold BH_full_stack.
+  destruct ys as[|y ys]; simpl.
+  - rewrite has_interpolants_unfold. intros i Hi.
+    rewrite ord_lt_unfold in Hi.
+    destruct Hi as [[] _].
+  - apply (BH_stack_interpolants ys y []); simpl in *; intuition.
+    apply onePlus_interpolants with (zr:=BH0) (pr:=fun x => BH_normalize [x]).
+    simpl; intuition.
+    simpl; intros z a [Ha1 Ha2].
+    destruct (BH_normalize_correct [a]); simpl; intuition.
+    rewrite <- H6.
+    simpl; intuition.
+    rewrite Ha1; reflexivity.
+    auto.
+Qed.
+
+Theorem BH_has_all_interpolants:
+  has_all_interpolants BH_denote normal_form.
+Proof.
+  hnf.
+  induction a as [a Hinda] using (size_induction (ord BHForm BH_denote)). intro Ha.
+  destruct a; simpl in *.
+  rewrite normal_form_BH in Ha.
+  apply BH_full_stack_interpolants; intuition.
+  hnf in H; intuition.
+  cut (forall xs,
+          each normal_form xs ->
+          each (fun x : Ord => x < BH_full_stack (map BH_denote l)) (map BH_denote xs) ->
+            each (has_interpolants BH_denote normal_form) (map BH_denote xs)).
+  intuition.
+  induction xs; simpl; intuition.
+Qed.
+
+
+Definition BH_nadd := cantor_nadd BH_has_cantor_decomposition.
+
+Theorem BH_reflects_nadd: reflects BHForm BH_denote normal_form (ORD ==> ORD ==> ORD) naddOrd BH_nadd.
+Proof.
+  apply cantor_nadd_reflects.
+  apply BH_has_all_interpolants.
 Qed.
 
 
