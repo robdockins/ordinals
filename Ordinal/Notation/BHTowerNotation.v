@@ -3181,11 +3181,54 @@ Proof.
 Qed.
 
 
+Lemma BH_eq: ord BHForm BH_denote ≈ BachmanHoward.
+Proof.
+  split.
+  - rewrite ord_le_unfold; simpl; intro a.
+    apply BHForm_bounded.
+  - unfold BachmanHoward.
+    apply sup_least. intro n.
+    rewrite apex_alternate; auto.
+    transitivity (BH_denote (BH_tower (S n) BH2 BH0)).
+    destruct (BH_tower_reflects (S n)) with 2 BH2 0 BH0; simpl; intuition.
+    rewrite addOrd_zero_r.
+    rewrite addOrd_succ.
+    rewrite addOrd_zero_r.
+    reflexivity.
+    unfold BH2.
+    rewrite normal_form_BH; simpl; intuition.
+    hnf. simpl; intuition.
+    apply stable_short; simpl; auto.
+    apply H.
+    auto with ord.
+Qed.
+
 
 Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 Theorem BH_has_enough_notations (EM:excluded_middle) :
+  forall x:Ord, x < BachmanHoward -> exists! a:BHForm, normal_form a /\ BH_denote a ≈ x.
+Proof.
+  intros.
+  rewrite <- BH_eq in H.
+  assert (HBH: has_enough_notations BH_denote normal_form).
+  { apply has_interpolants_has_enough_notations with (A:=BHForm) (f:=BH_denote) (P:=normal_form); auto.
+    apply BH_has_all_interpolants. }
+  hnf in HBH.
+  rewrite ord_lt_unfold in H.
+  destruct H as [a Ha].
+  destruct (normalize_correct a).
+  destruct (HBH (normalize a) x) as [c [Hc1 Hc2]]; auto.
+  rewrite H0; auto.
+  exists c; auto.
+  hnf; intuition.
+  apply normal_forms_unique; auto.
+  rewrite Hc2. symmetry; auto.
+Qed.
+
+
+Theorem BH_has_enough_notations' (EM:excluded_middle) :
   forall x:Ord, x < BachmanHoward -> exists a:BHForm, BH_denote a ≈ x.
 Proof.
   induction x as [x Hind] using ordinal_induction; intros.
