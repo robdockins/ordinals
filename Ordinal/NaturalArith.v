@@ -1085,7 +1085,11 @@ Proof.
 Qed.
 
 
-(** * Natural multiplication *)
+(** * Natural multiplication
+
+Actually, it turns out this is not the correct definition. It fails to
+distribute over addition, as proved below.
+*)
 
 Fixpoint nmulOrd (x:Ord) : Ord -> Ord :=
   fix inner (y:Ord) : Ord :=
@@ -1261,6 +1265,34 @@ Proof.
   auto with ord.
 Qed.
 
+Lemma nmulOrd_succ: forall x y,
+  succOrd x ⊗ y ≈ x ⊗ y ⊕ y.
+Proof.
+  intro x. induction y using ordinal_induction.
+  split.
+  - rewrite (nmulOrd_unfold (succOrd x) y).
+    apply lub_least.
+    + apply sup_least. simpl. intro; auto with ord.
+    + apply sup_least. simpl; intros.
+      rewrite H; auto with ord.
+      rewrite naddOrd_succ2.
+      apply succ_least.
+      rewrite naddOrd_comm.
+      rewrite naddOrd_assoc.
+      apply ord_lt_le_trans with ((x ⊕ x ⊗ y a) ⊕ y).
+      { apply naddOrd_increasing2; auto with ord. }
+      apply naddOrd_monotone; auto with ord.
+      rewrite (nmulOrd_unfold x y).
+      rewrite <- lub_le2.
+      rewrite <- (sup_le _ _ a).
+      rewrite naddOrd_comm.
+      reflexivity.
+  - rewrite (nmulOrd_unfold (succOrd x) y).
+    rewrite <- lub_le1. simpl.
+    rewrite <- (sup_le _ _ tt). reflexivity.
+Qed.
+
+
 Lemma nmulDistrib1 : forall x y z,
   x ⊗ (y ⊕ z) ≤ (x ⊗ y) ⊕ (x ⊗ z).
 Proof.
@@ -1295,37 +1327,117 @@ Proof.
       apply nmulOrd_stepr.
 Qed.
 
-Lemma nmulDistrib2 : forall a b y z x,
-  a ≤ x -> b ≤ x ->
-  (a ⊗ y) ⊕ (b ⊗ z) ≤ x ⊗ (y ⊕ z).
-Proof.
-  induction a as [a Hinda] using ordinal_induction.
-  induction b as [b Hindb] using ordinal_induction.
-  induction y as [y Hindy] using ordinal_induction.
-  induction z as [z Hindz] using ordinal_induction.
-  intros x Ha Hb.
-  rewrite naddOrd_unfold.
-  apply lub_least.
-  - apply limit_least.
-    rewrite (nmulOrd_unfold a y).
-    rewrite lub_unfold. simpl.
-    repeat rewrite sup_unfold.
-    intros [[i q]|[i q]]; simpl.
-    + apply ord_lt_le_trans with ((a i ⊗ y ⊕ y) ⊕ b ⊗ z).
-      apply naddOrd_increasing1.
-      apply index_lt.
-      clear q.
+From Ordinal Require Import Fixpoints.
 
+Section distrib_counterexample.
 
-      rewrite (naddOrd_comm (a i ⊗ y) y).
-      rewrite <- naddOrd_assoc.
+  Let Q : Ord :=
+        supOrd (fun (n:ω) => iter_f (nmulOrd ω) 1 n).
 
-      rewrite (Hinda (a i) (index_lt a i) b y z x); auto with ord.
+  Lemma nmul_distrib_counterexample:
+    ω ⊗ (Q ⊕ Q) < ω ⊗ Q ⊕ ω ⊗ Q.
+  Proof.
+    apply ord_le_lt_trans with (Q ⊕ ω ⊗ Q).
+    2: { apply naddOrd_increasing1.
+         rewrite nmulOrd_unfold.
+         rewrite <- lub_le1.
+         rewrite <- (sup_le _ _ 1%nat). simpl.
+         rewrite nmulOrd_comm.
+         rewrite nmulOrd_one.
+         apply ord_le_lt_trans with (Q ⊕ 0).
+         apply naddOrd_zero.
+         apply naddOrd_increasing2.
+         unfold Q.
+         rewrite <- (sup_le _ _ 0%nat); simpl; auto with ord. }
 
-Abort.
-(* Not sure how to prove this... or if it is actually true.
-   I haven't yet found an induction hypothesis that seems to work.
- *)
+    rewrite nmulOrd_unfold.
+    apply lub_least.
+    - apply sup_least; simpl; intro.
+      rewrite naddOrd_comm.
+      repeat rewrite <- naddOrd_assoc.
+      apply naddOrd_monotone; auto with ord.
+      rewrite (nmulOrd_unfold ω).
+      rewrite <- lub_le1.
+      rewrite <- (sup_le _ _ (a*2)%nat).
+      simpl.
+      rewrite naddOrd_comm.
+      repeat rewrite <- naddOrd_assoc.
+      apply naddOrd_monotone; auto with ord.
+      induction a; simpl.
+      + rewrite nmulOrd_comm. rewrite nmulOrd_zero.
+        rewrite nmulOrd_comm. rewrite nmulOrd_zero.
+        reflexivity.
+      + repeat rewrite nmulOrd_succ.
+        repeat rewrite <- naddOrd_assoc.
+        apply naddOrd_monotone; auto with ord.
+    - apply sup_least. simpl; intros.
+      assert (Ha : a < Q ⊕ Q).
+      { auto with ord. }
+      rewrite naddOrd_unfold in Ha.
+      apply lub_lt in Ha.
+      destruct Ha.
+      + rewrite ord_lt_unfold in H. simpl in H.
+        destruct H as [b Ha].
+        assert (Hb : b < Q).
+        { auto with ord. }
+        unfold Q in Hb.
+        apply sup_lt in Hb.
+        destruct Hb as [n Hb].
+        rewrite Ha.
+        rewrite nmulDistrib1.
+        rewrite naddOrd_comm.
+        rewrite naddOrd_assoc.
+        apply naddOrd_monotone; auto with ord.
+        transitivity (ω ⊗ iter_f (nmulOrd ω) 1 n).
+        rewrite naddOrd_comm.
+        rewrite (nmulOrd_unfold _ (iter_f _ _ _)).
+        rewrite <- lub_le2.
+        rewrite ord_lt_unfold in Hb.
+        destruct Hb as [q Hb].
+        rewrite <- (sup_le _ _ q).
+        subst Q. rewrite Hb.
+        reflexivity.
+        unfold Q.
+        rewrite <- (sup_le _ _ (S n)).
+        simpl.
+        reflexivity.
+      + rewrite ord_lt_unfold in H. simpl in H.
+        destruct H as [b Ha].
+        assert (Hb : b < Q).
+        { auto with ord. }
+        unfold Q in Hb.
+        apply sup_lt in Hb.
+        destruct Hb as [n Hb].
+        rewrite Ha.
+        rewrite nmulDistrib1.
+        rewrite naddOrd_comm.
+        rewrite (naddOrd_comm _ (ω ⊗ sz b)).
+        rewrite naddOrd_assoc.
+        apply naddOrd_monotone; auto with ord.
+        transitivity (ω ⊗ iter_f (nmulOrd ω) 1 n).
+        rewrite naddOrd_comm.
+        rewrite (nmulOrd_unfold _ (iter_f _ _ _)).
+        rewrite <- lub_le2.
+        rewrite ord_lt_unfold in Hb.
+        destruct Hb as [q Hb].
+        rewrite <- (sup_le _ _ q).
+        subst Q. rewrite Hb.
+        reflexivity.
+        unfold Q.
+        rewrite <- (sup_le _ _ (S n)).
+        simpl.
+        reflexivity.
+  Qed.
+
+  Theorem nmul_not_distributive:
+    ~(forall x y z, x ⊗ (y ⊕ z) ≈ (x ⊗ y) ⊕ (x ⊗ z)).
+  Proof.
+    intro H.
+    generalize nmul_distrib_counterexample.
+    rewrite H. apply ord_lt_irreflexive.
+  Qed.
+
+End distrib_counterexample.
 
 
 (** * Jacobsthal multiplication.
