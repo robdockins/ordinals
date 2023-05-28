@@ -9,6 +9,7 @@ Unset Printing Records.
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 From Ordinal Require Import Classical.
+From Ordinal Require Import Arith.
 
 (* We say a function f enumerates a class of ordinals P if
    f x is the least element of P that is strictly above

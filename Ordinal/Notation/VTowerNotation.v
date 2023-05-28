@@ -1224,7 +1224,6 @@ Proof.
   apply vtower_first_normal; auto.
   exact Z.
   apply (directed_monotone VF); auto with ord.
-  intros. apply succ_monotone; auto.
   apply VF_complete.
 
   apply sup_least; intro x.

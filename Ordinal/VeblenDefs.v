@@ -20,7 +20,7 @@ Section veblen.
       end.
 
   Lemma veblen_unroll (β:Ord) (y:Ord) :
-    veblen β y = f y ⊔ boundedSup β (fun α => fixOrd (veblen α) (limOrd (fun x => veblen β (y x)))).
+    veblen β y = f y ⊔ supOrd (fun α:β => fixOrd (veblen α) (limOrd (fun x => veblen β (y x)))).
   Proof.
     destruct β; destruct y; reflexivity.
   Qed.
@@ -70,11 +70,11 @@ Section veblen.
     rewrite (veblen_unroll a).
     rewrite (veblen_unroll β).
     apply lub_least; [ apply lub_le1 | rewrite <- lub_le2 ].
-    apply boundedSup_least. intros c Hc.
+    apply sup_least. intros c.
     destruct β as [B g].
     simpl.
     assert (Hc2 : c < ord B g).
-    apply ord_lt_le_trans with a; auto.
+    apply ord_lt_le_trans with a; auto with ord.
     rewrite ord_lt_unfold in Hc2.
     destruct  Hc2 as [i Hi].
     rewrite <- (sup_le _ _ i).

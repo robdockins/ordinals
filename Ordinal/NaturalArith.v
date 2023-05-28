@@ -2,6 +2,7 @@ Require Import Setoid.
 Require Import Morphisms.
 Require Import Coq.Program.Basics.
 Require Import NArith.
+Require Import Lia.
 
 Unset Printing Records.
 
@@ -9,6 +10,11 @@ From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
 From Ordinal Require Import Cantor.
+From Ordinal Require Import Fixpoints.
+
+Require Import ClassicalFacts.
+From Ordinal Require Import Classical.
+
 
 Open Scope ord_scope.
 
@@ -498,59 +504,6 @@ Proof.
     apply H.
     rewrite H0; auto with ord.
 Qed.
-
-Require Import Lia.
-
-Lemma mulOmega_fix: forall a,
-  a * ω ≈ a + a * ω.
-Proof.
-  split.
-  apply addOrd_le2.
-  transitivity (a + a * (supOrd (fun i:ω => i))).
-  { apply addOrd_monotone; auto with ord.
-    apply mulOrd_monotone2.
-    rewrite ord_le_unfold; intro i.
-    rewrite <- (sup_le _ _ (S i)).
-    simpl. apply succ_lt. }
-  transitivity (a + supOrd (fun i:ω => a * i)).
-  { apply addOrd_monotone; auto with ord.
-    apply mulOrd_continuous.
-    exact O. }
-  transitivity (supOrd (fun i:ω => a + a * i)).
-  { apply addOrd_continuous. exact O. }
-  apply sup_least; intro i.
-  rewrite (mulOrd_unfold a ω).
-  rewrite <- (sup_le _ _ i).
-  simpl.
-  induction i; simpl.
-  - rewrite mulOrd_zero_r.
-    rewrite addOrd_zero_l.
-    rewrite addOrd_zero_r.
-    reflexivity.
-  - repeat rewrite mulOrd_succ.
-    rewrite addOrd_assoc.
-    rewrite IHi.
-    reflexivity.
-Qed.
-
-Lemma mulOmega_eat_fin: forall a (n:ω) c,
-  c ≤ a * ω ->
-  a * n + c ≤ a * ω.
-Proof.
-  induction n; simpl; intros.
-  - rewrite mulOrd_zero_r.
-    rewrite addOrd_zero_l.
-    auto.
-  - rewrite mulOrd_succ.
-    rewrite <- addOrd_assoc.
-    apply IHn.
-    rewrite mulOmega_fix.
-    apply addOrd_monotone; auto with ord.
-Qed.
-
-
-Require Import ClassicalFacts.
-From Ordinal Require Import Classical.
 
 Section nadd_closed.
   Variable EM:excluded_middle.
@@ -1085,7 +1038,9 @@ Proof.
 Qed.
 
 
-(** * Natural multiplication
+Module incorrect_nmul.
+
+(** * Natural multiplication, a failed attempt.
 
 Actually, it turns out this is not the correct definition. It fails to
 distribute over addition, as proved below.
@@ -1327,117 +1282,114 @@ Proof.
       apply nmulOrd_stepr.
 Qed.
 
-From Ordinal Require Import Fixpoints.
+Definition Q : Ord :=
+      supOrd (fun (n:ω) => iter_f (nmulOrd ω) 1 n).
 
-Section distrib_counterexample.
+Lemma nmul_distrib_counterexample:
+  ω ⊗ (Q ⊕ Q) < ω ⊗ Q ⊕ ω ⊗ Q.
+Proof.
+  apply ord_le_lt_trans with (Q ⊕ ω ⊗ Q).
+  2: { apply naddOrd_increasing1.
+       rewrite nmulOrd_unfold.
+       rewrite <- lub_le1.
+       rewrite <- (sup_le _ _ 1%nat). simpl.
+       rewrite nmulOrd_comm.
+       rewrite nmulOrd_one.
+       apply ord_le_lt_trans with (Q ⊕ 0).
+       apply naddOrd_zero.
+       apply naddOrd_increasing2.
+       unfold Q.
+       rewrite <- (sup_le _ _ 0%nat); simpl; auto with ord. }
 
-  Let Q : Ord :=
-        supOrd (fun (n:ω) => iter_f (nmulOrd ω) 1 n).
-
-  Lemma nmul_distrib_counterexample:
-    ω ⊗ (Q ⊕ Q) < ω ⊗ Q ⊕ ω ⊗ Q.
-  Proof.
-    apply ord_le_lt_trans with (Q ⊕ ω ⊗ Q).
-    2: { apply naddOrd_increasing1.
-         rewrite nmulOrd_unfold.
-         rewrite <- lub_le1.
-         rewrite <- (sup_le _ _ 1%nat). simpl.
-         rewrite nmulOrd_comm.
-         rewrite nmulOrd_one.
-         apply ord_le_lt_trans with (Q ⊕ 0).
-         apply naddOrd_zero.
-         apply naddOrd_increasing2.
-         unfold Q.
-         rewrite <- (sup_le _ _ 0%nat); simpl; auto with ord. }
-
-    rewrite nmulOrd_unfold.
-    apply lub_least.
-    - apply sup_least; simpl; intro.
-      rewrite naddOrd_comm.
+  rewrite nmulOrd_unfold.
+  apply lub_least.
+  - apply sup_least; simpl; intro.
+    rewrite naddOrd_comm.
+    repeat rewrite <- naddOrd_assoc.
+    apply naddOrd_monotone; auto with ord.
+    rewrite (nmulOrd_unfold ω).
+    rewrite <- lub_le1.
+    rewrite <- (sup_le _ _ (a*2)%nat).
+    simpl.
+    rewrite naddOrd_comm.
+    repeat rewrite <- naddOrd_assoc.
+    apply naddOrd_monotone; auto with ord.
+    induction a; simpl.
+    + rewrite nmulOrd_comm. rewrite nmulOrd_zero.
+      rewrite nmulOrd_comm. rewrite nmulOrd_zero.
+      reflexivity.
+    + repeat rewrite nmulOrd_succ.
       repeat rewrite <- naddOrd_assoc.
       apply naddOrd_monotone; auto with ord.
-      rewrite (nmulOrd_unfold ω).
-      rewrite <- lub_le1.
-      rewrite <- (sup_le _ _ (a*2)%nat).
-      simpl.
-      rewrite naddOrd_comm.
-      repeat rewrite <- naddOrd_assoc.
-      apply naddOrd_monotone; auto with ord.
-      induction a; simpl.
-      + rewrite nmulOrd_comm. rewrite nmulOrd_zero.
-        rewrite nmulOrd_comm. rewrite nmulOrd_zero.
-        reflexivity.
-      + repeat rewrite nmulOrd_succ.
-        repeat rewrite <- naddOrd_assoc.
-        apply naddOrd_monotone; auto with ord.
-    - apply sup_least. simpl; intros.
-      assert (Ha : a < Q ⊕ Q).
+  - apply sup_least. simpl; intros.
+    assert (Ha : a < Q ⊕ Q).
+    { auto with ord. }
+    rewrite naddOrd_unfold in Ha.
+    apply lub_lt in Ha.
+    destruct Ha.
+    + rewrite ord_lt_unfold in H. simpl in H.
+      destruct H as [b Ha].
+      assert (Hb : b < Q).
       { auto with ord. }
-      rewrite naddOrd_unfold in Ha.
-      apply lub_lt in Ha.
-      destruct Ha.
-      + rewrite ord_lt_unfold in H. simpl in H.
-        destruct H as [b Ha].
-        assert (Hb : b < Q).
-        { auto with ord. }
-        unfold Q in Hb.
-        apply sup_lt in Hb.
-        destruct Hb as [n Hb].
-        rewrite Ha.
-        rewrite nmulDistrib1.
-        rewrite naddOrd_comm.
-        rewrite naddOrd_assoc.
-        apply naddOrd_monotone; auto with ord.
-        transitivity (ω ⊗ iter_f (nmulOrd ω) 1 n).
-        rewrite naddOrd_comm.
-        rewrite (nmulOrd_unfold _ (iter_f _ _ _)).
-        rewrite <- lub_le2.
-        rewrite ord_lt_unfold in Hb.
-        destruct Hb as [q Hb].
-        rewrite <- (sup_le _ _ q).
-        subst Q. rewrite Hb.
-        reflexivity.
-        unfold Q.
-        rewrite <- (sup_le _ _ (S n)).
-        simpl.
-        reflexivity.
-      + rewrite ord_lt_unfold in H. simpl in H.
-        destruct H as [b Ha].
-        assert (Hb : b < Q).
-        { auto with ord. }
-        unfold Q in Hb.
-        apply sup_lt in Hb.
-        destruct Hb as [n Hb].
-        rewrite Ha.
-        rewrite nmulDistrib1.
-        rewrite naddOrd_comm.
-        rewrite (naddOrd_comm _ (ω ⊗ sz b)).
-        rewrite naddOrd_assoc.
-        apply naddOrd_monotone; auto with ord.
-        transitivity (ω ⊗ iter_f (nmulOrd ω) 1 n).
-        rewrite naddOrd_comm.
-        rewrite (nmulOrd_unfold _ (iter_f _ _ _)).
-        rewrite <- lub_le2.
-        rewrite ord_lt_unfold in Hb.
-        destruct Hb as [q Hb].
-        rewrite <- (sup_le _ _ q).
-        subst Q. rewrite Hb.
-        reflexivity.
-        unfold Q.
-        rewrite <- (sup_le _ _ (S n)).
-        simpl.
-        reflexivity.
-  Qed.
+      unfold Q in Hb.
+      apply sup_lt in Hb.
+      destruct Hb as [n Hb].
+      rewrite Ha.
+      rewrite nmulDistrib1.
+      rewrite naddOrd_comm.
+      rewrite naddOrd_assoc.
+      apply naddOrd_monotone; auto with ord.
+      transitivity (ω ⊗ iter_f (nmulOrd ω) 1 n).
+      rewrite naddOrd_comm.
+      rewrite (nmulOrd_unfold _ (iter_f _ _ _)).
+      rewrite <- lub_le2.
+      rewrite ord_lt_unfold in Hb.
+      destruct Hb as [q Hb].
+      rewrite <- (sup_le _ _ q).
+      unfold Q in *. rewrite Hb.
+      reflexivity.
+      unfold Q.
+      rewrite <- (sup_le _ _ (S n)).
+      simpl.
+      reflexivity.
+    + rewrite ord_lt_unfold in H. simpl in H.
+      destruct H as [b Ha].
+      assert (Hb : b < Q).
+      { auto with ord. }
+      unfold Q in Hb.
+      apply sup_lt in Hb.
+      destruct Hb as [n Hb].
+      rewrite Ha.
+      rewrite nmulDistrib1.
+      rewrite naddOrd_comm.
+      rewrite (naddOrd_comm _ (ω ⊗ sz b)).
+      rewrite naddOrd_assoc.
+      apply naddOrd_monotone; auto with ord.
+      transitivity (ω ⊗ iter_f (nmulOrd ω) 1 n).
+      rewrite naddOrd_comm.
+      rewrite (nmulOrd_unfold _ (iter_f _ _ _)).
+      rewrite <- lub_le2.
+      rewrite ord_lt_unfold in Hb.
+      destruct Hb as [q Hb].
+      rewrite <- (sup_le _ _ q).
+      unfold Q in *. rewrite Hb.
+      reflexivity.
+      unfold Q.
+      rewrite <- (sup_le _ _ (S n)).
+      simpl.
+      reflexivity.
+Qed.
 
-  Theorem nmul_not_distributive:
-    ~(forall x y z, x ⊗ (y ⊕ z) ≈ (x ⊗ y) ⊕ (x ⊗ z)).
-  Proof.
-    intro H.
-    generalize nmul_distrib_counterexample.
-    rewrite H. apply ord_lt_irreflexive.
-  Qed.
+Theorem nmul_not_distributive:
+  ~(forall x y z, x ⊗ (y ⊕ z) ≈ (x ⊗ y) ⊕ (x ⊗ z)).
+Proof.
+  intro H.
+  generalize nmul_distrib_counterexample.
+  rewrite H. apply ord_lt_irreflexive.
+Qed.
 
-End distrib_counterexample.
+End incorrect_nmul.
+
 
 
 (** * Jacobsthal multiplication.

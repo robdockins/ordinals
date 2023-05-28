@@ -2,27 +2,31 @@ Require Import Setoid.
 Require Import Morphisms.
 Require Import Coq.Program.Basics.
 Require Import NArith.
+Require Import ChoiceFacts.
 
 Unset Printing Records.
 
 From Ordinal Require Import Defs.
 
-(** * Ordinal operators *)
+(** * Basic ordinal operators *)
 
-(** The zero ordinal, which is indexed by the empty type False *)
+(** The zero ordinal, which is indexed by the empty type False.
+    This is the least ordinal. *)
 Definition zeroOrd : Ord := ord False (False_rect _).
 
-(** The successor ordinal, which is indexed by the unit type *)
+(** The successor ordinal, which is indexed by the unit type.
+    It is the smallest ordinal strictly larger than its argument. *)
 Definition succOrd (x:Ord) : Ord := ord unit (fun _ => x).
 
-(* Set up numeric notation for ordinals *)
+(* Set up numeric notation for ordinals. This allows us to use standard
+   notations like @0@, @1@, @2@, etc. for finite ordinals. *)
 Number Notation Ord Nat.of_num_uint Nat.to_num_uint
          (via nat mapping [zeroOrd => O, succOrd => S]) : ord_scope.
 
 Definition limOrd {A:Type} (f:A -> Ord) := ord A f.
 
 (** The binary upper bound of two ordinals is constructed using a sum type
-   over the indices of the two incomming ordinals *)
+   over the indices of the two argument ordinals. *)
 Definition lubOrd (x y:Ord) : Ord :=
   match x, y with
   | ord A f, ord B g =>
@@ -30,13 +34,20 @@ Definition lubOrd (x y:Ord) : Ord :=
   end.
 Notation "x ⊔ y" := (lubOrd x y) (at level 55, right associativity) : ord_scope.
 
-(** The supremum of a collection of ordinals is indexed by a sigma type. *)
+(** The supremum of a collection of ordinals is indexed by a sigma type.
+    This is the least ordinal that is (nonstrictly) above all the ordinals
+    in the range of @f@. *)
 Definition supOrd {A:Type} (f:A -> Ord) :=
   ord (sigT (fun a => ordCarrier (f a)))
       (fun ai => ordSize (f (projT1 ai)) (projT2 ai)).
 
+(** We say that a function on ordinals is strongly continuous
+    if it preserves all nonempty suprema. *)
+Definition strongly_continuous (s:Ord -> Ord) :=
+  forall A (f:A -> Ord) (a0:A), s (supOrd f) ≤ supOrd (fun i:A => s (f i)).
+
 (** The binary greatest lower bound of two ordinals is indexed by a pair, and
-   we essentially simultaneously play the game represented by the two ordinals.
+    we essentially simultaneously play the game represented by the two ordinals.
   *)
 Fixpoint glbOrd (x y:Ord) : Ord :=
   match x, y with
@@ -45,39 +56,49 @@ Fixpoint glbOrd (x y:Ord) : Ord :=
   end.
 Notation "x ⊓ y" := (glbOrd x y) (at level 55, right associativity) : ord_scope.
 
-(** It does not appear to be possible to construct the infimum of an infinite
-    collection of ordinals. This would essentially compute the least ordinal
-    among a collection.  One is tempted to make the index type of this ordinal
-    a dependent function (representing an element of each of the index sets of
-    the collection; but I have not been able to figure out how to make it work.
- *)
+(**  We can even construct the greatest lower bound of a nonempty, infinite
+     collection of ordinals. Here we demand the collection be nonempty by
+     distinguishing a particular one separately; this element is ultimately
+     what we do induction on.
 
-(** We say that a function on ordinals is strongly continuous
-    if it preserves all nonempty suprema. *)
-Definition strongly_continuous (s:Ord -> Ord) :=
-  forall A (f:A -> Ord) (a0:A), s (supOrd f) ≤ supOrd (fun i:A => s (f i)).
+     The index set of the recursively-defined ordinal is essentially a
+     dependent function that choses a subelement of each element of
+     the range of f.
 
-(* Natural numbers have an ordinal size.
+     To show that this ordinal is the greatest lower bound, we require
+     a choice principle to reify a proof of the form
+     @forall x, exists y, ...@ into a function. If we stated the ordinal
+     ordering realations to be informative (rather than in Prop), this
+     choice principle would not be necessary.
  *)
+Fixpoint infOrd_loop (x:Ord) : forall (A:Type) (f:A -> Ord), Ord :=
+  fun A f =>
+  match x with
+  | ord B g =>
+      ord (B * (forall i:A, ordCarrier (f i)))
+          (fun jk => infOrd_loop (g (fst jk)) A (fun i:A => f i (snd jk i)))
+  end.
+
+Definition infOrd (A:Type) (i:A) (f:A -> Ord) := infOrd_loop (f i) A f.
+
+
+(* The natural numbers inject into the ordinals in the obvious way. *)
 Fixpoint natOrdSize (x:nat) :=
   match x with
   | O => zeroOrd
   | S n => succOrd (natOrdSize n)
   end.
 
-Canonical Structure ω : Ord :=
-  ord nat natOrdSize.
+(* The limit of all the finite ordinals gives the smallest limit ordinal, ω. *)
+Canonical Structure ω : Ord := ord nat natOrdSize.
 
 (** We can constructed the supremum of the image of a function on ordinals,
-    when applied to all the ordinals strictly below β.
+    when applied to all the ordinals indexed by β.
   *)
-Definition boundedSup (β:Ord) (f:Ord -> Ord) : Ord :=
-  match β with
-  | ord B g => supOrd (fun i => f (g i))
-  end.
+Definition boundedSup (β:Ord) (f:Ord -> Ord) : Ord := supOrd (fun i:β => f (β i)).
 
 (** The predecessor of an ordinal is the supremum of all the ordinals
-    strictly below it.  This function is stationary on limit ordinals
+    strictly below it. This function is stationary on limit ordinals
     (and zero) but undoes the action of a successor.
   *)
 Definition predOrd (x:Ord) : Ord :=
@@ -85,14 +106,14 @@ Definition predOrd (x:Ord) : Ord :=
   | ord A f => supOrd f
   end.
 
-(** A "complete" ordinal is one which is directed, in an order-theoretic
-    sense; for which it decidable if it is inhabited; and for which all its
-    subordinals are also complete.
+(** A "complete" ordinal is one which is directed, in an
+    order-theoretic sense; for which it decidable if it is inhabited;
+    and for which all its subordinals are also complete.
 
-    This is a technical property that appears necessary in some later proofs.
-    In a classical setting all ordinals have this property, as it follows
-    easily from the totality of order.
-  *)
+    This is an important technical property that appears frequently in
+    some later proofs. In a classical setting, all ordinals have this
+    property, as it follows easily from the totality of order.
+*)
 Definition directed A (f:A -> Ord) :=
   forall a1 a2, exists a', f a1 <= f a' /\ f a2 <= f a'.
 
@@ -111,7 +132,7 @@ Proof.
 Qed.
 
 Lemma complete_zeroDec o :
-  complete o -> o <= zeroOrd \/ zeroOrd < o.
+  complete o -> o <= 0 \/ 0 < o.
 Proof.
   destruct o as [A f]; simpl; intuition.
   - right.
@@ -145,7 +166,7 @@ Proof.
   split; apply H; auto.
 Qed.
 
-Lemma zero_unfold : zeroOrd = ord False (False_rect Ord).
+Lemma zero_unfold : 0 = ord False (False_rect Ord).
 Proof.
   reflexivity.
 Qed.
@@ -157,13 +178,21 @@ Proof.
   simpl. intros [].
 Qed.
 
-Global Hint Resolve zero_least : ord.
+(** No ordinal is strictly below zero. *)
+Lemma zero_lt : forall o, o < 0 -> False.
+Proof.
+  intros.
+  rewrite ord_lt_unfold in H.
+  destruct H as [[] _].
+Qed.
 
 Lemma zero_complete : complete 0.
 Proof.
   simpl; repeat (hnf; intuition).
   right. intros [[]].
 Qed.
+
+Global Hint Resolve zero_least zero_lt zero_complete : ord.
 
 Lemma succ_unfold x : succOrd x = ord unit (fun _ => x).
 Proof.
@@ -182,8 +211,6 @@ Proof.
   rewrite ord_lt_unfold. simpl. exists tt. apply ord_le_refl.
 Qed.
 
-Global Hint Resolve succ_lt : ord.
-
 Lemma succ_least : forall x y, x < y -> succOrd x ≤ y.
 Proof.
   intros.
@@ -195,6 +222,7 @@ Proof.
   intros.
   apply succ_least.
   apply ord_le_lt_trans with b; auto with ord.
+  apply succ_lt.
 Qed.
 
 Lemma succ_increasing : forall a b, a < b -> succOrd a < succOrd b.
@@ -202,6 +230,7 @@ Proof.
   intros.
   apply ord_le_lt_trans with b; auto with ord.
   apply succ_least; auto.
+  apply succ_lt.
 Qed.
 
 Lemma succ_trans x y : x ≤ y -> x < succOrd y.
@@ -222,6 +251,9 @@ Lemma succ_congruence : forall a b, a ≈ b -> succOrd a ≈ succOrd b.
 Proof.
   unfold ord_eq; intuition; apply succ_monotone; auto.
 Qed.
+
+Global Hint Resolve
+  succ_lt succ_least succ_monotone succ_increasing succ_trans succ_congruence : ord.
 
 Add Parametric Morphism : succOrd with signature
     ord_le ++> ord_le as succOrd_le_mor.
@@ -248,13 +280,15 @@ Proof.
   - left; exact (inhabits tt).
 Qed.
 
-
 Lemma natOrdSize_complete n : complete (natOrdSize n).
 Proof.
   induction n; simpl natOrdSize.
   apply zero_complete.
   apply succ_complete; auto.
 Qed.
+
+Global Hint Resolve succ_complete natOrdSize_complete: ord.
+
 
 
 Lemma sup_unfold A (f:A->Ord) :
@@ -299,7 +333,7 @@ Proof.
   exists q. auto.
 Qed.
 
-Instance sup_ord_le_morphism (A:Type) :
+Global Instance sup_ord_le_morphism (A:Type) :
   Proper (pointwise_relation _ ord_le ==> ord_le) (@supOrd A).
 Proof.
   repeat intro.
@@ -309,7 +343,7 @@ Proof.
   apply sup_le.
 Qed.
 
-Instance sup_ord_eq_morphism (A:Type) :
+Global Instance sup_ord_eq_morphism (A:Type) :
   Proper (pointwise_relation _ ord_eq ==> ord_eq) (@supOrd A).
 Proof.
   repeat intro.
@@ -345,10 +379,11 @@ Qed.
 Global Hint Resolve limit_lt sup_le : ord.
 
 (** Supremum and limit are closely related operations.
+
   We always have: sup f <= lim f <= succ (sup f).
   Moreover: lim f = sup (succ . f)
-  When f is an ascending set, lim f = sup f
-  When f has a maximal element, lim f = succ (sup f)
+  When f is an ascending set: lim f = sup f
+  When f has a maximal element: lim f = succ (sup f)
 *)
 Lemma sup_lim : forall A (f:A -> Ord),
   supOrd f ≤ limOrd f.
@@ -371,25 +406,21 @@ Lemma sup_succ_lim : forall A (f:A -> Ord),
 Proof.
   intros.
   split.
-  - apply limit_least. intros.
-    rewrite ord_lt_unfold.
-    simpl.
-    exists (existT _ i tt).
-    simpl; auto with ord.
-  - apply sup_least.
-    intros.
-    apply succ_least.
-    apply limit_lt.
+  - apply limit_least.
+    intro i.
+    rewrite <- (sup_le _ _ i).
+    auto with ord.
+  - apply sup_least; auto with ord.
 Qed.
 
 Lemma ascending_sup_lim : forall A (f:A -> Ord),
   ascendingSet A f ->
   limOrd f ≈ supOrd f.
 Proof.
-  intros.
+  intros A f Hasc.
   split; [ | apply sup_lim ].
   apply limit_least. intro a.
-  destruct (H a) as [a' ?].
+  destruct (Hasc a) as [a' ?].
   apply ord_lt_le_trans with (f a'); auto with ord.
 Qed.
 
@@ -397,15 +428,15 @@ Lemma succ_sup_lim : forall A (f:A -> Ord),
   hasMaxElement A f ->
   limOrd f ≈ succOrd (supOrd f).
 Proof.
-  intros.
+  intros A f Hmax.
   split; [ apply lim_sup |].
   apply succ_least.
-  destruct H as [amax Hamax].
-  rewrite ord_lt_unfold. simpl. exists amax.
+  destruct Hmax as [i Hmax].
+  rewrite ord_lt_unfold. simpl. exists i.
   apply sup_least. auto.
 Qed.
 
-Instance lim_ord_le_morphism (A:Type) :
+Global Instance lim_ord_le_morphism (A:Type) :
   Proper (pointwise_relation _ ord_le ==> ord_le) (@limOrd A).
 Proof.
   repeat intro.
@@ -414,13 +445,77 @@ Proof.
   apply limit_lt.
 Qed.
 
-Instance lim_ord_eq_morphism (A:Type) :
+Global Instance lim_ord_eq_morphism (A:Type) :
   Proper (pointwise_relation _ ord_eq ==> ord_eq) (@limOrd A).
 Proof.
   repeat intro.
   split; apply lim_ord_le_morphism;
     red; intros; apply H.
 Qed.
+
+
+(** Here we show that @infOrd@ computes the greatest lower bound of a nonempty
+    collection. Note, this proof requires the @DependentFunctionalChoice@ principle.
+
+    Classicaly, the infimum of a set of ordinals is always a member of the set, as there
+    can be no infinte decending chains of ordinals. *)
+Lemma inf_loop_lower_bound:
+  forall x A f, infOrd_loop x A f <= x /\ (forall i, infOrd_loop x A f <= f i).
+Proof.
+  induction x as [B g Hx].
+  simpl; intuition.
+  - rewrite ord_le_unfold; simpl.
+    intros [j k]; simpl.
+    rewrite ord_lt_unfold; simpl.
+    exists j.
+    apply Hx.
+  - rewrite ord_le_unfold; simpl.
+    intros [j k]; simpl.
+    rewrite ord_lt_unfold; simpl.
+    exists (k i); simpl.
+    destruct (Hx j A (fun i => f i (k i))); auto.
+Qed.
+
+Lemma inf_loop_greatest (HC:DependentFunctionalChoice) :
+  forall x A f z,
+    z <= x ->
+    (forall i, z <= f i) ->
+    z <= infOrd_loop x A f.
+Proof.
+  induction x as [B g Hx].
+  simpl; intuition.
+  rewrite ord_le_unfold; simpl.
+  intro q.
+  rewrite ord_lt_unfold; simpl.
+  rewrite ord_le_unfold in H. specialize (H q).
+  rewrite ord_lt_unfold in H. destruct H as [b Hb].
+  red in HC.
+  destruct (HC A (fun i => ordCarrier (f i)) (fun i j => z q <= f i j)) as [k Hk].
+  { intro i. specialize (H0 i).
+    rewrite ord_le_unfold in H0.
+    specialize (H0 q).
+    rewrite ord_lt_unfold in H0.
+    auto. }
+  exists (b, k).
+  simpl.
+  apply Hx; auto.
+Qed.
+
+Lemma inf_lower_bound : forall A i0 f i,
+  infOrd A i0 f <= f i.
+Proof.
+  intros. unfold infOrd. apply inf_loop_lower_bound.
+Qed.
+
+Lemma inf_greatest (HC:DependentFunctionalChoice) :
+  forall A i0 f z,
+    (forall i, z <= f i) ->
+    z <= infOrd A i0 f.
+Proof.
+  intros. unfold infOrd.
+  apply inf_loop_greatest; auto.
+Qed.
+
 
 (** Provided f is a monotone function, boundedSup β f
     is an upper bound of f α whenever a < β.  Moreover, it
@@ -431,7 +526,7 @@ Lemma boundedSup_le β (f:Ord -> Ord) :
   forall x, x < β -> f x ≤ boundedSup β f.
 Proof.
   intro Hmono.
-  destruct β as [B g].
+  unfold boundedSup.
   simpl; intros.
   rewrite ord_lt_unfold in H.
   destruct H as [b Hb].
@@ -443,10 +538,8 @@ Lemma boundedSup_least β (f:Ord -> Ord) z :
   (forall x, x < β -> f x ≤ z) ->
   boundedSup β f ≤ z.
 Proof.
-  destruct β as [B g]. simpl. intros.
-  apply sup_least.
-  intros. apply H.
-  apply (index_lt (ord B g)).
+  unfold boundedSup. simpl. intros.
+  apply sup_least; auto with ord.
 Qed.
 
 (** ω is the smallest limit ordinal *)
@@ -454,8 +547,8 @@ Lemma omega_limit : limitOrdinal ω.
 Proof.
   simpl. split.
   - exact (inhabits 0%nat).
-  - hnf; intros.
-    exists (S a); simpl; auto with ord.
+  - hnf; intros n.
+    exists (S n); simpl; auto with ord.
 Qed.
 
 Lemma omega_least : forall x, limitOrdinal x -> ω <= x.
@@ -608,13 +701,14 @@ Proof.
     apply (index_lt (ord X f) a).
     rewrite ord_lt_unfold in H2.
     destruct H2 as [k ?].
-    exists k. 
+    exists k.
     apply ord_lt_le_trans with j; auto.
 Qed.
 
 Lemma limit_boundedSup β : limitOrdinal β -> β ≈ boundedSup β (fun a => a).
 Proof.
   destruct β as [B g]; simpl.
+  unfold boundedSup.
   intros [_ Hb].
   rewrite <- ascending_sup_lim; auto.
   reflexivity.
@@ -626,6 +720,7 @@ Lemma limit_boundedSup' β :
   limitOrdinal β.
 Proof.
   destruct β as [B g]; simpl.
+  unfold boundedSup.
   intros H Heq ; split.
   - rewrite ord_lt_unfold in H.
     destruct H as [b ?].
@@ -1180,7 +1275,6 @@ Qed.
 
 
 Global Opaque lubOrd glbOrd supOrd.
-
 
 
 

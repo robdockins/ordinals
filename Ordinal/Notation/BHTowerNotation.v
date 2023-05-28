@@ -127,7 +127,7 @@ Qed.
 Local Hint Resolve BHForm_complete BHForm_each_complete: core.
 
 
-Theorem BHForm_bounded : forall x:BHForm, BH_denote x < BachmanHoward.
+Theorem BHForm_bounded : forall x:BHForm, BH_denote x < BachmannHoward.
 Proof.
   intro x.
   induction x using BHForm_induction.
@@ -187,9 +187,6 @@ Proof.
   intros; apply bhtower_monotone; auto with ord.
   rewrite addOrd_zero_r. reflexivity.
   rewrite addOrd_zero_r. reflexivity.
-  intros; apply bhtower_monotone; auto with ord.
-  rewrite addOrd_zero_r. reflexivity.
-  rewrite addOrd_zero_r. reflexivity.
   rewrite bhtower_index_one; auto.
   rewrite veblen_succ; auto.
   unfold ε.
@@ -239,8 +236,6 @@ Proof.
   intros; apply bhtower_monotone; auto with ord.
   rewrite addOrd_zero_r.
   rewrite addOrd_succ.
-  rewrite addOrd_zero_r.
-  reflexivity.
   rewrite addOrd_zero_r.
   reflexivity.
   rewrite bhtower_index_one; auto.
@@ -338,10 +333,6 @@ Proof.
   simpl BH_denote.
   transitivity (bhtower 1 (bhtower 2 (bhtower 3 (addOrd 1) 1) 0) 1 0).
   { split; apply bhtower_monotone; auto with ord.
-    intros; apply bhtower_monotone; auto with ord.
-    intros; apply bhtower_monotone; auto with ord.
-    rewrite addOrd_zero_r; auto with ord.
-    rewrite addOrd_zero_r; auto with ord.
     intros; apply bhtower_monotone; auto with ord.
     intros; apply bhtower_monotone; auto with ord.
     rewrite addOrd_zero_r; auto with ord.
@@ -809,7 +800,6 @@ Proof.
           apply addOrd_le2.
           apply BH_stack_complete; simpl; auto. }
         apply bhtower_monotone; auto with ord.
-        apply succ_least; auto.
 Qed.
 
 Lemma short_stack_check_lt_invariant x xs y ys:
@@ -875,7 +865,6 @@ Proof.
            - apply BH_stack_complete; simpl; auto. }
 
          apply bhtower_monotone; auto with ord.
-         apply succ_least; auto.
 Qed.
 
 
@@ -1751,7 +1740,7 @@ Proof.
                   BH_stack (addOrd 1) 1 (map BH_denote ys)).
         { split; apply BH_stack_monotone; auto with ord.
           apply H3. apply pairwise_le_refl.
-          apply H3. apply pairwise_le_refl. }
+          apply pairwise_le_refl. }
         rewrite H4.
         apply BH_full_stack_limit1; simpl; auto.
         rewrite map_length. auto.
@@ -2292,7 +2281,6 @@ Proof.
     rewrite bhtower_zero.
     rewrite bhtower_succ; auto with ord.
     split; apply bhtower_monotone; auto with ord.
-    rewrite addOrd_zero_r; auto with ord.
     rewrite addOrd_zero_r; auto with ord. }
   apply BH_stack_leading_succ_zero; auto with arith.
 Qed.
@@ -3104,7 +3092,6 @@ Proof.
     intros. rewrite bhtower_zero.
     apply bhtower_monotone; auto with ord.
     apply nextCritical_monotone; subst f; auto with ord.
-    rewrite addOrd_zero_r. reflexivity.
 Qed.
 
 Lemma BH_stack_interpolants:
@@ -3185,12 +3172,12 @@ Proof.
 Qed.
 
 
-Lemma BH_eq: ord BHForm BH_denote ≈ BachmanHoward.
+Lemma BH_eq: ord BHForm BH_denote ≈ BachmannHoward.
 Proof.
   split.
   - rewrite ord_le_unfold; simpl; intro a.
     apply BHForm_bounded.
-  - unfold BachmanHoward.
+  - unfold BachmannHoward.
     apply sup_least. intro n.
     rewrite apex_alternate; auto.
     transitivity (BH_denote (BH_tower (S n) BH2 BH0)).
@@ -3211,7 +3198,7 @@ Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 Theorem BH_has_enough_notations (EM:excluded_middle) :
-  forall x:Ord, x < BachmanHoward -> exists! a:BHForm, normal_form a /\ BH_denote a ≈ x.
+  forall x:Ord, x < BachmannHoward -> exists! a:BHForm, normal_form a /\ BH_denote a ≈ x.
 Proof.
   intros.
   rewrite <- BH_eq in H.
@@ -3232,7 +3219,7 @@ Qed.
 
 
 Theorem BH_has_enough_notations' (EM:excluded_middle) :
-  forall x:Ord, x < BachmanHoward -> exists a:BHForm, BH_denote a ≈ x.
+  forall x:Ord, x < BachmannHoward -> exists a:BHForm, BH_denote a ≈ x.
 Proof.
   induction x as [x Hind] using ordinal_induction; intros.
   destruct (classical.ordinal_discriminate EM x) as [Hz|[Hs|Hlim]].
@@ -3252,7 +3239,7 @@ Proof.
     rewrite H0.
     reflexivity.
 
-  - destruct (BachmanHoward_limit_decompose EM x Hlim H) as [xs [Hxs1 Hxs2]].
+  - destruct (BachmannHoward_limit_decompose EM x Hlim H) as [xs [Hxs1 Hxs2]].
     assert (exists vs, pairwise ord_eq (map BH_denote vs) xs).
     { clear Hxs1. unfold each_lt in *.
       induction xs; simpl in *; intuition.

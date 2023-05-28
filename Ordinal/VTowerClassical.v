@@ -196,6 +196,7 @@ Section vtower_normal.
     - rewrite (vtower_limit b' y); auto.
       destruct b' as [B g]. simpl.
       destruct Hl as [[i] Hl].
+      unfold boundedSup.
       rewrite <- (sup_le _ _ i).
       apply ord_lt_le_trans with (limOrd (fun i0 : y => vtower (ord B g) (y i0))).
       rewrite ord_lt_unfold in  H0.
@@ -254,6 +255,7 @@ Section vtower_normal.
       destruct H1 as [b2 H1].
       destruct (classical.ord_directed EM B g b1 b2) as [b' [??]].
       destruct (Hl b') as [b'' ?].
+      unfold boundedSup.
       rewrite <- (sup_le _ _ b'').
       transitivity (vtower a (vtower (g b'') (limOrd (fun i0 : x => vtower (ord B g) (x i0))))).
       apply normal_monotone; auto.
@@ -333,6 +335,7 @@ Section vtower_normal.
       destruct b as [B g].
       destruct Hl as [[i] Hl].
       simpl.
+      unfold boundedSup.
       rewrite <- (sup_le _ _ i).
       apply normal_nonzero.
       apply Hind; auto with ord.
@@ -411,6 +414,7 @@ Section vtower_normal.
       rewrite (vtower_unfold a x).
       apply lub_least; [ | apply lub_least ].
       + apply sup_least; intro.
+        unfold boundedSup.
         rewrite <- (sup_le _ _ b0).
         transitivity (vtower (g b0) x).
         apply onePlus_least_normal.
@@ -429,6 +433,7 @@ Section vtower_normal.
         destruct (ord_le_subord _ _ H j) as [k Hk].
         simpl in *.
         destruct (Hl k) as [k' Hk'].
+        unfold boundedSup.
         rewrite <- (sup_le _ _ k').
         transitivity (vtower (succOrd (g k)) (limOrd (fun i0 : x => vtower (ord B g) (x i0)))).
         rewrite vtower_succ.
@@ -456,6 +461,7 @@ Section vtower_normal.
         apply sup_least; intro i.
         destruct (ord_le_subord _ _ H i) as [j Hj].
         simpl in *.
+        unfold boundedSup.
         rewrite <- (sup_le _ _ j).
         transitivity (vtower (g j) (limOrd (fun j0 : x => vtower a (x j0)))).
         apply Hind2; auto.
@@ -562,6 +568,7 @@ Proof.
       destruct H0 as [y H0]. simpl in H0.
       destruct Hl as [_ Hl].
       destruct (Hl y) as [y' Hy].
+      unfold boundedSup.
       rewrite <- (sup_le _ _ y').
       apply ord_lt_le_trans with (vtower x (vtower (f y')
                                      (limOrd (fun i : False => vtower (ord Y f) (False_rect Ord i))))).
@@ -719,7 +726,6 @@ Proof.
           apply omega_gt1.
           apply omega_gt0.
           apply expOrd_monotone; auto with ord.
-          apply addOrd_le1.
           apply expOmega_additively_closed; auto. }
         rewrite ord_isLimit in H3.
         destruct H3.
@@ -769,6 +775,7 @@ Proof.
         destruct n as [N n]. simpl.
         rewrite ord_lt_unfold in H4.
         destruct H4 as [q' ?].
+        unfold boundedSup.
         rewrite <- (sup_le _ _ q').
         apply vtower_monotone; auto with ord.
 Qed.

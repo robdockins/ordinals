@@ -255,21 +255,9 @@ Proof.
       reflexivity.
       rewrite <- Hx; auto.
       apply succ_least.
-      destruct (complete_zeroDec (ord A f)); auto.
-      * eapply ord_le_lt_trans.
-        apply veblen_monotone_first.
-        intros; apply addOrd_monotone; auto with ord.
-        apply H1.
-        eapply ord_lt_le_trans.
-        apply veblen_increasing0.
-        apply onePlus_normal. apply H0.
-        apply (index_lt (ord X g) i).
-        apply veblen_monotone_first; auto with ord.
-        intros; apply addOrd_monotone; auto with ord.
-      * apply veblen_increasing_nonzero; auto.
-        apply onePlus_normal.
-        apply (index_lt (ord X g) i).
-      * apply H0.
+      apply veblen_increasing; auto with ord.
+      apply onePlus_normal.
+      apply H0.
 Qed.
 
 Lemma veblen_fixpoint_zero f a x :
@@ -768,7 +756,7 @@ Proof.
     apply lub_least.
     - rewrite <- Hx2.
       apply normal_monotone; auto with ord.
-    - apply boundedSup_least. intros i Hi.
+    - apply sup_least. intro i.
       apply normal_fix_least; auto.
       + apply veblen_normal; auto.
         apply classical.ord_complete; auto.
@@ -796,7 +784,7 @@ Proof.
         apply sup_least; intro q.
         destruct (classical.order_total EM (veblen f i (x q)) x) as [H|H]; auto.
         elim (ord_lt_irreflexive a).
-        apply ord_le_lt_trans with i; auto.
+        apply ord_le_lt_trans with i; auto with ord.
         apply Hleast; split; eauto with ord.
   }
 

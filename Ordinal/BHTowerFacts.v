@@ -251,7 +251,6 @@ Proof.
       apply normal_continuous; intuition.
       hnf in H0; intuition.
       hnf in H0; intuition.
-      hnf in H0; intuition.
     }
     apply sup_least; intro i.
     apply ord_lt_le. apply H2; auto with ord.
@@ -352,7 +351,7 @@ Proof.
 Qed.
 
 
-Definition BachmanHoward := supOrd (fun n:nat => apex n (addOrd 1)).
+Definition BachmannHoward := supOrd (fun n:nat => apex n (addOrd 1)).
 
 Definition each_lt (x:Ord) (vs:list Ord) := each (fun v => v < x) vs.
 
@@ -671,15 +670,15 @@ Qed.
 Theorem BH_full_stack_uneachable :
   forall vs,
     each complete vs ->
-    each_lt BachmanHoward vs ->
-    BH_full_stack vs < BachmanHoward.
+    each_lt BachmannHoward vs ->
+    BH_full_stack vs < BachmannHoward.
 Proof.
   unfold each_lt in *; intros.
   assert (Hk: exists k, (length vs <= k)%nat /\ each (fun x => x < apex k (addOrd 1)) vs).
   { induction vs; simpl in *.
     { exists 0%nat. auto. }
     destruct IHvs as [k_tail Htail]; intuition.
-    unfold BachmanHoward in H.
+    unfold BachmannHoward in H.
     apply sup_lt in H.
     destruct H as [k_head Hhead].
     exists (max k_head (S k_tail)).
@@ -693,7 +692,7 @@ Proof.
       lia.
   }
   destruct Hk as [k [Hk1 Hk2]].
-  unfold BachmanHoward.
+  unfold BachmannHoward.
   rewrite <- (sup_le _ _ k).
   destruct vs. simpl.
   apply apex_nonzero; auto with ord.
@@ -715,10 +714,10 @@ Proof.
   - apply IHxs; simpl; intuition.
 Qed.
 
-Theorem BachmanHoward_nonzero :
-  0 < BachmanHoward.
+Theorem BachmannHoward_nonzero :
+  0 < BachmannHoward.
 Proof.
-  unfold BachmanHoward.
+  unfold BachmannHoward.
   rewrite <- (sup_le _ _ 0%nat).
   unfold apex.
   rewrite normal_fixpoint; auto with ord.
@@ -727,10 +726,10 @@ Proof.
   intros. apply (normal_inflationary (fun x => bhtower 1 (addOrd 1) x 0)); auto with ord.
 Qed.
 
-Theorem BachmanHoward_complete :
-  complete BachmanHoward.
+Theorem BachmannHoward_complete :
+  complete BachmannHoward.
 Proof.
-  unfold BachmanHoward.
+  unfold BachmannHoward.
   apply sup_complete; auto with ord.
   hnf; intros.
   exists (max a1 a2); split; apply apex_monotone; auto with ord arith.
@@ -743,12 +742,12 @@ Proof.
   intros. apply (normal_inflationary (fun x => bhtower 1 (addOrd 1) x 0)); auto with ord.
 Qed.
 
-Theorem BachmanHoward_limit :
-  limitOrdinal BachmanHoward.
+Theorem BachmannHoward_limit :
+  limitOrdinal BachmannHoward.
 Proof.
   apply limitOrdinal_intro.
-  - apply BachmanHoward_nonzero.
-  - unfold BachmanHoward.
+  - apply BachmannHoward_nonzero.
+  - unfold BachmannHoward.
     intros.
     apply sup_lt in H.
     destruct H as [k Hk].
@@ -971,6 +970,7 @@ Proof.
     apply sup_least; intro i.
     apply normal_monotone; auto.
     destruct x as [X g]; simpl.
+    unfold boundedSup.
     rewrite <- (sup_le _ _ i). auto with ord.
   }
   rewrite H3.
@@ -1330,8 +1330,7 @@ Proof.
         - simpl in *.
           rewrite <- BH_stack_fixpoint2 at 2; simpl; intuition; auto with ord.
           rewrite Hlen.
-          apply bhtower_monotone; auto with ord.
-          apply succ_least; auto. }
+          apply bhtower_monotone; auto with ord. }
       rewrite <- H1 at 2.
       rewrite bhtower_succ; auto with ord arith.
       apply bhtower_monotone; auto with ord.
@@ -1586,12 +1585,12 @@ Proof.
   apply BH_stack_decompose with i; auto.
 Qed.
 
-Theorem BachmanHoward_limit_decompose (EM:excluded_middle) :
+Theorem BachmannHoward_limit_decompose (EM:excluded_middle) :
   forall x (Hlim:limitOrdinal x),
-    x < BachmanHoward ->
+    x < BachmannHoward ->
     exists vs, x ≈ BH_full_stack vs /\ each_lt x vs.
 Proof.
-  unfold BachmanHoward.
+  unfold BachmannHoward.
   intros x Hlim H.
   apply sup_lt in H.
   destruct H as [n H].

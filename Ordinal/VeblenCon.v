@@ -430,6 +430,7 @@ Section veblen.
     - rewrite veblen_unroll.
       apply lub_least.
       + simpl.
+        unfold boundedSup.
         rewrite <- (sup_le _ _ b).
         unfold fixOrd.
         rewrite <- (sup_le _ _ 1%nat).
@@ -538,14 +539,10 @@ Section veblen.
     apply ord_le_lt_trans with (f x).
     { rewrite veblen_unroll.
       apply lub_least; auto with ord.
-      apply boundedSup_least. simpl; intros.
-      elim (ord_lt_irreflexive zeroOrd).
-      apply ord_le_lt_trans with x0; auto.
-      apply zero_least. }
+      apply sup_least. intros []. }
     apply ord_lt_le_trans with (f y).
     apply normal_increasing; auto.
-    rewrite veblen_unroll.
-    apply lub_le1.
+    rewrite veblen_unroll; auto with ord.
   Qed.
 
   Lemma veblen_increasing_nonzero (β:Ord) : 0 < β -> forall x y, x < y -> veblen f β x < veblen f β y.
@@ -620,6 +617,7 @@ Section veblen.
         destruct β as [B g]. simpl.
         rewrite ord_lt_unfold in H.
         destruct H as [b Hb].
+        unfold boundedSup; simpl.
         rewrite (normal_continuous f f_normal B _ b).
         * apply sup_least; intro i.
           rewrite <- (sup_le _ _ i).
@@ -727,21 +725,20 @@ Section veblen.
                  apply normal_monotone; auto.
           ** transitivity (supOrd (iter_f (veblen f a2) (limOrd (fun x0 : x => veblen f β (x x0))))).
              *** apply sup_le.
-             *** rewrite <- boundedSup_le.
-                 **** reflexivity.
-                 **** intros.
-                      apply sup_ord_le_morphism.
-                      hnf; simpl; intros.
-                      { apply iter_f_monotone_func; intros.
-                        - apply veblen_monotone_first; auto.
-                          apply normal_monotone; auto.
-                        - apply veblen_monotone; auto.
-                          apply normal_monotone; auto.
-                      }
-                 **** auto.
+             *** rewrite ord_lt_unfold in H0.
+                 destruct H0 as [w H0].
+                 rewrite <- (sup_le _ _ w).
+                 apply sup_ord_le_morphism.
+                 hnf; simpl; intros.
+                 apply iter_f_monotone_func; intros.
+                 **** apply veblen_monotone_first; auto.
+                      apply normal_monotone; auto.
+                 **** apply veblen_monotone; auto.
+                      apply normal_monotone; auto.
+
       + transitivity
-          (veblen f (g y) (boundedSup β
-            (fun α : Ord =>
+          (veblen f (g y) (supOrd 
+            (fun α:β =>
              supOrd
                (iter_f (veblen f α) (limOrd (fun x0 : x => veblen f β (x x0))))))).
         { apply veblen_monotone; auto. apply normal_monotone; auto. }
@@ -955,8 +952,7 @@ Section veblen.
       rewrite <- (sup_le A (fun i => veblen f (g i) 0) a').
       rewrite veblen_unroll.
       rewrite <- lub_le2.
-      destruct (g a') as [Q q]. simpl in *.
-      rewrite <- (sup_le Q _ z).
+      rewrite <- (sup_le _ _ z).
       apply fixOrd_monotone; auto.
       apply veblen_monotone.
       apply normal_monotone; auto.
@@ -1082,6 +1078,7 @@ Section veblen.
         reflexivity.
         destruct β as [B g]; simpl in *.
         destruct H as [[b] _].
+        unfold boundedSup.
         rewrite <- (sup_le _ _ b).
         apply veblen_monotone_first.
         apply normal_monotone; auto.
@@ -1090,6 +1087,7 @@ Section veblen.
         apply sup_least; simpl; intro b.
         destruct H as [_ H].
         destruct (H b) as [b' Hb'].
+        unfold boundedSup.
         rewrite <- (sup_le _ _ b').
         unfold fixOrd.
         apply sup_least.
@@ -1123,6 +1121,7 @@ Section veblen.
     - apply lub_least.
       + destruct β as [B g]; simpl.
         destruct Hlim as [[b] _].
+        unfold boundedSup.
         rewrite <- (sup_le _ _ b).
         rewrite (veblen_unroll f (g b)).
         rewrite <- lub_le1.
@@ -1133,6 +1132,7 @@ Section veblen.
         apply sup_least; simpl; intro b.
         destruct Hlim as [_ H].
         destruct (H b) as [b' Hb'].
+        unfold boundedSup.
         rewrite <- (sup_le _ _ b').
         unfold fixOrd. apply sup_least.
         intro i; simpl.
@@ -1180,6 +1180,7 @@ Section veblen.
     split.
     - apply lub_least.
       + destruct Hlimβ as [[b] H].
+        unfold boundedSup.
         rewrite <- (sup_le _ _ b).
         rewrite veblen_unroll.
         rewrite <- lub_le1.
@@ -1194,6 +1195,7 @@ Section veblen.
       + apply sup_least; intro b.
         destruct Hlimβ as [_ H].
         destruct (H b) as [b' Hb'].
+        unfold boundedSup.
         rewrite <- (sup_le _ _ b').
         unfold fixOrd.
         apply sup_least.

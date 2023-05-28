@@ -1291,7 +1291,6 @@ Section cantor_arithmetic.
       destruct Hi as [Hi|Hi].
       - assert (has_interpolants (g 0)).
         { apply Hg2; auto with ord.
-          apply zero_complete.
           rewrite has_interpolants_unfold.
           intros j Hj. rewrite ord_lt_unfold in Hj.
           destruct Hj as [[] _]. }

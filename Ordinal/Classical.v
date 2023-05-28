@@ -1,4 +1,5 @@
 From Coq Require Import ClassicalFacts.
+From Coq Require Import ChoiceFacts.
 From Coq Require Import Arith.
 From Coq Require Import Lia.
 
@@ -149,6 +150,40 @@ Section classic.
     - apply Hlimit; auto.
   Qed.
 
+  Lemma inf_loop_member (HC:DependentFunctionalChoice) :
+    forall x A f,
+      infOrd_loop x A f ≈ x \/ exists i, infOrd_loop x A f ≈ f i.
+  Proof.
+    intros.
+    destruct (order_total x (infOrd_loop x A f)).
+    - left. split; auto.
+      apply inf_loop_lower_bound.
+    - destruct (EM (exists i:A, infOrd_loop x A f >= f i)).
+      + destruct H0 as [i H0].
+        right. exists i.
+        split; auto.
+        apply inf_loop_lower_bound.
+      + assert (Hlt: forall i:A, infOrd_loop x A f < f i).
+        intros.
+        destruct (order_total (f i) (infOrd_loop x A f)); auto.
+        elim H0; eauto.
+        assert (succOrd (infOrd_loop x A f) <= infOrd_loop x A f).
+        { apply inf_loop_greatest; auto.
+          apply succ_least. auto.
+          intros. apply succ_least; auto. }
+        rewrite ord_le_unfold in H1.
+        simpl in H1. specialize (H1 tt).
+        elim (ord_lt_irreflexive (infOrd_loop x A f)); auto.
+  Qed.
+
+  Theorem inf_member (HC:DependentFunctionalChoice) :
+    forall A i0 f, exists i, infOrd A i0 f ≈ f i.
+  Proof.
+    intros.
+    unfold infOrd.
+    destruct (inf_loop_member HC (f i0) A f); eauto.
+  Qed.
+
 End classic.
 
 (** Now, we show some reverse results. In particular, we will show how certain
@@ -263,6 +298,31 @@ Proof.
     rewrite ord_lt_unfold. intros [HNP _].
     apply HNP; auto.
 Qed.
+
+Lemma inf_member_WEM :
+  (forall A i0 f, exists i, infOrd A i0 f ≈ f i) ->
+  weak_excluded_middle.
+Proof.
+  intros H P.
+  destruct (H bool true (fun b:bool => if b then truth_ord P else truth_ord (~P))) as [i Hi].
+  destruct i.
+  - simpl in *.
+    right. intro HP.
+    destruct Hi.
+    rewrite ord_le_unfold in H1.
+    specialize (H1 HP). simpl in H1.
+    rewrite ord_lt_unfold in H1. simpl in H1.
+    destruct H1 as [[? ?] ?]. simpl in *.
+    destruct (o false); auto.
+  - left. intro HNP.
+    destruct Hi.
+    rewrite ord_le_unfold in H1.
+    specialize (H1 HNP). simpl in H1.
+    rewrite ord_lt_unfold in H1. simpl in H1.
+    destruct H1 as [[? ?] ?]. simpl in *.
+    auto.
+Qed.
+
 
 Definition truth_ord' (P:Prop) := supOrd (fun n => 1 ⊔ (ord P (fun H => natOrdSize n))).
 

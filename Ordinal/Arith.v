@@ -48,8 +48,7 @@ Qed.
 
 Lemma foldOrd_above_z z s x : z ≤ foldOrd z s x.
 Proof.
-  destruct x as [A f]; simpl.
-  apply lub_le1.
+  destruct x as [A f]; simpl; auto with ord.
 Qed.
 
 Lemma foldOrd_monotone z s : forall x y,
@@ -103,8 +102,7 @@ Proof.
   - simpl.
     apply lub_least.
     + apply H.
-      destruct x; simpl.
-      apply lub_le1.
+      destruct x; simpl; auto with ord.
     + apply sup_least. intro.
       apply ord_le_refl.
   - rewrite succ_unfold. simpl foldOrd.
@@ -124,8 +122,7 @@ Proof.
     apply lub_least.
     + destruct H as [a0].
       eapply ord_le_trans; [ | apply (sup_le _ _ a0) ]. simpl.
-      destruct (f a0); simpl.
-      apply lub_le1.
+      destruct (f a0); simpl; auto with ord.
     + apply sup_least. intro a.
       destruct (H1 a) as [a' ?].
       eapply ord_le_trans; [ | apply (sup_le _ _ a') ]. simpl.
@@ -225,13 +222,9 @@ Qed.
 
 Lemma addOrd_zero_r x : x + 0 ≈ x.
 Proof.
-  split.
-  - rewrite zero_unfold.
-    simpl.
-    apply lub_least.
-    reflexivity.
-    apply sup_least. intros [].
-  - simpl. apply lub_le1.
+  split; simpl; auto with ord.
+  apply lub_least; auto with ord.
+  apply sup_least. intros [].
 Qed.
 
 Lemma addOrd_zero_l x : 0 + x ≈ x.
@@ -272,7 +265,6 @@ Proof.
   intros.
   unfold addOrd.
   apply foldOrd_increasing; auto with ord.
-  apply succ_monotone.
 Qed.
 
 Lemma addOrd_continuous x :
@@ -287,8 +279,6 @@ Lemma addOrd_complete x y :
 Proof.
   intros. unfold addOrd.
   apply foldOrd_complete; auto with ord.
-  - intros; apply succ_monotone; auto.
-  - apply succ_complete.
 Qed.
 
 Add Parametric Morphism : addOrd with signature
@@ -494,6 +484,42 @@ Proof.
   reflexivity.
 Qed.
 
+
+Lemma foldOrd_add z s a b :
+  (forall x y, x ≤ y -> s x ≤ s y) ->
+  foldOrd z s (a + b) ≈ foldOrd (foldOrd z s a) s b.
+Proof.
+  intros.
+  induction b as [B g]. simpl.
+  rewrite lub_continuous.
+  split.
+  apply lub_least.
+  apply lub_le1.
+  transitivity (foldOrd z s (limOrd (fun i => a + g i))).
+  apply foldOrd_monotone; auto; apply sup_succ_lim.
+  simpl.
+  apply lub_least.
+  rewrite <- lub_le1.
+  apply foldOrd_above_z.
+  apply sup_least; intro i.
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ i).
+  apply H.
+  apply H0.
+  apply lub_least; auto with ord.
+  apply sup_least; intro i.
+  rewrite <- lub_le2.
+  transitivity (foldOrd z s (succOrd (a + g i))).
+  simpl.
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ tt).
+  apply H.
+  apply H0.
+  apply foldOrd_monotone; auto.
+  rewrite <- (sup_le _ _ i); auto with ord.
+  intros; apply foldOrd_monotone; auto.
+  apply foldOrd_strongly_continuous.
+Qed.
 
 
 (** * Ordinal multiplication *)
@@ -964,7 +990,6 @@ Proof.
   rewrite expOrd_one.
   split.
   apply lub_least; auto with ord.
-  apply succ_least; auto.
   apply lub_le2.
 Qed.
 
@@ -1074,6 +1099,19 @@ Proof.
   apply omega_gt1.
 Qed.
 
+(** * The Knuth up-arrow functions, adapted to ordinals.
+
+    The up-arrow functions continue the pattern established above:
+    multiplication is defined via transfinite iteration of addition,
+    exponentation is defined via transfinite iteration of multiplication, etc.
+    
+    However, the later functions in the the sequence (@KnuthUp 2@ and above)
+    are rather less interesting. They saturate at @ω@ and fail to be increasing.
+    This limits their applicability for constructing larger ordinals, even though
+    they are a rapidly increasing sequence of functions on finite ordinals AKA
+    the natural numbers.
+*)
+
 Fixpoint KnuthUp (n:nat) (a:Ord) : Ord -> Ord :=
   match n with
   | O    => fun b => b * a
@@ -1157,42 +1195,6 @@ Proof.
 Qed.
 
 
-Lemma foldOrd_add z s a b :
-  (forall x y, x ≤ y -> s x ≤ s y) ->
-  foldOrd z s (a + b) ≈ foldOrd (foldOrd z s a) s b.
-Proof.
-  intros.
-  induction b as [B g]. simpl.
-  rewrite lub_continuous.
-  split.
-  apply lub_least.
-  apply lub_le1.
-  transitivity (foldOrd z s (limOrd (fun i => a + g i))).
-  apply foldOrd_monotone; auto; apply sup_succ_lim.
-  simpl.
-  apply lub_least.
-  rewrite <- lub_le1.
-  apply foldOrd_above_z.
-  apply sup_least; intro i.
-  rewrite <- lub_le2.
-  rewrite <- (sup_le _ _ i).
-  apply H.
-  apply H0.
-  apply lub_least; auto with ord.
-  apply sup_least; intro i.
-  rewrite <- lub_le2.
-  transitivity (foldOrd z s (succOrd (a + g i))).
-  simpl.
-  rewrite <- lub_le2.
-  rewrite <- (sup_le _ _ tt).
-  apply H.
-  apply H0.
-  apply foldOrd_monotone; auto.
-  rewrite <- (sup_le _ _ i); auto with ord.
-  intros; apply foldOrd_monotone; auto.
-  apply foldOrd_strongly_continuous.
-Qed.
-
 Lemma KnuthUp_omega_fix : forall n a,
     (n > 0)%nat ->
     0 < a ->
@@ -1236,7 +1238,7 @@ Proof.
     apply KnuthUp_monotone; auto with ord.
 Qed.
 
-Lemma KnuthUp_saturates : forall n a b,
+Theorem KnuthUp_saturates : forall n a b,
     (n > 0)%nat ->
     0 < a ->
     KnuthUp (S n) a b ≤ KnuthUp (S n) a ω.
@@ -1253,7 +1255,7 @@ Proof.
   apply H1; auto.
 Qed.
 
-Lemma KnuthUp_not_increasing : forall n,
+Theorem KnuthUp_not_increasing : forall n,
     (n > 1)%nat ->
     (forall a b c, b < c -> KnuthUp n a b < KnuthUp n a c) -> False.
 Proof.
@@ -1268,7 +1270,7 @@ Proof.
   apply succ_lt.
 Qed.
 
-Lemma KnuthUp2_epsilon_number : forall a,
+Theorem KnuthUp2_epsilon_number : forall a,
     a ≥ ω ->
     KnuthUp 2%nat a ω ≈ expOrd ω (KnuthUp 2%nat a ω).
 Proof.
@@ -1285,6 +1287,8 @@ Qed.
 
 Global Opaque addOrd mulOrd expOrd.
 
+
+(** Misc. facts about the addition of finite ordinals *)
 
 Lemma add_cancel_finite (n:ω) x y :
   x + sz n ≈ y + sz n -> x ≈ y.
