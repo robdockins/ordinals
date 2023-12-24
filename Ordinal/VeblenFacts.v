@@ -727,6 +727,37 @@ Proof.
   apply addOrd_le2.
 Qed.
 
+Lemma veblen_fax f :
+  normal_function f ->
+  forall a x,
+    complete a ->
+    complete x ->
+    f (a + x) <= veblen f a x.
+Proof.
+  intros Hf a x Ha Hx.
+
+  destruct (complete_zeroDec a Ha).
+  - rewrite veblen_unroll.
+    rewrite <- lub_le1.
+    apply normal_monotone; auto.
+    rewrite H.
+    rewrite addOrd_zero_l.
+    reflexivity.
+  - rewrite <- veblen_fixpoint_zero; auto.
+    apply normal_monotone; auto.
+    revert Hx. induction x as [x Hind] using ordinal_induction; intro Hx.
+    rewrite addOrd_unfold.
+    apply lub_least.
+    transitivity (veblen f a 0).
+    apply (normal_inflationary _ (veblen_first_normal _ Hf)); auto.
+    apply veblen_monotone; auto with ord.
+    apply sup_least; intro i.
+    apply succ_least.
+    apply ord_le_lt_trans with (veblen f a (x i)).
+    apply Hind; auto with ord.
+    apply complete_subord; auto.
+    apply veblen_increasing; auto with ord.
+Qed.
 
 Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
