@@ -1309,3 +1309,47 @@ Proof.
   rewrite IHm.
   reflexivity.
 Qed.
+
+Lemma onePlus_lt_cancel: forall y x,
+  1+x < 1+y -> x<y.
+Proof.
+  induction y as [y Hindy] using ordinal_induction.
+  intros.
+  rewrite (addOrd_unfold 1 y) in H.
+  apply lub_lt in H.
+  destruct H.
+  - rewrite ord_lt_unfold in H.
+    destruct H as [[] H]. simpl in H.
+    elim (ord_lt_irreflexive 0).
+    rewrite <- H at 2.
+    rewrite <- addOrd_le1.
+    auto with ord.
+  - apply sup_lt in H.
+    destruct H as [q H].
+    rewrite ord_lt_unfold in H.
+    destruct H as [[] H]. simpl in H.
+    rewrite ord_lt_unfold. exists q.
+    rewrite ord_le_unfold. intro a.
+    apply Hindy; auto with ord.
+    apply ord_lt_le_trans with (1+x); auto with ord.
+    apply addOrd_increasing; auto with ord.
+Qed.
+
+Lemma lt_onePlus : forall x y,
+    x < y -> 1+x <= y.
+Proof.
+  induction x as [x Hindx] using ordinal_induction.
+  intros y Hy.
+  rewrite addOrd_unfold.
+  apply lub_least.
+  - apply succ_least.
+    apply ord_le_lt_trans with x; auto with ord.
+  - apply sup_least. intros.
+    apply succ_least.
+    rewrite ord_lt_unfold in Hy.
+    destruct Hy as [q Hy].
+    rewrite ord_lt_unfold. exists q. simpl.
+    apply Hindx; auto with ord.
+    rewrite <- Hy; auto with ord.
+Qed.
+
