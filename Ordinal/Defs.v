@@ -1,7 +1,7 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import Coq.Program.Wf.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import Program.Wf.
 
 Unset Printing Records.
 
@@ -20,16 +20,14 @@ it could certainly benefit from additional proof automation).
 My secondary goal (which expanded to consume most of the effort, in
 the end) was to climb the first part of the way into "Cantor's attic"
 by constructing the Veblen hierarchy, the Feferman-Schütte ordinal Γ₀,
-and perhaps up to the small Veblen ordinal (SVO), which is formed as
-the limit of the extended Veblen functions on finitely-many
-variables. This goal has been met, and exceeded. In this development
-we have surpassed the SVO, continuing on to the to the Large Veblen
-Ordinal (LVO) and beyond to the Bachmann-Howard ordinal (BH).
+and the large and small Veblen ordinals (SVO/LVO). This was also
+achieved.
 
 Moreover, we have constructed a series of ordinal notation systems,
-each of increasing power, up to: ε₀, Γ₀, SVO, LVO and BH. These
-notation systems, unlike their semantic counterparts, enjoy decidable
-ordering and constructive decomposition into Cantor normal forms.
+each of increasing power, up to: ε₀, Γ₀, Ackermann's ordinal, SVO,
+and LVO. These notation systems, unlike their semantic counterparts,
+enjoy decidable ordering and constructive decomposition into Cantor
+normal forms.
 
 In contrast to the usual methods of the Schütte school, we do not need
 to give a separate, syntactic well-foundedness proof for our notation
@@ -46,16 +44,15 @@ principles are used to exhibit any mathematical object.
 I have also attempted to keep proofs as constructive as possible,
 using the excluded middle only where it is actually necessary (in a
 sense we can make formal); or, in a few additional cases where I have
-not (yet?) found a constructive proof. In all cases, uses of the
-excluded middle appear a an explicit hypothesis to theorems instead of
-being asserted as an unconditional axiom. In once instance, (proofs
+not found a constructive proof. In all cases, uses of the excluded
+middle appear a an explicit hypothesis to theorems instead of being
+asserted as an unconditional axiom. In once instance, (proofs
 regarding the ordinal infimum operator) a choice axiom seems to be
 required; it is likewise added as an explicit hypothesis.
 
 As a result, every lemma and theorem in this developement should report
 "Closed Under the Global Context" when queried via the "Print
 Assumptions" command at top-level (i.e., not inside a section).
-
 *)
 
 Declare Scope ord_scope.
@@ -104,15 +101,15 @@ a set of choices avaliable to a player.
 
 Think of the proposition @x < y@ as a game state where it is our turn
 and we must make a choice in the ordinal @y@. Suppose @j:y@ represents
-the choice we make on our turn; then the game transisitions to @x ≤ y
-j@. In this state, it is our opponent's turn and they must make a
-choice in @x@. After our opponent chooses some @i:x@, play transitions
+the choice we make on our turn; then the game transisitions to @x ≤ y j@.
+In this state, it is our opponent's turn and they must make a choice in
+@x@. After our opponent chooses some @i:x@, play transitions
 to @x i < y j@, where we must again make a choice. The game ends when
 one player has no choices remaining; the inductiveness of ordinals
 ensures this will happen after a finite number of moves. Finally, the
-propsitions @x < y@ or @x ≤ y@ are true just when the games so
-described have a winning strategy, and a (constructive) proof of these
-propositions exhibits such a strategy.
+propsitions @x < y@ or @x ≤ y@ are true just when the games so described
+have a winning strategy, and a (constructive) proof of these propositions
+exhibits such a strategy.
 
 We consider two ordinals to be equal, written @x ≈ y@, just when
 @x ≤ y@ and @y ≤ x@. As we shall see later, this corresponds to the
@@ -138,9 +135,9 @@ Notation "x > y" := (ord_lt y x) : ord_scope.
 Notation "x < y" := (ord_lt x y) : ord_scope.
 Notation "x >= y" := (ord_le y x) : ord_scope.
 Notation "x <= y" := (ord_le x y) : ord_scope.
-Notation "x ≥ y" := (ord_le y x) (at level 70, no associativity) : ord_scope.
-Notation "x ≤ y" := (ord_le x y) (at level 70, no associativity) : ord_scope.
-Notation "x ≈ y" := (ord_eq x y) (at level 70, no associativity) : ord_scope.
+Notation "x ≥ y" := (ord_le y x) (at level 70, no associativity)  : ord_scope.
+Notation "x ≤ y" := (ord_le x y) (at level 70, no associativity)  : ord_scope.
+Notation "x ≈ y" := (ord_eq x y) (at level 70, no associativity)  : ord_scope.
 
 (*  The notation "x ◃ y" indicates that "x" has a strictly smaller ordinal measure
     than "y".  Note that "x" and "y" do not need to have the same type.
@@ -152,14 +149,14 @@ Notation "x ⊴ y" := (sz x ≤ sz y)%ord (at level 80, no associativity).
 
 (** Characteristic equation for less-than *)
 Lemma ord_lt_unfold x y :
-  x < y = exists b:y, x ≤ y b.
+  (x < y) = exists b:y, x ≤ y b.
 Proof.
   destruct x; destruct y; simpl; auto.
 Qed.
 
 (** Characteristic equation for less-equal *)
 Lemma ord_le_unfold x y :
-  x ≤ y = forall a:x, x a < y.
+  (x ≤ y) = forall (a:x), x a < y.
 Proof.
   destruct x; destruct y; simpl; auto.
 Qed.
@@ -502,7 +499,7 @@ Qed.
 
 
 (** * Some auxiliary definitions that will be useful later. *)
-Require Import List.
+From Stdlib Require Import List.
 Import ListNotations.
 
 Fixpoint each {A:Type} (P:A -> Prop) (xs:list A) : Prop :=

@@ -1,8 +1,8 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import ChoiceFacts.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import ChoiceFacts.
 
 Unset Printing Records.
 
@@ -23,6 +23,7 @@ Definition succOrd (x:Ord) : Ord := ord unit (fun _ => x).
 Number Notation Ord Nat.of_num_uint Nat.to_num_uint
          (via nat mapping [zeroOrd => O, succOrd => S]) : ord_scope.
 
+(** Alternate notation for limit ordinals, which makes the type argument implicit. *)
 Definition limOrd {A:Type} (f:A -> Ord) := ord A f.
 
 (** The binary upper bound of two ordinals is constructed using a sum type
@@ -130,6 +131,8 @@ Lemma complete_subord o :
 Proof.
   destruct o as [A f]; simpl; intuition.
 Qed.
+
+Global Hint Resolve complete_subord: ord.
 
 Lemma complete_zeroDec o :
   complete o -> o <= 0 \/ 0 < o.
@@ -630,6 +633,8 @@ Proof. apply (index_lt _ 0%nat). Qed.
 
 Lemma omega_gt1 : 1 < ω.
 Proof. apply (index_lt ω 1%nat). Qed.
+
+Global Hint Resolve omega_complete omega_gt0 omega_gt1: ord.
 
 (** Any zero ordinal is equal to the distinguished zeroOrd *)
 Lemma ord_isZero z : zeroOrdinal z <-> z ≈ 0.

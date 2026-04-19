@@ -1,6 +1,6 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
 
 Unset Printing Records.
 
@@ -26,6 +26,8 @@ Record normal_function (f:Ord -> Ord) :=
   ; normal_complete   : forall x, complete x -> complete (f x)
   ; normal_nonzero    : forall x, 0 < f x
   }.
+
+Global Hint Resolve normal_monotone normal_complete normal_nonzero: ord.
 
 Lemma normal_inflationary (f:Ord -> Ord) :
   normal_function f ->
@@ -53,6 +55,100 @@ Proof.
   intros; apply normal_monotone; auto.
   destruct x as [X g]; simpl in *; intuition.
 Qed.
+
+Lemma addOrd_normal: 
+  forall x,
+    0 < x ->
+    complete x ->
+    normal_function (addOrd x).
+Proof.
+  intros.
+  constructor; auto with ord.
+  - intros. apply addOrd_increasing; auto.
+  - hnf; intros. apply addOrd_continuous; auto.
+  - intros. apply ord_lt_le_trans with x; auto with ord.
+Qed.
+Global Hint Resolve addOrd_normal: ord.
+
+Lemma onePlus_complete x : complete x -> complete (1 + x).
+Proof.
+  intros; apply addOrd_complete; auto.
+  apply succ_complete; apply zero_complete.
+Qed.
+
+Lemma onePlus_normal : normal_function (addOrd 1).
+Proof.
+  auto with ord.
+Qed.
+
+Lemma onePlus_nonzero : forall x, 0 < 1+x.
+Proof.
+  intros.
+  rewrite <- addOrd_le1. apply succ_lt.
+Qed.
+
+Theorem onePlus_least f :
+  (forall x y, x < y -> f x < f y) ->
+  (forall x, 0 < f x) ->
+  forall x, 1+x <= f x.
+Proof.
+  intros.
+  induction x using ordinal_induction.
+  rewrite addOrd_unfold.
+  apply lub_least.
+  apply succ_least; auto.
+  apply sup_least. intro i.
+  apply succ_least.
+  rewrite (H1 (x i)).
+  apply H; auto.
+  apply index_lt.
+  apply index_lt.
+Qed.
+
+Theorem onePlus_least_normal f :
+    normal_function f ->
+    forall x, complete x -> 1+x <= f x.
+Proof.
+  intros.
+  induction x using ordinal_induction.
+  rewrite addOrd_unfold.
+  apply lub_least.
+  apply succ_least.
+  apply normal_nonzero; auto.
+  apply sup_least. intro i.
+  apply succ_least.
+  rewrite (H1 (x i)).
+  apply normal_increasing; auto.
+  apply index_lt.
+  apply index_lt.
+  apply complete_subord. auto.
+Qed.
+
+Lemma onePlus_finite : forall n, natOrdSize n < 1 + natOrdSize n.
+Proof.
+  induction n; simpl.
+  rewrite addOrd_zero_r.
+  apply succ_lt.
+  rewrite addOrd_succ.
+  apply succ_trans.
+  apply succ_least.
+  auto.
+Qed.
+
+Lemma powOmega_normal : normal_function powOmega.
+Proof.
+  apply NormalFunction.
+  + apply expOrd_monotone.
+  + intros; apply powOmega_increasing; auto.
+  + red; intros A f a0 Hd Hc; apply (expOrd_continuous ω A f a0).
+  + unfold powOmega. intros; apply expOrd_complete; auto.
+    * apply (index_lt ω 0%nat).
+    * apply omega_complete.
+  + unfold powOmega. intros.
+    apply expOrd_nonzero.
+Qed.
+
+Global Hint Resolve onePlus_normal onePlus_finite powOmega_normal : ord.
 
 (* We say a function f enumerates a class of ordinals P if
    f x is the least element of P that is strictly above
@@ -203,19 +299,6 @@ Proof.
       apply normal_monotone; auto.
 Qed.
 
-Lemma powOmega_normal : normal_function powOmega.
-Proof.
-  apply NormalFunction.
-  + apply expOrd_monotone.
-  + intros; apply powOmega_increasing; auto.
-  + red; intros A f a0 Hd Hc; apply (expOrd_continuous ω A f a0).
-  + unfold powOmega. intros; apply expOrd_complete; auto.
-    * apply (index_lt ω 0%nat).
-    * apply omega_complete.
-  + unfold powOmega. intros.
-    apply expOrd_nonzero.
-Qed.
-
 Lemma enum_are_fixpoints f :
   normal_function f ->
   forall x, complete x -> enum_fixpoints f x ≈ f (enum_fixpoints f x).
@@ -279,7 +362,6 @@ Proof.
     intros [a i]. simpl.
     rewrite <- (sup_le _ _ a).
     apply enum_fixpoints_increasing; auto with ord.
-    apply normal_monotone; auto.
   - rewrite (normal_continuous f Hf A (fun i => enum_fixpoints f (g i)) a0).
     + apply sup_least. simpl; intros.
       rewrite <- enum_are_fixpoints; auto.
@@ -300,22 +382,18 @@ Lemma enum_fixpoints_normal f :
   normal_function (enum_fixpoints f).
 Proof.
   intros; constructor.
-  - apply enum_fixpoints_monotone; auto.
-    apply normal_monotone; auto.
-  - intros; apply enum_fixpoints_increasing; auto.
-    apply normal_monotone; auto.
+  - apply enum_fixpoints_monotone; auto with ord.
+  - intros; apply enum_fixpoints_increasing; auto with ord.
   - apply enum_fixpoints_cont; auto.
-  - apply enum_fixpoints_complete; auto.
-    + apply normal_inflationary; auto.
-    + apply normal_monotone; auto.
-    + apply normal_complete; auto.
+  - apply enum_fixpoints_complete; auto with ord.
+    apply normal_inflationary; auto.
   - intros.
     destruct x as [X g].
     simpl.
     unfold fixOrd.
     rewrite <- (sup_le _ _ 1%nat).
     simpl.
-    apply normal_nonzero; auto.
+    auto with ord.
 Qed.
 
 Lemma enum_least f :
@@ -331,6 +409,24 @@ Proof.
   apply normal_fix_least; auto.
   rewrite ord_le_unfold; simpl; intros.
   apply H1.
+  apply limit_lt.
+Qed.
+
+Lemma enum_least' f :
+  normal_function f ->
+  forall (x z:Ord),
+    complete x ->
+    complete z ->
+    f z ≤ z ->
+    (forall x', complete x' -> x' < x -> enum_fixpoints f x' < z) ->
+    enum_fixpoints f x ≤ z.
+Proof.
+  intro Hf.
+  induction x as [B g Hx]. simpl; intros.
+  apply normal_fix_least; auto.
+  rewrite ord_le_unfold; simpl; intros.
+  apply H2.
+  apply H.
   apply limit_lt.
 Qed.
 
@@ -381,7 +477,6 @@ Proof.
   induction x as [A q Hx]; simpl.
   rewrite H; auto with ord.
   apply fixOrd_monotone; auto with ord.
-  apply normal_monotone; auto.
   rewrite ord_le_unfold; simpl; intro a.
   rewrite ord_lt_unfold; simpl. exists a.
   apply Hx; auto.
@@ -406,7 +501,12 @@ Proof.
   apply normal_monotone. auto.
 Qed.
 
+Lemma ε_normal: normal_function ε.
+Proof.
+  unfold ε. apply enum_fixpoints_normal; auto with ord.
+Qed.
 
+Global Hint Resolve enum_fixpoints_normal ε_normal: ord.
 
 Section veblen.
   Variable f : Ord -> Ord.
@@ -1326,6 +1426,7 @@ Section veblen.
 
 End veblen.
 
+Global Hint Resolve veblen_normal veblen_first_normal: ord.
 
 Lemma enumerates_equiv_pred f P P' :
   normal_function f ->
@@ -1371,31 +1472,21 @@ Definition Γ a := enum_fixpoints (fun b => veblen powOmega b 0) a.
 Theorem Γ_fixpoints : forall a, complete a -> Γ a ≈ veblen powOmega (Γ a) 0.
 Proof.
   intros a Ha. unfold Γ.
-  apply enum_are_fixpoints; auto.
-  apply veblen_first_normal.
-  apply powOmega_normal.
+  apply enum_are_fixpoints; auto with ord.
 Qed.
 
 Theorem Γ_normal : normal_function Γ.
 Proof.
-  unfold Γ.
-  apply enum_fixpoints_normal.
-  apply veblen_first_normal.
-  apply powOmega_normal.
+  unfold Γ. auto with ord.
 Qed.
 
 Theorem Γ₀_least : forall x, veblen powOmega x 0 ≈ x -> Γ 0 ≤ x.
 Proof.
   intros.
   unfold Γ.
-  rewrite enum_fixpoints_zero.
-  apply fixOrd_least.
-  intros; apply veblen_monotone_first; auto.
-  apply powOmega_monotone; auto.
-  apply zero_least.
+  rewrite enum_fixpoints_zero; auto with ord.
+  apply fixOrd_least; auto with ord.
   apply H.
-  apply veblen_first_normal.
-  apply powOmega_normal; auto.
 Qed.
 
 Theorem Γ_enumerates : enumerates Γ (strongly_critical_ordinal powOmega).
@@ -1407,52 +1498,6 @@ Proof.
     split; apply ord_eq_sym.
     apply powOmega_normal. }
 
-  apply enum_fixpoints_enumerates.
-  - intros.
-    apply (normal_inflationary (fun x => veblen powOmega x 0)); auto.
-    apply veblen_first_normal.
-    apply powOmega_normal.
-  - intros; apply veblen_monotone_first; auto.
-    apply powOmega_monotone.
-  - apply veblen_first_normal.
-    apply powOmega_normal.
-Qed.
-
-Definition Ξ a := enum_fixpoints (fun b => veblen Γ b 0) a.
-
-Theorem Ξ_fixpoints : forall a, complete a -> Ξ a ≈ veblen Γ (Ξ a) 0.
-Proof.
-  intros a Ha. unfold Ξ.
-  apply enum_are_fixpoints; auto.
-  apply veblen_first_normal.
-  apply Γ_normal.
-Qed.
-
-Theorem Ξ_normal : normal_function Ξ.
-Proof.
-  unfold Ξ.
-  apply enum_fixpoints_normal.
-  apply veblen_first_normal.
-  apply Γ_normal.
-Qed.
-
-Theorem Ξ_enumerates : enumerates Ξ (strongly_critical_ordinal Γ).
-Proof.
-  cut (enumerates Ξ (fun x => x ≈ veblen Γ x 0)).
-  { apply enumerates_equiv_pred.
-    apply Ξ_normal.
-    intros. rewrite strongly_critical_fixpoint; auto.
-    split; apply ord_eq_sym.
-    apply Γ_normal. }
-
-  apply enum_fixpoints_enumerates.
-  - intros.
-    apply (normal_inflationary (fun x => veblen Γ x 0)); auto.
-    apply veblen_first_normal.
-    apply Γ_normal.
-  - intros; apply veblen_monotone_first; auto.
-    apply normal_monotone.
-    apply Γ_normal.
-  - apply veblen_first_normal.
-    apply Γ_normal.
+  apply enum_fixpoints_enumerates; auto with ord.
+  apply (normal_inflationary (fun x => veblen powOmega x 0)); auto with ord.
 Qed.

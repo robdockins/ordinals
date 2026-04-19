@@ -1,7 +1,8 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import Lia.
 
 Unset Printing Records.
 
@@ -280,6 +281,23 @@ Proof.
   intros. unfold addOrd.
   apply foldOrd_complete; auto with ord.
 Qed.
+
+Lemma add_lt: forall q x y,
+  q < x + y ->
+  q < x \/ exists i:y, q ≤ (x + i).
+Proof.
+  intros q x y H.
+  rewrite addOrd_unfold in H.
+  apply lub_lt in H; destruct H as [H|H]; auto.
+  apply sup_lt in H; destruct H as [i H].
+  right. exists i; auto.
+  rewrite ord_lt_unfold in H. destruct H as [[] H].
+  auto.
+Qed.
+
+Create Rewrite HintDb ord.
+Global Hint Rewrite addOrd_zero_r addOrd_zero_l: ord.
+Global Hint Resolve addOrd_monotone addOrd_complete addOrd_le1 addOrd_le2: ord.
 
 Add Parametric Morphism : addOrd with signature
     ord_le ++> ord_le ++> ord_le as addOrd_le_mor.
@@ -1264,7 +1282,7 @@ Proof.
   apply ord_le_lt_trans with (KnuthUp n ω ω).
   destruct n. inversion H.
   apply KnuthUp_saturates; auto.
-  inversion H; auto with arith.
+  inversion H; lia.
   apply (index_lt _ 0%nat).
   apply H0.
   apply succ_lt.
@@ -1353,3 +1371,47 @@ Proof.
     rewrite <- Hy; auto with ord.
 Qed.
 
+Fixpoint posOrd (p:positive) : Ord :=
+    match p with
+    | xI p => posOrd p * 2 + 1
+    | xO p => posOrd p * 2
+    | xH => 1
+    end.
+
+Definition nOrd (n:N) : Ord :=
+  match n with
+  | N0 => 0
+  | Npos p => posOrd p
+  end.
+
+Lemma posOrd_commute p:
+  posOrd p ≈ natOrdSize (Pos.to_nat p).
+Proof.
+  induction p; auto with ord.
+  - rewrite Pnat.Pos2Nat.inj_xI. simpl.
+    repeat rewrite natOrdSize_add. simpl.
+    rewrite addOrd_succ.
+    apply succ_congruence.
+    rewrite addOrd_zero_l.
+    rewrite addOrd_zero_r.
+    rewrite mulOrd_succ.
+    rewrite mulOrd_succ.
+    rewrite mulOrd_zero_r.
+    rewrite addOrd_zero_l.
+    rewrite IHp. auto with ord.
+  - rewrite Pnat.Pos2Nat.inj_xO. simpl.
+    repeat rewrite natOrdSize_add. simpl.
+    rewrite addOrd_zero_l.
+    rewrite mulOrd_succ.
+    rewrite mulOrd_succ.
+    rewrite mulOrd_zero_r.
+    rewrite addOrd_zero_l.
+    rewrite IHp. auto with ord.
+Qed.
+
+Lemma nOrd_commute n:
+  nOrd n ≈ natOrdSize (N.to_nat n).
+Proof.
+  destruct n; simpl; auto with ord.
+  apply posOrd_commute.
+Qed.

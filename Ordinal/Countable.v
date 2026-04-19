@@ -1,13 +1,12 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
 
 Unset Printing Records.
 
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
-
 
 Inductive countableOrd : Set :=
 | czero  : countableOrd
@@ -34,14 +33,14 @@ Qed.
 Parameter nat_sum : nat -> nat + nat.
 Parameter nat_unsum : nat + nat -> nat.
 
-Hypothesis nat_sum_inv : forall n, nat_unsum (nat_sum n) = n.
-Hypothesis nat_unsum_inv : forall xy, nat_sum (nat_unsum xy) = xy.
+Axiom nat_sum_inv : forall n, nat_unsum (nat_sum n) = n.
+Axiom nat_unsum_inv : forall xy, nat_sum (nat_unsum xy) = xy.
 
 Parameter nat_prod : nat -> nat * nat.
 Parameter nat_unprod : nat * nat -> nat.
 
-Hypothesis nat_prodinv : forall n, nat_unprod (nat_prod n) = n.
-Hypothesis nat_unprod_inv : forall xy, nat_prod (nat_unprod xy) = xy.
+Axiom nat_prodinv : forall n, nat_unprod (nat_prod n) = n.
+Axiom nat_unprod_inv : forall xy, nat_prod (nat_unprod xy) = xy.
 
 Definition club (x y : Ω) :=
   match x, y with

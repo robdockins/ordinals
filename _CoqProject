@@ -10,24 +10,23 @@ Ordinal/Classical.v
 Ordinal/Examples.v
 Ordinal/Fixpoints.v
 Ordinal/Reflection.v
+Ordinal/GoodsteinSequences.v
 
 Ordinal/VeblenDefs.v
 Ordinal/VeblenClassical.v
 Ordinal/VeblenCon.v
 Ordinal/VeblenFacts.v
-Ordinal/VeblenSymbol.v
-Ordinal/Countable.v
-Ordinal/VTowerFin.v
-Ordinal/VTower.v
-Ordinal/VTowerClassical.v
-Ordinal/BHTower.v
-Ordinal/BHTowerFacts.v
+Ordinal/AckermannTower.v
 Ordinal/SchutteColumn.v
+Ordinal/SchutteColumnFacts.v
+
+Ordinal/Countable.v
 
 Ordinal/Notation/CantorNotation.v
 Ordinal/Notation/CantorDecomposition.v
 Ordinal/Notation/VNotation.v
 Ordinal/Notation/VWNotation.v
-Ordinal/Notation/VTowerFinNotation.v
-Ordinal/Notation/VTowerNotation.v
-Ordinal/Notation/BHTowerNotation.v
+Ordinal/Notation/ATowerFinNotation.v
+Ordinal/Notation/ATowerNotation.v
+Ordinal/Notation/SchutteStack.v
+Ordinal/Notation/SchutteMatrix.v

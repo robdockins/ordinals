@@ -1,6 +1,6 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
 
 Unset Printing Records.
 
@@ -96,6 +96,8 @@ Section veblen.
   Qed.
 
 End veblen.
+
+Global Hint Resolve veblen_monotone veblen_monotone_first : ord.
 
 Definition Γ a := enum_fixpoints (fun b => veblen powOmega b 0) a.
 

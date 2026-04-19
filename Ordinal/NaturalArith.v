@@ -1,8 +1,8 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import Lia.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import Lia.
 
 Unset Printing Records.
 
@@ -12,7 +12,7 @@ From Ordinal Require Import Arith.
 From Ordinal Require Import Cantor.
 From Ordinal Require Import Fixpoints.
 
-Require Import ClassicalFacts.
+From Stdlib Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 
@@ -833,7 +833,6 @@ Proof.
       apply expOrd_monotone; auto. }
 
     apply nadd_add_same_powers_step; auto with ord.
-    apply complete_subord; auto.
     intros; apply Hinda; auto with ord.
     rewrite H. auto with ord.
 Qed.
@@ -867,7 +866,6 @@ Proof.
   rewrite addOrd_assoc.
   reflexivity.
 Qed.
-
 
 Lemma each_app: forall A (P:A -> Prop) xs ys,
     each P (xs ++ ys) -> each P xs /\ each P ys.
@@ -938,7 +936,9 @@ Proof.
       apply addOrd_increasing; auto.
       rewrite Hj; auto.
   - intros. apply IHxs with b; simpl in *; intuition.
-    rewrite H. auto.
+    + apply Hxs2; simpl.
+      apply List.in_or_app; auto.
+    + rewrite H. auto.
 Qed.
 
 Fixpoint cantor_denote_nadd (xs:list Ord) : Ord :=

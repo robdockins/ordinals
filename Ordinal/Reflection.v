@@ -1,8 +1,8 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import List.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import List.
 
 Unset Printing Records.
 
@@ -16,6 +16,7 @@ Open Scope ord_scope.
 
 Inductive Shape : Set :=
 | PROP : Shape
+| NAT : Shape
 | ORD : Shape
 | PROD : Shape -> Shape -> Shape
 | ARROW : Shape -> Shape -> Shape
@@ -26,6 +27,7 @@ Notation "S ==> T" := (ARROW S T) : ord_scope.
 Fixpoint ordShape (S:Shape) : Type :=
   match S with
   | PROP        => Prop
+  | NAT         => nat
   | ORD         => Ord
   | PROD S1 S2  => ordShape S1 * ordShape S2
   | ARROW S1 S2 => ordShape S1 -> ordShape S2
@@ -34,6 +36,7 @@ Fixpoint ordShape (S:Shape) : Type :=
 Fixpoint reflShape (S:Shape) (X:Type) : Type :=
   match S with
   | PROP        => Prop
+  | NAT         => nat
   | ORD         => X
   | PROD S1 S2  => reflShape S1 X * reflShape S2 X
   | ARROW S1 S2 => reflShape S1 X -> reflShape S2 X
@@ -42,11 +45,20 @@ Fixpoint reflShape (S:Shape) (X:Type) : Type :=
 Fixpoint reflects (A:Type) (f:A -> Ord) (P:A -> Prop) (S:Shape) : ordShape S -> reflShape S A -> Prop :=
   match S as S' return ordShape S' -> reflShape S' A -> Prop with
   | PROP => fun p q => p <-> q
+  | NAT => fun n m => n = m
   | ORD  => fun x a => x ≈ f a /\ P a
   | PROD S1 S2 => fun x a => reflects A f P S1 (fst x) (fst a) /\ reflects A f P S2 (snd x) (snd a)
   | ARROW S1 S2 => fun g h => forall x a, reflects A f P S1 x a -> reflects A f P S2 (g x) (h a)
   end.
 
+Lemma reflects_app: forall S T X denote P f g x y,
+    reflects X denote P (S ==> T) f g ->
+    reflects X denote P S x y ->
+    reflects X denote P T (f x) (g y).
+Proof.    
+  simpl; intros.
+  apply H; auto.
+Qed.
 
 Remark ε0_least_exp_closed :
   forall X denote P zeroX succX expOmegaX,
@@ -128,7 +140,7 @@ Lemma nat_compare_correct :
 Proof.
   induction x; destruct y; simpl; auto with arith.
   generalize (IHx y).
-  destruct (nat_compare x y); intuition.
+  destruct (nat_compare x y); intuition auto with arith.
 Qed.
 
 Add Parametric Morphism o : (ordering_correct o)

@@ -1,10 +1,9 @@
-From Coq Require Import ClassicalFacts.
-From Coq Require Import ChoiceFacts.
-From Coq Require Import Arith.
-From Coq Require Import Lia.
+From Stdlib Require Import ClassicalFacts.
+From Stdlib Require Import ChoiceFacts.
+From Stdlib Require Import Arith.
+From Stdlib Require Import Lia.
 
 Unset Printing Records.
-
 
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
@@ -39,7 +38,7 @@ Section classic.
       rewrite ord_lt_unfold. exists a. auto.
   Qed.
 
-  (** Classicaly, ordinals form a total order. *)
+  (** Classically, ordinals form a total order. *)
   Theorem order_total (x y:Ord) : x ≤ y \/ y < x.
   Proof.
     destruct (EM (x ≤ y)); auto.
@@ -64,7 +63,7 @@ Section classic.
     destruct (order_total (f a') (f a)); firstorder.
   Qed.
 
-  (** Classicaly, ordinals must either be a zero, successor or limit ordinal. *)
+  (** Classically, ordinals must either be a zero, successor or limit ordinal. *)
   Theorem ordinal_discriminate (x:Ord) :
     zeroOrdinal x \/ successorOrdinal x \/ limitOrdinal x.
   Proof.
@@ -87,8 +86,7 @@ Section classic.
   Theorem ord_complete (x:Ord) : complete x.
   Proof.
     induction x as [A f]; simpl; intuition.
-    + apply ord_directed.
-    + apply EM.
+    apply ord_directed.
   Qed.
 
   (** Classical ordinals are well-ordered by <=. More precisely,
@@ -122,7 +120,7 @@ Section classic.
     red. eauto.
   Qed.
 
-  (** Classicaly, we can provide a more traditional induction principle for ordinals
+  (** Classically, we can provide a more traditional induction principle for ordinals
       that has cases for the three classes of ordinal.
     *)
   Lemma classical_ordinal_induction (P:Ord -> Prop) :
@@ -191,7 +189,7 @@ End classic.
     principles. The workhorse of these results will be the truth ordinal,
     which is 0 for a false proposition and 1 for a true proposition. The main
     results follow from the fact that being able to distinguish which of these cases
-    holds is equivalant to the excluded middle.
+    holds is equivalent to the excluded middle.
 *)
 
 Definition truth_ord (P:Prop) := ord P (fun H => 0).
@@ -343,8 +341,6 @@ Proof.
   - apply sup_least; intro n.
     apply lub_least; auto with ord.
     rewrite ord_le_unfold. simpl; intros.
-    rewrite ord_lt_unfold. exists 0%nat. auto with ord.
-    rewrite ord_le_unfold; simpl; intro.
     rewrite ord_lt_unfold. simpl. exists n. auto with ord.
   - rewrite ord_le_unfold; intro n.
     rewrite <- (sup_le _ _ n).
@@ -414,63 +410,6 @@ Proof.
     destruct (H0 (existT _ O (inl tt))) as [[i q] H1].
     destruct q; auto. simpl in *.
     apply ord_lt_irreflexive in H1. elim H1.
-Qed.
-
-Definition Brouwer_continuity_for_numbers :=
-  forall (R : (nat -> nat) -> nat -> Prop),
-    (forall f, exists m, R f m) ->
-    forall (a : nat -> nat),
-    exists (n : nat) (m : nat),
-    forall (b: nat -> nat),
-      (forall i, (i < n)%nat -> a i = b i) ->
-      R b m.
-
-Definition limited_principle_of_omniscience :=
-  forall (f:nat -> nat), (forall i, f i = 0%nat) \/ (exists i, f i <> 0%nat).
-
-Theorem EM_LPO : excluded_middle -> limited_principle_of_omniscience.
-Proof.
-  intros EM f.
-  destruct (EM (exists i, f i <> 0%nat)); auto.
-  left. intro i.
-  case_eq (f i); auto.
-  intros. elim H.
-  exists i.
-  rewrite H0.
-  discriminate.
-Qed.
-
-Theorem Brouwer_continuity_LPO :
-  Brouwer_continuity_for_numbers -> limited_principle_of_omniscience -> False.
-Proof.
-  intros Hcont HLPO.
-  set (R (f:nat->nat) (n:nat) :=
-         f n <> 0%nat \/ (forall i, f i = 0%nat)).
-  assert (Hn : forall f, exists n, R f n).
-  { intro f. destruct (HLPO f); auto.
-    - exists 0%nat. hnf. right. auto.
-    - destruct H as [i Hi]. exists i. hnf. left. auto. }
-  apply Hcont in Hn.
-  destruct (Hn (fun _ => 0%nat)) as [n [m Hm]].
-  unfold R in Hm.
-  set (g i := (if le_lt_dec i (Nat.max n m) then 0 else 1)%nat).
-  destruct (Hm g).
-  - unfold g; simpl; intros.
-    destruct (le_lt_dec i (Nat.max n m)); lia.
-  - unfold g in H.
-    destruct (le_lt_dec m (Nat.max n m)); lia.
-  - unfold g in H.
-    specialize (H (S (Nat.max n m))).
-    destruct (le_lt_dec (S (Nat.max n m)) (Nat.max n m)); lia.
-Qed.
-
-Corollary Brouwer_continuity_anticlassical :
-  Brouwer_continuity_for_numbers -> excluded_middle -> False.
-Proof.
-  intros.
-  apply Brouwer_continuity_LPO; auto.
-  apply EM_LPO.
-  assumption.
 Qed.
 
 End classical.

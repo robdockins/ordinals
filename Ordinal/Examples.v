@@ -1,11 +1,11 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-
-Require Import List.
-Require Import Relations.
-Require Import Program.Wf.
-Require Import Wellfounded.Transitive_Closure.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import Permutation.
+From Stdlib Require Import List.
+From Stdlib Require Import Relations.
+From Stdlib Require Import Program.Wf.
+From Stdlib Require Import Wellfounded.Transitive_Closure.
 
 Import ListNotations.
 Open Scope list.
@@ -87,11 +87,11 @@ Section wf_ord.
     match X with
     | Acc_intro _ H => ord { a':A | R a' a } (fun x => mk_wf_ord (proj1_sig x) (H _ (proj2_sig x)))
     end.
-  Definition wf_ord (a:A) : Ord := mk_wf_ord a (Hwf a).
+  Definition wf_ord_elt (a:A) : Ord := mk_wf_ord a (Hwf a).
 
-  Lemma wf_ord_lt : forall a a', R a' a -> wf_ord a' < wf_ord a.
+  Lemma wf_ord_lt : forall a a', R a' a -> wf_ord_elt a' < wf_ord_elt a.
   Proof.
-    unfold wf_ord. intros a a'.
+    unfold wf_ord_elt. intros a a'.
     generalize (Hwf a'). revert a'.
     generalize (Hwf a).
     induction a using (well_founded_induction Hwf); intros.
@@ -104,14 +104,14 @@ Section wf_ord.
     apply H; auto.
   Qed.
 
-  Lemma wf_ord_lt_trans : forall a a', clos_trans _ R a' a -> wf_ord a' < wf_ord a.
+  Lemma wf_ord_lt_trans : forall a a', clos_trans _ R a' a -> wf_ord_elt a' < wf_ord_elt a.
   Proof.
     intros; induction H.
     - apply wf_ord_lt; auto.
     - eapply ord_lt_trans; eauto.
   Qed.
 
-  Lemma wf_ord_le_trans : forall a a', clos_refl_trans _ R a' a -> wf_ord a' ≤ wf_ord a.
+  Lemma wf_ord_le_trans : forall a a', clos_refl_trans _ R a' a -> wf_ord_elt a' ≤ wf_ord_elt a.
   Proof.
     intros; induction H.
     - apply ord_lt_le; apply wf_ord_lt; auto.
@@ -120,6 +120,34 @@ Section wf_ord.
   Qed.
 
 End wf_ord.
+
+Definition wf_ord {A:Type} {R: A -> A -> Prop} (H:well_founded R) : Ord :=
+  limOrd (wf_ord_elt A R H).
+
+Lemma wf_ord_lt_nat_omega : wf_ord Wf_nat.lt_wf ≈ ω.
+Proof.
+  split.
+  - rewrite ord_le_unfold. simpl; intro i.
+    rewrite ord_lt_unfold. simpl. exists i.
+    unfold wf_ord_elt. generalize (Wf_nat.lt_wf i).
+    induction i using (well_founded_induction Wf_nat.lt_wf); simpl.
+    intros [Hacc]; simpl.
+    rewrite ord_le_unfold; simpl.
+    intros [j Hj]. simpl.
+    rewrite H; auto.
+    apply natOrdSize_increasing; auto.
+  - rewrite ord_le_unfold; intro i.
+    rewrite ord_lt_unfold.
+    simpl. exists i.
+    unfold wf_ord_elt.
+    generalize (Wf_nat.lt_wf i).
+    induction i; simpl; intros; auto with ord.
+    apply succ_least.
+    destruct a; simpl.
+    rewrite ord_lt_unfold; simpl.
+    exists (exist _ i (PeanoNat.Nat.lt_succ_diag_r i)); simpl.
+    apply IHi.
+Qed.
 
 
 Definition ord_measure (o:Ord) := Acc ord_lt o.
@@ -280,8 +308,6 @@ Proof.
     apply succ_trans.
     apply zero_least.
 Qed.
-
-Require Import Permutation.
 
 Lemma Permutation_size (A:Ord) (r s:list A) : Permutation r s -> sz r ≈ sz s.
 Proof.
