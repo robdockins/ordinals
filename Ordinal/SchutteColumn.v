@@ -2592,6 +2592,16 @@ Proof.
   apply powOmega_normal.
 Qed.
 
+Lemma LVO_nonzero: 0 < LargeVeblenOrdinal.
+Proof.
+  unfold LargeVeblenOrdinal.
+  unfold fixOrd.
+  rewrite <- (sup_le _ _ 1%nat); simpl.
+  apply normal_nonzero.
+  apply schutte_column_normal; auto with ord.
+  apply powOmega_normal.
+Qed.
+
 Lemma LVO_complete: complete LargeVeblenOrdinal.
 Proof.
   unfold LargeVeblenOrdinal.
@@ -2609,12 +2619,7 @@ Qed.
 Lemma LVO_unreachable: schutte_unreachable (expOrd ω) LargeVeblenOrdinal.
 Proof.
   intros. hnf. split.
-  - unfold LargeVeblenOrdinal.
-    unfold fixOrd.
-    rewrite <- (sup_le _ _ 1%nat); simpl.
-    apply normal_nonzero; auto with ord.
-    apply schutte_column_normal; auto with ord.
-    apply powOmega_normal.
+  - apply LVO_nonzero.
 
   - intros.
     apply E_number_unreachable; auto.
@@ -2642,7 +2647,6 @@ Proof.
   apply powOmega_normal.
   split; auto.
 Qed.
-
 
 
 Fixpoint schutte_matrix (f: Ord -> Ord) (m: list (Ord * Ord)) : Ord -> Ord :=
@@ -2790,4 +2794,285 @@ Proof.
       rewrite schutte_matrix_app; simpl; auto with ord.
     + apply schutte_column_enumerates; auto.
       apply schutte_matrix_normal; auto.
+Qed.
+
+
+Fixpoint schutte_matrix_proper (m: list (Ord * Ord)) (β:Ord) (α:Ord) :=
+  match m with
+  | [] => True
+  | ((b,a)::m') => b < β /\ 0 < a /\ a < α /\ schutte_matrix_proper m' b α
+  end.
+
+Lemma schutte_matrix_proper_monotone:
+  forall m β β' α α',
+  β ≤ β' ->
+  α ≤ α' ->
+  schutte_matrix_proper m β α ->
+  schutte_matrix_proper m β' α'.
+Proof.
+  induction m as [|[b a]m]; simpl; auto.
+  intuition.
+  apply ord_lt_le_trans with β; auto with ord.
+  apply ord_lt_le_trans with α; auto with ord.
+  apply (IHm b b α α'); auto with ord.
+Qed.
+
+Lemma proper_matrix_unreachable:
+  forall m f b a δ x,
+    normal_function f ->
+    complete b ->
+    complete a ->
+    complete x ->
+    complete δ ->
+    all_complete m ->
+    schutte_matrix_proper m b δ ->
+    (x ≈ 0 \/ additively_closed δ) ->
+    a < δ ->
+    x < δ ->
+    schutte_matrix f ((b,a)::m) x < schutte_column f b δ 0.
+Proof.
+  induction m as [|[b1 a1]m]; simpl.
+  - intros.
+    destruct (complete_zeroDec b); auto.
+    + apply ord_le_lt_trans with (f (a+x)).
+      { rewrite schutte_column_unroll.
+        apply lub_least; auto with ord.
+        apply sup_least; intro b'.
+        elim (zero_lt b').
+        apply ord_lt_le_trans with b; auto with ord. }
+      rewrite schutte_column_unroll.
+      rewrite <- lub_le1.
+      apply normal_increasing; auto with ord.
+      apply addOrd_complete; auto with ord.
+      rewrite addOrd_zero_r.
+      unfold additively_closed in *. intuition.
+      rewrite H10. rewrite addOrd_zero_r. auto.
+    + rewrite <- (schutte_column_fixpoint b δ 0 f 0 a); auto with ord.
+      rewrite schutte_column0.
+      apply normal_increasing; auto with ord.
+      apply schutte_column_normal; auto with ord.
+      apply addOrd_complete; auto with ord.
+      apply normal_complete; auto with ord.
+      apply schutte_column_normal; auto with ord.
+      rewrite addOrd_zero_r.
+      apply ord_lt_le_trans with δ; auto.
+      apply normal_inflationary with (f:= fun x => schutte_column f b x 0); auto with ord.
+      apply schutte_column_normal_arg; auto with ord.
+  - intros f b a δ x ? ? ? ? ? [?[??]] [?[?[??]]] ? ? ?.
+    rewrite <- (schutte_column_fixpoint b δ 0 f b1 a); auto with ord.
+    eapply ord_lt_le_trans; [ apply (IHm _ b1 a1 δ x); auto with ord | ].
+    apply schutte_column_normal; auto with ord.
+    apply schutte_column_monotone; auto with ord.
+    intros; apply schutte_column_monotone; auto with ord.
+    apply normal_monotone; auto.
+    apply normal_inflationary with (f:= fun x => schutte_column f b x 0); auto with ord.
+    apply schutte_column_normal_arg; auto with ord.
+Qed.
+
+Lemma proper_matrix_apex_unreachable:
+  forall m f β x,
+    normal_function f ->
+    complete β ->
+    complete x ->
+    all_complete m ->
+    (x ≈ 0 \/ β > 1) ->
+    β > 0 ->
+    schutte_matrix_proper m β (schutte_column f β 1 0) ->
+    x < schutte_column f β 1 0 ->
+    schutte_matrix f m x < schutte_column f β 1 0.
+Proof.
+  intros.
+  destruct m as [|[b1 a1]m]; simpl in *.
+  - intros.
+    rewrite <- (schutte_column_fixpoint β 1 0 f 0 0); auto with ord.
+    rewrite schutte_column0.
+    rewrite schutte_column_arg0.
+    apply normal_increasing; auto with ord.
+    apply addOrd_complete; auto with ord.
+    apply normal_complete; auto with ord.
+    apply schutte_column_normal; auto with ord.
+    rewrite addOrd_zero_r; auto.
+    apply normal_monotone; auto.
+  - rewrite <- (schutte_column_fixpoint β 1 0 f b1 0); auto with ord.
+    apply ord_lt_le_trans with (schutte_column f b1 (schutte_column f β 1 0) 0).
+    2:{ apply schutte_column_monotone_func; auto with ord.
+        apply normal_monotone; auto.
+        intros; apply schutte_column_monotone; auto with ord.
+        apply normal_monotone; auto.
+        intros. rewrite schutte_column_arg0; auto with ord.
+        apply normal_monotone; auto. }
+    apply proper_matrix_unreachable; intuition auto with ord.
+    apply normal_complete; auto with ord.
+    apply schutte_column_normal; auto with ord.
+    apply normal_complete; auto with ord.
+    apply schutte_column_normal; auto with ord.
+    right. hnf; intros. apply schutte_column_add_closed; auto with ord.
+    intuition.
+    intuition.
+Qed.
+
+Lemma proper_matrix_E_unreachable:
+  forall m f x E,
+    normal_function f ->
+    complete E ->
+    complete x ->
+    all_complete m ->
+    schutte_matrix_proper m E E ->
+    x < E ->
+    schutte_column f E 1 0 ≤ E ->
+    schutte_matrix f m x < E.
+Proof.
+  intros m f x E Hf He Hx Hm Hproper HxE Hfix.
+  rewrite <- Hfix.
+  apply proper_matrix_apex_unreachable; auto with ord.
+  - right. rewrite <- Hfix.
+    rewrite schutte_column_unroll.
+    rewrite <- lub_le1.
+    apply ord_le_lt_trans with (1+0).
+    rewrite addOrd_zero_r. auto with ord.
+    apply ord_lt_le_trans with (1+(1+0)).
+    apply addOrd_increasing; auto with ord.
+    rewrite addOrd_zero_r. auto with ord.
+    apply onePlus_least_normal; auto.
+    apply addOrd_complete; auto with ord.
+  - rewrite <- Hfix.
+    apply normal_nonzero. apply schutte_column_normal; auto with ord.
+  - apply schutte_matrix_proper_monotone with E E; auto with ord.
+    apply normal_inflationary with (f:=fun x => schutte_column f x 1 0); auto with ord.
+    apply schutte_column_normalβ; auto.
+  - apply ord_lt_le_trans with E; auto.
+    apply normal_inflationary with (f:=fun x => schutte_column f x 1 0); auto with ord.
+    apply schutte_column_normalβ; auto.
+Qed.
+
+Definition proper_matrix_is_unreachable f E :=
+  E > 0 /\
+  (forall m,
+     all_complete m ->
+     schutte_matrix_proper m E E ->
+     schutte_matrix f m 0 < E).
+
+Lemma proper_matrix_is_unreachable_iff:
+  forall f E,
+    normal_function f ->
+    complete E ->
+    schutte_unreachable f E <-> proper_matrix_is_unreachable f E.
+Proof.
+  intros f E Hf HE. split; intro H.
+  - rewrite <- E_number_iff_unreachable in H; auto.
+    split.
+    + rewrite <- H.
+      apply schutte_column_nonzero; auto.
+    + intros m Hcm Hm.
+      apply proper_matrix_E_unreachable; auto with ord.
+      rewrite <- H.
+      apply schutte_column_nonzero; auto.
+      apply H.
+  - destruct H as [HE0 H].
+    split; auto.
+    intros β α x ? ? ? ? ? ?.
+    destruct (complete_zeroDec α); auto.
+    + destruct (complete_zeroDec x); auto.
+      * eapply ord_le_lt_trans; [| apply (H [])]; simpl; auto with ord.
+        rewrite schutte_column_unroll.
+        apply lub_least; auto.
+        ** apply normal_monotone; auto with ord.
+           rewrite H6.
+           rewrite addOrd_zero_l. auto.
+        ** apply sup_least; intro b.
+           apply sup_least; intro a.
+           elim (zero_lt a).
+           apply ord_lt_le_trans with α; auto with ord.
+      * eapply ord_le_lt_trans; [| apply (H [(0,x)])]; auto with ord.
+        ** simpl. rewrite schutte_column0.
+           rewrite schutte_column_unroll.
+           apply lub_least; auto.
+           *** apply normal_monotone; auto with ord.
+               rewrite H6.
+               rewrite addOrd_zero_l.
+               rewrite addOrd_zero_r.
+               auto with ord.
+           *** apply sup_least; intro b.
+               apply sup_least; intro a.
+               elim (zero_lt a).
+               apply ord_lt_le_trans with α; auto with ord.
+        ** simpl. split.
+           apply zero_complete.
+           split; auto.
+        ** simpl; intuition.
+    + destruct (complete_zeroDec β); auto with ord.
+      * destruct (complete_zeroDec x); auto with ord.
+        **eapply ord_le_lt_trans; [| apply (H [(0,α)])]; auto with ord.
+          ***  simpl.
+               rewrite schutte_column0.
+               rewrite schutte_column_unroll.
+               apply lub_least.
+               **** apply normal_monotone; auto with ord.
+                    apply addOrd_monotone; auto with ord.
+               **** apply sup_least; intro b.
+                    elim (zero_lt b).
+                    apply ord_lt_le_trans with β; auto with ord.
+          *** repeat (split; auto with ord).
+          *** simpl; intuition.
+        ** eapply ord_le_lt_trans; [| apply (H [(1,α);(0,x)])]; auto with ord.
+           *** simpl.
+               rewrite schutte_column0.
+               rewrite schutte_column_unroll.
+               apply lub_least.
+               **** rewrite schutte_column_unroll.
+                    rewrite <- lub_le1.
+                    apply normal_monotone; auto with ord.
+                    rewrite addOrd_zero_r.
+                    auto with ord.
+               **** apply sup_least; intro b.
+                    elim (zero_lt b).
+                    apply ord_lt_le_trans with β; auto with ord.
+           *** repeat (split; auto with ord).
+           *** simpl; intuition.
+               eapply ord_le_lt_trans; [| apply (H [])]; simpl; auto with ord.
+               apply succ_least.
+               apply normal_nonzero; auto.
+      * destruct (complete_zeroDec x); auto.
+        ** eapply ord_le_lt_trans; [| apply (H [(β,α)])]; simpl; auto with ord.
+           apply schutte_column_monotone; auto with ord.
+           apply normal_monotone; auto.
+        ** eapply ord_le_lt_trans; [| apply (H [(β,α);(0,x)])]; auto with ord.
+           *** simpl. rewrite schutte_column0.
+               apply schutte_column_monotone; auto with ord.
+               apply normal_monotone; auto.
+               rewrite addOrd_zero_r; auto with ord.
+           *** repeat (split; auto with ord).
+           *** simpl; intuition.
+Qed.
+
+Lemma E_number_iff_matrix_unreachable:
+  forall (E : Ord) (f : Ord -> Ord),
+    normal_function f ->
+    complete E ->
+    schutte_column f E 1 0 ≈ E <-> proper_matrix_is_unreachable f E.
+Proof.
+  intros.
+  rewrite E_number_iff_unreachable; auto.
+  apply proper_matrix_is_unreachable_iff; auto.
+Qed.
+
+Lemma LVO_matrix_unreachable:
+  proper_matrix_is_unreachable (expOrd ω) LargeVeblenOrdinal.
+Proof.
+  apply proper_matrix_is_unreachable_iff.
+  apply powOmega_normal.
+  apply LVO_complete.
+  apply LVO_unreachable.
+Qed.
+
+Lemma LVO_least_matrix_unreachable:
+  forall E,
+    complete E ->
+    proper_matrix_is_unreachable (expOrd ω) E ->
+    LargeVeblenOrdinal ≤ E.
+Proof.
+  intros E HcE HE.
+  rewrite <- proper_matrix_is_unreachable_iff in HE; auto.
+  apply LVO_least_unreachable; auto.
+  apply powOmega_normal.
 Qed.
