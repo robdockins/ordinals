@@ -727,7 +727,6 @@ Proof.
   repeat rewrite addOrd_zero_r.
   rewrite expOrd_zero.
   rewrite expOrd_one'; auto with ord.
-  apply (index_lt ω 0%nat).
 Qed.
 
 
@@ -1530,14 +1529,11 @@ Proof.
     rewrite ε_fixpoint.
     apply ord_le_lt_trans with (expOrd ω 1).
     rewrite expOrd_one'; auto with ord.
-    apply (index_lt _ 0%nat).
     apply expOrd_increasing.
     apply (index_lt _ 1%nat).
     rewrite ε_fixpoint.
     apply ord_lt_le_trans with (expOrd ω 1).
     rewrite expOrd_one'; auto with ord.
-    apply (index_lt _ 1%nat).
-    apply (index_lt _ 0%nat).
     apply expOrd_monotone; auto.
     apply succ_least.
     rewrite ε_fixpoint.

@@ -20,86 +20,10 @@ From Ordinal Require Import VeblenCon.
 
 Open Scope ord_scope.
 
-Lemma onePlus_complete x : complete x -> complete (1 + x).
-Proof.
-  intros; apply addOrd_complete; auto.
-  apply succ_complete; apply zero_complete.
-Qed.
-
-
-Lemma onePlus_normal : normal_function (addOrd 1).
-Proof.
-  constructor.
-  - intros; apply addOrd_monotone; auto with ord.
-  - intros; apply addOrd_increasing; auto.
-  - red; intros; apply addOrd_continuous; auto.
-  - intros; apply addOrd_complete; auto.
-    apply succ_complete. apply zero_complete.
-  - intros.
-    rewrite <- addOrd_le1.
-    apply succ_lt.
-Qed.
-
 Lemma veblen_onePlus_complete a x :
   complete a -> complete x -> complete (veblen (addOrd 1) a x).
 Proof.
-  intros; apply veblen_complete; auto.
-  apply onePlus_normal.
-  apply onePlus_complete.
-Qed.
-
-Lemma onePlus_nonzero : forall x, 0 < 1+x.
-Proof.
-  intros.
-  rewrite <- addOrd_le1. apply succ_lt.
-Qed.
-
-Theorem onePlus_least f :
-  (forall x y, x < y -> f x < f y) ->
-  (forall x, 0 < f x) ->
-  forall x, 1+x <= f x.
-Proof.
-  intros.
-  induction x using ordinal_induction.
-  rewrite addOrd_unfold.
-  apply lub_least.
-  apply succ_least; auto.
-  apply sup_least. intro i.
-  apply succ_least.
-  rewrite (H1 (x i)).
-  apply H; auto.
-  apply index_lt.
-  apply index_lt.
-Qed.
-
-Theorem onePlus_least_normal f :
-    normal_function f ->
-    forall x, complete x -> 1+x <= f x.
-Proof.
-  intros.
-  induction x using ordinal_induction.
-  rewrite addOrd_unfold.
-  apply lub_least.
-  apply succ_least.
-  apply normal_nonzero; auto.
-  apply sup_least. intro i.
-  apply succ_least.
-  rewrite (H1 (x i)).
-  apply normal_increasing; auto.
-  apply index_lt.
-  apply index_lt.
-  apply complete_subord. auto.
-Qed.
-
-Lemma onePlus_finite : forall n, natOrdSize n < 1 + natOrdSize n.
-Proof.
-  induction n; simpl.
-  rewrite addOrd_zero_r.
-  apply succ_lt.
-  rewrite addOrd_succ.
-  apply succ_trans.
-  apply succ_least.
-  auto.
+  intros; auto with ord.
 Qed.
 
 Lemma onePlus_veblen f x y :
@@ -110,12 +34,9 @@ Lemma onePlus_veblen f x y :
   1 + veblen f x y ≈ veblen f x y.
 Proof.
   split; intros.
-  - rewrite <- (veblen_fixpoints f H 0 x y) at 2; auto.
+  - rewrite <- (veblen_fixpoints f H 0 x y) at 2; auto with ord.
     rewrite veblen_zero.
-    apply onePlus_least_normal; auto.
-    apply veblen_complete; auto.
-    apply normal_complete; auto.
-    apply zero_complete.
+    apply onePlus_least_normal; auto with ord.
   - apply addOrd_le2.
 Qed.
 
@@ -153,7 +74,6 @@ Proof.
   apply succ_trans. apply addOrd_zero_r.
   rewrite <- (finite_veblen f x y n); auto.
   apply addOrd_monotone; auto with ord.
-  apply succ_least. apply veblen_nonzero; auto.
 Qed.
 
 Lemma finite_veblen_le f x y n :
@@ -164,10 +84,8 @@ Lemma finite_veblen_le f x y n :
   natOrdSize n <= veblen f x y.
 Proof.
   intros.
-  rewrite <- (finite_veblen f x y n); auto.
-  apply addOrd_le1.
+  rewrite <- (finite_veblen f x y n); auto with ord.
 Qed.
-
 
 Theorem veblen_onePlus :
   forall a x, complete a -> complete x -> veblen (addOrd 1) a x ≈ expOrd ω a + x.
@@ -177,13 +95,10 @@ Proof.
   - rewrite veblen_unroll.
     apply lub_least.
     + apply addOrd_monotone; auto with ord.
-      apply succ_least.
-      apply expOrd_nonzero.
     + unfold boundedSup.
       apply sup_least; intro i.
       apply fixOrd_least.
-      * intros; apply veblen_monotone; auto.
-        intros; apply addOrd_monotone; auto with ord.
+      * intros; apply veblen_monotone; auto with ord.
       * rewrite ord_le_unfold. simpl ordSize. intro a.
         simpl in a. rewrite Hx; auto.
         apply addOrd_increasing.
@@ -253,10 +168,9 @@ Proof.
     + apply sup_least; intro i. simpl ordSize.
       transitivity (succOrd (expOrd ω (ord A f) + g i)).
       reflexivity.
-      rewrite <- Hx; auto.
+      rewrite <- Hx; auto with ord.
       apply succ_least.
       apply veblen_increasing; auto with ord.
-      apply onePlus_normal.
       apply H0.
 Qed.
 
@@ -306,7 +220,6 @@ Proof.
       apply Hy; auto with ord.
     + apply Hb; auto with ord.
 Qed.
-
 
 Lemma veblen_monotone_func f g :
   normal_function f ->
@@ -399,13 +312,11 @@ Proof.
   apply expOrd_monotone; auto.
 Qed.
 
-
 Local Hint Unfold powOmega : core.
 Local Hint Resolve veblen_complete
         onePlus_normal powOmega_normal expOrd_complete addOrd_complete
         omega_complete succ_complete zero_complete
         normal_monotone normal_complete omega_gt0 omega_gt1 : core.
-
 
 Lemma veblen_additively_closed a b :
   complete a -> complete b ->
@@ -687,18 +598,15 @@ Proof.
     rewrite Hxy. apply veblen_inflationary; auto.
   - destruct a as [A fa]; simpl; apply sup_least; intros i.
     apply fixOrd_least; auto with ord.
-    + intros; apply veblen_monotone; auto.
     + rewrite ord_le_unfold; simpl; intro ix.
       rewrite (Hind_x (x ix) (index_lt x ix) b (x ix)); auto with ord.
       apply veblen_increasing; auto.
       apply ord_lt_le_trans with x; auto with ord.
-      apply complete_subord; auto.
-      apply complete_subord; auto.
     + destruct (complete_zeroDec (fa i)); auto.
       * apply Ha.
       * transitivity (veblen (fun i0 : Ord => f (1 + i0)) 0 (veblen f b y)).
         apply veblen_monotone_first; auto with ord.
-        rewrite <- (veblen_fixpoints _ Hf 0 b y) at 2; auto.
+        rewrite <- (veblen_fixpoints _ Hf 0 b y) at 2; auto with ord.
         rewrite veblen_zero.
         rewrite veblen_zero.
         apply normal_monotone; auto.
@@ -755,7 +663,6 @@ Proof.
     apply succ_least.
     apply ord_le_lt_trans with (veblen f a (x i)).
     apply Hind; auto with ord.
-    apply complete_subord; auto.
     apply veblen_increasing; auto with ord.
 Qed.
 

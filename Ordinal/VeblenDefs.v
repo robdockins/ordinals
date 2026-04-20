@@ -97,6 +97,8 @@ Section veblen.
 
 End veblen.
 
+Global Hint Resolve veblen_monotone veblen_monotone_first : ord.
+
 Definition Γ a := enum_fixpoints (fun b => veblen powOmega b 0) a.
 
 Lemma Γ_monotone : forall x y, x ≤ y -> Γ x ≤ Γ y.

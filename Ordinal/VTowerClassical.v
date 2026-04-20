@@ -402,7 +402,6 @@ Section vtower_normal.
         rewrite veblen_zero.
         apply normal_monotone; auto.
         transitivity (1+x); auto with ord.
-        apply addOrd_le2.
         apply (normal_inflationary (fun q => veblen (vtower (g i)) q 0)).
         apply veblen_first_normal; auto.
         apply classical.ord_complete; auto.
@@ -723,8 +722,6 @@ Proof.
         { apply additively_closed_limit.
           apply ord_lt_le_trans with (expOrd ω 1).
           rewrite expOrd_one'; auto with ord.
-          apply omega_gt1.
-          apply omega_gt0.
           apply expOrd_monotone; auto with ord.
           apply expOmega_additively_closed; auto. }
         rewrite ord_isLimit in H3.

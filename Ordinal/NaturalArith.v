@@ -833,7 +833,6 @@ Proof.
       apply expOrd_monotone; auto. }
 
     apply nadd_add_same_powers_step; auto with ord.
-    apply complete_subord; auto.
     intros; apply Hinda; auto with ord.
     rewrite H. auto with ord.
 Qed.
@@ -867,7 +866,6 @@ Proof.
   rewrite addOrd_assoc.
   reflexivity.
 Qed.
-
 
 Lemma each_app: forall A (P:A -> Prop) xs ys,
     each P (xs ++ ys) -> each P xs /\ each P ys.

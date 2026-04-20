@@ -77,10 +77,8 @@ Proof.
   apply ord_lt_le_trans with (veblen (addOrd 1) (VF_denote a) 0).
   - clear x.
     induction a; simpl; intuition.
-    { apply veblen_nonzero; auto. }
     apply veblen_shrink_lemma; auto.
   - apply veblen_monotone; auto with ord.
-    intros; apply addOrd_monotone; auto with ord.
 Qed.
 
 Lemma VF_denote_le2 : forall x a,
@@ -95,7 +93,6 @@ Lemma VF_denote_shrink2 : forall x a,
   VF_denote x < VF_denote (V a x).
 Proof.
   induction x; simpl; intuition.
-  { apply veblen_nonzero; auto. }
   apply veblen_increasing'; auto.
   apply IHx2. simpl; intuition.
 Qed.
@@ -135,11 +132,8 @@ Lemma VF_compare_correct : forall x y,
     end.
 Proof.
   induction x as [|a IHa x IHx].
-  { destruct y as [|b y]; simpl; auto with ord.
-    apply veblen_nonzero.
-    apply onePlus_normal. }
-  induction y as [|b IHb y IHy]; simpl.
-  { apply veblen_nonzero.  apply onePlus_normal. }
+  { destruct y as [|b y]; simpl; auto with ord. }
+  induction y as [|b IHb y IHy]; simpl; auto with ord.
   generalize (IHa b).
   destruct (VF_compare a b); intro Hab.
   - generalize (IHx (V b y)).
@@ -320,16 +314,8 @@ Proof.
   induction x; simpl; intuition.
   rewrite <- Vnorm_V. simpl.
   transitivity (veblen (addOrd 1) (VF_denote x1) (VF_denote (Vnormalize x2))).
-  - split; apply veblen_monotone_first; auto with ord.
-    intros; apply addOrd_monotone; auto with ord.
-    apply IHx1.
-    intros; apply addOrd_monotone; auto with ord.
-    apply IHx1.
-  - split; apply veblen_monotone; auto with ord.
-    intros; apply addOrd_monotone; auto with ord.
-    apply IHx2.
-    intros; apply addOrd_monotone; auto with ord.
-    apply IHx2.
+  - split; apply veblen_monotone_first; auto with ord; apply IHx1.
+  - split; apply veblen_monotone; auto with ord; apply IHx2.
 Qed.
 
 Fixpoint VF_decompose (x:VForm) : list VForm :=

@@ -281,6 +281,9 @@ Proof.
   apply foldOrd_complete; auto with ord.
 Qed.
 
+Global Hint Rewrite addOrd_zero_r addOrd_zero_l: ord.
+Global Hint Resolve addOrd_monotone addOrd_complete addOrd_le1 addOrd_le2: ord.
+
 Add Parametric Morphism : addOrd with signature
     ord_le ++> ord_le ++> ord_le as addOrd_le_mor.
 Proof.

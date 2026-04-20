@@ -84,11 +84,8 @@ Section cantor_arithmetic.
     apply zero_complete.
     apply addOrd_complete; auto.
     apply expOrd_complete; auto with ord.
-    apply omega_gt0.
-    apply omega_complete.
     apply cantor_decomp_complete with P; auto.
   Qed.
-
 
   Definition cantor_zero := cantor_recompose X [].
 
@@ -238,7 +235,6 @@ Section cantor_arithmetic.
       apply expOrd_add_collapse; auto.
       apply (cantor_decomp_complete X); auto.
       apply addOrd_monotone; auto with ord.
-      apply addOrd_le2.
       simpl in IHxs.
       rewrite <- addOrd_assoc.
       rewrite (IHxs a); auto.
@@ -248,7 +244,6 @@ Section cantor_arithmetic.
       apply expOrd_add_collapse; auto.
       apply (cantor_decomp_complete X); auto.
       apply addOrd_monotone; auto with ord.
-      apply addOrd_le2.
       rewrite H1. auto. }
     rewrite H8.
     rewrite addOrd_assoc.
@@ -524,8 +519,7 @@ Section cantor_arithmetic.
       reflexivity. }
     rewrite expOrd_add. simpl.
     split.
-    { apply mulOrd_le_mor; auto with ord.
-      apply addOrd_le1. }
+    { apply mulOrd_le_mor; auto with ord. }
     apply expOrd_omega_collapse with (length xs).
     apply (cantor_denote_complete (e1::es)).
     rewrite <- addOrd_le1.
@@ -850,8 +844,7 @@ Section cantor_arithmetic.
         transitivity (expOrd ω 1).
         { rewrite expOrd_one'; auto with ord.
           apply ord_lt_le.
-          apply additively_closed_omega; auto with ord.
-          apply omega_gt1. apply omega_gt0. }
+          apply additively_closed_omega; auto with ord. }
         apply expOrd_monotone; auto with ord.
         apply succ_least. rewrite <- addOrd_le1. apply expOrd_nonzero.
         rewrite <- H8.
@@ -862,7 +855,6 @@ Section cantor_arithmetic.
           rewrite ordDistrib_left.
           rewrite mulOrd_one_r.
           apply addOrd_monotone; auto with ord.
-          apply expOrd_monotone; auto with ord.
           destruct x; auto.
           eauto with ord.
           auto. }
@@ -1218,7 +1210,6 @@ Section cantor_arithmetic.
           rewrite Hi0.
           rewrite <- HA.
           apply veblen_monotone; auto with ord.
-          apply normal_monotone; auto with ord.
           rewrite ord_lt_unfold; simpl.
           rewrite ord_lt_unfold in Hq3.
           destruct Hq3 as [k' Hq3].
@@ -1226,7 +1217,6 @@ Section cantor_arithmetic.
           rewrite <- HA.
           rewrite <- Hvr1.
           apply veblen_monotone; auto with ord.
-          apply normal_monotone; auto.
           rewrite <- Hvr1.
           apply Hindb; auto.
           apply (cantor_decomp_complete X); auto. }
@@ -1238,9 +1228,7 @@ Section cantor_arithmetic.
           apply fixOrd_monotone_func.
           intros.
           apply veblen_monotone_first; auto with ord.
-          apply normal_monotone; auto.
-          intros; apply veblen_monotone; auto with ord.
-          apply normal_monotone; auto. }
+          intros; apply veblen_monotone; auto with ord. }
 
         assert (Hfix: has_interpolants (fixOrd (veblen g (f y)) b')).
         { apply fix_has_interpolants; auto.
@@ -1257,7 +1245,6 @@ Section cantor_arithmetic.
             apply complete_subord; auto.
             apply directed_monotone; auto.
             intros. apply veblen_monotone; auto with ord.
-            apply normal_monotone; auto.
             destruct b. apply Hb1. }
         rewrite has_interpolants_unfold in Hfix.
         destruct (Hfix i) as [z [Hz1 [Hz2 [Hz3 Hz4]]]]; auto.
@@ -1272,9 +1259,7 @@ Section cantor_arithmetic.
         rewrite <- (sup_le AA _ zq).
         apply fixOrd_monotone_func.
         intros. apply veblen_monotone_first; auto with ord.
-        apply normal_monotone; auto.
         intros. apply veblen_monotone; auto with ord.
-        apply normal_monotone; auto.
     Qed.
 
     Lemma veblen_interpolants_first:
@@ -1309,20 +1294,15 @@ Section cantor_arithmetic.
         { eapply ord_lt_le_trans; [ apply Hi |].
           etransitivity; [ apply fixOrd_monotone | apply fixOrd_monotone_func ].
           intros; apply veblen_monotone; auto with ord.
-          apply normal_monotone; auto.
           rewrite ord_le_unfold; simpl; intros [].
           intros; apply veblen_monotone_first; auto with ord.
-          apply normal_monotone; auto.
-          intros; apply veblen_monotone; auto with ord.
-          apply normal_monotone; auto. }
+          intros; apply veblen_monotone; auto with ord. }
 
         assert (Hfix: has_interpolants (fixOrd (veblen g (f k)) 0)).
-        { apply fix_has_interpolants.
+        { apply fix_has_interpolants; auto with ord.
           + intros; apply veblen_complete; auto with ord.
-            intros. apply normal_complete; auto.
             apply (cantor_decomp_complete X).
           + intros. apply veblen_interpolants; auto.
-          + apply zero_complete.
           + rewrite has_interpolants_unfold.
             intros l Hl.
             rewrite ord_lt_unfold in Hl. destruct Hl as [[] _]. }
@@ -1338,12 +1318,9 @@ Section cantor_arithmetic.
         eapply ord_lt_le_trans; [ apply Hy3 |].
         etransitivity; [ apply fixOrd_monotone | apply fixOrd_monotone_func ].
         intros; apply veblen_monotone; auto with ord.
-        apply normal_monotone; auto.
         rewrite ord_le_unfold; simpl; intros [].
         intros; apply veblen_monotone_first; auto with ord.
-        apply normal_monotone; auto.
         intros; apply veblen_monotone; auto with ord.
-        apply normal_monotone; auto.
     Qed.
 
   End veblen_interpolants.
@@ -1814,8 +1791,7 @@ Section cantor_arithmetic.
           rewrite (mulOrd_unfold (expOrd _ (f a w))).
           rewrite <- (sup_le _ _ (m+n+2)%nat).
           rewrite <- addOrd_le1.
-          apply mulOrd_monotone1; auto with ord.
-          apply expOrd_monotone; auto with ord. }
+          apply mulOrd_monotone1; auto with ord. }
       rewrite addOrd_zero_r.
       apply ord_lt_le_trans with
         ((expOrd ω (f a i) * ω m + expOrd ω (f a i)) ⊕ f y).
