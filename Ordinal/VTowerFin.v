@@ -175,7 +175,6 @@ Proof.
   rewrite vtower_fin_1_func; auto.
   rewrite addOrd_zero_r.
   rewrite expOrd_one'; auto with ord.
-  apply (index_lt _ 0%nat).
 Qed.
 
 Lemma vtower_fin_2_func : forall x, complete x -> vtower_fin 2 x ≈ veblen powOmega (1+x) 0.
@@ -185,7 +184,7 @@ Proof.
   simpl.
   rewrite (veblen_func_onePlus (fun i => veblen (addOrd 1) i 0)); auto.
   split; apply veblen_monotone_func; auto.
-  intros; rewrite veblen_onePlus; auto.
+  intros; rewrite veblen_onePlus; auto with ord.
   rewrite addOrd_zero_r. reflexivity.
   intros; rewrite veblen_onePlus; auto.
   rewrite addOrd_zero_r. reflexivity.
@@ -217,7 +216,6 @@ Proof.
   rewrite vtower_fin_3_func; auto.
   transitivity (veblen (fun i : Ord => veblen powOmega i 0) 1 0).
   apply veblen_eq_mor; auto with ord.
-  intros; apply veblen_monotone_first; auto.
   rewrite addOrd_zero_r; auto with ord.
   rewrite veblen_succ; auto.
   unfold Γ.

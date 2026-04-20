@@ -48,7 +48,6 @@ Proof.
   rewrite veblen_onePlus; auto.
   rewrite addOrd_zero_r.
   rewrite expOrd_one'; auto with ord.
-  apply omega_gt0.
 Qed.
 
 Lemma succ_reachable : forall n f i,
@@ -182,7 +181,6 @@ Theorem apex_nonzero : forall n f,
 Proof.
   intros.
   rewrite apex_fixpoint; auto with ord.
-  apply normal_nonzero; auto with ord.
 Qed.
 
 Theorem apex_limit : forall n f,
@@ -288,8 +286,6 @@ Proof.
       apply fixOrd_least; auto with ord.
       rewrite normal_fixpoint at 2; auto with ord.
       rewrite bhtower_one; auto with ord arith.
-      apply bhtower_monotone; auto with ord.
-      apply addOrd_le2.
       apply normal_fix_complete; auto with ord.
     - apply fixOrd_least; auto with ord.
       rewrite apex_fixpoint at 2; auto.
@@ -297,7 +293,6 @@ Proof.
       apply bhtower_monotone; auto with ord.
       apply limit_onePlus. apply apex_limit; auto. }
   - split; apply bhtower_monotone; auto with ord.
-    rewrite addOrd_zero_r; auto with ord.
     rewrite addOrd_zero_r; auto with ord.
 Qed.
 
@@ -557,7 +552,7 @@ Proof.
     rewrite (bhtower_unroll (S m)).
     rewrite <- lub_le2.
     rewrite <- (sup_le _ _ q').
-    rewrite <- nextCritical_critical.
+    rewrite <- nextCritical_critical with (y':=j); auto with ord.
     * apply bhtower_monotone; auto with ord.
       intros. apply bhtower_monotone; auto with ord.
       rewrite H. rewrite Hr2. auto.
@@ -573,10 +568,6 @@ Proof.
       ** apply addOrd_complete; auto with ord.
          apply nextCritical_complete; auto with ord.
          apply lim_normal_complete; auto with ord.
-      ** rewrite <- addOrd_le1. auto with ord.
-    * auto with ord.
-    * auto with ord.
-    * auto with ord.
     * apply addOrd_complete; auto with ord.
       apply nextCritical_complete; auto with ord.
       apply lim_normal_complete; auto with ord.
@@ -584,17 +575,15 @@ Proof.
       apply nextCritical_complete; auto with ord.
       apply lim_normal_complete; auto with ord.
     * apply ord_lt_le_trans with i; auto with ord.
-      rewrite <- addOrd_le2.
       rewrite <- nextCritical_fix; auto with ord.
       transitivity r'.
       { rewrite Hl1. rewrite Hr1. rewrite Hr'. auto with ord. }
       transitivity (bhtower (S (S m)) f r' 0).
       { apply (normal_inflationary (fun x => bhtower (S (S m)) f x 0)); auto with ord. }
+      rewrite <- addOrd_le2.
       apply bhtower_monotone; auto with ord.
       apply lim_normal_complete; auto with ord.
-      rewrite <- addOrd_le1; auto with ord.
     * apply lim_normal_complete; auto with ord.
-    * rewrite <- addOrd_le1; auto with ord.
 Qed.
 
 Lemma BH_stack_unreachable :
@@ -1017,10 +1006,6 @@ Proof.
       rewrite <- (bhtower_fixpoint (S n) (addOrd 1) 0 (1+x) y); auto with ord arith.
       rewrite bhtower_zero.
       apply addOrd_monotone; auto with ord.
-      apply succ_least.
-      apply normal_nonzero; auto with ord.
-      rewrite <- addOrd_le1.
-      auto with ord.
     + apply sup_lt in Hi.
       destruct Hi as [a Hi].
       unfold nextCritical in Hi.
@@ -1049,14 +1034,11 @@ Proof.
         apply omega_limit.
         eapply ord_lt_le_trans; [ apply Hi' | ].
         apply normal_fix_least; auto with ord.
-        apply omega_complete.
         transitivity (bhtower (S n) (addOrd 1) 0 ω).
         apply bhtower_monotone; auto with ord.
         rewrite bhtower_zero.
         apply additively_closed_collapse; auto with ord.
         apply additively_closed_omega.
-        rewrite ord_lt_unfold. exists 1%nat.
-        simpl. auto with ord.
         rewrite ord_le_unfold. simpl; intro q.
         induction q; simpl.
         ** apply normal_nonzero; auto.
@@ -1065,8 +1047,6 @@ Proof.
            rewrite <- (bhtower_fixpoint (S n) (addOrd 1) 0 (1+x) y); auto with ord arith.
            rewrite bhtower_zero.
            apply addOrd_increasing; auto.
-           rewrite <- addOrd_le1.
-           auto with ord.
       * assert (Ha : a < 1+x) by auto with ord.
         apply addOrd_lt in Ha.
         destruct Ha.
@@ -1152,7 +1132,6 @@ Proof.
     rewrite veblen_onePlus; auto with ord.
     rewrite addOrd_zero_r.
     apply expOrd_monotone; auto with ord.
-    apply addOrd_le2.
     apply addOrd_complete; auto with ord.
     apply BH_stack_complete; auto with ord. }
   apply bhtower_monotone_strong; auto with ord.
@@ -1333,8 +1312,6 @@ Proof.
           apply bhtower_monotone; auto with ord. }
       rewrite <- H1 at 2.
       rewrite bhtower_succ; auto with ord arith.
-      apply bhtower_monotone; auto with ord.
-      apply addOrd_le2.
       simpl in *; intuition.
       apply BH_stack_complete; auto.
 Qed.

@@ -220,8 +220,6 @@ Proof.
   induction x as [|a IHa x IHx|a IHa x IHx].
   (* x => Z case *)
   - destruct y as [|b y|b y]; simpl; auto with ord.
-    apply veblen_nonzero; auto.
-    apply veblen_nonzero; auto.
   (* x => V a x case *)
   - induction y as [|b IHb y IHy|b IHb y IHy].
     (* y => Z case *)
@@ -414,18 +412,13 @@ Proof.
   induction x; simpl; intuition.
   - destruct x2; simpl; intuition.
     destruct x1; simpl; intuition.
-    + apply veblen_nonzero; auto.
     + apply veblen_subterm1_zero_nest; simpl in *; intuition.
     + apply veblen_subterm1; auto with ord.
-      apply veblen_nonzero; auto with ord.
     + apply veblen_subterm1; auto with ord.
-      apply veblen_nonzero; auto.
   - destruct x2; simpl; intuition.
-    + apply veblen_nonzero; auto.
     + apply veblen_increasing'; simpl in *; intuition.
     + simpl in H2. rewrite H2 at 1.
       apply veblen_subterm1; auto with ord.
-      apply veblen_nonzero; auto.
   - destruct x2; simpl; intuition.
     + destruct x1; simpl; intuition.
       * apply ord_le_lt_trans with (veblen (expOrd ω) (VF_denote x1_1) (VF_denote x1_2)).
@@ -434,11 +427,8 @@ Proof.
         apply veblen_subterm1_zero_nest; simpl in *; intuition.
       * apply veblen_subterm1_zero_nest; simpl in *; intuition.
     + apply veblen_subterm1; auto with ord.
-      apply veblen_nonzero; auto.
     + apply veblen_subterm1; auto with ord.
-      apply veblen_nonzero; auto.
   - destruct x2; simpl; intuition.
-    + apply veblen_nonzero; auto.
     + simpl in *. intuition.
       apply veblen_collapse'; auto.
       eapply ord_lt_le_trans; [ apply H1 |].
@@ -451,8 +441,6 @@ Proof.
       rewrite veblen_zero.
       reflexivity.
       destruct x1; simpl; intuition.
-      apply veblen_nonzero; auto.
-      apply veblen_nonzero; auto.
     + apply veblen_increasing'; simpl in *; intuition.
 Qed.
 
@@ -515,8 +503,6 @@ Proof.
       apply expOrd_monotone; apply H1.
       apply (veblen_fixpoints _ powOmega_normal 0 (VF_denote b)); auto.
       destruct b; simpl; intuition.
-      apply veblen_nonzero; auto.
-      apply veblen_nonzero; auto.
 
   - destruct y as [|b y|b y]; simpl; intuition.
     + elim (ord_lt_irreflexive 0).
@@ -535,8 +521,6 @@ Proof.
       apply expOrd_monotone; apply H1.
       apply (veblen_fixpoints _ powOmega_normal 0 (VF_denote a)); auto.
       destruct a; simpl; intuition.
-      apply veblen_nonzero; auto.
-      apply veblen_nonzero; auto.
 
     + assert (VF_denote a ≈ VF_denote b).
       { generalize (VF_compare_correct a b).
@@ -687,8 +671,6 @@ Proof.
     rewrite veblen_zero.
     reflexivity.
     destruct b1; simpl; intuition.
-    apply veblen_nonzero; auto.
-    apply veblen_nonzero; auto.
   + destruct b; simpl; auto with ord.
     generalize (VF_compare_correct a b1).
     destruct (VF_compare a b1); simpl; auto with ord.
@@ -848,7 +830,6 @@ Theorem VF_exp_reflects: reflects VForm VF_denote VF_isNormal (ORD ==> ORD ==> O
 Proof.
   apply cantor_exp_reflects.
 Qed.
-
 
 Lemma VF_epsilon_correct : forall x,
     VF_isNormal x ->

@@ -343,8 +343,6 @@ Proof.
   - apply sup_least; intro n.
     apply lub_least; auto with ord.
     rewrite ord_le_unfold. simpl; intros.
-    rewrite ord_lt_unfold. exists 0%nat. auto with ord.
-    rewrite ord_le_unfold; simpl; intro.
     rewrite ord_lt_unfold. simpl. exists n. auto with ord.
   - rewrite ord_le_unfold; intro n.
     rewrite <- (sup_le _ _ n).

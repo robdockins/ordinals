@@ -495,7 +495,6 @@ Proof.
       intuition; subst.
       * apply normal_nonzero; auto.
       * destruct x1; simpl in H4; intuition; try discriminate.
-        { apply normal_nonzero; auto. }
         simpl.
         apply veblen_collapse'; auto.
         eapply ord_lt_le_trans; [ apply H4 | ].
@@ -550,7 +549,6 @@ Proof.
         ** (* LT case *)
           rewrite H3 at 1.
           apply veblen_subterm1; auto with ord.
-          apply veblen_nonzero; auto.
         ** (* EQ case *)
           apply ord_le_lt_trans with
               (veblen (vtower (VF_denote x1)) (VF_denote x3_2) (VF_denote x3_3)).
@@ -771,7 +769,6 @@ Proof.
       rewrite vtower_zero.
       rewrite IHx3. reflexivity.
       rewrite onePlus_veblen; auto with ord.
-      apply veblen_nonzero; auto.
     + split. apply addOrd_le2.
       apply limit_onePlus.
       apply veblen_limit; auto.
@@ -1006,7 +1003,7 @@ Proof.
            hnf; right. right.
            rewrite (VF_onePlus_correct (V b1 b2 b3)); auto.
 
-           Transparent VF_onePlus.
+           Local Transparent VF_onePlus.
            simpl.
            destruct b1; simpl; auto.
            destruct b2; simpl; auto with ord.
@@ -1288,7 +1285,6 @@ Proof.
   rewrite VF_expOmega_correct.
   rewrite VF_one_correct.
   rewrite expOrd_one'; auto with ord.
-  apply omega_gt0.
 Qed.
 
 Opaque VF_one.
@@ -1356,8 +1352,6 @@ Proof.
     apply compose_normal.
     apply powOmega_normal.
     apply onePlus_normal.
-    intros. apply expOrd_monotone; auto.
-    apply addOrd_le2.
 Qed.
 
 Lemma VF_Gamma_correct x : VF_denote (VF_Gamma x) ≈ Γ (VF_denote x).
@@ -1430,11 +1424,8 @@ Proof.
     intros. apply veblen_monotone_first; auto.
     rewrite (Hind a).
     apply enum_fixpoints_increasing; auto with ord.
-    intros. apply veblen_monotone_first; auto.
     apply H.
   - apply enum_fixpoints_func_mono; auto with ord.
-    intros. apply veblen_monotone_first; auto.
-    apply addOrd_le2.
 Qed.
 
 Lemma VF_SVO_correct : VF_denote (VF_SVO) ≈ SmallVeblenOrdinal.
@@ -1548,17 +1539,13 @@ Proof.
       destruct (Hfix k) as [s [Hs1 [Hs2 [Hs3 Hs4]]]]; auto.
       eapply ord_lt_le_trans; [ apply Hk | ].
       apply fixOrd_monotone_func; auto with ord.
-      intros.
-      apply veblen_monotone_full; auto with ord.
       exists s; intuition.
       unfold nextCritical.
       rewrite ord_lt_unfold in Hr3.
       destruct Hr3 as [z Hr3].
       rewrite <- (sup_le _ _ z).
       eapply ord_lt_le_trans; [ apply Hs3 |].
-      apply fixOrd_monotone_func; auto with ord.
-      intros; apply veblen_monotone_first; auto with ord.
-      intros; apply veblen_monotone; auto with ord. }
+      apply fixOrd_monotone_func; auto with ord. }
 
     rewrite has_interpolants_unfold in Hcrit.
     destruct (Hcrit i) as [z [Hz1 [Hz2 [Hz3 Hz4]]]]; auto.

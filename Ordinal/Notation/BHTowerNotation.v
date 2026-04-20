@@ -215,7 +215,6 @@ Proof.
     rewrite veblen_onePlus; auto with ord.
     rewrite addOrd_zero_r.
     apply expOrd_monotone; auto with ord.
-    apply addOrd_le2.
     apply addOrd_complete; auto with ord.
     apply normal_fix_complete; auto with ord.
     apply normal_fix_complete; auto with ord.
@@ -247,7 +246,6 @@ Proof.
     apply normal_fix_least; auto with ord.
     apply normal_fix_complete; auto with ord.
     intros. apply (normal_inflationary (fun q => veblen powOmega q 0)); auto.
-    intros. apply veblen_monotone_first; auto with ord.
     apply fixOrd_above.
     rewrite veblen_zero.
     rewrite bhtower_succ; auto with ord.
@@ -267,30 +265,24 @@ Proof.
     apply normal_fix_complete; auto with ord.
     intros. apply (normal_inflationary (fun q => veblen powOmega q 0)); auto with ord.
     intros. apply veblen_monotone_first; auto with ord.
-    apply veblen_monotone_first; auto with ord.
     rewrite normal_fixpoint at 2; auto with ord.
     apply (onePlus_least_normal (fun q => veblen powOmega q 0)); auto with ord.
     apply normal_fix_complete; auto with ord.
     intros. apply (normal_inflationary (fun q => veblen powOmega q 0)); auto with ord.
-    intros. apply veblen_monotone_first; auto with ord.
     apply veblen_func_onePlus; auto with ord.
     apply normal_fix_complete; auto with ord.
     intros. apply (normal_inflationary (fun q => veblen powOmega q 0)); auto with ord.
-    intros. apply veblen_monotone_first; auto with ord.
     rewrite normal_fixpoint; auto with ord.
     apply normal_nonzero; auto with ord.
     apply veblen_normal; auto with ord.
     apply normal_fix_complete; auto with ord.
     intros. apply (normal_inflationary (fun q => veblen powOmega q 0)); auto with ord.
-    intros. apply veblen_monotone_first; auto with ord.
     apply normal_fix_complete; auto with ord.
     intros. apply (normal_inflationary (fun q => veblen powOmega q 0)); auto with ord.
-    intros. apply veblen_monotone_first; auto with ord.
   - intros.
     apply normal_fix_least; auto with ord.
     apply normal_fix_complete; auto with ord.
     intros; apply normal_inflationary; auto with ord.
-    intros; apply normal_monotone; auto with ord.
     apply fixOrd_above.
     rewrite normal_fixpoint at 2; auto with ord.
     rewrite veblen_zero.
@@ -298,7 +290,6 @@ Proof.
     rewrite bhtower_index_one; auto with ord.
     transitivity (veblen powOmega (1 + fixOrd (veblen (bhtower 2 (addOrd 1) 2) 0) x0) 0).
     apply veblen_monotone_first; auto with ord.
-    apply addOrd_le2.
     apply veblen_monotone_func; auto with ord.
     intros.
     rewrite bhtower_one; auto with ord.
@@ -309,10 +300,8 @@ Proof.
     apply addOrd_complete; auto with ord.
     apply normal_fix_complete; auto with ord.
     intros; apply normal_inflationary; auto with ord.
-    intros; apply normal_monotone; auto with ord.
     apply normal_fix_complete; auto with ord.
     intros; apply normal_inflationary; auto with ord.
-    intros; apply normal_monotone; auto with ord.
 Qed.
 
 Lemma BH_SVO_correct : BH_denote BH_SVO ≈ SmallVeblenOrdinal.
@@ -382,21 +371,17 @@ Proof.
     intros; apply vtower_first_normal; auto with ord.
     apply normal_fix_complete; auto with ord.
     intros. apply normal_inflationary; auto with ord.
-    intros. apply veblen_monotone; auto with ord.
     rewrite normal_fixpoint at 2; auto with ord.
     rewrite veblen_zero.
     rewrite bhtower_zero.
     rewrite bhtower_one; auto with ord.
     rewrite bhtower_index_two; auto with ord.
     apply vtower_monotone; auto with ord.
-    apply addOrd_le2.
     apply addOrd_complete; auto with ord.
     apply normal_fix_complete; auto with ord.
     intros; apply normal_inflationary; auto with ord.
-    intros; apply normal_monotone; auto with ord.
     apply normal_fix_complete; auto with ord.
     intros; apply normal_inflationary; auto with ord.
-    intros; apply normal_monotone; auto with ord.
 Qed.
 
 
@@ -510,7 +495,6 @@ Proof.
   rewrite expOrd_one'.
   apply omega_gt1.
   apply omega_gt0.
-  apply normal_nonzero; auto.
 Qed.
 Local Hint Resolve BHω_normal: core.
 
@@ -784,7 +768,6 @@ Proof.
         apply bhtower_monotone; auto with ord.
         rewrite H8; auto with ord.
         rewrite map_length. rewrite <- H0. auto with ord.
-        apply addOrd_le2.
         apply BH_stack_complete; simpl; auto.
 
         intros.
@@ -847,7 +830,6 @@ Proof.
                           (BH_stack (bhtower (S (length ys)) (addOrd 1) (BH_denote y)) (BH_denote b0) (map BH_denote ys))).
           { rewrite bhtower_one; auto with ord arith.
             apply bhtower_monotone_strong; auto with ord arith.
-            apply addOrd_le2.
             destruct ys; simpl in *; lia.
             apply BH_stack_complete; simpl; auto. }
           apply BH_stack_fixpoint1; simpl; auto.
@@ -860,7 +842,6 @@ Proof.
            apply bhtower_monotone_strong; auto with ord.
            - intros. rewrite bhtower_unroll. auto with ord.
            - lia.
-           - apply addOrd_le2.
            - lia.
            - apply BH_stack_complete; simpl; auto. }
 
@@ -1052,8 +1033,7 @@ Proof.
     { rewrite ord_lt_unfold in H. rewrite ord_lt_unfold in H11.
       destruct H as [b1 ?]. destruct H11 as [b2 ?].
       destruct (complete_directed (BH_denote ytop) (BHForm_complete ytop) b1 b2) as [b3 [??]].
-      exists b3. intuition eauto with ord.
-      apply complete_subord; auto. }
+      exists b3. intuition eauto with ord. }
     destruct H12 as [q' [?[?[??]]]].
     rewrite <- (H10 (succOrd q')) at 2; auto with ord.
     destruct (length xs); simpl.
@@ -1134,7 +1114,6 @@ Proof.
       transitivity (bhtower (S (length xs)) f a (BH_denote ytop)).
       { apply bhtower_monotone; auto with ord. }
       apply H6; auto with ord.
-      apply complete_subord; auto.
     + rewrite <- Hxytop.
       apply (normal_inflationary (fun q => bhtower (S (length xs)) f q 0)); auto with ord.
 

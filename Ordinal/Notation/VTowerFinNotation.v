@@ -272,7 +272,6 @@ Proof.
   induction x; simpl; intuition.
   - destruct x2.
     + destruct x1; simpl in *; intuition.
-      * apply veblen_nonzero; auto.
       * apply ord_le_lt_trans with
             (veblen (vtower_fin n) (VF_denote x1_1) (VF_denote x1_2)).
         apply veblen_monotone_func; auto.
@@ -280,15 +279,12 @@ Proof.
         apply veblen_subterm1_zero_nest; simpl in *; intuition.
     + simpl in *.
       apply veblen_subterm1; auto with ord.
-      apply veblen_nonzero; auto.
   - destruct x2; simpl in *; intuition.
-    + apply veblen_nonzero; auto.
     + generalize (nat_compare_correct n n0).
       destruct (nat_compare n n0); intros; subst.
       * (* LT case *)
         rewrite H2 at 1.
         apply veblen_subterm1; auto with ord.
-        apply veblen_nonzero; auto.
       * (* EQ case *)
         apply veblen_increasing'; auto.
       * (* GT case *)
@@ -528,13 +524,11 @@ Proof.
       rewrite veblen_zero.
       rewrite IHx2. reflexivity.
       rewrite onePlus_veblen; auto with ord.
-      apply veblen_nonzero; auto.
     + destruct x1; simpl.
       rewrite veblen_zero.
       rewrite onePlus_veblen; auto with ord.
       rewrite IHx2. reflexivity.
       rewrite onePlus_veblen; auto with ord.
-      apply veblen_nonzero; auto.
 Qed.
 
 Definition Vnorm m a b :=
@@ -934,10 +928,6 @@ Proof.
   destruct n; simpl; auto.
   rewrite veblen_onePlus; auto with ord.
   rewrite veblen_onePlus; auto with ord.
-  apply addOrd_complete; auto.
-  apply expOrd_complete; auto with ord.
-  apply omega_gt0.
-  apply omega_complete.
   rewrite addOrd_zero_r.
   apply (veblen_tower_epsilon (S n)); auto with ord arith.
   destruct (VF_isZero a1); auto.

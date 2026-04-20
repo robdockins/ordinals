@@ -131,6 +131,8 @@ Proof.
   destruct o as [A f]; simpl; intuition.
 Qed.
 
+Global Hint Resolve complete_subord: ord.
+
 Lemma complete_zeroDec o :
   complete o -> o <= 0 \/ 0 < o.
 Proof.
@@ -630,6 +632,8 @@ Proof. apply (index_lt _ 0%nat). Qed.
 
 Lemma omega_gt1 : 1 < ω.
 Proof. apply (index_lt ω 1%nat). Qed.
+
+Global Hint Resolve omega_complete omega_gt0 omega_gt1: ord.
 
 (** Any zero ordinal is equal to the distinguished zeroOrd *)
 Lemma ord_isZero z : zeroOrdinal z <-> z ≈ 0.

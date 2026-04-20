@@ -441,7 +441,6 @@ Section bhtower_normal.
           rewrite <- lub_le1.
           apply normal_inflationary; auto.
           apply H0.
-          rewrite <- addOrd_le1; auto with ord.
           apply bhtower_normal; auto with ord.
           { apply lim_complete; auto.
             intros. apply Hind; auto.
@@ -735,8 +734,7 @@ Section bhtower_normal.
           apply directed_monotone; auto with ord.
           intros. apply fixOrd_monotone_func; auto with ord.
           intros. apply normal_fix_complete; auto with ord.
-          intros. apply normal_inflationary; auto with ord.
-          intros. apply normal_complete; auto with ord. }
+          intros. apply normal_inflationary; auto with ord. }
 
         apply sup_least. intro z2.
         assert (Hx1 : complete (1+x)).
@@ -1059,10 +1057,8 @@ Proof.
     apply bhtower_nonzero; auto.
     apply bhtower_normal; auto.
     apply bhtower_normal; auto.
-    rewrite <- addOrd_le1; auto with ord.
     apply bhtower_normal; auto.
     apply bhtower_normal; auto.
-    rewrite <- addOrd_le1; auto with ord.
     apply nextCritical_monotone; auto with ord.
   - apply bhtower_normal_and_continuous; auto.
   - intros. apply normal_complete; auto.
@@ -1111,7 +1107,6 @@ Proof.
       rewrite <- lub_le1.
       apply normal_monotone; auto.
       transitivity (1+x); auto with ord.
-      apply addOrd_le2.
       apply (normal_inflationary (fun i => bhtower n (bhtower (S n) f b) i 0)).
       destruct n. inversion H.
       apply bhtower_first_normal.
@@ -1119,8 +1114,6 @@ Proof.
       auto with ord.
       apply bhtower_fixpoint; auto with ord.
       apply bhtower_normal; auto.
-      rewrite <- addOrd_le1.
-      auto with ord.
     + apply sup_least; simpl; intro.
 
       apply nextCritical_least; auto with ord.
@@ -1251,7 +1244,6 @@ Proof.
       apply veblen_normal; auto. intuition.
       { apply lim_complete.
         - intros; apply normal_complete; auto with ord.
-          apply veblen_normal; auto.
         - apply directed_monotone; auto.
           intros; apply veblen_monotone; auto with ord.
         - destruct x; hnf in Hcx; intuition.
@@ -1309,8 +1301,6 @@ Proof.
         ** apply directed_monotone; auto.
            intros; apply bhtower_monotone; auto with ord.
         ** destruct x; hnf in Hcx; intuition.
-      * rewrite <- addOrd_le1.
-        auto with ord.
 Qed.
 
 
@@ -1339,7 +1329,6 @@ Proof.
   rewrite bhtower_one; auto.
   split; apply bhtower_monotone; auto with ord.
   rewrite addOrd_zero_r; auto with ord.
-  rewrite addOrd_zero_r; auto with ord.
 Qed.
 
 Lemma bhtower_one_zero :
@@ -1357,7 +1346,6 @@ Proof.
   split; apply fixOrd_monotone_func; auto with ord.
   intros. rewrite veblen_zero; auto with ord.
   intros. rewrite veblen_zero; auto with ord.
-  intros; apply veblen_monotone; auto with ord.
   apply veblen_normal; auto with ord.
 Qed.
 

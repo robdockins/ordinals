@@ -472,7 +472,6 @@ Proof.
       destruct Hxy as [y' Hxy].
       apply ord_le_lt_trans with (schutte_column f β α y').
       apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
       rewrite (schutte_column_unroll f β α y).
       rewrite <- lub_le2.
       rewrite ord_lt_unfold in H. destruct H as [b0 _].
@@ -581,48 +580,21 @@ Section schutte_column_normal.
         apply normal_fix_complete; auto with ord.
         + apply lim_complete.
           * intros. apply Hindx; auto with ord.
-            apply complete_subord; auto.
           * apply directed_monotone; auto.
             intros; apply schutte_column_monotone; auto with ord.
-            apply normal_monotone; auto.
           * destruct x; apply Hx.
         + intros. apply normal_inflationary with (f := fun x => schutte_column (schutte_column f β (sz a)) (sz b) x 0); auto with ord.
-          apply Hindβ2; auto with ord.
-          apply Hindα1; auto with ord.
-          apply complete_subord; auto.
-          apply complete_subord; auto.
         + intros. apply schutte_column_monotone; auto with ord.
-          intros. apply schutte_column_monotone; auto with ord.
-          apply normal_monotone; auto.
-        + intros. apply normal_complete with (f := fun x => schutte_column (schutte_column f β (sz a)) (sz b) x 0); auto with ord.
-          apply Hindβ2; auto with ord.
-          apply Hindα1; auto with ord.
-          apply complete_subord; auto.
-          apply complete_subord; auto.
         + apply directed_monotone; auto with ord.
           intros. apply fixOrd_monotone_full'; auto with ord.
           intros. apply schutte_column_monotone_func; auto with ord.
           intros. apply schutte_column_monotone; auto with ord.
-          apply normal_monotone; auto.
           intros. apply schutte_column_monotone; auto with ord.
-          apply normal_monotone; auto.
-          intros. apply schutte_column_monotone; auto with ord.
-          apply normal_monotone; auto.
-          intros. apply normal_complete with (f := fun x => schutte_column (schutte_column f β (sz y)) (sz b) x 0); auto with ord.
-          apply Hindβ2; auto with ord.
-          apply Hindα1; auto with ord.
-          apply complete_subord; auto.
-          apply complete_subord; auto.
-          intros. apply schutte_column_monotone; auto with ord.
-          intros. apply schutte_column_monotone; auto with ord.
-          apply normal_monotone; auto.
 
           apply lim_complete; auto.
           intros. apply Hindx; auto with ord.
-          apply complete_subord; auto.
           apply directed_monotone; auto with ord.
           intros. apply schutte_column_monotone; auto with ord.
-          apply normal_monotone; auto.
           destruct x; apply Hx.
         + destruct (complete_zeroDec α'); auto with ord.
           * right. intros a.
@@ -637,16 +609,11 @@ Section schutte_column_normal.
             rewrite <- (sup_le _ _ 1%nat); simpl.
             apply normal_nonzero.
             apply Hindβ1; auto with ord.
-            apply Hindα1; auto with ord.
-            apply complete_subord; auto.
-            apply complete_subord; auto.
 
             apply lim_complete; auto.
             intros. apply Hindx; auto with ord.
-            apply complete_subord; auto.
             apply directed_monotone; auto with ord.
             intros. apply schutte_column_monotone; auto with ord.
-            apply normal_monotone; auto.
             destruct x; apply Hx.
       - apply directed_monotone; auto with ord.
         intros.
@@ -654,21 +621,11 @@ Section schutte_column_normal.
         apply fixOrd_monotone_func''; auto with ord.
         + intros. apply schutte_column_monotoneβ; auto.
           apply Hindα1; auto with ord.
-          apply complete_subord; auto.
-        + intro x'. apply normal_complete with (f := fun x => schutte_column (schutte_column f β (sz a)) (sz y) x 0); auto with ord.
-          apply Hindβ2; auto with ord.
-          apply Hindα1; auto with ord.
-          apply complete_subord; auto.
-          apply complete_subord; auto.
         + intros. apply schutte_column_monotone; auto with ord.
-          intros. apply schutte_column_monotone; auto with ord.
-          apply normal_monotone; auto.
         + apply lim_complete; auto.
           intros. apply Hindx; auto with ord.
-          apply complete_subord; auto.
           apply directed_monotone; auto with ord.
           intros. apply schutte_column_monotone; auto with ord.
-          apply normal_monotone; auto.
           destruct x; apply Hx.
       - destruct (complete_zeroDec α'); auto with ord.
         + right; intro b.
@@ -686,8 +643,7 @@ Section schutte_column_normal.
           unfold fixOrd.
           rewrite <- (sup_le  _ _ 1%nat); simpl.
           apply schutte_column_nonzero.
-          apply Hindα1; auto with ord.
-          apply complete_subord; auto. }
+          apply Hindα1; auto with ord. }
 
     assert (Hle2: 0 < α' -> f (α' + x) ≤ supOrd
       (fun b : β =>
@@ -763,12 +719,10 @@ Section schutte_column_normal.
         { apply ord_lt_le_trans with α'; auto with ord. }
         rewrite ord_lt_unfold in Ha. destruct Ha as [[] _].
       * apply normal_complete; auto with ord.
-        apply addOrd_complete; auto with ord.
       * auto.
     }
     apply lub_complete2; auto.
     apply normal_complete; auto with ord.
-    apply addOrd_complete; auto with ord.
   Qed.
 
   Lemma complete_lemma0:
@@ -789,7 +743,6 @@ Section schutte_column_normal.
       apply complete_subord; auto.
     - apply directed_monotone; auto.
       intros; apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
     - destruct x; apply H0.
   Qed.
 
@@ -799,21 +752,11 @@ Section schutte_column_normal.
       complete (fixOrd (fun δ => schutte_column (schutte_column f β a) b δ 0) (limOrd (fun i:x => schutte_column f β α i))).
   Proof.
     intros. apply normal_fix_complete; auto with ord.
-    - apply complete_lemma1; auto.
-    - intros; apply schutte_column_inflationary1; auto.
-      intros; apply schutte_column_inflationary2; auto.
+    - apply complete_lemma1; auto with ord.
+    - intros; apply schutte_column_inflationary1; auto with ord.
+      intros; apply schutte_column_inflationary2; auto with ord.
       intros; apply normal_inflationary; auto.
-      apply complete_subord; auto.
-      apply zero_complete.
     - intros; apply schutte_column_monotone; auto with ord.
-      intros; apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
-    - intros. apply normal_complete; auto.
-      apply Hindβ1; auto with ord.
-      apply Hindα1; auto with ord.
-      apply complete_subord; auto.
-      apply complete_subord; auto.
-      apply zero_complete.
   Qed.
 
   Lemma complete_lemma3:
@@ -829,14 +772,7 @@ Section schutte_column_normal.
       intros. apply fixOrd_monotone_func; auto with ord.
       intros; apply schutte_column_monotone_func; auto with ord.
       intros; apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
       intros; apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
-      intros; apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
-      intros; apply schutte_column_monotone; auto with ord.
-      intros; apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
     - destruct (complete_zeroDec α); auto.
       + right. intro a.
         elim (zero_lt a).
@@ -858,19 +794,13 @@ Section schutte_column_normal.
           fixOrd (fun δ => schutte_column (schutte_column f β a) b δ 0) (limOrd (fun i:x => schutte_column f β α i)))))).
   Proof.
     intros.
-    apply sup_complete; auto.
-    - intros. apply complete_lemma3; auto.
+    apply sup_complete; auto with ord.
+    - intros. apply complete_lemma3; auto with ord.
     - apply directed_monotone; auto with ord.
       intros. apply sup_ord_le_morphism; intro.
       apply fixOrd_monotone_func; auto with ord.
       intros; apply schutte_column_monotone_full; auto with ord.
       intros; apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
-      intros; apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
-      intros; apply schutte_column_monotone; auto with ord.
-      intros; apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
     - destruct (complete_zeroDec β); auto.
       + right. intro b.
         elim (zero_lt b).
@@ -937,12 +867,7 @@ Section schutte_column_normal.
       intro a'.
       apply fixOrd_monotone_func; auto with ord.
       intros. apply schutte_column_monotoneβ; auto with ord.
-      intros. apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
-      intros. apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
-      apply Hindα1; auto with ord.
-      apply complete_subord; auto. }
+      intros. apply schutte_column_monotone; auto with ord. }
 
     { intros b'. apply complete_lemma3; auto. }
     apply sup_least; intro b'.
@@ -952,19 +877,12 @@ Section schutte_column_normal.
     rewrite ord_lt_unfold in Ha.
     destruct Ha as [a2 Ha2].
     apply Hnorm; auto.
-    apply directed_monotone; auto.
+    apply directed_monotone; auto with ord.
     { intros.
       apply fixOrd_monotone_func; auto with ord.
       intros. apply schutte_column_monotone_func; auto with ord.
       intros. apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
-      intros. apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
-      intros. apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
-      intros. apply schutte_column_monotone; auto with ord.
-      intros. apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto. }
+      intros. apply schutte_column_monotone; auto with ord. }
     { intros a'. apply complete_lemma2; auto. }
     apply sup_least; intro a'.
     rewrite ord_lt_unfold in Ha.
@@ -986,21 +904,12 @@ Section schutte_column_normal.
     apply fixOrd_monotone_func; auto with ord.
     intros; apply schutte_column_monotone_func; auto with ord.
     intros; apply schutte_column_monotone; auto with ord.
-    apply normal_monotone; auto with ord.
     intros; apply schutte_column_monotone; auto with ord.
-    apply normal_monotone; auto with ord.
-    intros; apply schutte_column_monotone; auto with ord.
-    apply normal_monotone; auto with ord.
-    intros; apply schutte_column_monotone; auto with ord.
-    apply normal_monotone; auto with ord.
-    apply Hindα1; auto with ord.
-    apply complete_subord; auto.
     apply Hindβ2; auto with ord.
-    apply Hindα1; auto with ord.
-    apply complete_subord; auto.
-    apply complete_subord; auto.
     apply complete_lemma1; auto.
   Qed.
+
+  Local Hint Resolve complete_lemma0 complete_lemma1 complete_lemma2 complete_lemma3 complete_lemma4: core.
 
   Lemma schutte_column_fixpoint':
     forall a b x f,
@@ -1018,7 +927,6 @@ Section schutte_column_normal.
     apply lub_least.
     - transitivity (schutte_column f β a (schutte_column f β α x)).
       apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
       rewrite addOrd_zero_r. auto with ord.
 
       rewrite schutte_column_unroll.
@@ -1035,13 +943,10 @@ Section schutte_column_normal.
           eapply (@schutte_column_ltE i); auto with ord.
           ** intro Hi'.
              apply ord_lt_le_trans with (schutte_column f β a (f (α + x))).
-             { apply normal_increasing; auto with ord.
-               apply normal_complete; auto with ord.
-               apply addOrd_complete; auto with ord. }
+             { apply normal_increasing; auto with ord. }
              destruct (complete_zeroDec x); auto.
              *** transitivity (schutte_column f β a (f α)).
                  { apply schutte_column_monotone; auto with ord.
-                   apply normal_monotone; auto.
                    apply normal_monotone; auto.
                    rewrite H5. rewrite addOrd_zero_r. auto with ord. }
                  rewrite (normal_ord_decompose α (fun x => schutte_column f β a (f x))); auto with ord.
@@ -1059,7 +964,6 @@ Section schutte_column_normal.
                  rewrite (schutte_column_unroll _ b1).
                  rewrite <- lub_le1.
                  apply schutte_column_monotone; auto with ord.
-                 apply normal_monotone; auto.
                  transitivity a1; auto.
                  rewrite <- normal_prefixpoint; auto.
                  rewrite (schutte_column_unroll _ b1).
@@ -1075,31 +979,12 @@ Section schutte_column_normal.
                  apply normal_monotone; auto.
                  apply addOrd_monotone; auto.
                  rewrite addOrd_zero_r; auto with ord.
-                 rewrite <- normal_prefixpoint; auto.
+                 rewrite <- normal_prefixpoint; auto with ord.
                  transitivity (1 + 0).
                  apply addOrd_zero_r.
-                 apply onePlus_least_normal.
-                 apply Hindβ1; auto with ord.
-                 apply Hindα1; auto with ord.
-                 apply complete_subord; auto.
-                 apply complete_subord; auto.
-                 apply complete_lemma2; auto.
-                 apply zero_complete.
+                 apply onePlus_least_normal; auto with ord.
                  apply Hindβ2; auto with ord.
-                 apply Hindα1; auto with ord.
-                 apply complete_subord; auto.
-                 apply complete_subord; auto.
-                 apply complete_lemma1; auto.
                  apply Hindβ2; auto with ord.
-                 apply Hindα1; auto with ord.
-                 apply complete_subord; auto.
-                 apply complete_subord; auto.
-                 apply complete_lemma1; auto.
-                 apply Hindβ2; auto with ord.
-                 apply Hindα1; auto with ord.
-                 apply complete_subord; auto.
-                 apply complete_subord; auto.
-                 apply complete_lemma1; auto.
                  apply ord_le_lt_trans with a; auto with ord.
                  apply compose_normal; auto.
              *** rewrite (schutte_column_unroll f β α).
@@ -1114,7 +999,6 @@ Section schutte_column_normal.
                  rewrite (schutte_column_unroll _ b1).
                  rewrite <- lub_le1.
                  apply schutte_column_monotone; auto with ord.
-                 apply normal_monotone; auto.
                  rewrite addOrd_zero_r.
                  rewrite <- normal_prefixpoint.
                  rewrite (schutte_column_unroll _ b1).
@@ -1133,39 +1017,26 @@ Section schutte_column_normal.
                  simpl. exists j.
                  rewrite schutte_column_unroll.
                  rewrite <- lub_le1.
-                 apply normal_inflationary; auto.
-                 apply addOrd_complete; auto.
-                 apply complete_subord; auto.
+                 apply normal_inflationary; auto with ord.
                  apply normal_addOrd; auto with ord.
                  apply ord_le_lt_trans with a1; auto with ord.
                  apply Hindβ2; auto with ord.
-                 apply Hindα1; auto with ord.
-                 apply complete_subord; auto.
-                 apply complete_subord; auto.
                  apply lim_complete.
                  intros. apply veblen_gt0_column_complete; auto with ord.
-                 apply complete_subord; auto.
                  apply ord_le_lt_trans with b1; auto with ord.
                  apply directed_monotone; auto with ord.
                  intros; apply schutte_column_monotone; auto with ord.
-                 apply normal_monotone; auto.
                  destruct x; apply H4.
                  apply Hindβ2; auto with ord.
-                 apply Hindα1; auto with ord.
-                 apply complete_subord; auto.
-                 apply complete_subord; auto.
                  apply lim_complete.
                  intros. apply veblen_gt0_column_complete; auto with ord.
-                 apply complete_subord; auto.
                  apply ord_le_lt_trans with b1; auto with ord.
                  apply directed_monotone; auto with ord.
                  intros; apply schutte_column_monotone; auto with ord.
-                 apply normal_monotone; auto.
                  destruct x; apply H4.
 
           ** intros b3 a3 Hi'.
              eapply ord_lt_le_trans; [ apply normal_increasing; [ | | apply Hi' ]| ]; auto with ord.
-             apply complete_lemma2; auto.
 
              rewrite ord_lt_unfold in H1. destruct H1 as [a1 Ha1].
              destruct (complete_directed α) with a1 a3 as [a4 [Ha14 Ha34]]; auto with ord.
@@ -1177,56 +1048,26 @@ Section schutte_column_normal.
              rewrite (schutte_column_unroll _ b3).
              rewrite <- lub_le1.
              apply schutte_column_monotone; auto with ord.
-             apply normal_monotone; auto.
              transitivity a1; auto.
              rewrite addOrd_zero_r.
              apply fixOrd_monotone_func.
              intros. apply schutte_column_monotone_func; auto with ord.
              intros. apply schutte_column_monotone_func; auto with ord.
-             apply normal_monotone; auto.
-             apply normal_monotone; auto.
              intros. apply schutte_column_monotone_func; auto with ord.
-             apply normal_monotone; auto.
-             apply normal_monotone; auto.
-             intros. apply schutte_column_monotone_func; auto with ord.
-             apply normal_monotone; auto.
-             apply normal_monotone; auto.
-             intros. apply schutte_column_monotone_func; auto with ord.
-             intros. apply schutte_column_monotone_func; auto with ord.
-             apply normal_monotone; auto.
-             apply normal_monotone; auto.
-             intros. apply schutte_column_monotone_func; auto with ord.
-             apply normal_monotone; auto.
-             apply normal_monotone; auto.
-             apply Hindβ2; auto with ord.
-             apply Hindα1; auto with ord.
-             apply complete_subord; auto.
-             apply complete_subord; auto.
-             apply complete_lemma1; auto.
-
         * simpl.
           rewrite <- (Hinda a2) with (b:=b2) (x:=x) at 2; auto with ord.
           apply schutte_column_monotone; auto with ord.
           intros. apply schutte_column_monotone; auto with ord.
-          apply normal_monotone; auto.
           transitivity a; auto with ord.
-          apply complete_subord; auto.
-          apply complete_subord; auto.
 
     - apply sup_least; intro b2.
       apply sup_least; intro q.
       rewrite schutte_column_unroll.
       rewrite <- lub_le2.
 
-      apply normal_fix_least.
+      apply normal_fix_least; auto with ord.
       * apply Hindβ2; auto with ord.
-        apply Hindβ1; auto with ord.
-        apply complete_subord.
-        apply veblen_gt0_column_complete; auto with ord.
         apply ord_le_lt_trans with b; auto with ord.
-        apply complete_subord; auto.
-        apply ord_lt_trans with b; auto with ord.
-      * apply complete_lemma4; auto.
       * simpl. rewrite ord_le_unfold.
         intros [].
       * transitivity (supOrd (fun b0:β => (supOrd (fun a0:α =>
@@ -1247,10 +1088,7 @@ Section schutte_column_normal.
             apply normal_continuous with (f:=fun z => schutte_column (schutte_column (schutte_column f β a) b (sz q)) (sz b2) z 0); auto with ord.
             apply Hindβ2; auto with ord.
             apply Hindβ1; auto with ord.
-            apply complete_subord; auto.
-            apply complete_lemma0; auto.
             apply ord_le_lt_trans with b1; auto with ord.
-            apply complete_subord; auto.
             apply ord_lt_le_trans with b; auto with ord.
             transitivity b1; auto with ord.
             apply directed_monotone; auto with ord.
@@ -1259,11 +1097,6 @@ Section schutte_column_normal.
             apply fixOrd_monotone_func; auto with ord.
             intros; apply schutte_column_monotoneβ; auto with ord.
             intros; apply schutte_column_monotone; auto with ord.
-            apply normal_monotone; auto.
-            intros; apply schutte_column_monotone; auto with ord.
-            intros; apply schutte_column_monotone; auto with ord.
-            apply normal_monotone; auto.
-            intros. apply complete_lemma3; auto.
             apply sup_least; intro b1.
             rewrite <- (sup_le _ _ b1).
             rewrite ord_lt_unfold in H1.
@@ -1273,24 +1106,13 @@ Section schutte_column_normal.
             apply Hindβ1; auto with ord.
             apply Hindα1; auto with ord.
             apply ord_le_lt_trans with a1; auto with ord.
-            apply complete_subord; auto.
-            apply complete_lemma0; auto.
-            apply complete_subord; auto.
             transitivity b; auto with ord.
             apply directed_monotone; auto with ord.
             intros.
             apply fixOrd_monotone_func; auto with ord.
             intros; apply schutte_column_monotone_func; auto with ord.
             intros; apply schutte_column_monotone; auto with ord.
-            apply normal_monotone; auto.
-            intros; apply schutte_column_monotone; auto with ord.
-            apply normal_monotone; auto.
-            intros; apply schutte_column_monotone; auto with ord.
-            apply normal_monotone; auto.
-            intros; apply schutte_column_monotone; auto with ord.
-            intros; apply schutte_column_monotone; auto with ord.
-            apply normal_monotone; auto.
-            intros. apply complete_lemma2; auto. }
+            intros; apply schutte_column_monotone; auto with ord. }
           apply sup_least; intro b''.
           apply sup_least; intro a''.
           eapply (@schutte_column_ltE q); auto with ord.
@@ -1318,19 +1140,9 @@ Section schutte_column_normal.
               apply schutte_column_monotone_full; auto with ord.
               intros; apply schutte_column_monotone; auto with ord.
               intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
-              intros; apply schutte_column_monotone; auto with ord.
-              intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
               intros; apply schutte_column_monotone_full; auto with ord.
               intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
-              intros; apply schutte_column_monotone_full; auto with ord.
-              apply normal_monotone; auto.
-              apply normal_monotone; auto.
-              intros; apply schutte_column_monotone_full; auto with ord.
-              apply normal_monotone; auto.
-              apply normal_monotone; auto.
+              intros; apply schutte_column_monotone; auto with ord.
               transitivity a1; auto with ord.
               transitivity a3; auto with ord.
               transitivity b1; auto with ord.
@@ -1338,22 +1150,8 @@ Section schutte_column_normal.
               apply fixOrd_monotone_func; auto with ord.
               intros. apply schutte_column_monotone_full; auto with ord.
               intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
-              intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
-              intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
               transitivity a3; auto with ord.
               intros; apply schutte_column_monotone; auto with ord.
-              intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
-              apply Hindβ2; auto with ord.
-              apply Hindα1; auto with ord.
-              apply complete_subord; auto.
-              apply complete_subord; auto.
-              apply complete_lemma2; auto.
-              apply Hindα1; auto with ord.
-              apply complete_subord; auto.
               apply ord_lt_le_trans with b; auto with ord.
               transitivity b1; auto.
               apply ord_lt_le_trans with (f (succOrd a4)); auto with ord.
@@ -1373,33 +1171,7 @@ Section schutte_column_normal.
               rewrite addOrd_zero_r.
               etransitivity; [ | apply normal_prefixpoint ]; auto with ord.
               transitivity (1+0); [ rewrite addOrd_zero_r; auto with ord |].
-              apply onePlus_least_normal.
-              apply Hindβ1; auto with ord.
-              apply Hindα1; auto with ord.
-              apply complete_subord; auto.
-              apply complete_subord; auto.
-              apply complete_lemma2; auto.
-              apply zero_complete.
-              apply Hindβ2; auto with ord.
-              apply Hindα1; auto with ord.
-              apply complete_subord; auto.
-              apply complete_subord; auto.
-              apply complete_lemma1; auto.
-              apply Hindβ2; auto with ord.
-              apply Hindα1; auto with ord.
-              apply complete_subord; auto.
-              apply complete_subord; auto.
-              apply complete_lemma1; auto.
-              apply complete_subord; auto.
-              apply complete_lemma2; auto.
-              apply complete_subord; auto.
-              apply complete_subord; auto.
-              apply complete_lemma0; auto.
-              apply Hindβ2; auto with ord.
-              apply Hindα1; auto with ord.
-              apply complete_subord; auto.
-              apply complete_subord; auto.
-              apply complete_lemma1; auto.
+              apply onePlus_least_normal; auto with ord.
               apply ord_le_lt_trans with a''; auto with ord.
             - rewrite <- (sup_le _ _ b3).
               rewrite <- (sup_le _ _ a3).
@@ -1408,40 +1180,16 @@ Section schutte_column_normal.
               apply schutte_column_monotone_full; auto with ord.
               intros; apply schutte_column_monotone; auto with ord.
               intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
-              intros; apply schutte_column_monotone; auto with ord.
-              intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
               intros; apply schutte_column_monotone_full; auto with ord.
               intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
               intros; apply schutte_column_monotone_full; auto with ord.
-              apply normal_monotone; auto.
-              apply normal_monotone; auto.
-              intros; apply schutte_column_monotone_full; auto with ord.
-              apply normal_monotone; auto.
-              apply normal_monotone; auto.
               transitivity a1; auto with ord.
               transitivity b1; auto with ord.
               rewrite <- normal_inflationary with (f:=fun z => schutte_column (schutte_column f β (sz a3)) (sz b3) z 0); auto with ord.
               apply fixOrd_monotone_func; auto with ord.
               intros; apply schutte_column_monotone_full; auto with ord.
               intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
               intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
-              intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
-              intros; apply schutte_column_monotone; auto with ord.
-              intros; apply schutte_column_monotone; auto with ord.
-              apply normal_monotone; auto.
-              apply Hindβ2; auto with ord.
-              apply Hindα1; auto with ord.
-              apply complete_subord; auto.
-              apply complete_subord; auto.
-              apply complete_lemma2; auto.
-              apply Hindα1; auto with ord.
-              apply complete_subord; auto.
               apply ord_lt_le_trans with b; auto with ord.
               transitivity b1; auto with ord.
               apply ord_lt_le_trans with (f (α + x)); auto.
@@ -1463,25 +1211,8 @@ Section schutte_column_normal.
               rewrite schutte_column_unroll.
               rewrite <- lub_le1.
               apply normal_inflationary; auto with ord.
-              apply addOrd_complete; auto with ord.
-              apply complete_subord; auto.
               apply normal_addOrd; auto with ord.
-              apply ord_le_lt_trans with a1; auto with ord.
-              apply Hindβ2; auto with ord.
-              apply Hindα1; auto with ord.
-              apply complete_subord; auto.
-              apply complete_subord; auto.
-              apply complete_lemma1; auto.
-              apply complete_subord; auto.
-              apply complete_lemma2; auto.
-              apply complete_subord; auto.
-              apply complete_subord; auto.
-              apply complete_lemma0; auto.
-              apply Hindβ2; auto with ord.
-              apply Hindα1; auto with ord.
-              apply complete_subord; auto.
-              apply complete_subord; auto.
-              apply complete_lemma1; auto. }
+              apply ord_le_lt_trans with a1; auto with ord. }
 
           intros b' a' Hq.
           assert (Hb_final: exists bf:β, b <= bf /\ b' <= bf /\ b'' <= bf).
@@ -1512,35 +1243,22 @@ Section schutte_column_normal.
           { eapply schutte_column_monotone_func with (g := (schutte_column (schutte_column f β (sz af)) (sz bf) (sz q'))).
             intros; apply schutte_column_monotone; auto with ord.
             intros; apply schutte_column_monotone; auto with ord.
-            intros; apply normal_monotone; auto with ord.
-            intros; apply schutte_column_monotone; auto with ord.
-            intros; apply schutte_column_monotone; auto with ord.
-            intros; apply normal_monotone; auto with ord.
             intros.
             etransitivity.
             eapply schutte_column_monotone_func with (g := (schutte_column f β (sz af))).
             intros; apply schutte_column_monotone; auto with ord.
-            intros; apply normal_monotone; auto with ord.
             intros; apply schutte_column_monotone; auto with ord.
-            intros; apply normal_monotone; auto with ord.
             intros; apply schutte_column_monotone; auto with ord.
-            intros; apply normal_monotone; auto with ord.
             reflexivity.
             reflexivity.
             etransitivity.
             eapply schutte_column_monotoneβ.
             intros; apply schutte_column_monotone; auto with ord.
-            intros; apply normal_monotone; auto with ord.
             apply Hbf1.
             intros; apply schutte_column_monotone; auto with ord.
-            intros; apply schutte_column_monotone; auto with ord.
-            intros; apply normal_monotone; auto with ord.
             reflexivity.
             reflexivity. }
           intros; apply schutte_column_monotone; auto with ord.
-          intros; apply schutte_column_monotone; auto with ord.
-          intros; apply schutte_column_monotone; auto with ord.
-          intros; apply normal_monotone; auto with ord.
 
           transitivity ((fixOrd
                            (fun δ : Ord =>
@@ -1551,29 +1269,13 @@ Section schutte_column_normal.
           etransitivity.
           intros; apply schutte_column_monotone_func with (g := (schutte_column f β (sz af))).
           intros; apply schutte_column_monotone; auto with ord.
-          intros; apply normal_monotone; auto with ord.
           intros; apply schutte_column_monotone; auto with ord.
-          intros; apply normal_monotone; auto with ord.
           intros; apply schutte_column_monotone; auto with ord.
-          intros; apply normal_monotone; auto with ord.
           reflexivity.
           reflexivity.
           intros; apply schutte_column_monotoneβ; auto with ord.
           intros; apply schutte_column_monotone; auto with ord.
-          intros; apply normal_monotone; auto with ord.
-          intros; apply schutte_column_monotone; auto with ord.
-          intros; apply schutte_column_monotone; auto with ord.
-          intros; apply normal_monotone; auto with ord.
-          apply normal_inflationary with (f := fun x => schutte_column (schutte_column f β (sz af)) (sz bf) x 0).
-          apply Hindβ2.
-          apply Hindα1; auto.
-          apply complete_subord; auto with ord.
-          auto with ord.
-          apply complete_subord; auto with ord.
-          auto with ord.
-          apply complete_lemma2; auto.
-          apply Hindα1; auto with ord.
-          apply complete_subord; auto with ord.
+          apply normal_inflationary with (f := fun x => schutte_column (schutte_column f β (sz af)) (sz bf) x 0); auto with ord.
           apply ord_lt_le_trans with b; auto with ord.
           apply ord_lt_le_trans with (fixOrd
                                         (fun δ : Ord =>
@@ -1583,31 +1285,13 @@ Section schutte_column_normal.
           etransitivity.
           intros; apply schutte_column_monotone_func with (g := (schutte_column f β (sz af))).
           intros; apply schutte_column_monotone; auto with ord.
-          intros; apply normal_monotone; auto with ord.
           intros; apply schutte_column_monotone; auto with ord.
-          intros; apply normal_monotone; auto with ord.
           intros; apply schutte_column_monotone; auto with ord.
-          intros; apply normal_monotone; auto with ord.
           reflexivity.
           reflexivity.
           intros; apply schutte_column_monotoneβ; auto with ord.
           intros; apply schutte_column_monotone; auto with ord.
-          intros; apply normal_monotone; auto with ord.
-          intros; apply schutte_column_monotone; auto with ord.
-          intros; apply schutte_column_monotone; auto with ord.
-          intros; apply normal_monotone; auto with ord.
-          apply complete_subord; auto.
-          apply complete_lemma2; auto.
-          apply complete_subord; auto.
-          apply complete_subord; auto.
-          apply complete_lemma2; auto.
-          apply Hindβ2.
-          apply Hindα1.
-          auto.
-          apply complete_subord; auto.
-          auto with ord.
-          apply complete_subord; auto.
-          auto with ord.
+          apply Hindβ2; auto with ord.
           apply complete_lemma1; auto.
   Qed.
 
@@ -1640,20 +1324,12 @@ Section schutte_column_normal.
     - apply sup_least; intro b.
       apply sup_least; intro a.
       apply normal_fix_least; auto with ord.
-      + apply Hindβ2; auto with ord.
-        apply Hindα1; auto with ord.
-        apply complete_subord; auto.
-        apply complete_subord; auto.
       + apply sup_complete; auto.
-        * intros. apply veblen_gt0_column_complete; auto with ord.
-          rewrite ord_lt_unfold. exists b. auto with ord.
         * hnf; intros i j.
           destruct (Hdir i j) as [z [Hz1 Hz2]].
           exists z; split.
           apply schutte_column_monotone; auto with ord.
-          apply normal_monotone; auto.
           apply schutte_column_monotone; auto with ord.
-          apply normal_monotone; auto.
         * left. exists a0.
           apply schutte_column_nonzero; auto.
       + rewrite sup_unfold.
@@ -1663,24 +1339,14 @@ Section schutte_column_normal.
       + transitivity (supOrd (fun i => schutte_column (schutte_column f β (sz a)) (sz b) (schutte_column f β α (h i)) 0)).
         apply (normal_continuous (fun x => schutte_column (schutte_column f β (sz a)) (sz b) x 0)); auto.
         apply Hindβ2; auto with ord.
-        apply Hindα1; auto with ord.
-        apply complete_subord; auto.
-        apply complete_subord; auto.
         hnf; simpl; intros i j.
         destruct (Hdir i j) as [z [Hz1 Hz2]].
         exists z. split.
         apply schutte_column_monotone; auto with ord.
-        apply normal_monotone; auto.
         apply schutte_column_monotone; auto with ord.
-        apply normal_monotone; auto.
-        intro.
-        apply veblen_gt0_column_complete; auto with ord.
-        rewrite ord_lt_unfold. exists b. auto with ord.
         apply sup_least; intro i.
         rewrite <- (sup_le _ _ i).
         apply schutte_column_fixpoint'; auto with ord.
-        apply complete_subord; auto.
-        apply complete_subord; auto.
    Qed.
 End schutte_column_normal.
 
@@ -1710,7 +1376,6 @@ Proof.
 
     - intros f Hf; constructor.
       + intros; apply schutte_column_monotone; auto with ord.
-        intros; apply normal_monotone; auto.
       + intros. apply schutte_column_increasing; auto with ord.
       + intros. apply schutte_column_continuous; auto with ord.
         intros. apply Hindβ; auto.
@@ -1760,7 +1425,6 @@ Proof.
   split; auto.
   intros. constructor.
   + intros; apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
     + intros x y. revert x.
       induction y as [y Hindy] using ordinal_induction.
       intros x Hy Hxy.
@@ -1779,7 +1443,6 @@ Proof.
            apply ord_lt_le_trans with (f y).
            apply normal_increasing; auto with ord.
            apply normal_monotone; auto with ord.
-           rewrite addOrd_zero_r; auto with ord.
       * rewrite ord_lt_unfold in H0.
         destruct H0 as [b1 Hb1].
         rewrite ord_lt_unfold in Hxy. destruct Hxy as [y1 Hy1].
@@ -1792,15 +1455,13 @@ Proof.
         rewrite (schutte_column_unroll _ (sz b1)).
         rewrite <- lub_le1.
         apply ord_le_lt_trans with (schutte_column f β y1 0).
-        { apply schutte_column_monotone; auto with ord.
-          apply normal_monotone; auto. }
+        { apply schutte_column_monotone; auto with ord. }
         apply normal_increasing; auto with ord.
         ** apply main_lemma; auto.
            apply complete_subord; auto.
         ** apply addOrd_complete.
            apply normal_complete.
            apply Hindβ; auto with ord.
-           *** apply complete_subord; auto.
            *** apply lim_complete.
                intros [].
                intros [].
@@ -1827,7 +1488,6 @@ Proof.
         rewrite <- (sup_le _ _ i).
         rewrite schutte_column_unroll. rewrite <- lub_le1.
         apply normal_monotone; auto with ord.
-        rewrite addOrd_zero_r. reflexivity.
       * apply sup_least; intro b1.
         rewrite (sup_unfold _ g); simpl.
         apply sup_least; intros [i j]; simpl.
@@ -1839,12 +1499,10 @@ Proof.
         apply fixOrd_monotone; auto with ord.
         intros; apply schutte_column_monotone; auto with ord.
         intros; apply schutte_column_monotone; auto with ord.
-        apply normal_monotone; auto.
         apply limit_least; intros [].
 
-    + intros. apply normal_complete; auto.
+    + intros. apply normal_complete; auto with ord.
       apply main_lemma; auto.
-      apply zero_complete.
     + intros; apply schutte_column_nonzero; auto.
 Qed.
 
@@ -1895,11 +1553,8 @@ Proof.
     rewrite <- (sup_le _ _ 3%nat); simpl.
     apply ord_le_lt_trans with (schutte_column (schutte_column f y 0) (sz i) 1 0).
     apply transitivity with (schutte_column f (sz i) 1 0).
-    apply schutte_column_monotoneβ; auto.
-    apply normal_monotone; auto.
+    apply schutte_column_monotoneβ; auto with ord.
     apply schutte_column_monotone_func; auto with ord.
-    apply normal_monotone; auto.
-    apply normal_monotone; auto.
     apply schutte_column_normal_and_fixpoint; auto with ord.
     intros. rewrite schutte_column_unroll.
     rewrite <- lub_le1.
@@ -1907,17 +1562,15 @@ Proof.
     rewrite addOrd_zero_l; auto with ord.
     apply normal_increasing with (f := fun x => schutte_column (schutte_column f y 0) i x 0).
     apply (schutte_column_normal_and_fixpoint); auto with ord.
-    apply complete_subord; auto.
     apply schutte_column_normal_and_fixpoint; auto with ord.
     apply normal_complete; auto with ord.
     apply (schutte_column_normal_and_fixpoint); auto with ord.
-    apply complete_subord; auto.
-    apply (schutte_column_normal_and_fixpoint); auto with ord.
-    apply complete_subord; auto.
+    apply normal_complete; auto with ord.
     apply (schutte_column_normal_and_fixpoint); auto with ord.
     { simpl; intuition.
       hnf; intros [].
       right. intros [[]]. }
+    apply (schutte_column_normal_and_fixpoint); auto with ord.
     apply (schutte_column_normal_and_fixpoint); auto with ord.
     rewrite <- onePlus_least_normal with (f := fun x => schutte_column (schutte_column f y 0) (sz i) x 0).
     apply ord_le_lt_trans with (1 + 0).
@@ -1929,11 +1582,9 @@ Proof.
     rewrite <- lub_le1.
     apply normal_nonzero; auto.
     apply schutte_column_normal_and_fixpoint; auto with ord.
-    apply complete_subord; auto.
     apply schutte_column_normal_and_fixpoint; auto with ord.
     apply normal_complete.
     apply schutte_column_normal_and_fixpoint; auto with ord.
-    apply complete_subord; auto.
     { simpl; intuition.
       hnf; intros [].
       right. intros [[]]. }
@@ -1960,9 +1611,7 @@ Proof.
       ** simpl; intros.
          apply schutte_column_monotone_func; auto with ord.
          intros. apply schutte_column_monotone; auto with ord.
-         apply normal_monotone; auto.
          intros. apply schutte_column_monotone; auto with ord.
-         apply normal_monotone; auto.
          simpl; intros.
          rewrite schutte_column_unroll.
          apply lub_least.
@@ -1973,7 +1622,6 @@ Proof.
          apply sup_least; intros [].
       ** intros. apply schutte_column_monotone; auto with ord.
          intros. apply schutte_column_monotone; auto with ord.
-         apply normal_monotone; auto.
       ** rewrite ord_le_unfold. intros [].
 
   + intros. apply normal_complete; auto with ord.
@@ -2023,58 +1671,35 @@ Proof.
       apply sup_least. intros [].
       apply sup_least. intros a.
       apply normal_fix_least; auto with ord.
-      apply schutte_column_normal_arg; auto with ord.
-      apply schutte_column_normal; auto with ord.
-      apply complete_subord; auto.
-      apply normal_complete; auto.
-      apply veblen_normal; auto.
-      apply limit_least; intro i.
-      rewrite Hindx; auto with ord.
-      apply veblen_increasing; auto with ord.
-      apply complete_subord; auto.
-      rewrite schutte_column0.
-      rewrite Hindα; auto with ord.
-      rewrite <- (veblen_fixpoints f Hf a α) at 2; auto with ord.
-      apply veblen_monotone; auto with ord.
-      apply normal_monotone; auto.
-      rewrite addOrd_zero_r. reflexivity.
-      apply complete_subord; auto.
-      apply complete_subord; auto.
-      apply addOrd_complete; auto with ord.
-      apply veblen_complete; auto.
-      apply normal_complete; auto.
+      * apply schutte_column_normal_arg; auto with ord.
+        apply schutte_column_normal; auto with ord.
+      * apply limit_least; intro i.
+        rewrite Hindx; auto with ord.
+        apply veblen_increasing; auto with ord.
+      * rewrite schutte_column0.
+       rewrite Hindα; auto with ord.
+       rewrite <- (veblen_fixpoints f Hf a α) at 2; auto with ord.
+       apply veblen_monotone; auto with ord.
+       rewrite addOrd_zero_r. reflexivity.
   - rewrite veblen_unroll.
     apply lub_least.
     + rewrite schutte_column_unroll.
-      rewrite <- lub_le1.
-      apply normal_monotone; auto.
-      apply addOrd_le2.
+      rewrite <- lub_le1; auto with ord.
     + apply sup_least; intro a.
       apply normal_fix_least; auto with ord.
-      apply veblen_normal; auto with ord.
-      apply complete_subord; auto.
       apply normal_complete; auto.
-      apply schutte_column_normal; auto.
-      apply succ_complete. apply zero_complete.
+      apply schutte_column_normal; auto with ord.
       apply limit_least. intro i.
       rewrite <- Hindx; auto with ord.
       apply normal_increasing; auto with ord.
-      apply schutte_column_normal; auto.
-      apply succ_complete. apply zero_complete.
-      apply complete_subord; auto.
+      apply schutte_column_normal; auto with ord.
       rewrite <- (schutte_column_fixpoint 1 α x f 0 a) at 2; auto with ord.
       rewrite schutte_column0.
       rewrite <- Hindα; auto with ord.
       apply schutte_column_monotone; auto with ord.
-      apply normal_monotone; auto.
-      rewrite addOrd_zero_r. reflexivity.
-      apply complete_subord; auto.
       apply normal_complete; auto.
-      apply schutte_column_normal; auto.
-      apply succ_complete. apply zero_complete.
-      apply complete_subord; auto.
+      apply schutte_column_normal; auto with ord.
 Qed.
-
 
 Definition schutte_critical f β α x :=
   forall b a,
@@ -2133,13 +1758,9 @@ Proof.
     apply sup_least; intro a.
     apply normal_fix_least; auto with ord.
     apply schutte_column_normal_arg; auto with ord.
-    apply complete_subord; auto.
     apply schutte_column_normal; auto with ord.
-    apply complete_subord; auto.
     apply limit_least; intros [].
     apply H; auto with ord.
-    apply complete_subord; auto.
-    apply complete_subord; auto.
     intuition.
   - intros.
     split; auto.
@@ -2155,7 +1776,6 @@ Proof.
     rewrite <- (schutte_column_fixpoint β α 0 f b a); auto with ord.
     apply schutte_column_monotone; auto with ord.
     intros; apply schutte_column_monotone; auto with ord.
-    apply normal_monotone; auto.
     apply H.
 Qed.
 
@@ -2176,12 +1796,10 @@ Proof.
     apply sup_least; intro b.
     apply sup_least; intro a.
     apply normal_fix_least; auto with ord.
-    apply schutte_column_normal_arg; auto with ord.
-    apply complete_subord; auto.
-    apply schutte_column_normal; auto with ord.
-    apply limit_least; intros [].
-    apply H; auto with ord.
-    apply complete_subord; auto.
+    + apply schutte_column_normal_arg; auto with ord.
+      apply schutte_column_normal; auto with ord.
+    + apply limit_least; intros [].
+    + apply H; auto with ord.
   - split.
     { rewrite <- H.
       apply normal_nonzero.
@@ -2194,7 +1812,6 @@ Proof.
     rewrite <- (schutte_column_fixpoint β 1 0 f b a); auto with ord.
     apply schutte_column_monotone; auto with ord.
     intros; apply schutte_column_monotone; auto with ord.
-    apply normal_monotone; auto.
     apply H.
 Qed.
 
@@ -2212,10 +1829,9 @@ Proof.
     apply normal_inflationary with (f := fun x => schutte_column _ b x 0).
     apply (schutte_column_normal_and_fixpoint b); auto with ord.
     apply (schutte_column_normal_and_fixpoint); auto with ord.
-    apply normal_complete; auto.
+    apply normal_complete; auto with ord.
     apply (schutte_column_normal_and_fixpoint); auto with ord.
   + intros; apply schutte_column_monotone; auto with ord.
-    apply normal_monotone; auto.
   + apply normal_increasing. apply schutte_column_normal_and_fixpoint; auto.
   + intros x z Hx Hz Hfix Hlt.
     rewrite schutte_column_unroll.
@@ -2233,54 +1849,35 @@ Proof.
       rewrite <- (addOrd_le2 a).
       rewrite addOrd_zero_r.
       rewrite addOrd_unfold.
-      apply lub_least.
+      apply lub_least; auto with ord.
       ** rewrite ord_le_unfold; intro a'.
-         rewrite <- (Hfix b a').
+         rewrite <- (Hfix b a'); auto with ord.
          rewrite schutte_column_unroll.
          rewrite <- lub_le1.
          apply ord_le_lt_trans with (schutte_column f β a' 0).
-         { apply normal_inflationary with (f := fun x => schutte_column f β x 0).
-           apply (schutte_column_normal_and_fixpoint β); auto with ord.
-           apply complete_subord; auto. }
-         apply normal_increasing.
+         { apply normal_inflationary with (f := fun x => schutte_column f β x 0); auto with ord.
+           apply (schutte_column_normal_and_fixpoint β); auto with ord. }
+         apply normal_increasing; auto with ord.
          apply schutte_column_normal_and_fixpoint; auto.
          apply complete_subord; auto.
-         apply addOrd_complete; auto with ord.
          rewrite addOrd_zero_r.
-         rewrite <- (Hfix b a').
-         apply schutte_column_nonzero.
-         apply schutte_column_normal_and_fixpoint; auto.
-         apply complete_subord; auto.
-         apply complete_subord; auto.
-         apply complete_subord; auto.
-         auto with ord.
-         auto with ord.
-         apply complete_subord; auto.
-         apply complete_subord; auto.
-         auto with ord.
-         auto with ord.
+         rewrite <- (Hfix b a'); auto with ord.
+         apply schutte_column_nonzero; auto with ord.
+         apply schutte_column_normal_and_fixpoint; auto with ord.
       ** apply sup_least; intro i.
          apply succ_least.
          eapply ord_le_lt_trans; [ | apply (Hlt i); auto with ord ].
          rewrite schutte_column_unroll.
          rewrite <- lub_le1.
-         apply normal_inflationary; auto.
-         apply addOrd_complete; auto with ord.
-         apply complete_subord; auto.
-      ** apply complete_subord; auto.
-      ** apply complete_subord; auto.
+         apply normal_inflationary; auto with ord.
     * apply sup_least; intro b.
       apply sup_least; intro a.
-      apply normal_fix_least; intros; auto.
+      apply normal_fix_least; intros; auto with ord.
       ** apply (schutte_column_normal_and_fixpoint b); auto with ord.
-         apply complete_subord; auto.
          apply (schutte_column_normal_and_fixpoint); auto with ord.
-         apply complete_subord; auto.
       ** apply limit_least. intro i.
          apply Hlt; auto with ord.
       ** apply Hfix; auto with ord.
-         apply complete_subord; auto.
-         apply complete_subord; auto.
 Qed.
 
 Lemma enum_supercritical f β :
@@ -2347,32 +1944,26 @@ Lemma schutte_column_add_closed:
     p + q < schutte_column f β α x.
 Proof.
   intros.
-  rewrite <- (schutte_column_fixpoint β α x f 1 0); auto.
-  rewrite schutte_column_veblen.
-  apply ord_lt_le_trans with (veblen (addOrd 1) (schutte_column f β α x) 0).
-  2: { apply veblen_monotone_func; auto with ord.
-       apply onePlus_normal.
-       apply schutte_column_normal; auto with ord.
-       intros; apply onePlus_least_normal; auto.
-       apply schutte_column_normal; auto with ord.
-       apply schutte_column_normal; auto with ord. }
+  rewrite <- (schutte_column_fixpoint β α x f 1 0); auto with ord.
+  rewrite schutte_column_veblen; auto with ord.
+  - apply ord_lt_le_trans with (veblen (addOrd 1) (schutte_column f β α x) 0).
+    2: { apply veblen_monotone_func; auto with ord.
+         apply schutte_column_normal; auto with ord.
+         intros; apply onePlus_least_normal; auto with ord.
+         apply schutte_column_normal; auto with ord.
+         apply normal_complete; auto.
+         apply schutte_column_normal; auto with ord. }
     rewrite veblen_onePlus; auto with ord.
     rewrite addOrd_zero_r.
-    apply expOmega_additively_closed.
-    apply normal_complete; auto with ord.
+    apply expOmega_additively_closed; auto with ord.
     apply schutte_column_normal; auto with ord.
     rewrite <- normal_inflationary; auto with ord.
-    apply powOmega_normal.
     apply schutte_column_normal; auto with ord.
     rewrite <- normal_inflationary; auto with ord.
-    apply powOmega_normal.
     apply schutte_column_normal; auto with ord.
     apply schutte_column_normal; auto with ord.
-    apply schutte_column_normal; auto with ord.
-    apply schutte_column_normal; auto with ord.
-    auto with ord.
-    apply succ_complete; auto with ord.
-    auto with ord.
+  - apply schutte_column_normal; auto with ord.
+  - apply schutte_column_normal; auto with ord.
 Qed.
 
 Lemma schutte_column_unreachable:
@@ -2399,38 +1990,30 @@ Proof.
       apply ord_lt_le_trans with b; auto with ord. }
       rewrite <- (schutte_column_fixpoint β α y f 0 0); auto with ord.
     rewrite schutte_column0.
-    rewrite schutte_column_arg0.
-    apply normal_increasing; auto.
+    rewrite schutte_column_arg0; auto with ord.
+    apply normal_increasing; auto with ord.
     apply addOrd_complete; auto with ord.
-    apply normal_complete; auto.
     apply schutte_column_normal; auto.
     rewrite addOrd_zero_r.
-    apply schutte_column_add_closed; auto.
-    apply normal_monotone; auto.
+    apply schutte_column_add_closed; auto with ord.
     transitivity 1; auto with ord. }
 
   rewrite <- (schutte_column_fixpoint β α y f b 0); auto with ord.
   apply ord_lt_le_trans with (schutte_column f b (schutte_column f β α y) 0).
   2: { apply schutte_column_monotone_func; auto with ord.
-       apply normal_monotone; auto.
        intros; apply schutte_column_monotone; auto with ord.
-       apply normal_monotone; auto.
-       intro. rewrite schutte_column_arg0; auto with ord.
-       apply normal_monotone; auto. }
+       intro. rewrite schutte_column_arg0; auto with ord. }
   rewrite <- (schutte_column_fixpoint b _ 0 f 0 a); auto with ord.
   rewrite schutte_column0.
   apply schutte_column_increasing; auto with ord.
   apply addOrd_complete; auto with ord.
-  apply normal_complete; auto with ord.
   apply schutte_column_normal; auto with ord.
   apply schutte_column_normal; auto with ord.
   rewrite addOrd_zero_r.
   apply ord_lt_le_trans with (schutte_column f β α y); auto.
   apply normal_inflationary with (f:=fun x => schutte_column f b x 0); auto with ord.
   apply schutte_column_normal_arg; auto.
-  apply normal_complete; auto.
   apply schutte_column_normal; auto.
-  apply normal_complete; auto.
   apply schutte_column_normal; auto.
 Qed.
 
@@ -2506,23 +2089,16 @@ Proof.
     apply sup_least; intros []. simpl.
     apply normal_fix_least; auto with ord.
     apply schutte_column_normal_arg; auto with ord.
-    apply complete_subord; auto.
     apply schutte_column_normal; auto with ord.
     apply limit_least; intros [].
     transitivity (schutte_column f b E 0).
     apply schutte_column_monotone_func; auto with ord.
     intros; apply schutte_column_monotone; auto with ord.
-    apply normal_monotone; auto.
-    apply normal_monotone; auto.
     intros. rewrite schutte_column_arg0; auto with ord.
-    apply normal_monotone; auto.
     rewrite normal_ord_decompose with (f := fun x => schutte_column f b x 0); auto with ord.
     apply sup_least; intro i.
     apply ord_lt_le.
     apply H; auto with ord.
-    apply complete_subord; auto.
-    apply succ_complete.
-    apply complete_subord; auto.
     apply ord_le_lt_trans with (i+1).
     { rewrite addOrd_succ.
       apply succ_monotone.
@@ -2531,12 +2107,8 @@ Proof.
     rewrite schutte_column_unroll.
     rewrite <- lub_le1.
     apply normal_inflationary; auto with ord.
-    apply addOrd_complete; auto with ord.
-    apply complete_subord; auto.
     apply H; auto with ord.
-    apply complete_subord; auto.
     apply schutte_column_normal_arg; auto with ord.
-    apply complete_subord; auto.
 Qed.
 
 Lemma E_number_iff_unreachable:
@@ -2588,8 +2160,6 @@ Proof.
   unfold SmallVeblenOrdinal.
   apply normal_complete; auto with ord.
   apply schutte_column_normal; auto with ord.
-  apply omega_complete.
-  apply powOmega_normal.
 Qed.
 
 Lemma LVO_nonzero: 0 < LargeVeblenOrdinal.
@@ -2599,21 +2169,17 @@ Proof.
   rewrite <- (sup_le _ _ 1%nat); simpl.
   apply normal_nonzero.
   apply schutte_column_normal; auto with ord.
-  apply powOmega_normal.
 Qed.
 
 Lemma LVO_complete: complete LargeVeblenOrdinal.
 Proof.
   unfold LargeVeblenOrdinal.
   apply normal_fix_complete; auto with ord.
-  - intros. apply normal_inflationary with (f:= fun x => schutte_column _ x 1 0); auto.
-    apply schutte_column_normalβ.
-    apply powOmega_normal.
-  - intros; apply schutte_column_monotoneβ; auto.
-    intros; apply expOrd_monotone; auto.
+  - intros. apply normal_inflationary with (f:= fun x => schutte_column _ x 1 0); auto with ord.
+    apply schutte_column_normalβ; auto with ord.
+  - intros; apply schutte_column_monotoneβ; auto with ord.
   - intros. apply normal_complete; auto with ord.
     apply schutte_column_normal; auto with ord.
-    apply powOmega_normal.
 Qed.
 
 Lemma LVO_unreachable: schutte_unreachable (expOrd ω) LargeVeblenOrdinal.
@@ -2644,10 +2210,8 @@ Proof.
   apply schutte_column_normalβ.
   apply powOmega_normal.
   apply unreachable_E_number; auto with ord.
-  apply powOmega_normal.
   split; auto.
 Qed.
-
 
 Fixpoint schutte_matrix (f: Ord -> Ord) (m: list (Ord * Ord)) : Ord -> Ord :=
   match m with
@@ -2764,7 +2328,6 @@ Proof.
     split; apply schutte_column_monotone; auto with ord.
     intros; apply normal_monotone; auto.
     apply schutte_matrix_normal; auto.
-    rewrite addOrd_zero_r; auto with ord.
     intros; apply normal_monotone; auto.
     apply schutte_matrix_normal; auto.
     rewrite addOrd_zero_r; auto with ord.
@@ -2843,7 +2406,6 @@ Proof.
       rewrite schutte_column_unroll.
       rewrite <- lub_le1.
       apply normal_increasing; auto with ord.
-      apply addOrd_complete; auto with ord.
       rewrite addOrd_zero_r.
       unfold additively_closed in *. intuition.
       rewrite H10. rewrite addOrd_zero_r. auto.
@@ -2864,7 +2426,6 @@ Proof.
     apply schutte_column_normal; auto with ord.
     apply schutte_column_monotone; auto with ord.
     intros; apply schutte_column_monotone; auto with ord.
-    apply normal_monotone; auto.
     apply normal_inflationary with (f:= fun x => schutte_column f b x 0); auto with ord.
     apply schutte_column_normal_arg; auto with ord.
 Qed.
@@ -2896,11 +2457,8 @@ Proof.
   - rewrite <- (schutte_column_fixpoint β 1 0 f b1 0); auto with ord.
     apply ord_lt_le_trans with (schutte_column f b1 (schutte_column f β 1 0) 0).
     2:{ apply schutte_column_monotone_func; auto with ord.
-        apply normal_monotone; auto.
         intros; apply schutte_column_monotone; auto with ord.
-        apply normal_monotone; auto.
-        intros. rewrite schutte_column_arg0; auto with ord.
-        apply normal_monotone; auto. }
+        intros. rewrite schutte_column_arg0; auto with ord. }
     apply proper_matrix_unreachable; intuition auto with ord.
     apply normal_complete; auto with ord.
     apply schutte_column_normal; auto with ord.
@@ -2932,9 +2490,7 @@ Proof.
     rewrite addOrd_zero_r. auto with ord.
     apply ord_lt_le_trans with (1+(1+0)).
     apply addOrd_increasing; auto with ord.
-    rewrite addOrd_zero_r. auto with ord.
-    apply onePlus_least_normal; auto.
-    apply addOrd_complete; auto with ord.
+    apply onePlus_least_normal; auto with ord.
   - rewrite <- Hfix.
     apply normal_nonzero. apply schutte_column_normal; auto with ord.
   - apply schutte_matrix_proper_monotone with E E; auto with ord.
@@ -3008,7 +2564,6 @@ Proof.
                rewrite schutte_column_unroll.
                apply lub_least.
                **** apply normal_monotone; auto with ord.
-                    apply addOrd_monotone; auto with ord.
                **** apply sup_least; intro b.
                     elim (zero_lt b).
                     apply ord_lt_le_trans with β; auto with ord.
@@ -3022,25 +2577,18 @@ Proof.
                **** rewrite schutte_column_unroll.
                     rewrite <- lub_le1.
                     apply normal_monotone; auto with ord.
-                    rewrite addOrd_zero_r.
-                    auto with ord.
                **** apply sup_least; intro b.
                     elim (zero_lt b).
                     apply ord_lt_le_trans with β; auto with ord.
            *** repeat (split; auto with ord).
            *** simpl; intuition.
                eapply ord_le_lt_trans; [| apply (H [])]; simpl; auto with ord.
-               apply succ_least.
-               apply normal_nonzero; auto.
       * destruct (complete_zeroDec x); auto.
         ** eapply ord_le_lt_trans; [| apply (H [(β,α)])]; simpl; auto with ord.
            apply schutte_column_monotone; auto with ord.
-           apply normal_monotone; auto.
         ** eapply ord_le_lt_trans; [| apply (H [(β,α);(0,x)])]; auto with ord.
            *** simpl. rewrite schutte_column0.
                apply schutte_column_monotone; auto with ord.
-               apply normal_monotone; auto.
-               rewrite addOrd_zero_r; auto with ord.
            *** repeat (split; auto with ord).
            *** simpl; intuition.
 Qed.
