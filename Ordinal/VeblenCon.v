@@ -406,6 +406,24 @@ Proof.
   apply limit_lt.
 Qed.
 
+Lemma enum_least' f :
+  normal_function f ->
+  forall (x z:Ord),
+    complete x ->
+    complete z ->
+    f z ≤ z ->
+    (forall x', complete x' -> x' < x -> enum_fixpoints f x' < z) ->
+    enum_fixpoints f x ≤ z.
+Proof.
+  intro Hf.
+  induction x as [B g Hx]. simpl; intros.
+  apply normal_fix_least; auto.
+  rewrite ord_le_unfold; simpl; intros.
+  apply H2.
+  apply H.
+  apply limit_lt.
+Qed.
+
 Lemma enum_fixpoints_func_mono f g
       (Hf: normal_function f)
       (Hg: normal_function g) :
@@ -477,7 +495,12 @@ Proof.
   apply normal_monotone. auto.
 Qed.
 
+Lemma ε_normal: normal_function ε.
+Proof.
+  unfold ε. apply enum_fixpoints_normal; auto with ord.
+Qed.
 
+Global Hint Resolve enum_fixpoints_normal ε_normal: ord.
 
 Section veblen.
   Variable f : Ord -> Ord.
@@ -1443,31 +1466,21 @@ Definition Γ a := enum_fixpoints (fun b => veblen powOmega b 0) a.
 Theorem Γ_fixpoints : forall a, complete a -> Γ a ≈ veblen powOmega (Γ a) 0.
 Proof.
   intros a Ha. unfold Γ.
-  apply enum_are_fixpoints; auto.
-  apply veblen_first_normal.
-  apply powOmega_normal.
+  apply enum_are_fixpoints; auto with ord.
 Qed.
 
 Theorem Γ_normal : normal_function Γ.
 Proof.
-  unfold Γ.
-  apply enum_fixpoints_normal.
-  apply veblen_first_normal.
-  apply powOmega_normal.
+  unfold Γ. auto with ord.
 Qed.
 
 Theorem Γ₀_least : forall x, veblen powOmega x 0 ≈ x -> Γ 0 ≤ x.
 Proof.
   intros.
   unfold Γ.
-  rewrite enum_fixpoints_zero.
-  apply fixOrd_least.
-  intros; apply veblen_monotone_first; auto.
-  apply powOmega_monotone; auto.
-  apply zero_least.
+  rewrite enum_fixpoints_zero; auto with ord.
+  apply fixOrd_least; auto with ord.
   apply H.
-  apply veblen_first_normal.
-  apply powOmega_normal; auto.
 Qed.
 
 Theorem Γ_enumerates : enumerates Γ (strongly_critical_ordinal powOmega).
@@ -1479,52 +1492,6 @@ Proof.
     split; apply ord_eq_sym.
     apply powOmega_normal. }
 
-  apply enum_fixpoints_enumerates.
-  - intros.
-    apply (normal_inflationary (fun x => veblen powOmega x 0)); auto.
-    apply veblen_first_normal.
-    apply powOmega_normal.
-  - intros; apply veblen_monotone_first; auto.
-    apply powOmega_monotone.
-  - apply veblen_first_normal.
-    apply powOmega_normal.
-Qed.
-
-Definition Ξ a := enum_fixpoints (fun b => veblen Γ b 0) a.
-
-Theorem Ξ_fixpoints : forall a, complete a -> Ξ a ≈ veblen Γ (Ξ a) 0.
-Proof.
-  intros a Ha. unfold Ξ.
-  apply enum_are_fixpoints; auto.
-  apply veblen_first_normal.
-  apply Γ_normal.
-Qed.
-
-Theorem Ξ_normal : normal_function Ξ.
-Proof.
-  unfold Ξ.
-  apply enum_fixpoints_normal.
-  apply veblen_first_normal.
-  apply Γ_normal.
-Qed.
-
-Theorem Ξ_enumerates : enumerates Ξ (strongly_critical_ordinal Γ).
-Proof.
-  cut (enumerates Ξ (fun x => x ≈ veblen Γ x 0)).
-  { apply enumerates_equiv_pred.
-    apply Ξ_normal.
-    intros. rewrite strongly_critical_fixpoint; auto.
-    split; apply ord_eq_sym.
-    apply Γ_normal. }
-
-  apply enum_fixpoints_enumerates.
-  - intros.
-    apply (normal_inflationary (fun x => veblen Γ x 0)); auto.
-    apply veblen_first_normal.
-    apply Γ_normal.
-  - intros; apply veblen_monotone_first; auto.
-    apply normal_monotone.
-    apply Γ_normal.
-  - apply veblen_first_normal.
-    apply Γ_normal.
+  apply enum_fixpoints_enumerates; auto with ord.
+  apply (normal_inflationary (fun x => veblen powOmega x 0)); auto with ord.
 Qed.

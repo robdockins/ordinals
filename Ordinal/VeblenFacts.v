@@ -539,8 +539,6 @@ Proof.
       apply veblen_fixpoints; auto.
 Qed.
 
-
-
 Lemma compose_normal f g :
   normal_function f ->
   normal_function g ->
@@ -664,6 +662,102 @@ Proof.
     apply ord_le_lt_trans with (veblen f a (x i)).
     apply Hind; auto with ord.
     apply veblen_increasing; auto with ord.
+Qed.
+
+Lemma veblen_enum_fixpoints:
+  forall a x f,
+    normal_function f ->
+    complete a ->
+    complete x ->
+    veblen f (1+a) x ≈ veblen (enum_fixpoints f) a x.
+Proof.
+  induction a as [a Hinda] using ordinal_induction.
+  induction x as [x Hindx] using ordinal_induction.
+  intros f Hf Ha Hx.
+  split.
+  - rewrite veblen_unroll.
+    apply lub_least.
+    + rewrite veblen_unroll.
+      rewrite <- lub_le1.
+      rewrite enum_are_fixpoints; auto with ord.
+      apply normal_monotone; auto; auto with ord.
+      apply normal_inflationary; auto with ord.
+    + apply sup_least; intros.
+      apply normal_fix_least; auto with ord.
+      * apply limit_least; intro i.
+        rewrite Hindx; auto with ord.
+        apply veblen_increasing; auto with ord.
+      * destruct (add_lt a0 1 a) as [H|[i H]]; auto with ord.
+        ** rewrite ord_lt_unfold in H. destruct H as [[] H]; simpl in H.
+           rewrite veblen_unroll.
+           apply lub_least.
+           *** destruct (complete_zeroDec a); auto with ord.
+               { transitivity (f (enum_fixpoints f x)).
+                 apply normal_monotone; auto with ord.
+                 rewrite veblen_unroll.
+                 apply lub_least; auto with ord.
+                 apply sup_least; intro q.
+                 elim (zero_lt q). apply ord_lt_le_trans with a; auto with ord.
+                 rewrite veblen_unroll. rewrite <- lub_le1.
+                 apply enum_are_fixpoints; auto with ord. }
+               rewrite <- veblen_fixpoints with (α:=0) at 2; auto with ord.
+               rewrite veblen_zero.
+               rewrite enum_are_fixpoints; auto with ord.
+               apply normal_monotone; auto with ord.
+               apply normal_inflationary; auto with ord.
+           *** apply sup_least. intro i.
+               elim (zero_lt i). apply ord_lt_le_trans with a0; auto with ord.
+        ** transitivity (veblen f (1+i) (veblen (enum_fixpoints f) a x)).
+           { apply veblen_monotone_first; auto with ord. }
+           rewrite Hinda; auto with ord.
+           apply veblen_fixpoints; auto with ord.
+  - rewrite veblen_unroll.
+    apply lub_least.
+    + clear Hinda Hindx.
+      induction x as [x Hindx] using ordinal_induction.
+      apply enum_least'; auto with ord.
+      * rewrite <- veblen_fixpoints with (α:=0) at 2; auto with ord.
+        rewrite veblen_zero. auto with ord.
+      * intros. rewrite Hindx; auto with ord.
+        apply veblen_increasing; auto.
+    + apply sup_least; intro a'.
+      apply normal_fix_least; auto with ord.
+      * apply limit_least; intro i.
+        rewrite <- Hindx; auto with ord.
+        apply veblen_increasing; auto with ord.
+      * rewrite <- Hinda; auto with ord.
+        rewrite veblen_fixpoints; auto with ord.
+        apply addOrd_increasing; auto with ord.
+Qed.
+
+Lemma veblen_powOmega_epsilon:
+  forall a x, complete a -> complete x ->
+  veblen powOmega (1+a) x ≈ veblen ε a x.
+Proof.
+  intros; apply veblen_enum_fixpoints; auto.
+Qed.
+
+Lemma Γalt:
+  forall x,
+    complete x ->
+    Γ x ≈ enum_fixpoints (fun b => veblen ε b 0) x.
+Proof.
+  unfold Γ.
+  induction x as [x Hindx] using ordinal_induction. intro Hx.
+  split.
+  - apply enum_least'; auto with ord.
+    + rewrite enum_are_fixpoints at 2; auto with ord.
+      rewrite <- veblen_powOmega_epsilon; auto with ord.
+    + intros. rewrite Hindx; auto with ord.
+      apply enum_fixpoints_increasing; auto with ord.
+  - apply enum_least'; auto with ord.
+    + rewrite <- veblen_powOmega_epsilon; auto with ord.
+      rewrite enum_are_fixpoints at 2; auto with ord.
+      apply veblen_monotone_first; auto with ord.
+      rewrite enum_are_fixpoints at 2; auto with ord.
+      apply onePlus_least_normal with (f:= fun x => veblen _ x _); auto with ord.
+    + intros. rewrite <- Hindx; auto with ord.
+      apply enum_fixpoints_increasing; auto with ord.
 Qed.
 
 Require Import ClassicalFacts.

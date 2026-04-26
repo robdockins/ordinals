@@ -281,6 +281,19 @@ Proof.
   apply foldOrd_complete; auto with ord.
 Qed.
 
+Lemma add_lt: forall q x y,
+  q < x + y ->
+  q < x \/ exists i:y, q ≤ (x + i).
+Proof.
+  intros q x y H.
+  rewrite addOrd_unfold in H.
+  apply lub_lt in H; destruct H as [H|H]; auto.
+  apply sup_lt in H; destruct H as [i H].
+  right. exists i; auto.
+  rewrite ord_lt_unfold in H. destruct H as [[] H].
+  auto.
+Qed.
+
 Global Hint Rewrite addOrd_zero_r addOrd_zero_l: ord.
 Global Hint Resolve addOrd_monotone addOrd_complete addOrd_le1 addOrd_le2: ord.
 
