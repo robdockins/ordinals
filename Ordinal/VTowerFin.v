@@ -24,12 +24,10 @@ Open Scope ord_scope.
 Fixpoint vtower_fin (n:nat) : Ord -> Ord :=
   match n with
   | O    => addOrd 1
-  | S n' => fun x => veblen (vtower_fin n') (1+x) 0
+  | S n' => fun x => veblen (enum_fixpoints (vtower_fin n')) x 0
   end.
 
-Definition SmallVeblenOrdinal := supOrd (fun i => vtower_fin i 0).
-
-Lemma vtower_fin_succ n x : vtower_fin (S n) x = veblen (vtower_fin n) (1+x) 0.
+Lemma vtower_fin_succ n x : vtower_fin (S n) x = veblen (enum_fixpoints (vtower_fin n)) x 0.
 Proof.
   reflexivity.
 Qed.
@@ -39,7 +37,9 @@ Lemma vtower_fin_normal n :
 Proof.
   induction n; simpl.
   - apply onePlus_normal.
-  - apply veblen_first_onePlus_normal; auto.
+  - apply veblen_first_normal.
+    apply enum_fixpoints_normal.
+    auto.
 Qed.
 
 Lemma vtower_fin_eq_mor n x y :
@@ -105,8 +105,16 @@ Lemma vtower_fin_succ_monotone :
   forall n i, complete i -> vtower_fin n i ≤ vtower_fin (S n) i.
 Proof.
   induction n; simpl; intros.
-  - apply (onePlus_least_normal (fun i => veblen (addOrd 1) (1+i) 0)); auto.
+  - apply (onePlus_least_normal (fun i => veblen (enum_fixpoints (addOrd 1)) i 0)); auto.
+    apply veblen_first_normal.
+    apply enum_fixpoints_normal.
+    auto with ord.
   - apply veblen_monotone_func; auto.
+    apply enum_fixpoints_normal; auto.
+    apply enum_fixpoints_normal; auto.
+    apply veblen_first_normal; auto.
+    apply enum_fixpoints_normal; auto.
+    intros. apply enum_fixpoints_func_mono; auto with ord.
 Qed.
 
 Lemma vtower_fin_index_monotone :
@@ -122,14 +130,11 @@ Lemma vtower_fin_fixpoints_succ n : forall a x,
   0 < a ->
   complete a ->
   complete x ->
-  veblen (vtower_fin (S n)) a x ≈ veblen (vtower_fin n) (veblen (vtower_fin (S n)) a x) 0.
+  veblen (vtower_fin (S n)) a x ≈ veblen (enum_fixpoints (vtower_fin n)) (veblen (vtower_fin (S n)) a x) 0.
 Proof.
-  intros.
-  simpl.
+  intros. simpl.
   rewrite <- (veblen_fixpoints _ (vtower_fin_normal (S n)) 0 a x) at 1; auto.
   rewrite veblen_zero.
-  simpl.
-  rewrite onePlus_veblen; auto.
   reflexivity.
 Qed.
 
@@ -142,17 +147,18 @@ Theorem vtower_fin_fixpoints n : forall m a x,
 Proof.
   destruct n.
   - intros. inversion H.
-  - intros. inversion H.
-    + subst m. apply vtower_fin_fixpoints_succ; auto.
-    + split; simpl.
-      * apply (normal_inflationary (fun i => veblen (vtower_fin m) i 0)); auto.
-      * rewrite <- (veblen_fixpoints _ (vtower_fin_normal (S n)) 0 a x) at 2; auto.
-        rewrite veblen_zero.
-        simpl.
-        rewrite onePlus_veblen; auto.
-        apply veblen_monotone_func; auto.
-        apply vtower_fin_index_monotone; auto.
-        lia.
+  - intros. simpl.
+    split; simpl.
+    { apply (normal_inflationary (fun i => veblen (vtower_fin m) i 0)); auto with ord. }
+    rewrite <- (veblen_fixpoints _ (vtower_fin_normal (S n)) 0 a x) at 2; auto.
+    rewrite veblen_zero.
+    simpl.
+    apply veblen_monotone_func; auto with ord.
+    intros. rewrite enum_are_fixpoints; auto with ord.
+    transitivity (vtower_fin n i).
+    { apply vtower_fin_index_monotone; auto with arith. }
+    apply normal_monotone; auto with ord.
+    apply normal_inflationary; auto with ord.
 Qed.
 
 Lemma vtower_fin_0_0 : vtower_fin 0 0 ≈ 1.
@@ -165,6 +171,7 @@ Qed.
 Lemma vtower_fin_1_func : forall x, complete x -> vtower_fin 1 x ≈ expOrd ω (1+x).
 Proof.
   simpl; intros.
+  rewrite <- veblen_enum_fixpoints; auto with ord.
   rewrite veblen_onePlus; auto.
   rewrite addOrd_zero_r.
   reflexivity.
@@ -177,48 +184,50 @@ Proof.
   rewrite expOrd_one'; auto with ord.
 Qed.
 
-Lemma vtower_fin_2_func : forall x, complete x -> vtower_fin 2 x ≈ veblen powOmega (1+x) 0.
+Lemma vtower_fin_2_func : forall x, complete x -> vtower_fin 2 x ≈ veblen ε x 0.
 Proof.
   intros.
   rewrite vtower_fin_succ.
   simpl.
-  rewrite (veblen_func_onePlus (fun i => veblen (addOrd 1) i 0)); auto.
-  split; apply veblen_monotone_func; auto.
-  intros; rewrite veblen_onePlus; auto with ord.
-  rewrite addOrd_zero_r. reflexivity.
-  intros; rewrite veblen_onePlus; auto.
-  rewrite addOrd_zero_r. reflexivity.
+  rewrite <- veblen_enum_fixpoints; auto with ord.
+  transitivity (veblen (fun i => veblen (addOrd 1) (1+i) 0) (1+x) 0).
+  { split; apply veblen_monotone_func; auto with ord.
+    intros. rewrite <- veblen_enum_fixpoints with (f:=addOrd 1); auto with ord.
+    intros. rewrite <- veblen_enum_fixpoints with (f:=addOrd 1); auto with ord. }
+  rewrite veblen_func_onePlus with (f:=fun i => veblen (addOrd 1) i 0); auto with ord.
+  transitivity (veblen powOmega (1+x) 0).
+  { split; apply veblen_monotone_func; auto with ord.
+    intros; rewrite veblen_onePlus; auto with ord.
+    rewrite addOrd_zero_r; auto with ord.
+    intros; rewrite veblen_onePlus; auto with ord. }
+  rewrite veblen_enum_fixpoints; auto with ord.
 Qed.
 
 Lemma vtower_fin_2_0 : vtower_fin 2 0 ≈ ε 0.
 Proof.
   rewrite vtower_fin_2_func; auto.
-  rewrite addOrd_zero_r.
-  rewrite veblen_succ; auto.
-  unfold ε.
-  split; apply enum_fixpoints_func_mono; auto;
-    intros; rewrite veblen_zero; auto with ord.
+  rewrite veblen_zero; auto with ord.
 Qed.
 
 Lemma vtower_fin_3_func :
-  forall x, complete x -> vtower_fin 3 x ≈ veblen (fun i => veblen powOmega i 0) (1+x) 0.
+  forall x, complete x -> vtower_fin 3 x ≈ veblen Γ x 0.
 Proof.
   intros.
   rewrite vtower_fin_succ.
-  symmetry.
-  rewrite <- veblen_func_onePlus; auto.
-  split; apply veblen_monotone_func; auto;
-    intros; rewrite vtower_fin_2_func; auto with ord.
+  split; apply veblen_monotone_func; auto with ord.
+  apply Γ_normal.
+  intros. rewrite Γalt; auto.
+  apply enum_fixpoints_func_mono; auto with ord.
+  intros; apply vtower_fin_2_func; auto with ord.
+  apply Γ_normal.
+  intros. rewrite Γalt; auto.
+  apply enum_fixpoints_func_mono; auto with ord.
+  intros; apply vtower_fin_2_func; auto with ord.
 Qed.
-
+  
 Lemma vtower_fin_3_0 : vtower_fin 3 0 ≈ Γ 0.
 Proof.
   rewrite vtower_fin_3_func; auto.
-  transitivity (veblen (fun i : Ord => veblen powOmega i 0) 1 0).
-  apply veblen_eq_mor; auto with ord.
-  rewrite addOrd_zero_r; auto with ord.
-  rewrite veblen_succ; auto.
-  unfold Γ.
-  split; apply enum_fixpoints_func_mono; auto;
-    intros; rewrite veblen_zero; auto with ord.
+  rewrite veblen_zero; auto with ord.
 Qed.
+

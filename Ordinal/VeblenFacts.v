@@ -760,8 +760,61 @@ Proof.
       apply enum_fixpoints_increasing; auto with ord.
 Qed.
 
+Lemma normal_ord_decompose: forall x f,
+    complete x ->
+    0 < x ->
+    normal_function f ->
+    f x ≈ supOrd (fun i:x => f (succOrd i)).
+Proof.
+  intros x f Hx Hx0 Hf.
+  rewrite ord_lt_unfold in Hx0.
+  destruct Hx0 as [x' Hx'].
+  split.
+  - transitivity (f (supOrd (fun i:x => succOrd i))).
+    apply normal_monotone; auto.
+    destruct x; simpl.
+    apply sup_succ_lim.
+    apply (normal_continuous f Hf _ (fun i:x => succOrd (sz i)) x').
+    apply directed_monotone; auto with ord.
+    intro a. apply succ_complete.
+    apply complete_subord; auto.
+  - apply sup_least; intro i.
+    apply normal_monotone; auto.
+    apply succ_least; auto with ord.
+Qed.
+
 Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
+
+Lemma enum_fixpoint_decompose (EM:excluded_middle) f (Hf:normal_function f) :
+  forall x  
+    (Hlim : limitOrdinal x),
+    f x ≤ x ->
+    x < enum_fixpoints f x ->
+    exists a, x ≈ enum_fixpoints f a /\ a < x.
+Proof.
+  intros x Hlim Hx1 Hx2.
+  rewrite normal_ord_decompose in Hx2; auto with ord.
+  2: { apply classical.ord_complete; auto. }
+  2: { rewrite ord_isLimit in Hlim; intuition. }
+  apply sup_lt in Hx2. destruct Hx2 as [a0 Hx2].
+  set (Q a := a < x /\ x <= enum_fixpoints f a).
+  destruct (classical.ord_well_ordered EM Q (succOrd a0)) as [a [[Hax Ha] Hbleast]]; auto.
+  split; auto with ord.
+  apply limit_unreachable; auto with ord.
+  subst Q; simpl in *.
+  assert (Hle : enum_fixpoints f a ≤ x).
+  { destruct a as [A fa]. simpl.
+    apply normal_fix_least; auto with ord.
+    apply classical.ord_complete; auto.
+    apply limit_least. intro q.
+    destruct (classical.order_total EM x (enum_fixpoints f (fa q))) as [H|H]; auto.
+    elim (ord_lt_irreflexive (fa q)).
+    apply ord_lt_le_trans with (ord A fa); auto with ord.
+    apply Hbleast; split; auto with ord.
+    transitivity (ord A fa); auto with ord. }
+  exists a; repeat split; auto.
+Qed.
 
 Lemma veblen_decompose (EM:excluded_middle) f (Hf:normal_function f) :
   forall x

@@ -1111,6 +1111,49 @@ Section cantor_arithmetic.
       auto.
     Qed.
 
+    Hypothesis Hg3: forall x y, x <= y -> g x <= g y.
+    Hypothesis Hg4: forall x, complete x -> x <= g x.
+
+    Variable enum_gr: A -> A.
+    Hypothesis Hgr: reflects A f P (ORD ==> ORD) (enum_fixpoints g) enum_gr.
+
+    Lemma enum_fix_has_interpolants:
+      forall b,
+        complete b ->
+        has_interpolants b ->
+        has_interpolants (enum_fixpoints g b).
+    Proof.
+      induction b as [b Hindb] using ordinal_induction.
+      intros Hb1 Hb2.
+      destruct b as [B fb]; simpl.
+      apply fix_has_interpolants; auto with ord.
+      { apply lim_complete.
+        - intros. apply enum_fixpoints_complete; auto with ord.
+          apply Hb1.
+        - apply (directed_monotone (ord B fb)); auto with ord.
+          intros; apply enum_fixpoints_monotone; auto with ord.
+        - apply Hb1. }
+      rewrite has_interpolants_unfold. intros i Hi.
+      rewrite ord_lt_unfold in Hi.
+      destruct Hi as [b Hi]; simpl in *.
+      rewrite has_interpolants_unfold in Hb2.
+      destruct (Hb2 (fb b)) as [br [Hbr1 [Hbr2 [Hbr3 Hbr4]]]]; auto with ord.
+
+      exists (enum_gr br).
+      destruct (@Hgr (f br) br) as [??]; [ split; auto with ord | ].
+      repeat split; auto.
+      - rewrite <- H.
+        rewrite Hi.
+        apply enum_fixpoints_monotone; auto with ord.
+      - rewrite ord_lt_unfold. simpl.
+        rewrite ord_lt_unfold in Hbr3.
+        destruct Hbr3 as [b' Hbr3].
+        exists b'. rewrite <- H.
+        apply enum_fixpoints_monotone; auto with ord.
+      - rewrite <- H.
+        apply Hindb; auto with ord.
+        apply cantor_decomp_complete with P; auto.
+     Qed.        
   End fix_interpolants.
 
   Section onePlus_interpolants.

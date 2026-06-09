@@ -390,29 +390,6 @@ Proof.
   - intros. rewrite <- addOrd_le1. auto.
 Qed.
 
-Lemma normal_ord_decompose: forall x f,
-    complete x ->
-    0 < x ->
-    normal_function f ->
-    f x ≈ supOrd (fun i:x => f (succOrd i)).
-Proof.
-  intros x f Hx Hx0 Hf.
-  rewrite ord_lt_unfold in Hx0.
-  destruct Hx0 as [x' Hx'].
-  split.
-  - transitivity (f (supOrd (fun i:x => succOrd i))).
-    apply normal_monotone; auto.
-    destruct x; simpl.
-    apply sup_succ_lim.
-    apply (normal_continuous f Hf _ (fun i:x => succOrd (sz i)) x').
-    apply directed_monotone; auto with ord.
-    intro a. apply succ_complete.
-    apply complete_subord; auto.
-  - apply sup_least; intro i.
-    apply normal_monotone; auto.
-    apply succ_least; auto with ord.
-Qed.
-
 Lemma schutte_column_ltE: forall [z f β α x],
     z < schutte_column f β α x ->
     forall (R:Prop),
@@ -2409,3 +2386,73 @@ Proof.
   rewrite <- proper_matrix_is_unreachable_iff in HE; auto with ord.
   apply LVO_least_unreachable; auto.
 Qed.
+
+Lemma schutte_column_2_succ:
+  forall f a x,
+    normal_function f ->
+    complete a ->
+    complete x ->
+    schutte_column f 2 (succOrd a) x ≈
+      enum_fixpoints (fun i => veblen (schutte_column f 2 a) i 0) x.
+Proof.  
+  intros f a.
+  induction x as [x Hindx] using ordinal_induction.
+  intros Hf Ha Hx.
+  split.
+  - rewrite schutte_column_gt0; auto with ord.
+    apply sup_least; intros [].
+    apply sup_least; intros [].
+    simpl in *.
+    apply normal_fix_least; auto with ord.
+    + apply normal_complete; auto with ord.
+      apply enum_fixpoints_normal; auto with ord.
+    + apply limit_least; intro i.
+      rewrite Hindx; auto with ord.
+      apply normal_increasing; auto with ord.
+      apply enum_fixpoints_normal; auto with ord.
+    + rewrite schutte_column_veblen; auto with ord.
+      rewrite enum_are_fixpoints at 2; auto with ord.
+      apply normal_complete; auto with ord.
+      apply enum_fixpoints_normal; auto with ord.
+  - apply enum_least'; auto with ord.
+    + rewrite <- (schutte_column_fixpoint 2 (succOrd a) x f 1 a) at 2; auto with ord.
+      rewrite schutte_column_veblen; auto with ord.
+    + intros.
+      rewrite <- Hindx; auto with ord.
+      apply normal_increasing; auto with ord.
+Qed.    
+
+Lemma schutte_column_2_1:
+  forall x, complete x -> schutte_column (addOrd 1) 2 1 x ≈ ε x.
+Proof.
+  intros. unfold ε.
+  rewrite schutte_column_2_succ; auto with ord.
+  split; apply enum_fixpoints_func_mono'; auto with ord.
+  - intros. apply fixOrd_monotone_func''; auto with ord.
+    intros. transitivity (veblen (addOrd 1) x1 0).
+    { apply veblen_monotone_func; auto with ord.
+      intros. rewrite schutte_column_arg0; auto with ord. }
+    rewrite veblen_onePlus; auto with ord.
+    rewrite addOrd_zero_r. auto with ord.
+  - intros. apply fixOrd_monotone_func''; auto with ord.
+    intros. transitivity (veblen (addOrd 1) x1 0).
+    { rewrite veblen_onePlus; auto with ord. }
+    apply veblen_monotone_func; auto with ord.
+    intros. rewrite schutte_column_arg0; auto with ord.
+    intros; apply normal_complete; auto with ord.
+Qed.
+
+Lemma schutte_column_2_2:
+  forall x, complete x -> schutte_column (addOrd 1) 2 2 x ≈ Γ x.
+Proof.
+  intros. rewrite Γalt; auto.
+  rewrite schutte_column_2_succ; auto with ord.
+  split; apply enum_fixpoints_func_mono'; auto with ord.
+  - intros. intros. apply fixOrd_monotone_func''; auto with ord.
+    intros. apply veblen_monotone_func; auto with ord.
+    intros. apply schutte_column_2_1; auto.
+  - intros. intros. apply fixOrd_monotone_func''; auto with ord.
+    intros. apply veblen_monotone_func; auto with ord.
+    intros. apply schutte_column_2_1; auto.
+    intros; apply normal_complete; auto with ord.
+Qed.  

@@ -23,6 +23,7 @@ Ordinal/VTowerClassical.v
 Ordinal/BHTower.v
 Ordinal/BHTowerFacts.v
 Ordinal/SchutteColumn.v
+Ordinal/SchutteColumnFacts.v
 
 Ordinal/Notation/CantorNotation.v
 Ordinal/Notation/CantorDecomposition.v
