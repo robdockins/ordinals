@@ -17,6 +17,7 @@ Ordinal/VeblenCon.v
 Ordinal/VeblenFacts.v
 Ordinal/VeblenSymbol.v
 Ordinal/Countable.v
+Ordinal/AckermannTower.v
 Ordinal/VTowerFin.v
 Ordinal/VTower.v
 Ordinal/VTowerClassical.v

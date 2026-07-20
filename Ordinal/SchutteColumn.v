@@ -19,9 +19,12 @@ From Ordinal Require Import VeblenDefs.
 From Ordinal Require Import VeblenCon.
 From Ordinal Require Import VeblenFacts.
 From Ordinal Require Import VTowerFin.
-From Ordinal Require Import VTower.
+From Ordinal Require Import AckermannTower.
+
+(*From Ordinal Require Import VTower.
 From Ordinal Require Import BHTower.
 From Ordinal Require Import BHTowerFacts.
+*)
 
 Open Scope ord_scope.
 
@@ -2385,6 +2388,48 @@ Proof.
   intros E HcE HE.
   rewrite <- proper_matrix_is_unreachable_iff in HE; auto with ord.
   apply LVO_least_unreachable; auto.
+Qed.
+
+Lemma schutte_column_2_ackermann_tower:
+  forall f a x,
+    normal_function f ->
+    complete a ->
+    complete x ->
+    schutte_column f 2 a x ≈ ackermann_tower f a x.
+Proof.  
+  intros f.
+  induction a as [a Hinda] using ordinal_induction.
+  induction x as [x Hindx] using ordinal_induction.
+  intros Hf Ha Hx.
+  split.
+  - rewrite schutte_column_unroll.
+    apply lub_least.
+    + apply ackermann_tower_fax; auto with ord.
+    + apply sup_least; simpl. intros [].
+      apply sup_least; intro a'.
+      apply normal_fix_least; auto with ord.
+      * apply limit_least; intro i.
+        rewrite Hindx; auto with ord.
+        apply normal_increasing; auto with ord.
+      * rewrite schutte_column_veblen; auto with ord.
+        transitivity (veblen (ackermann_tower f a') (ackermann_tower f a x) 0).
+        { apply veblen_monotone_func; auto with ord.
+          intros. apply Hinda; auto with ord. }
+        apply ackermann_tower_fixpoint; auto with ord.
+  - rewrite ackermann_tower_unroll.
+    apply lub_least.
+    { rewrite schutte_column_unroll.
+      rewrite <- lub_le1.
+      apply normal_monotone; auto with ord. }
+    apply sup_least; intros a'.
+    apply normal_fix_least; auto with ord.
+    + apply limit_least; intro x'.
+      rewrite <- Hindx; auto with ord.
+      apply normal_increasing; auto with ord.
+    + rewrite <- (schutte_column_fixpoint 2 a x f 1 a') at 2; auto with ord.
+      rewrite schutte_column_veblen; auto with ord.
+      apply veblen_monotone_func; auto with ord.
+      intros. apply Hinda; auto with ord.
 Qed.
 
 Lemma schutte_column_2_succ:
