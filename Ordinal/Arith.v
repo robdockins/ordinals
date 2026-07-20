@@ -1369,3 +1369,47 @@ Proof.
     rewrite <- Hy; auto with ord.
 Qed.
 
+Fixpoint posOrd (p:positive) : Ord :=
+    match p with
+    | xI p => posOrd p * 2 + 1
+    | xO p => posOrd p * 2
+    | xH => 1
+    end.
+
+Definition nOrd (n:N) : Ord :=
+  match n with
+  | N0 => 0
+  | Npos p => posOrd p
+  end.
+
+Lemma posOrd_commute p:
+  posOrd p ≈ natOrdSize (Pos.to_nat p).
+Proof.
+  induction p; auto with ord.
+  - rewrite Pnat.Pos2Nat.inj_xI. simpl.
+    repeat rewrite natOrdSize_add. simpl.
+    rewrite addOrd_succ.
+    apply succ_congruence.
+    rewrite addOrd_zero_l.
+    rewrite addOrd_zero_r.
+    rewrite mulOrd_succ.
+    rewrite mulOrd_succ.
+    rewrite mulOrd_zero_r.
+    rewrite addOrd_zero_l.
+    rewrite IHp. auto with ord.
+  - rewrite Pnat.Pos2Nat.inj_xO. simpl.
+    repeat rewrite natOrdSize_add. simpl.
+    rewrite addOrd_zero_l.
+    rewrite mulOrd_succ.
+    rewrite mulOrd_succ.
+    rewrite mulOrd_zero_r.
+    rewrite addOrd_zero_l.
+    rewrite IHp. auto with ord.
+Qed.
+
+Lemma nOrd_commute n:
+  nOrd n ≈ natOrdSize (N.to_nat n).
+Proof.
+  destruct n; simpl; auto with ord.
+  apply posOrd_commute.
+Qed.
