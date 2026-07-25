@@ -549,6 +549,15 @@ Proof.
     apply ackermann_tower_increasing; auto with ord.
 Qed.
 
+Lemma ackermann_tower_zero f x:
+  ackermann_tower f 0 x ≈ f x.
+Proof.  
+  rewrite ackermann_tower_unroll.
+  split; auto with ord.
+  apply lub_least; auto with ord.
+  apply sup_least; intros [].
+Qed.
+
 Lemma ackermann_tower_succ:
   forall f a x,
     normal_function f ->
@@ -574,3 +583,87 @@ Proof.
     + intros. rewrite <- (Hindx x' H0); auto with ord.
       apply normal_increasing; auto with ord.
 Qed.
+
+
+Fixpoint ackermann_tower_fin (f: Ord -> Ord) (a:nat) : Ord -> Ord :=
+  match a with
+  | O => f
+  | S a' => enum_fixpoints (fun x => veblen (ackermann_tower_fin f a') x 0)
+  end.
+
+Lemma ackermann_tower_fin_normal a:
+  forall f, normal_function f -> normal_function (ackermann_tower_fin f a).
+Proof.  
+  induction a; simpl; auto with ord.
+Qed.
+
+Global Hint Resolve ackermann_tower_fin_normal: ord.
+
+Lemma ackermann_tower_fin_monotone_S f n x:
+  normal_function f ->
+  complete x ->
+  ackermann_tower_fin f n x <= ackermann_tower_fin f (S n) x.
+Proof.
+  intros. simpl.
+  rewrite enum_are_fixpoints; auto with ord.
+  rewrite <- veblen_fax; auto with ord.
+  apply normal_monotone; auto with ord.
+  rewrite addOrd_zero_r.
+  apply normal_inflationary; auto with ord.
+Qed.  
+    
+Lemma ackermann_tower_fin_monotone1 f m n x:
+  normal_function f ->
+  (m <= n)%nat ->
+  complete x ->
+  ackermann_tower_fin f m x <= ackermann_tower_fin f n x.
+Proof.
+  intros Hf Hmn.
+  revert x Hf.
+  induction Hmn; auto with ord.
+  intros. rewrite IHHmn; auto with ord.
+  apply ackermann_tower_fin_monotone_S; auto.
+Qed.
+
+Lemma ackermann_tower_fin_monotone f m n x y:
+  normal_function f ->
+  (m <= n)%nat ->
+  x <= y ->
+  complete x ->
+  ackermann_tower_fin f m x <= ackermann_tower_fin f n y.
+Proof.
+  intros. transitivity (ackermann_tower_fin f n x).
+  apply ackermann_tower_fin_monotone1; auto with ord.
+  apply normal_monotone; auto with ord.
+Qed.
+
+Lemma ackermann_tower_fin_eq f a x:
+  normal_function f ->
+  complete x ->
+  ackermann_tower_fin f a x ≈ ackermann_tower f (natOrdSize a) x.
+Proof.
+  revert f x. induction a; simpl; intros.
+  - intros. rewrite ackermann_tower_zero. auto with ord.
+  - intros. rewrite ackermann_tower_succ; auto with ord.
+    split; apply enum_fixpoints_func_mono; auto with ord.
+    + intros. apply veblen_monotone_func; auto with ord.
+      intros; apply IHa; auto.
+    + intros. apply veblen_monotone_func; auto with ord.
+      intros; apply IHa; auto.
+Qed.
+
+Lemma ackermann_tower_fin_fixpoints:
+  forall n f m x,
+    normal_function f ->
+    (m < n)%nat ->
+    complete x ->
+    veblen (ackermann_tower_fin f m) (ackermann_tower_fin f n x) 0 ≤ ackermann_tower_fin f n x.
+Proof.
+  induction n; intros. lia.
+  simpl.
+  rewrite enum_are_fixpoints at 2; auto with ord.
+  apply veblen_monotone_func; auto with ord.
+  intros. apply ackermann_tower_fin_monotone; auto with ord.
+  lia.
+Qed.  
+  
