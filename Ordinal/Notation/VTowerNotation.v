@@ -1428,16 +1428,6 @@ Proof.
   - apply enum_fixpoints_func_mono; auto with ord.
 Qed.
 
-Lemma VF_SVO_correct : VF_denote (VF_SVO) ≈ SmallVeblenOrdinal.
-Proof.
-  simpl.
-  rewrite veblen_zero.
-  rewrite VF_omega_correct.
-  symmetry.
-  apply SVO_vtower.
-Qed.
-
-
 Lemma vtower_interpolants:
   forall a b,
     VF_isNormal a ->

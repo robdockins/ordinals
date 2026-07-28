@@ -1495,3 +1495,4 @@ Proof.
   apply enum_fixpoints_enumerates; auto with ord.
   apply (normal_inflationary (fun x => veblen powOmega x 0)); auto with ord.
 Qed.
+

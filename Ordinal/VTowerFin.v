@@ -231,3 +231,4 @@ Proof.
   rewrite veblen_zero; auto with ord.
 Qed.
 
+Definition SmallVeblenOrdinal := supOrd (fun x => vtower_fin x 0).

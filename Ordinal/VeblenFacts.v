@@ -760,6 +760,31 @@ Proof.
       apply enum_fixpoints_increasing; auto with ord.
 Qed.
 
+
+Lemma normal_ord_decompose': forall x f,
+    complete x ->
+    0 < x ->
+    (forall x y, x <= y -> f x <= f y) ->
+    scott_continuous f ->
+    f x ≈ supOrd (fun i:x => f (succOrd i)).
+Proof.
+  intros x f Hx Hx0 Hf1 Hf2.
+  rewrite ord_lt_unfold in Hx0.
+  destruct Hx0 as [x' Hx'].
+  split.
+  - transitivity (f (supOrd (fun i:x => succOrd i))).
+    apply Hf1.
+    destruct x; simpl.
+    apply sup_succ_lim.
+    apply Hf2; auto.
+    apply directed_monotone; auto with ord.
+    intro a. apply succ_complete.
+    apply complete_subord; auto.
+  - apply sup_least; intro i.
+    apply Hf1.
+    apply succ_least; auto with ord.
+Qed.
+
 Lemma normal_ord_decompose: forall x f,
     complete x ->
     0 < x ->
@@ -767,20 +792,8 @@ Lemma normal_ord_decompose: forall x f,
     f x ≈ supOrd (fun i:x => f (succOrd i)).
 Proof.
   intros x f Hx Hx0 Hf.
-  rewrite ord_lt_unfold in Hx0.
-  destruct Hx0 as [x' Hx'].
-  split.
-  - transitivity (f (supOrd (fun i:x => succOrd i))).
-    apply normal_monotone; auto.
-    destruct x; simpl.
-    apply sup_succ_lim.
-    apply (normal_continuous f Hf _ (fun i:x => succOrd (sz i)) x').
-    apply directed_monotone; auto with ord.
-    intro a. apply succ_complete.
-    apply complete_subord; auto.
-  - apply sup_least; intro i.
-    apply normal_monotone; auto.
-    apply succ_least; auto with ord.
+  apply normal_ord_decompose'; auto with ord.
+  apply normal_continuous; auto.
 Qed.
 
 Require Import ClassicalFacts.

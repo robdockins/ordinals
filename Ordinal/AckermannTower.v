@@ -48,12 +48,12 @@ Qed.
 
 Global Opaque ackermann_tower.
 
-Lemma ackermann_tower_monotone_x: 
+Lemma ackermann_tower_monotone_x:
   forall f a,
     (forall x y, x ≤ y -> f x ≤ f y) ->
     forall x y, x ≤ y -> ackermann_tower f a x ≤ ackermann_tower f a y.
 Proof.
-  intros f. 
+  intros f.
   induction a as [a Hinda] using ordinal_induction.
   intros Hf.
   induction x as [x Hindx] using ordinal_induction.
@@ -76,9 +76,9 @@ Proof.
     intros [j Hj].
     exists j.
     apply (Hindx i); auto with ord.
-Qed.    
+Qed.
 
-Lemma ackermann_tower_monotone_a: 
+Lemma ackermann_tower_monotone_a:
   forall f a b,
     a ≤ b ->
     (forall x y, x ≤ y -> f x ≤ f y) ->
@@ -99,7 +99,7 @@ Proof.
     rewrite ackermann_tower_unroll.
     rewrite <- lub_le2.
     rewrite <- (sup_le _ _ b').
-    transitivity 
+    transitivity
       (fixOrd (fun d : Ord => veblen (ackermann_tower f (sz b')) d 0)
          (limOrd (fun x' : x => ackermann_tower f a (sz x')))).
     { apply fixOrd_monotone_func; auto with ord.
@@ -114,9 +114,9 @@ Proof.
     rewrite ord_lt_unfold. simpl.
     exists i.
     apply Hindx; auto with ord.
-Qed.    
+Qed.
 
-Lemma ackermann_tower_monotone: 
+Lemma ackermann_tower_monotone:
   forall f,
     (forall x y, x ≤ y -> f x ≤ f y) ->
     forall a b x y,
@@ -162,7 +162,7 @@ Proof.
     exists y'; simpl.
     apply ackermann_tower_monotone_x; auto.
     apply normal_monotone; auto.
-Qed.    
+Qed.
 
 Lemma ackermann_tower_nonzero:
   forall f a x,
@@ -282,7 +282,7 @@ Section ackermann_tower.
       complete i ->
       complete x ->
       complete (ackermann_tower f i x).
-  Proof.  
+  Proof.
     intros.
     destruct (complete_zeroDec i); auto.
     - rewrite ackermann_tower_unroll.
@@ -296,7 +296,7 @@ Section ackermann_tower.
       + apply sup_complete; unfold directed; intuition.
     - apply ackermann_tower_complete_le; auto with ord.
   Qed.
-  
+
   Lemma ackermann_tower_fixpoint_aux:
     forall i i' x,
       i <= a ->
@@ -397,7 +397,7 @@ Section ackermann_tower.
     - apply ackermann_tower_nonzero; auto with ord.
   Qed.
 
-  Lemma ackermann_tower_continuous:  
+  Lemma ackermann_tower_continuous:
     forall i,
       i <= a ->
       complete i ->
@@ -428,8 +428,8 @@ Section ackermann_tower.
         apply limit_least.
         intros [z q]; simpl.
         rewrite <- (sup_le _ _ z).
-        apply ackermann_tower_increasing; auto with ord.        
-      + transitivity (supOrd (fun z => 
+        apply ackermann_tower_increasing; auto with ord.
+      + transitivity (supOrd (fun z =>
             veblen (ackermann_tower f (sz i')) (ackermann_tower f i (fa z)) 0)).
         { apply normal_continuous with (f:= fun z => veblen _ z 0); auto with ord.
           - apply veblen_first_normal; auto with ord.
@@ -445,7 +445,7 @@ End ackermann_tower.
 
 Theorem ackermann_tower_normal:
   forall f a, normal_function f -> complete a -> normal_function (ackermann_tower f a).
-Proof.  
+Proof.
   intro f. induction a as [a Hinda] using ordinal_induction.
   intros Hf Ha.
   constructor.
@@ -482,10 +482,10 @@ Proof.
     rewrite ord_lt_unfold in Hxy.
     destruct Hxy as [i Hi].
     rewrite <- (sup_le _ _ i).
-    apply ord_lt_le_trans with 
+    apply ord_lt_le_trans with
       (fixOrd (fun d : Ord => veblen (ackermann_tower f (sz i)) d 0) 0).
     2:{ apply fixOrd_monotone; auto with ord. }
-    unfold fixOrd. 
+    unfold fixOrd.
     rewrite <- (sup_le _ _ 2%nat). simpl.
     rewrite <- veblen_fax; auto with ord.
     apply ord_le_lt_trans with (ackermann_tower f i 0).
@@ -551,7 +551,7 @@ Qed.
 
 Lemma ackermann_tower_zero f x:
   ackermann_tower f 0 x ≈ f x.
-Proof.  
+Proof.
   rewrite ackermann_tower_unroll.
   split; auto with ord.
   apply lub_least; auto with ord.
@@ -565,7 +565,7 @@ Lemma ackermann_tower_succ:
     complete x ->
     ackermann_tower f (succOrd a) x ≈
       enum_fixpoints (fun i => veblen (ackermann_tower f a) i 0) x.
-Proof.  
+Proof.
   intros f a.
   induction x as [x Hindx] using ordinal_induction.
   intros Hf Ha Hx.
@@ -593,7 +593,7 @@ Fixpoint ackermann_tower_fin (f: Ord -> Ord) (a:nat) : Ord -> Ord :=
 
 Lemma ackermann_tower_fin_normal a:
   forall f, normal_function f -> normal_function (ackermann_tower_fin f a).
-Proof.  
+Proof.
   induction a; simpl; auto with ord.
 Qed.
 
@@ -610,8 +610,8 @@ Proof.
   apply normal_monotone; auto with ord.
   rewrite addOrd_zero_r.
   apply normal_inflationary; auto with ord.
-Qed.  
-    
+Qed.
+
 Lemma ackermann_tower_fin_monotone1 f m n x:
   normal_function f ->
   (m <= n)%nat ->
@@ -665,5 +665,8 @@ Proof.
   apply veblen_monotone_func; auto with ord.
   intros. apply ackermann_tower_fin_monotone; auto with ord.
   lia.
-Qed.  
-  
+Qed.
+
+Definition SmallAckermannOrdinal := supOrd (fun n:ω => ackermann_tower_fin (addOrd 1) n 0).
+
+Definition LargeAckermannOrdinal := fixOrd (fun x => ackermann_tower (addOrd 1) x 0) 0.

@@ -21,13 +21,7 @@ From Ordinal Require Import VeblenFacts.
 From Ordinal Require Import VTowerFin.
 From Ordinal Require Import AckermannTower.
 
-(*From Ordinal Require Import VTower.
-From Ordinal Require Import BHTower.
-From Ordinal Require Import BHTowerFacts.
-*)
-
 Open Scope ord_scope.
-
 
 Fixpoint schutte_column (f: Ord -> Ord) (β: Ord) {struct β} : Ord -> Ord -> Ord :=
   fix inner_α (α: Ord) : Ord -> Ord :=

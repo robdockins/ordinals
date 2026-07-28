@@ -304,18 +304,6 @@ Proof.
     intros; apply normal_inflationary; auto with ord.
 Qed.
 
-Lemma BH_SVO_correct : BH_denote BH_SVO ≈ SmallVeblenOrdinal.
-Proof.
-  transitivity (vtower (addOrd 1) ω 0).
-  2: { symmetry; apply SVO_vtower. }
-  simpl.
-  rewrite bhtower_zero.
-  rewrite bhtower_index_two; auto with ord.
-  split; apply vtower_monotone; auto with ord.
-  apply BHω_correct.
-  apply BHω_correct.
-Qed.
-
 Lemma BH_LVO_correct : BH_denote BH_LVO ≈ LargeVeblenOrdinal.
 Proof.
   unfold LargeVeblenOrdinal.

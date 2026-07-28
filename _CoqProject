@@ -21,7 +21,6 @@ Ordinal/Countable.v
 Ordinal/AckermannTower.v
 Ordinal/VTowerFin.v
 Ordinal/VTower.v
-Ordinal/VTowerClassical.v
 Ordinal/BHTower.v
 Ordinal/BHTowerFacts.v
 Ordinal/SchutteColumn.v
@@ -31,6 +30,9 @@ Ordinal/Notation/CantorNotation.v
 Ordinal/Notation/CantorDecomposition.v
 Ordinal/Notation/VNotation.v
 Ordinal/Notation/VWNotation.v
+Ordinal/Notation/ATowerFinNotation.v
+Ordinal/Notation/ATowerNotation.v
+
 Ordinal/Notation/VTowerFinNotation.v
 Ordinal/Notation/VTowerNotation.v
 Ordinal/Notation/BHTowerNotation.v

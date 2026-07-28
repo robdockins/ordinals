@@ -2,6 +2,7 @@ Require Import Relations.Relation_Operators.
 Require Import Setoid.
 Require Import Morphisms.
 Require Import Coq.Program.Basics.
+Require Import Arith.
 Require Import NArith.
 Require Import List.
 Import ListNotations.
@@ -26,8 +27,6 @@ From Ordinal Require Import Notation.CantorDecomposition.
 
 Open Scope ord_scope.
 
-Definition SmallAckermannOrdinal := supOrd (fun n:ω => ackermann_tower_fin (addOrd 1) n 0).
-
 Local Hint Resolve
       ackermann_tower_fin_normal
       veblen_complete
@@ -48,6 +47,12 @@ Local Hint Resolve
 Inductive VForm : Set :=
 | Z : VForm
 | V : nat -> VForm -> VForm -> VForm.
+
+Fixpoint VF_size (x:VForm) : nat :=
+  match x with
+  | Z => O
+  | V _ x y => S (VF_size x + VF_size y)
+  end.
 
 Fixpoint VF_denote (x:VForm) : Ord :=
   match x with
@@ -117,49 +122,6 @@ Proof.
     apply veblen_monotone_first; auto with ord.
     apply normal_inflationary; auto with ord.
   - apply normal_inflationary with (f:= fun x => veblen _ x 0); auto with ord.
-Qed.
-
-Inductive redex : VForm -> VForm -> Prop:=
-| redex_V : forall n a b x,
-    VF_denote a < VF_denote b ->
-    redex (V n a (V n b x)) (V n b x)
-| redex_Vmn1 : forall m n a b c,
-    (m < n)%nat ->
-    VF_denote a < VF_denote (V n b c) ->
-    redex (V m a (V n b c)) (V n b c)
-| redex_Vmn2 : forall m n b c,
-    (m < n)%nat ->
-    redex (V m (V n b c) Z) (V n b c).
-
-Lemma redex_sound: forall x y,
-    redex x y ->
-    VF_denote x ≈ VF_denote y.
-Proof.
-  intros x y H. inversion H; subst.
-  - apply V_collapse; auto.
-  - apply Vmn_collapse; auto.
-  - apply Vmn_collapse2; auto.
-Qed.
-
-Inductive one_step_reduce: VForm -> VForm -> Prop :=
-| reduce_redex: forall x y, redex x y -> one_step_reduce x y
-| reduce_cong1: forall n x x' y, one_step_reduce x x' -> one_step_reduce (V n x y) (V n x' y)
-| reduce_cong2: forall n x y y', one_step_reduce y y' -> one_step_reduce (V n x y) (V n x y').
-
-Lemma one_step_reduce_sound: forall x y, one_step_reduce x y -> VF_denote x ≈ VF_denote y.
-Proof.
-  intros x y H. induction H.
-  - apply redex_sound; auto.
-  - simpl. apply veblen_eq_mor; auto with ord.
-  - simpl. apply veblen_eq_mor; auto with ord.
-Qed.
-
-Lemma step_reduce_sound: forall x y,
-    clos_refl_trans _ one_step_reduce x y -> VF_denote x ≈ VF_denote y.
-Proof.
-  intros x y H. induction H; auto with ord.
-  - apply one_step_reduce_sound; auto.
-  - transitivity (VF_denote y); auto.
 Qed.
 
 Fixpoint VF_compare (x:VForm) : VForm -> ordering :=
@@ -244,7 +206,7 @@ Fixpoint VF_isNormal (x:VForm) : Prop :=
   | V m a b => VF_isNormal a /\
                VF_isNormal b /\
                match b with
-               | Z => 
+               | Z =>
                  match a with
                  | Z => True
                  | V n _ _ => (m >= n)%nat
@@ -361,7 +323,7 @@ Proof.
 
         ** destruct (VF_isZero x); subst; simpl.
            *** split. simpl in H.
-               2:{ rewrite <- H. 
+               2:{ rewrite <- H.
                    apply (normal_inflationary (fun i => veblen _ i 0)); auto. }
                destruct (VF_isZero b); subst; simpl.
                **** rewrite veblen_zero.
@@ -461,6 +423,110 @@ Qed.
 
 Global Opaque VF_compare.
 
+Theorem VF_decide_order (x y:VF) : {x < y} + {x ≥ y}.
+Proof.
+  simpl sz.
+  generalize (VF_compare_correct x y).
+  destruct (VF_compare x y).
+  - intro. left; auto.
+  - intros.
+    right; auto. apply H.
+  - intros. right; auto with ord.
+Qed.
+
+Lemma VF_lt_correct x y:
+  VF_compare x y = LT <-> VF_denote x < VF_denote y.
+Proof.
+  generalize (VF_compare_correct x y); intro Hxy; intuition.
+  - rewrite H in Hxy; auto.
+  - destruct (VF_compare x y); auto.
+    + elim (ord_lt_irreflexive (VF_denote x)).
+      rewrite Hxy at 2.
+      auto.
+    + elim (ord_lt_irreflexive (VF_denote x)); eauto with ord.
+Qed.
+
+Lemma VF_le_correct x y:
+  VF_compare y x <> LT <-> VF_denote x ≤ VF_denote y.
+Proof.
+  generalize (VF_compare_correct y x); intro Hxy; intuition.
+  - destruct (VF_compare y x); intuition auto with ord.
+    apply Hxy.
+  - rewrite H0 in Hxy.
+    elim (ord_lt_irreflexive (VF_denote x)).
+    rewrite H at 1; auto.
+Qed.
+
+Lemma VF_isNormal_dec: forall x, { VF_isNormal x } + { ~VF_isNormal x }.
+Proof.
+  induction x; simpl; intros; auto.
+  intuition; auto.
+  destruct x2.
+  - destruct x1; auto.
+    destruct (Compare_dec.ge_dec n n0); intuition.
+  - generalize (nat_compare_correct n n0).
+    destruct (nat_compare n n0); intuition.
+    + generalize (VF_compare_correct (V n0 x2_1 x2_2) x1).
+      destruct (VF_compare (V n0 x2_1 x2_2) x1); intuition auto with ord.
+      left; intuition. apply H0.
+      right; intuition.
+      elim (ord_lt_irreflexive (VF_denote x1)).
+      eapply ord_lt_le_trans; eauto.
+    + subst.
+      generalize (VF_compare_correct x2_1 x1).
+      destruct (VF_compare x2_1 x1); intuition.
+      left; intuition. apply H.
+      right; intuition.
+      elim (ord_lt_irreflexive (VF_denote x1)).
+      eapply ord_lt_le_trans; eauto.
+Qed.
+
+Inductive redex : VForm -> VForm -> Prop:=
+| redex_V : forall n a b x,
+    VF_compare a b = LT ->
+    redex (V n a (V n b x)) (V n b x)
+| redex_Vmn1 : forall m n a b c,
+    (m < n)%nat ->
+    VF_compare a (V n b c) = LT ->
+    redex (V m a (V n b c)) (V n b c)
+| redex_Vmn2 : forall m n b c,
+    (m < n)%nat ->
+    redex (V m (V n b c) Z) (V n b c).
+
+Lemma redex_sound: forall x y,
+    redex x y ->
+    VF_denote x ≈ VF_denote y.
+Proof.
+  intros x y H. inversion H; subst.
+  - apply V_collapse; auto.
+    apply VF_lt_correct; auto.
+  - apply Vmn_collapse; auto.
+    apply VF_lt_correct; auto.
+  - apply Vmn_collapse2; auto.
+Qed.
+
+Inductive one_step_reduce: VForm -> VForm -> Prop :=
+| reduce_redex: forall x y, redex x y -> one_step_reduce x y
+| reduce_cong1: forall n x x' y, one_step_reduce x x' -> one_step_reduce (V n x y) (V n x' y)
+| reduce_cong2: forall n x y y', one_step_reduce y y' -> one_step_reduce (V n x y) (V n x y').
+
+Lemma one_step_reduce_sound: forall x y, one_step_reduce x y -> VF_denote x ≈ VF_denote y.
+Proof.
+  intros x y H. induction H.
+  - apply redex_sound; auto.
+  - simpl. apply veblen_eq_mor; auto with ord.
+  - simpl. apply veblen_eq_mor; auto with ord.
+Qed.
+
+Lemma step_reduce_sound: forall x y,
+    clos_refl_trans _ one_step_reduce x y -> VF_denote x ≈ VF_denote y.
+Proof.
+  intros x y H. induction H; auto with ord.
+  - apply one_step_reduce_sound; auto.
+  - transitivity (VF_denote y); auto.
+Qed.
+
+
 Fixpoint VF_onePlus (x:VForm) :=
   match x with
   | Z => V 0 Z Z
@@ -498,17 +564,6 @@ Proof.
   - destruct x1; simpl in *; intuition.
 Qed.
 
-Theorem VF_decide_order (x y:VF) : {x < y} + {x ≥ y}.
-Proof.
-  simpl sz.
-  generalize (VF_compare_correct x y).
-  destruct (VF_compare x y).
-  - intro. left; auto.
-  - intros.
-    right; auto. apply H.
-  - intros. right; auto with ord.
-Qed.
-
 Lemma one_step_cong_helper1 : forall n x y,
   (exists z, one_step_reduce x z) -> exists z, one_step_reduce (V n x y) z.
 Proof.
@@ -525,56 +580,92 @@ Proof.
   apply reduce_cong2; auto.
 Qed.
 
-Lemma VF_isNormal_no_redex: forall x, VF_isNormal x <-> ~exists y, one_step_reduce x y.
+Lemma multi_reduce_conj1: forall m x x' y ,
+  clos_refl_trans VForm one_step_reduce x x' ->
+  clos_refl_trans VForm one_step_reduce (V m x y) (V m x' y).
+Proof.
+  intros m x x' y H. induction H.
+  - apply rt_step.
+    apply reduce_cong1; auto.
+  - apply rt_refl.
+  - eapply rt_trans; eauto.
+Qed.
+
+Lemma multi_reduce_conj2: forall m x y  y',
+  clos_refl_trans VForm one_step_reduce y y' ->
+  clos_refl_trans VForm one_step_reduce (V m x y) (V m x y').
+Proof.
+  intros m x y y' H. induction H.
+  - apply rt_step.
+    apply reduce_cong2; auto.
+  - apply rt_refl.
+  - eapply rt_trans; eauto.
+Qed.
+
+Lemma VF_notIsNormal_redex: forall x, ~VF_isNormal x <-> exists y, one_step_reduce x y.
 Proof.
   induction x; simpl.
   - intuition.
-    inversion H0.
-    inversion H1; subst.
-    inversion H2.
+    destruct H as [y H].
+    inversion H; subst.
+    inversion H1.
   - split.
-    + rewrite IHx1. rewrite IHx2.
-      intros [Hn1 [Hn2 H]] [z Hz].
-      inversion Hz; subst.
+    + intuition.
+      destruct (VF_isNormal_dec x1).
+      2:{ apply one_step_cong_helper1; auto. }
+      destruct (VF_isNormal_dec x2).
+      2:{ apply one_step_cong_helper2; auto. }
+      intuition.
+      destruct x2.
+      * destruct x1; intuition.
+        econstructor.
+        apply reduce_redex.
+        apply redex_Vmn2. lia.
+      * generalize (nat_compare_correct n n0).
+        destruct (nat_compare n n0); intuition.
+        ** econstructor.
+           apply reduce_redex.
+           apply redex_Vmn1. lia.
+           generalize (VF_compare_correct x1 (V n0 x2_1 x2_2)); intro.
+           destruct (VF_compare x1 (V n0 x2_1 x2_2)); auto with ord.
+           elim H; apply H5.
+           elim H. auto with ord.
+        ** subst.
+           econstructor.
+           apply reduce_redex.
+           apply redex_V.
+           generalize (VF_compare_correct x1 x2_1); intro.
+           destruct (VF_compare x1 x2_1); auto with ord.
+           elim H; apply H4.
+           elim H. auto with ord.
+    + intros [y Hy] [Hx1 [Hx2 H]].
+      inversion Hy; subst.
       * inversion H0; subst.
-        ** generalize (nat_compare_correct n n). intro Hcomp.
+        ** generalize (nat_compare_correct n n); intro.
            destruct (nat_compare n n); try lia.
            elim (ord_lt_irreflexive (VF_denote x1)).
-           eapply ord_lt_le_trans; [ | apply H ]; auto.
-        ** generalize (nat_compare_correct n n0). intro Hcomp.
+           eapply ord_lt_le_trans; eauto.
+           apply VF_lt_correct; auto.
+        ** generalize (nat_compare_correct n n0); intro.
            destruct (nat_compare n n0); try lia.
            elim (ord_lt_irreflexive (VF_denote x1)).
-           eapply ord_lt_le_trans; [ | apply H ]; assumption.
+           eapply ord_lt_le_trans; eauto.
+           apply VF_lt_correct; auto.
         ** lia.
-      * apply Hn1. eauto.
-      * apply Hn2. eauto.
-    + intro Hz.
-      repeat split.
-      * rewrite IHx1.
-        intro. apply Hz. apply one_step_cong_helper1. auto.
-      * rewrite IHx2.
-        intro. apply Hz. apply one_step_cong_helper2. auto.
-      * destruct x2 as [| m a b].
-        ** destruct x1 as [| r c d]; auto.
-           generalize (nat_compare_correct n r). intro Hcomp.
-           destruct (nat_compare n r); try lia.
-           elim Hz. econstructor.
-           apply reduce_redex.
-           apply redex_Vmn2; auto.
-        ** generalize (nat_compare_correct n m). intro Hcomp.
-           destruct (nat_compare n m).
-           *** destruct (VF_decide_order x1 (V m a b)); auto.
-               elim Hz. econstructor.
-               apply reduce_redex.
-               apply redex_Vmn1; auto.
-           *** subst.
-               destruct (VF_decide_order x1 a); auto.
-               elim Hz. econstructor.
-               apply reduce_redex.
-               apply redex_V; auto.
-           *** auto.
+      * revert Hx1.
+        rewrite IHx1.
+        eauto.
+      * revert Hx2.
+        rewrite IHx2.
+        eauto.
 Qed.
 
+Lemma VF_isNormal_no_redex: forall x, VF_isNormal x <-> ~exists y, one_step_reduce x y.
+Proof.
+  intros x.
+  generalize (VF_notIsNormal_redex x).
+  destruct (VF_isNormal_dec x); intuition.
+Qed.
 
 Definition Vnorm m a b :=
   match b with
@@ -601,28 +692,6 @@ Definition Vnorm m a b :=
         end
   end.
 
-Lemma multi_reduce_conj1: forall m x x' y ,
-  clos_refl_trans VForm one_step_reduce x x' ->
-  clos_refl_trans VForm one_step_reduce (V m x y) (V m x' y).
-Proof.
-  intros m x x' y H. induction H.
-  - apply rt_step.
-    apply reduce_cong1; auto.
-  - apply rt_refl.
-  - eapply rt_trans; eauto.
-Qed.
-
-Lemma multi_reduce_conj2: forall m x y  y',
-  clos_refl_trans VForm one_step_reduce y y' ->
-  clos_refl_trans VForm one_step_reduce (V m x y) (V m x y').
-Proof.
-  intros m x y y' H. induction H.
-  - apply rt_step.
-    apply reduce_cong2; auto.
-  - apply rt_refl.
-  - eapply rt_trans; eauto.
-Qed.
-
 Lemma Vnorm_reduce: forall m a b,
     clos_refl_trans VForm one_step_reduce (V m a b) (Vnorm m a b).
 Proof.
@@ -642,12 +711,14 @@ Proof.
       apply rt_step.
       apply reduce_redex.
       apply redex_Vmn1; auto.
+      apply VF_lt_correct; auto.
     + subst.
       generalize (VF_compare_correct a b1); intuition.
       destruct (VF_compare a b1); intuition.
       apply rt_step.
       apply reduce_redex.
       apply redex_V; auto.
+      apply VF_lt_correct; auto.
 Qed.
 
 Lemma Vnorm_normal m a b :
@@ -821,6 +892,82 @@ Proof.
     apply VF_normalize_isNormal.
 Qed.
 
+Inductive normalizes: VForm -> VForm -> Prop :=
+| normal_normalizing:
+  forall x,
+    ~(exists y, one_step_reduce x y) ->
+    normalizes x x
+| step_normalizing:
+  forall x y z,
+    one_step_reduce x y ->
+    normalizes y z ->
+    normalizes x z.
+
+Lemma redex_size: forall x y,
+    redex x y ->
+    (VF_size x > VF_size y)%nat.
+Proof.
+  intros x y H. inversion H; subst; simpl; lia.
+Qed.
+
+Lemma one_step_reduce_size: forall x y,
+    one_step_reduce x y ->
+    (VF_size x > VF_size y)%nat.
+Proof.
+  intros x y H. induction H; simpl; intuition.
+  apply redex_size; auto.
+Qed.
+
+Theorem strongly_normalizing: forall x, exists y, normalizes x y.
+Proof.
+  induction x as [x Hind] using (well_founded_induction (Wf_nat.well_founded_ltof _ VF_size)).
+  destruct (VF_isNormal_dec x).
+  - eexists.
+    apply normal_normalizing.
+    apply VF_isNormal_no_redex; auto.
+  - assert (exists y, one_step_reduce x y).
+    { rewrite <- VF_notIsNormal_redex. auto. }
+    destruct H as [y Hy].
+    destruct (Hind y) as [z Hz]; auto.
+    { red. apply one_step_reduce_size; auto. }
+    exists z.
+    apply step_normalizing with y; auto.
+Qed.
+
+Lemma normalizes_correct: forall x y,
+    normalizes x y ->
+    VF_denote x ≈ VF_denote y /\ VF_isNormal y.
+Proof.
+  intros x y Hxy.
+  induction Hxy.
+  - split; auto with ord.
+    rewrite VF_isNormal_no_redex; auto.
+  - intuition.
+    transitivity (VF_denote y); auto.
+    apply one_step_reduce_sound; auto.
+Qed.
+
+Theorem normalizes_iff: forall x y,
+    VF_denote x ≈ VF_denote y <-> exists z, normalizes x z /\ normalizes y z.
+Proof.
+  intuition.
+  - destruct (strongly_normalizing x) as [z Hz].
+    exists z; split; auto.
+    destruct (strongly_normalizing y) as [z' Hz'].
+    assert (z = z').
+    { apply normalizes_correct in Hz.
+      apply normalizes_correct in Hz'.
+      apply normal_forms_unique; intuition.
+      rewrite <- H0.
+      rewrite H. auto. }
+    subst; auto.
+  - destruct H as [z [Hz1 Hz2]].
+    apply normalizes_correct in Hz1.
+    apply normalizes_correct in Hz2.
+    intuition.
+    rewrite H. symmetry; auto.
+Qed.
+
 Lemma veblen_tower_epsilon :
   forall n x y,
     complete x ->
@@ -978,7 +1125,7 @@ Proof.
     destruct H1. destruct H3.
     split; apply veblen_monotone_full; auto with ord.
   - apply Vnorm_normal; auto.
-Qed.    
+Qed.
 
 Theorem VF_has_all_interpolants:
   has_all_interpolants VF_denote VF_isNormal.
@@ -1020,7 +1167,7 @@ Proof.
            apply normal_inflationary; auto with ord.
         ** simpl; intuition.
            rewrite Vnorm_equal; auto with ord.
-           *** simpl.        
+           *** simpl.
                destruct H4.
                destruct H6.
                split; apply veblen_monotone_full; auto with ord.

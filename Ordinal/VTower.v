@@ -1415,39 +1415,6 @@ Qed.
 
 Definition LargeVeblenOrdinal := fixOrd (fun x => vtower (addOrd 1) x 0) 0.
 
-Lemma vtower_fin_eq : forall (i:ω) x,
-    complete x ->
-    vtower_fin i x ≈ vtower (addOrd 1) i x.
-Proof.
-  induction i; simpl; intros.
-  - rewrite vtower_zero. reflexivity.
-  - rewrite vtower_succ; auto with ord.
-    split; apply veblen_monotone_func; auto.
-    apply vtower_fin_normal.
-    intros; apply IHi; auto.
-    apply vtower_fin_normal.
-    intros; apply IHi; auto.
-Qed.
-
-Lemma SVO_vtower : SmallVeblenOrdinal ≈ vtower (addOrd 1) ω 0.
-Proof.
-  transitivity (supOrd (fun i:ω => vtower (addOrd 1) i 0)).
-  + unfold SmallVeblenOrdinal.
-    apply sup_ord_eq_morphism. intro i.
-    apply vtower_fin_eq; auto.
-  + split.
-    { apply sup_least; intro.
-      apply vtower_monotone; auto with ord. }
-    transitivity (vtower (addOrd 1) (supOrd natOrdSize) 0).
-    { apply vtower_monotone; auto with ord.
-      rewrite ord_le_unfold; intro i.
-      rewrite <- (sup_le _ _ (S i)); simpl; auto with ord. }
-    apply (normal_continuous (fun i => vtower (addOrd 1) i 0)); auto.
-    apply vtower_first_normal; auto.
-    exact O.
-    apply omega_complete.
-Qed.
-
 Lemma LVO_complete : complete LargeVeblenOrdinal.
 Proof.
   unfold LargeVeblenOrdinal.
