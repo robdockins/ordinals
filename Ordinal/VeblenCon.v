@@ -56,6 +56,20 @@ Proof.
   destruct x as [X g]; simpl in *; intuition.
 Qed.
 
+Lemma addOrd_normal: 
+  forall x,
+    0 < x ->
+    complete x ->
+    normal_function (addOrd x).
+Proof.
+  intros.
+  constructor; auto with ord.
+  - intros. apply addOrd_increasing; auto.
+  - hnf; intros. apply addOrd_continuous; auto.
+  - intros. apply ord_lt_le_trans with x; auto with ord.
+Qed.
+Global Hint Resolve addOrd_normal: ord.
+
 Lemma onePlus_complete x : complete x -> complete (1 + x).
 Proof.
   intros; apply addOrd_complete; auto.
@@ -64,15 +78,7 @@ Qed.
 
 Lemma onePlus_normal : normal_function (addOrd 1).
 Proof.
-  constructor.
-  - intros; apply addOrd_monotone; auto with ord.
-  - intros; apply addOrd_increasing; auto.
-  - red; intros; apply addOrd_continuous; auto.
-  - intros; apply addOrd_complete; auto.
-    apply succ_complete. apply zero_complete.
-  - intros.
-    rewrite <- addOrd_le1.
-    apply succ_lt.
+  auto with ord.
 Qed.
 
 Lemma onePlus_nonzero : forall x, 0 < 1+x.
@@ -1495,4 +1501,3 @@ Proof.
   apply enum_fixpoints_enumerates; auto with ord.
   apply (normal_inflationary (fun x => veblen powOmega x 0)); auto with ord.
 Qed.
-

@@ -515,6 +515,32 @@ Qed.
 
 Global Hint Resolve ackermann_tower_normal_first: ord.
 
+  
+Lemma ackermann_tower_monotone_func: forall f g a x,
+    normal_function f ->
+    normal_function g ->
+    complete a ->
+    complete x ->
+    (forall x, complete x -> f x ≤ g x) ->
+    ackermann_tower f a x ≤ ackermann_tower g a x.
+Proof.
+  intros f g.
+  induction a as [a Hinda] using ordinal_induction.
+  induction x as [x Hindx] using ordinal_induction.
+  intros Hf Hg Ha Hx Hfg.
+  rewrite ackermann_tower_unroll. apply lub_least.
+  - rewrite ackermann_tower_unroll.
+    rewrite <- lub_le1.
+    apply Hfg; auto.
+  - apply sup_least; intro a'.
+    apply normal_fix_least; auto with ord.
+    + apply limit_least. intro i.
+      rewrite Hindx; auto with ord.
+      apply ackermann_tower_increasing; auto with ord.
+    + rewrite <- (ackermann_tower_fixpoint g a a' x) at 2; auto with ord.
+      apply veblen_monotone_func; auto with ord.
+Qed.  
+
 Lemma ackermann_tower_fax:
   forall f a x,
     normal_function f ->
@@ -584,6 +610,27 @@ Proof.
       apply normal_increasing; auto with ord.
 Qed.
 
+Lemma ackermann_tower_add_closed:
+  forall f α x p q,
+    normal_function f ->
+    complete α ->
+    complete x ->
+    0 < α ->
+    p < ackermann_tower f α x ->
+    q < ackermann_tower f α x ->
+    p + q < ackermann_tower f α x.
+Proof.
+  intros.
+  rewrite <- (ackermann_tower_fixpoint f α 0 ); auto with ord.
+  apply ord_lt_le_trans with (veblen (addOrd 1) (ackermann_tower f α x) 0).
+  - rewrite veblen_onePlus; auto with ord.
+    rewrite addOrd_zero_r.
+    apply expOmega_additively_closed; auto with ord.
+    rewrite <- normal_inflationary; auto with ord.
+    rewrite <- normal_inflationary; auto with ord.
+  - apply veblen_monotone_func; auto with ord.
+    intros. apply onePlus_least_normal; auto with ord.
+Qed.
 
 Fixpoint ackermann_tower_fin (f: Ord -> Ord) (a:nat) : Ord -> Ord :=
   match a with
@@ -670,3 +717,168 @@ Qed.
 Definition SmallAckermannOrdinal := supOrd (fun n:ω => ackermann_tower_fin (addOrd 1) n 0).
 
 Definition LargeAckermannOrdinal := fixOrd (fun x => ackermann_tower (addOrd 1) x 0) 0.
+
+Lemma ackermann_tower_base_le: forall a x,
+    complete a ->
+    complete x ->
+    ackermann_tower (expOrd ω) a x <= ackermann_tower (addOrd 1) (1+a) x.
+Proof.
+  induction a as [a Hinda] using ordinal_induction.
+  induction x as [x Hindx] using ordinal_induction.
+  intros Ha Hx.
+  rewrite ackermann_tower_unroll.
+  apply lub_least.
+  - rewrite <- ackermann_tower_fixpoint with (a':=0); auto with ord.
+    transitivity (veblen (addOrd 1) (ackermann_tower (addOrd 1) (1 + a) x) 0).
+    + rewrite veblen_onePlus; auto with ord.
+      rewrite addOrd_zero_r.
+      apply expOrd_monotone.
+      apply normal_inflationary; auto with ord.
+    + apply veblen_monotone_func; auto with ord.
+      intros; apply onePlus_least_normal; auto with ord.
+
+  - apply sup_least; intro a'.
+    apply normal_fix_least; auto with ord.
+    + apply limit_least; intro i.
+      rewrite Hindx; auto with ord.
+      apply ackermann_tower_increasing; auto with ord.
+    + rewrite <- ackermann_tower_fixpoint with (a':= 1+a') at 2; auto with ord.
+      apply veblen_monotone_func; auto with ord.
+      apply addOrd_increasing; auto with ord.
+Qed.
+
+Lemma ackermann_tower_fix_limit: forall f x,
+    normal_function f ->
+    complete x ->
+    limitOrdinal (fixOrd (fun x => ackermann_tower f x 0) x).
+Proof.
+  intros.
+  apply additively_closed_limit; auto with ord.
+  - rewrite normal_fixpoint; auto with ord.
+    rewrite <- ackermann_tower_fax; auto with ord.
+    2:{ apply normal_fix_complete; auto with ord.
+        apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord. }
+    apply ord_le_lt_trans with (1+0); auto with ord.
+    apply ord_le_lt_trans with (f 0).
+    { apply onePlus_least_normal; auto with ord. }
+    apply normal_increasing; auto with ord.
+    { apply addOrd_complete; auto with ord.
+      apply normal_fix_complete; auto with ord.
+      intros.
+      apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord. }
+    rewrite addOrd_zero_r.
+    rewrite normal_fixpoint; auto with ord.
+    apply normal_nonzero with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+
+  - hnf; intros.
+    rewrite normal_fixpoint; auto with ord.
+    apply ackermann_tower_add_closed; auto with ord.
+    + apply normal_fix_complete; auto with ord.
+      apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+    + rewrite normal_fixpoint; auto with ord.
+      apply normal_nonzero with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+    + rewrite <- normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+      apply normal_fix_complete; auto with ord.
+      apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+    + rewrite <- normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+      apply normal_fix_complete; auto with ord.
+      apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+Qed.
+
+Lemma LargeAckermannOrdinal_limit: limitOrdinal LargeAckermannOrdinal.
+Proof.
+  unfold LargeAckermannOrdinal.
+  apply ackermann_tower_fix_limit; auto with ord.
+Qed.
+
+Lemma ackermann_tower_base_eq: forall a x,
+    complete a ->
+    complete x ->
+    1 + a ≤ a ->
+    ackermann_tower (addOrd 1) a x ≈ ackermann_tower (expOrd ω) a x. 
+Proof.
+  intros a.
+  induction x as [x Hindx] using ordinal_induction.
+  intros Hac Hxc Ha.
+  split.
+  - apply ackermann_tower_monotone_func; auto with ord.
+    intros. apply onePlus_least_normal; auto with ord.
+  - rewrite ackermann_tower_unroll. apply lub_least.
+    + transitivity (ackermann_tower (expOrd ω) 0 x).
+      { rewrite ackermann_tower_unroll; auto with ord. }
+      transitivity (ackermann_tower (addOrd 1) (1 + 0) x).
+      apply ackermann_tower_base_le; auto with ord.
+      apply ackermann_tower_monotone; auto with ord.
+      rewrite <- Ha.
+      apply addOrd_monotone; auto with ord.
+    + apply sup_least; intro a'.
+      apply normal_fix_least; auto with ord.
+      * apply limit_least; intro i.
+        rewrite <- Hindx; auto with ord.
+        apply normal_increasing; auto with ord.
+      * assert (Hlt: 1 + a' < a).
+        { apply ord_lt_le_trans with (1 + a); auto.
+          apply addOrd_increasing; auto with ord. }
+        rewrite <- ackermann_tower_fixpoint with (a':=1+a') at 2; auto with ord.
+        apply veblen_monotone_func; auto with ord.
+        intros.
+        apply ackermann_tower_base_le; auto with ord.
+Qed.
+
+Lemma SmallAckermannOrdinal_alt :
+  SmallAckermannOrdinal ≈ ackermann_tower (addOrd 1) ω 0.
+Proof.
+  unfold SmallAckermannOrdinal. split.
+  - apply sup_least; intro i.
+    rewrite ackermann_tower_fin_eq; auto with ord.
+  - rewrite ackermann_tower_unroll.
+    apply lub_least.
+    { rewrite addOrd_zero_r. apply succ_least.
+      rewrite <- (sup_le _ _ O).
+      apply normal_nonzero; auto with ord. }
+    apply sup_least; intro i.
+    rewrite <- (sup_le _ _ (S i)).
+    rewrite ackermann_tower_fin_eq; auto with ord.
+    apply normal_fix_least; auto with ord.
+    { apply limit_least; intros []. }
+    simpl.
+    rewrite <- ackermann_tower_fixpoint with (a':=natOrdSize i) at 2; auto with ord.
+Qed.
+
+Lemma SmallAckermannOrdinal_alt2 :
+  SmallAckermannOrdinal ≈ ackermann_tower (expOrd ω) ω 0.
+Proof.
+  rewrite SmallAckermannOrdinal_alt.
+  apply ackermann_tower_base_eq; auto with ord.
+  apply additively_closed_collapse; auto with ord.
+  apply additively_closed_omega.
+Qed.
+
+Lemma LargeAckermannOrdinal_alt:
+  LargeAckermannOrdinal ≈ fixOrd (fun x => ackermann_tower (expOrd ω) x 0) 0.
+Proof.
+  unfold LargeAckermannOrdinal.
+  split.
+  - apply normal_fix_least; auto with ord.
+    + apply normal_fix_complete; auto with ord.
+      intros. apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+    + rewrite normal_fixpoint at 2; auto with ord.
+      apply ackermann_tower_base_eq; auto with ord.
+      * apply normal_fix_complete; auto with ord.
+        intros. apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+      * rewrite normal_fixpoint at 2; auto with ord.
+        apply onePlus_least_normal with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+        apply normal_fix_complete; auto with ord.
+        intros. apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+  - apply normal_fix_least; auto with ord.
+    + apply normal_fix_complete; auto with ord.
+      intros. apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+    + rewrite normal_fixpoint at 2; auto with ord.
+      apply ackermann_tower_base_eq; auto with ord.
+      * apply normal_fix_complete; auto with ord.
+        intros. apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+      * rewrite normal_fixpoint at 2; auto with ord.
+        apply onePlus_least_normal with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+        apply normal_fix_complete; auto with ord.
+        intros. apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
+Qed.

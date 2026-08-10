@@ -906,7 +906,7 @@ Proof.
   - intuition.
     transitivity (VF_denote y); auto.
     apply one_step_reduce_sound; auto.
-Qed.    
+Qed.
 
 Theorem normalizes_iff: forall x y,
     VF_denote x ≈ VF_denote y <-> exists z, normalizes x z /\ normalizes y z.

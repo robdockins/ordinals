@@ -1562,6 +1562,33 @@ Proof.
     apply lub_le2.
 Qed.
 
+Lemma schutte_column_monotone_func': forall β α x f g,
+     normal_function f ->
+     normal_function g ->
+     (forall a, complete a -> f a ≤ g a) ->
+     complete β ->
+     complete α ->
+     complete x ->
+     schutte_column f β α x ≤ schutte_column g β α x.
+Proof.
+  induction β as [β Hindb] using ordinal_induction.
+  induction α as [α Hindα] using ordinal_induction.
+  induction x as [x Hindx] using ordinal_induction.
+  intros f g Hf Hg Hfg Hb Ha Hx.
+  rewrite schutte_column_unroll.
+  apply lub_least.
+  { rewrite Hfg; auto with ord.
+    rewrite schutte_column_unroll.
+    auto with ord. }
+  apply sup_least; intro b.
+  apply sup_least; intro a.
+  apply normal_fix_least; auto with ord.
+  - apply limit_least. intro i.
+    rewrite (Hindx (sz i)) with (f:=f) (g:=g); auto with ord.
+    apply normal_increasing; auto with ord.
+  - rewrite <- (schutte_column_fixpoint β α x g b a) at 2; auto with ord.
+Qed.
+
 Lemma schutte_column_veblen:
   forall α x f,
     normal_function f ->
@@ -1968,10 +1995,70 @@ Qed.
 Definition SmallVeblenOrdinal := schutte_column (expOrd ω) ω 1 0.
 Definition LargeVeblenOrdinal := fixOrd (fun β => schutte_column (expOrd ω) β 1 0) 0.
 
+Lemma SVO_nonzero: 0 < SmallVeblenOrdinal.
+Proof.
+  unfold SmallVeblenOrdinal.
+  apply normal_nonzero; auto with ord.
+Qed.
+
 Lemma SVO_complete: complete SmallVeblenOrdinal.
 Proof.
   unfold SmallVeblenOrdinal.
   apply normal_complete; auto with ord.
+Qed.
+
+Lemma SVO_sup:
+  SmallVeblenOrdinal ≈ supOrd (fun i:ω => schutte_column (expOrd ω) i 1 0).
+Proof.
+  unfold SmallVeblenOrdinal. split.
+  - rewrite schutte_column_gt0; auto with ord.
+    apply sup_least; intro i.
+    apply sup_least; intros []; simpl.
+    rewrite <- (sup_le _ _ (S i)).
+    apply normal_fix_least; auto with ord.
+    + apply limit_least; intros [].
+    + rewrite <- (schutte_column_fixpoint (natOrdSize (S i)) 1 0 (expOrd ω) (natOrdSize i) 0) at 2; auto with ord.
+      apply schutte_column_monotone_full; auto with ord.
+      intros. rewrite schutte_column_arg0; auto with ord.
+      intros. rewrite schutte_column_arg0; auto with ord.
+      simpl; auto with ord.
+  - apply sup_least; intro i.
+    apply schutte_column_monotone_full; auto with ord.
+Qed.  
+
+Lemma SVO_finite_unreachable: forall i α x,
+    complete α ->
+    complete x ->
+    α < SmallVeblenOrdinal ->
+    x < SmallVeblenOrdinal ->
+    schutte_column (expOrd ω) (natOrdSize i) α x < SmallVeblenOrdinal.
+Proof.    
+  unfold SmallVeblenOrdinal. intros.
+  apply schutte_column_unreachable_apex; auto with ord.
+Qed.
+
+Lemma SVO_least_finite_unreachable: forall X,
+    complete X ->
+    0 < X ->
+    (forall i α x,
+        complete α ->
+        complete x ->
+        α < X ->
+        x < X ->
+        schutte_column (expOrd ω) (natOrdSize i) α x < X) ->
+    SmallVeblenOrdinal ≤ X.
+Proof.
+  intros X HX1 HX2 HX3.
+  rewrite SVO_sup.
+  apply sup_least; intro i.
+  apply ord_lt_le.
+  apply HX3; auto with ord.
+  apply ord_le_lt_trans with (schutte_column (expOrd ω) (natOrdSize 0) 0 0).
+  { simpl. rewrite schutte_column0.
+    rewrite addOrd_zero_r.
+    rewrite expOrd_zero.
+    auto with ord. }
+  apply HX3; auto with ord.
 Qed.
 
 Lemma LVO_nonzero: 0 < LargeVeblenOrdinal.
@@ -2007,7 +2094,7 @@ Lemma LVO_least_unreachable:
   forall E,
     complete E ->
     schutte_unreachable (expOrd ω) E ->
-    LargeVeblenOrdinal <= E.
+    LargeVeblenOrdinal ≤ E.
 Proof.
   intros E HcE [HE0 HE].
   unfold LargeVeblenOrdinal.
@@ -2433,7 +2520,7 @@ Lemma schutte_column_2_succ:
     complete x ->
     schutte_column f 2 (succOrd a) x ≈
       enum_fixpoints (fun i => veblen (schutte_column f 2 a) i 0) x.
-Proof.  
+Proof.
   intros f a.
   induction x as [x Hindx] using ordinal_induction.
   intros Hf Ha Hx.
@@ -2494,4 +2581,208 @@ Proof.
     intros. apply veblen_monotone_func; auto with ord.
     intros. apply schutte_column_2_1; auto.
     intros; apply normal_complete; auto with ord.
-Qed.  
+Qed.
+
+Lemma schutte_column_succ:
+  forall f β α x,
+    normal_function f ->
+    complete β ->
+    complete α ->
+    complete x ->
+    schutte_column f (succOrd β) α x ≈
+      f x ⊔
+      supOrd (fun a:α => 
+                fixOrd (fun δ => schutte_column (schutte_column f (succOrd β) a) β δ 0)
+                  (limOrd (fun i:x => schutte_column f (succOrd β) α i))).
+Proof.
+  intros. split.
+  - destruct (complete_zeroDec α); auto.
+    + transitivity (schutte_column f (succOrd β) 0 x); auto with ord.
+      rewrite schutte_column_arg0; auto with ord.
+    + rewrite schutte_column_gt0; auto with ord.
+      apply sup_least; intros []; simpl.
+      auto with ord.
+  - rewrite schutte_column_unroll.
+    apply lubOrd_monotone; auto with ord.
+    rewrite <- (sup_le _ _ tt).
+    auto with ord.
+Qed.
+
+Lemma schutte_column_tower_base_le: forall b a x,
+    complete b ->
+    complete a ->
+    complete x ->
+    1 < b ->
+    schutte_column (expOrd ω) b a x <= schutte_column (addOrd 1) b (1+a) x.
+Proof.
+  intro b.
+  induction a as [a Hinda] using ordinal_induction.
+  induction x as [x Hindx] using ordinal_induction.
+  intros Hb Ha Hx Hb2.
+  rewrite schutte_column_unroll.
+  apply lub_least.
+  - rewrite <- (schutte_column_fixpoint b (1+a) x (addOrd 1) 1 0); auto with ord.
+    rewrite schutte_column_veblen; auto with ord.
+    transitivity (veblen (addOrd 1) (schutte_column (addOrd 1) b (1 + a) x) 0).
+    + rewrite veblen_onePlus; auto with ord.
+      rewrite addOrd_zero_r.
+      apply expOrd_monotone.
+      transitivity (schutte_column (addOrd 1) 2 (1 + a) x); auto with ord.
+      * rewrite schutte_column_2_ackermann_tower; auto with ord.
+        rewrite <- ackermann_tower_fax; auto with ord.
+        rewrite <- (addOrd_le2 1).
+        rewrite <- (addOrd_le2 1).
+        auto with ord.
+      * apply schutte_column_monotoneβ; auto with ord.
+    + apply veblen_monotone_func; auto with ord.
+      intros. rewrite schutte_column_arg0; auto with ord.
+  - apply sup_least; intro b'.
+    apply sup_least; intro a'.
+    apply normal_fix_least; auto with ord.
+    + apply limit_least; intro i.
+      rewrite Hindx; auto with ord.
+      apply normal_increasing; auto with ord.
+    + rewrite <- (schutte_column_fixpoint b (1+a) x (addOrd 1) b' (1+a')) at 2; auto with ord.
+      * apply schutte_column_monotone_func'; auto with ord.
+      * apply addOrd_increasing; auto with ord.
+Qed.
+
+Lemma schutte_column_tower_base_eq: forall b a x,
+    complete b ->
+    complete a ->
+    complete x ->
+    1 < b ->
+    1 + a ≤ a ->
+    schutte_column (expOrd ω) b a x ≈ schutte_column (addOrd 1) b a x.
+Proof.
+  intros. split.
+  - transitivity (schutte_column (addOrd 1) b (1+a) x).
+    + apply schutte_column_tower_base_le; auto with ord.
+    + apply schutte_column_monotone; auto with ord.
+  - apply schutte_column_monotone_func'; auto with ord.
+    intros. apply onePlus_least_normal; auto with ord.
+Qed.
+
+Lemma SVO_alt: SmallVeblenOrdinal ≈ schutte_column (addOrd 1) ω 1 0.
+Proof.
+  unfold SmallVeblenOrdinal.
+  split.
+  - rewrite schutte_column_unroll. apply lub_least.
+    + rewrite addOrd_zero_r.
+      rewrite expOrd_one'; auto with ord.
+      apply normal_inflationary with (f:= fun x => schutte_column _ x 1 0); auto with ord.
+    + apply sup_least; intro i.
+      apply sup_least; intros [].
+      simpl.
+      apply normal_fix_least; auto with ord.
+      { apply limit_least; intros []. }
+      transitivity (schutte_column (expOrd ω) (natOrdSize i)
+                      (schutte_column (addOrd 1) ω 1 0) 0).
+      { apply schutte_column_monotone_func; auto with ord.
+        intros. rewrite schutte_column_arg0; auto with ord. }
+      rewrite <- (schutte_column_fixpoint ω 1 0 (addOrd 1) (natOrdSize i + 2) 0) at 2; auto with ord.
+      transitivity (schutte_column (expOrd ω) (natOrdSize i + 2) (schutte_column (addOrd 1) ω 1 0) 0).
+      { apply schutte_column_monotoneβ; auto with ord. }
+      transitivity (schutte_column (addOrd 1) (natOrdSize i + 2)
+                      (schutte_column (addOrd 1) ω 1 0) 0).
+      { apply schutte_column_tower_base_eq; auto with ord.
+        rewrite <- addOrd_le2.
+        auto with ord.
+        rewrite <- (schutte_column_fixpoint ω 1 0 (addOrd 1) 0 0) at 2; auto with ord.        
+        rewrite schutte_column0.
+        rewrite schutte_column_arg0; auto with ord. }
+      apply schutte_column_monotone_func'; auto with ord.
+      intros. apply onePlus_least_normal; auto with ord.
+      apply ord_le_lt_trans with (natOrdSize (2+i)); auto with ord.
+      rewrite natOrdSize_add. simpl; auto with ord.
+  - apply schutte_column_monotone_func'; auto with ord.
+    intros. apply onePlus_least_normal; auto with ord.
+Qed.
+
+Lemma omega_least_fix:
+  forall f x,
+    normal_function f ->
+    complete x ->
+    ω ≤ fixOrd f x.
+Proof.
+  intros. rewrite ord_le_unfold.
+  simpl; intro i.
+  induction i; simpl.
+  - rewrite normal_fixpoint; auto with ord.
+  - apply ord_le_lt_trans with (1 + natOrdSize i).
+    + transitivity (natOrdSize (1+i)).
+      rewrite natOrdSize_add. simpl.
+      rewrite addOrd_succ.
+      apply succ_monotone; auto with ord.
+      assert (Hi: (1+i = i+1)%nat) by lia.
+      rewrite Hi.
+      rewrite natOrdSize_add. simpl. auto with ord.
+    + rewrite normal_fixpoint; auto with ord.
+      rewrite <- (onePlus_least_normal f); auto with ord.
+      apply addOrd_increasing; auto with ord.
+      apply normal_fix_complete; auto with ord.
+Qed.
+
+Lemma LVO_alt: LargeVeblenOrdinal ≈ fixOrd (fun x => schutte_column (addOrd 1) x 1 0) 0.
+Proof.
+  unfold LargeVeblenOrdinal.
+  assert (Hc: complete (fixOrd (fun x : Ord => schutte_column (addOrd 1) x 1 0) 0)).
+  { apply normal_fix_complete; auto with ord.
+    intros. apply normal_inflationary with (f:=fun x => schutte_column _ x 1 0); auto with ord.
+    intros; apply schutte_column_monotoneβ; auto with ord. }
+  split.
+  - apply normal_fix_least; auto with ord.
+    rewrite schutte_column_unroll. apply lub_least.
+    + rewrite addOrd_zero_r.
+      rewrite expOrd_one'; auto with ord.
+      apply omega_least_fix; auto with ord.
+    + apply sup_least; intro b. simpl.
+      apply sup_least; intros []. simpl.
+      transitivity (fixOrd
+                      (fun δ : Ord =>
+                         schutte_column
+                           (schutte_column (expOrd ω) (fixOrd (fun x : Ord => schutte_column (addOrd 1) x 1 0) 0) 0)
+                           (sz b) δ 0) 0).
+      { apply fixOrd_monotone; auto with ord.
+        apply limit_least; intros []. }
+      transitivity (fixOrd (fun δ : Ord => schutte_column (expOrd ω) (sz b) δ 0) 0).
+      { apply fixOrd_monotone_func''; auto with ord.
+        intros. rewrite schutte_column_monotone_func'; auto with ord.
+        intros. rewrite schutte_column_arg0; auto with ord. }
+      apply normal_fix_least; auto with ord.
+      assert (Hb2: 1 + (1 + b) < fixOrd (fun x : Ord => schutte_column (addOrd 1) x 1 0) 0).
+      { rewrite normal_fixpoint at 2; auto with ord.
+        rewrite <- onePlus_least_normal with (f:=fun x => schutte_column _ x 1 0); auto with ord.
+        apply addOrd_increasing; auto with ord.
+        rewrite normal_fixpoint at 2; auto with ord.
+        rewrite <- onePlus_least_normal with (f:=fun x => schutte_column _ x 1 0); auto with ord.
+        apply addOrd_increasing; auto with ord. }
+      transitivity (schutte_column (expOrd ω) (1+ (1+sz b)) (fixOrd (fun x : Ord => schutte_column (addOrd 1) x 1 0) 0) 0).
+      { apply schutte_column_monotoneβ; auto with ord.
+        rewrite <- addOrd_le2.
+        rewrite <- addOrd_le2.
+        auto with ord. }
+      rewrite schutte_column_tower_base_eq; auto with ord.
+      * rewrite normal_fixpoint at 3; auto with ord.
+        rewrite ord_lt_unfold in Hb2.
+        destruct Hb2 as [b' Hb2].
+        rewrite <- (schutte_column_fixpoint _ 1 0 _ b' 0); auto with ord.
+        transitivity (schutte_column (addOrd 1) (sz b')
+                        (schutte_column (addOrd 1) (fixOrd (fun x : Ord => schutte_column (addOrd 1) x 1 0) 0) 1 0)
+                        0).
+        2:{ apply schutte_column_monotone_func'; auto with ord.
+            intros. apply onePlus_least_normal; auto with ord. }
+        transitivity (schutte_column (addOrd 1) b'
+                        (fixOrd (fun x : Ord => schutte_column (addOrd 1) x 1 0) 0) 0).
+        { apply schutte_column_monotoneβ; auto with ord. }
+        apply schutte_column_monotone; auto with ord.
+        apply normal_inflationary with (f:=fun x => schutte_column _ x 1 0); auto with ord.
+      * apply ord_le_lt_trans with (1 + 0); auto with ord.
+        apply addOrd_increasing; auto with ord.
+      * rewrite normal_fixpoint at 2; auto with ord.
+        apply onePlus_least_normal with (f:=fun x => schutte_column _ x 1 0); auto with ord.
+  - apply fixOrd_monotone_func''; auto with ord.
+    + intros. apply schutte_column_monotone_func'; auto with ord.
+      intros. apply onePlus_least_normal; auto with ord.
+    + intros. apply schutte_column_monotoneβ; auto with ord.
+Qed.

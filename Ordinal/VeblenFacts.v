@@ -796,6 +796,65 @@ Proof.
   apply normal_continuous; auto.
 Qed.
 
+Lemma veblen_addx_le: forall f a x,
+    normal_function f ->
+    complete a ->
+    complete x ->
+    veblen f a 0 + x <= veblen f a x.
+Proof.
+  intros f a.
+  induction x as [x Hindx] using ordinal_induction.
+  intros Hf Ha Hx.
+  rewrite addOrd_unfold.
+  apply lub_least; auto with ord.
+  apply sup_least; intro i.
+  apply succ_least.
+  rewrite (Hindx (x i)); auto with ord.
+  apply veblen_increasing; auto with ord.
+Qed.
+
+Lemma veblen_expOrd_add: forall a x,
+    complete a ->
+    complete x ->
+    expOrd ω (a+x) ≤ veblen (addOrd (expOrd ω a)) x 0.
+Proof.  
+  induction x as [x Hindx] using ordinal_induction.
+  intros Ha Hx.
+  destruct (complete_zeroDec a); auto.
+  { rewrite H at 1.
+    rewrite addOrd_zero_l.
+    transitivity (veblen (addOrd 1) x 0).
+    2:{ apply veblen_monotone_func; auto with ord. }
+    rewrite veblen_onePlus; auto with ord. }
+  destruct (complete_zeroDec x); auto.
+  { rewrite H0 at 1.
+    rewrite addOrd_zero_r.
+    rewrite veblen_unroll.
+    rewrite <- lub_le1.
+    rewrite addOrd_zero_r.
+    auto with ord. }
+  rewrite (normal_ord_decompose x (fun x => expOrd ω (a + x))); auto with ord.
+  2: { apply compose_normal; auto with ord. }
+  apply sup_least; intro i.
+  rewrite addOrd_succ.
+  rewrite expOrd_succ; auto with ord.
+  rewrite mulOrd_limit; auto with ord.
+  2: { apply omega_limit. }
+  apply sup_least; simpl; intro j.
+  induction j.
+  { simpl; rewrite mulOrd_zero_r. auto with ord. }
+  rewrite <- veblen_fixpoints with (α:=i); auto with ord.
+  rewrite <- veblen_addx_le; auto with ord.
+  transitivity (expOrd ω (a + sz i) * (1 + natOrdSize j)).
+  - assert (Hj: (S j = j + 1)%nat) by lia.
+    rewrite Hj.
+    rewrite natOrdSize_add.
+    simpl; auto with ord.
+  - rewrite ordDistrib_left.
+    rewrite mulOrd_one_r.
+    apply addOrd_monotone; auto with ord.
+Qed.
+
 Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 

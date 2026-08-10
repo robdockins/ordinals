@@ -1922,8 +1922,6 @@ Lemma cantor_ordered_lt_left:
     cantor_denote BH_denote xs < cantor_denote BH_denote (x::xs).
 Proof.
   induction xs; simpl; intuition.
-  - rewrite addOrd_zero_r.
-    apply expOrd_nonzero.
   - assert (Hax : BH_denote a < BH_denote x \/ BH_denote a ≈ BH_denote x).
     { generalize (bhcompare_correct a x).
       destruct (bhcompare a x); simpl; intuition.
