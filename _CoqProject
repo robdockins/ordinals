@@ -19,10 +19,6 @@ Ordinal/VeblenFacts.v
 Ordinal/VeblenSymbol.v
 Ordinal/Countable.v
 Ordinal/AckermannTower.v
-Ordinal/VTowerFin.v
-Ordinal/VTower.v
-Ordinal/BHTower.v
-Ordinal/BHTowerFacts.v
 Ordinal/SchutteColumn.v
 Ordinal/SchutteColumnFacts.v
 
@@ -32,7 +28,3 @@ Ordinal/Notation/VNotation.v
 Ordinal/Notation/VWNotation.v
 Ordinal/Notation/ATowerFinNotation.v
 Ordinal/Notation/ATowerNotation.v
-
-Ordinal/Notation/VTowerFinNotation.v
-Ordinal/Notation/VTowerNotation.v
-Ordinal/Notation/BHTowerNotation.v
