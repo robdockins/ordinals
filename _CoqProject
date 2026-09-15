@@ -28,3 +28,4 @@ Ordinal/Notation/VNotation.v
 Ordinal/Notation/VWNotation.v
 Ordinal/Notation/ATowerFinNotation.v
 Ordinal/Notation/ATowerNotation.v
+Ordinal/Notation/SchutteStack.v

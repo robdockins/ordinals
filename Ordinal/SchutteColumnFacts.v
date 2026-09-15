@@ -97,6 +97,51 @@ Proof.
     rewrite <- normal_inflationary; auto with ord.
 Qed.
 
+Lemma schutte_column_preserves_add_closed:
+  forall f,
+    normal_function f ->
+    (forall x p q, complete x -> p < f x -> q < f x -> p + q < f x) ->
+    (forall x β α p q,
+        complete x ->
+        complete β ->
+        complete α ->
+        p < schutte_column f β α x ->
+        q < schutte_column f β α x ->
+        p + q < schutte_column f β α x).
+Proof.
+  intros f Hf Hf2.
+  intros x β α p q Hx Hβ Hα Hp Hq.
+  destruct (complete_zeroDec β); auto.
+  { assert (Heq: schutte_column f β α x ≈ f (α+x)).
+    split.
+    - transitivity (schutte_column f 0 α x); [ apply schutte_column_monotoneβ; auto with ord |].
+      rewrite schutte_column0; auto with ord.
+    - rewrite schutte_column_unroll; auto with ord.
+    - rewrite Heq.
+      rewrite Heq in Hp, Hq.
+      apply Hf2; auto with ord. }
+  destruct (complete_zeroDec α); auto.
+  { assert (Heq: schutte_column f β α x ≈ f x).
+    split.
+    - transitivity (schutte_column f β 0 x); auto with ord.
+      rewrite schutte_column_arg0; auto with ord.
+    - rewrite schutte_column_unroll; auto with ord.
+      rewrite <- lub_le1.
+      apply normal_monotone; auto with ord.
+    - rewrite Heq.
+      rewrite Heq in Hp, Hq.
+      apply Hf2; auto. }
+  assert (Heq: schutte_column f β α x ≈ f (schutte_column f β α x)).
+  { split.
+    - apply normal_inflationary; auto with ord.
+    - rewrite <- (schutte_column_fixpoint β α x f 0 0) at 2; auto with ord.
+      rewrite schutte_column0.
+      rewrite schutte_column_arg0; auto with ord. }
+  rewrite Heq.
+  rewrite Heq in Hp, Hq.
+  apply Hf2; auto with ord.
+Qed.
+
 Definition schutte_critical f β α x :=
   forall b a,
     complete b ->
@@ -636,7 +681,7 @@ Proof.
     + intros.
       rewrite <- Hindx; auto with ord.
       apply normal_increasing; auto with ord.
-Qed.    
+Qed.
 
 Lemma schutte_column_2_1:
   forall x, complete x -> schutte_column (addOrd 1) 2 1 x ≈ ε x.
@@ -897,17 +942,14 @@ Proof.
   - intros. apply schutte_column_monotone_func; auto with ord.
 Qed.
 
-Fixpoint list_complete (xs: list Ord) : Prop :=
-  match xs with
-  | [] => True
-  | α::xs' => complete α /\ list_complete xs'
-  end.
+Definition list_complete xs := each complete xs.
 
 Lemma schutte_stack_normal: forall xs f,
   list_complete xs ->
   normal_function f ->
   normal_function (schutte_stack f xs).
 Proof.
+  unfold list_complete.
   induction xs as [|a xs']; simpl; intros; auto.
   apply IHxs'; intuition.
 Qed.
@@ -943,11 +985,7 @@ Proof.
   - intros; rewrite schutte_column_arg0; auto with ord.
 Qed.    
   
-Fixpoint schutte_stack_proper (m: list Ord) (α:Ord) :=
-  match m with
-  | [] => True
-  | (a::xs') => a < α /\ schutte_stack_proper xs' α
-  end.
+Definition schutte_stack_proper xs α := each (fun x => x < α) xs.
 
 Lemma schutte_stack_proper_monotone:
   forall xs α α',
@@ -955,6 +993,7 @@ Lemma schutte_stack_proper_monotone:
   schutte_stack_proper xs α ->
   schutte_stack_proper xs α'.
 Proof.
+  unfold schutte_stack_proper.
   induction xs as [|a xs]; simpl; auto.
   intuition.
   apply ord_lt_le_trans with α; auto with ord.
@@ -988,6 +1027,7 @@ Lemma list_complete_cons: forall x xs,
     list_complete xs ->
     list_complete (x::xs).
 Proof.
+  unfold list_complete.
   simpl; intuition.
 Qed.
 
@@ -1002,6 +1042,7 @@ Lemma proper_stack_unreachable:
     x < δ ->
     schutte_stack f xs x < schutte_column f (sz (length xs)) δ 0.
 Proof.
+  unfold list_complete, schutte_stack_proper.
   induction xs as [|a xs]; simpl.
   - intros.
     rewrite schutte_column0.
@@ -1026,6 +1067,7 @@ Lemma proper_stack_apex_unreachable:
     x < schutte_column f β 1 0 ->
     schutte_stack f xs x < schutte_column f β 1 0.
 Proof.
+  unfold list_complete.
   intros.
   destruct xs; simpl in *.
   - rewrite <- (schutte_column_fixpoint β 1 0 f 0 0); auto with ord.
@@ -1069,22 +1111,25 @@ Lemma schutte_stack_least_unreachable:
         schutte_stack f xs x < X) ->
     schutte_column f ω 1 0 <= X.
 Proof.
+  unfold list_complete.
   intros f X Hf HXc HX0 HX.
   assert (HX1: 1 < X).
   { apply ord_le_lt_trans with (schutte_stack f [] 0).
     - simpl. apply succ_least.
       apply normal_nonzero; auto with ord.
     - apply HX; auto with ord.
-      unfold list_complete; auto.
-      unfold schutte_stack_proper; auto. }
+      simpl; auto.
+      unfold schutte_stack_proper; simpl; auto. }
   rewrite schutte_column_omega_sup; auto with ord.
   apply sup_least; intro i.
   rewrite schutte_column_to_stack; auto with ord.
   apply ord_lt_le.
   apply HX; auto with ord.
   { apply list_complete_cons; auto with ord.
-    induction i; unfold repeat; unfold list_complete; auto with ord. }
+    unfold list_complete, repeat, each.
+    induction i; intuition auto with ord. }
   simpl; intuition.
+  unfold schutte_stack_proper; simpl.
   induction i; simpl; intuition.
 Qed.
 
