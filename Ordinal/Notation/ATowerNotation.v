@@ -1,13 +1,14 @@
-Require Import Relations.Relation_Operators.
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import Arith.
-Require Import NArith.
-Require Import List.
+From Stdlib Require Import Relations.Relation_Operators.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import Arith.
+From Stdlib Require Import NArith.
+From Stdlib Require Import List.
+From Stdlib Require Import Lia.
+
 Import ListNotations.
 Open Scope list.
-Require Import Lia.
 
 Unset Printing Records.
 
@@ -559,7 +560,7 @@ Definition subterm_shrink x :=
 Lemma shrink_lemma1: forall x,
     VF_denote x < ackermann_tower (addOrd 1) (VF_denote x) 0.
 Proof.
-  induction x; simpl; intuition.
+  induction x; simpl; intuition auto with ord.
   apply veblen_collapse'; auto with ord.
   apply normal_complete; auto with ord.
   - eapply ord_lt_le_trans; [ apply IHx2 |].
@@ -593,7 +594,7 @@ Proof.
       apply normal_inflationary with (f:= fun i => veblen _ i 0); auto with ord.
     + apply veblen_subterm1; simpl; auto with ord.
 
-  - destruct x3; simpl in *; intuition.
+  - destruct x3; simpl in *; intuition auto with ord.
     + generalize (VF_compare_correct x1 x3_1).
       destruct (VF_compare x1 x3_1); intros; subst.
       * (* LT case *)
@@ -992,15 +993,15 @@ Proof.
       rewrite VF_lt_correct; auto.
   - generalize (VF_compare_correct m b1); intro Hcomp.
     destruct (VF_compare m b1); try apply rt_refl.
-    + generalize (VF_compare_correct a (V b1 b2 b3)); auto.
-      destruct (VF_compare a (V b1 b2 b3)); intuition.
+    + generalize (VF_compare_correct a (V b1 b2 b3)); auto with ord.
+      destruct (VF_compare a (V b1 b2 b3)); intuition; try apply rt_refl.
       apply rt_step.
       apply reduce_redex.
       apply redex_Vmn1; auto.
       apply VF_lt_correct; auto.
       apply VF_lt_correct; auto.
     + generalize (VF_compare_correct a b2); intuition.
-      destruct (VF_compare a b2); intuition.
+      destruct (VF_compare a b2); intuition; try apply rt_refl.
       apply rt_step.
       apply reduce_redex.
       apply redex_V; auto.
@@ -1016,10 +1017,10 @@ Lemma Vnorm_normal m a b :
 Proof.
   intros Ha Hb. unfold Vnorm.
   destruct b.
-  - destruct a; simpl; auto.
+  - destruct a; simpl; auto with ord.
     intros.
     generalize (VF_compare_correct m a1).
-    destruct (VF_compare m a1); simpl in *; intuition.
+    destruct (VF_compare m a1); simpl in *; intuition auto with ord.
     apply H0.
   - simpl; intuition.
     generalize (VF_compare_correct m b1); simpl.
@@ -1138,7 +1139,7 @@ Lemma one_step_reduce_size: forall x y,
     one_step_reduce x y ->
     (VF_size x > VF_size y)%nat.
 Proof.
-  intros x y H. induction H; simpl; intuition.
+  intros x y H. induction H; simpl; intuition auto with arith.
   apply redex_size; auto.
 Qed.
 
@@ -1256,7 +1257,7 @@ Lemma VF_decompose_correct:
     cantor_ordered VF_denote (VF_decompose x) /\
     VF_denote x ≈ cantor_denote VF_denote (VF_decompose x).
 Proof.
-  induction x; simpl; intuition.
+  induction x; simpl; intuition auto with ord.
   destruct x1.
   simpl; auto.
   simpl in *; intuition.
@@ -1295,12 +1296,12 @@ Lemma VF_recompose_correct:
     cantor_ordered VF_denote xs ->
     VF_isNormal (VF_recompose xs) /\ cantor_denote VF_denote xs ≈ VF_denote (VF_recompose xs).
 Proof.
-  induction xs; simpl in *; intuition.
+  induction xs; simpl in *; intuition auto with ord.
   destruct xs; simpl; intuition.
   destruct a; simpl; intuition.
   destruct a1; simpl; auto.
 
-  simpl in *; intuition.
+  simpl in *; intuition auto with ord.
   destruct xs; simpl in *; intuition.
   destruct v; simpl in *; intuition.
   destruct v1; simpl in *; intuition.
@@ -1386,7 +1387,7 @@ Proof.
   destruct Hi as [Hi|Hi].
   - assert (has_interpolants VF_denote VF_isNormal (1 + b)).
     { apply onePlus_interpolants with Z (VF_add (V Z Z Z)); auto.
-      simpl; intuition.
+      simpl; intuition auto with ord.
       hnf; simpl; intros. apply VF_add_reflects; intuition.
       symmetry. simpl.
       rewrite veblen_zero.
@@ -1461,7 +1462,7 @@ Proof.
         + apply VF_has_cantor_decomposition.
         + hnf; simpl; intros.
           generalize (VF_ackermann_reflects (VF_denote q) q).
-          intros. apply H7; intuition. }
+          intros. apply H7; intuition auto with ord. }
 
     rewrite has_interpolants_unfold in Hfix.
     destruct (Hfix i) as [k [?[?[??]]]]; auto with ord.
@@ -1503,7 +1504,7 @@ Proof.
       intros. hnf; simpl; intros.
       hnf in H. simpl in *.
       apply H; auto.
-      intuition.
+      intuition auto with ord.
     + simpl in *; intuition.
     + apply Hindx; simpl in *; intuition.
       apply (normal_subterm_shrink (V n a b)).
@@ -1579,7 +1580,7 @@ Proof.
       simpl. auto with ord.
 Qed.
 
-Require Import ClassicalFacts.
+From Stdlib Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 Theorem VF_has_enough_notations (EM:excluded_middle) :

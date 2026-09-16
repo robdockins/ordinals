@@ -1,12 +1,13 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import List.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import List.
+From Stdlib Require Import Lia.
+From Stdlib Require Import Program.Wf.
+
 Import ListNotations.
 Open Scope list.
-Require Import Lia.
-Require Import Program.Wf.
 
 Unset Printing Records.
 
@@ -50,6 +51,7 @@ Local Hint Resolve
       natOrdSize_complete
   : core.
 
+Scheme All for list.
 Inductive VForm :=
 | Z
 | N : list VForm -> VForm.
@@ -133,7 +135,7 @@ Proof.
   apply sup_least; intro i.
   transitivity (VF_denote (N (N [] :: repeat Z i))).
   - simpl.
-    rewrite map_length.
+    rewrite length_map.
     rewrite repeat_length.
     replace (map VF_denote (repeat Z i)) with (repeat 0 i).
     2:{ induction i; simpl; congruence. }
@@ -327,7 +329,7 @@ Lemma schutte_stack_aug_app: forall xs ys f x n,
 Proof.
   induction xs; simpl; intuition.
   rewrite IHxs.
-  rewrite app_length.
+  rewrite length_app.
   replace (length xs + length ys + n)%nat with 
     (length xs + (n + length ys))%nat by lia.
   auto.
@@ -608,7 +610,7 @@ Proof.
       simpl.
       intros x0 x1 Hx1 Hx2 Hx3 Hx4 Hlen.
       rewrite each_app in Hx3. rewrite each_app in Hx4.
-      rewrite app_length in Hlen.
+      rewrite length_app in Hlen.
       simpl in *; intuition.
 
       destruct (PeanoNat.Nat.eq_0_gt_0_cases n).

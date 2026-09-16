@@ -1,11 +1,11 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-
-Require Import List.
-Require Import Relations.
-Require Import Program.Wf.
-Require Import Wellfounded.Transitive_Closure.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import Permutation.
+From Stdlib Require Import List.
+From Stdlib Require Import Relations.
+From Stdlib Require Import Program.Wf.
+From Stdlib Require Import Wellfounded.Transitive_Closure.
 
 Import ListNotations.
 Open Scope list.
@@ -280,8 +280,6 @@ Proof.
     apply succ_trans.
     apply zero_least.
 Qed.
-
-Require Import Permutation.
 
 Lemma Permutation_size (A:Ord) (r s:list A) : Permutation r s -> sz r ≈ sz s.
 Proof.

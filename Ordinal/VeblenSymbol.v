@@ -1,7 +1,13 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import Program.Wf.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import Program.Wf.
+From Stdlib Require Import List.
+From Stdlib Require Import Lia.
+From Stdlib Require Import Wf_nat.
+
+Import ListNotations.
+Open Scope list.
 
 Unset Printing Records.
 
@@ -10,10 +16,6 @@ From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
 From Ordinal Require Import Fixpoints.
 From Ordinal Require Import VeblenDefs.
-
-Require Import List.
-Import ListNotations.
-Open Scope list.
 
 Section VeblenSymbol.
   Variable Idx : Type.
@@ -205,7 +207,7 @@ End VeblenSymbol.
 
 Definition nat_symbol := list (nat*Ord).
 
-Require Import Lia.
+
 
 Lemma nat_symbol_bounded : forall (x:nat_symbol), exists i, indices_bounded nat lt x i.
 Proof.
@@ -220,8 +222,6 @@ Proof.
     + destruct a as [k y]; simpl in *.
       split; [ lia | intuition ].
 Qed.
-
-Require Import Wf_nat.
 
 Lemma nat_symbol_lt_wf : well_founded (symbol_lt nat lt).
 Proof.

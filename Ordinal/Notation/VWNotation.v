@@ -1,12 +1,13 @@
-Require Import Relations.Relation_Operators.
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import List.
+From Stdlib Require Import Relations.Relation_Operators.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import List.
+From Stdlib Require Import Lia.
+
 Import ListNotations.
 Open Scope list.
-Require Import Lia.
 
 Unset Printing Records.
 
@@ -22,7 +23,6 @@ From Ordinal Require Import VeblenCon.
 From Ordinal Require Import VeblenFacts.
 
 From Ordinal Require Import Notation.CantorDecomposition.
-
 
 Open Scope ord_scope.
 
@@ -335,34 +335,34 @@ Lemma VF_normal_subterm_shrink :
     VF_isNormal x ->
     VF_subterm_shrink x.
 Proof.
-  induction x; simpl; intuition.
-  - destruct x2; simpl; intuition.
-    destruct x1; simpl; intuition.
+  induction x; simpl; intuition auto with ord.
+  - destruct x2; simpl; intuition auto with ord.
+    destruct x1; simpl; intuition auto with ord.
     + apply veblen_subterm1_zero_nest; simpl in *; intuition.
     + apply veblen_subterm1; auto with ord.
     + apply veblen_subterm1; auto with ord.
-  - destruct x2; simpl; intuition.
+  - destruct x2; simpl; intuition auto with ord.
     + apply veblen_increasing'; simpl in *; intuition.
     + simpl in H2. rewrite H2 at 1.
       apply veblen_subterm1; auto with ord.
-  - destruct x2; simpl; intuition.
-    + destruct x1; simpl; intuition.
+  - destruct x2; simpl; intuition auto with ord.
+    + destruct x1; simpl; intuition auto with ord.
       * apply ord_le_lt_trans with (veblen ε (VF_denote x1_1) (VF_denote x1_2)).
         apply veblen_monotone_func; auto with ord.
         intros; apply onePlus_least_normal; auto with ord.
-        apply veblen_subterm1_zero_nest; simpl in *; intuition.
-      * apply veblen_subterm1_zero_nest; simpl in *; intuition.
+        apply veblen_subterm1_zero_nest; simpl in *; intuition auto with ord.
+      * apply veblen_subterm1_zero_nest; simpl in *; intuition auto with ord.
     + apply veblen_subterm1; auto with ord.
     + apply veblen_subterm1; auto with ord.
-  - destruct x2; simpl; intuition.
-    + simpl in *. intuition.
+  - destruct x2; simpl; intuition auto with ord.
+    + simpl in *. intuition auto with ord.
       apply veblen_collapse'; auto with ord.
       eapply ord_lt_le_trans; [ apply H |].
       apply veblen_inflationary; auto with ord.
       eapply ord_lt_le_trans; [ apply H6 |].
       apply veblen_inflationary; auto with ord.
       apply (VW_collapse2 x1 (V x2_1 x2_2)).
-    + apply veblen_increasing'; simpl in *; intuition.
+    + apply veblen_increasing'; simpl in *; intuition auto with ord.
 Qed.
 
 Lemma VF_isNormal_dec: forall x, { VF_isNormal x } + { ~VF_isNormal x }.
@@ -372,13 +372,13 @@ Proof.
   destruct x2.
   - destruct x1; intuition.
   - generalize (VF_compare_correct x2_1 x1).
-    destruct (VF_compare x2_1 x1); intuition.
+    destruct (VF_compare x2_1 x1); intuition auto with ord.
     left; intuition. apply H.
     right; intuition.
     elim (ord_lt_irreflexive (VF_denote x1)).
     eapply ord_lt_le_trans; eauto.
   - generalize (VF_compare_correct (W x2_1 x2_2) x1).
-    destruct (VF_compare (W x2_1 x2_2) x1); intuition.
+    destruct (VF_compare (W x2_1 x2_2) x1); intuition auto with ord.
     + simpl in H.
       left; intuition.
       apply H.
@@ -389,11 +389,11 @@ Proof.
   - intuition.
     destruct x2; intuition.
     generalize (VF_compare_correct x2_1 x1).
-    destruct (VF_compare x2_1 x1); intuition.
-    left; intuition. apply H.
-    right; intuition.
-    elim (ord_lt_irreflexive (VF_denote x1)).
-    eapply ord_lt_le_trans; eauto.
+    destruct (VF_compare x2_1 x1); intuition auto with ord.
+    + left; intuition. apply H.
+    + right; intuition.
+      elim (ord_lt_irreflexive (VF_denote x1)).
+      eapply ord_lt_le_trans; eauto.
 Qed.    
 
 Inductive redex : VForm -> VForm -> Prop:=
@@ -666,10 +666,10 @@ Proof.
   destruct b; simpl in *.
   - destruct a; simpl in *; intuition.
   - generalize (VF_compare_correct a b1).
-    destruct (VF_compare a b1); simpl; intuition.
+    destruct (VF_compare a b1); simpl; intuition auto with ord.
     apply H1.
   - generalize (VF_compare_correct a (W b1 b2)).
-    destruct (VF_compare a (W b1 b2)); simpl; intuition.
+    destruct (VF_compare a (W b1 b2)); simpl; intuition auto with ord.
     apply H1.
 Qed.
 
@@ -678,7 +678,7 @@ Proof.
   unfold Wnorm; simpl; intros.
   destruct b; simpl in *; intuition.
   generalize (VF_compare_correct a b1).
-  destruct (VF_compare a b1); simpl; intuition.
+  destruct (VF_compare a b1); simpl; intuition auto with ord.
   apply H2.
 Qed.
 
@@ -791,11 +791,11 @@ Proof.
   - destruct a; simpl; auto with ord.
     rewrite (VW_collapse2 a1 a2); auto with ord.
   - generalize (VF_compare_correct a b1).
-    destruct (VF_compare a b1); simpl; intuition.
+    destruct (VF_compare a b1); simpl; intuition auto with ord.
     symmetry.
-    apply veblen_fixpoints; auto.
+    apply veblen_fixpoints; auto with ord.
   - generalize (VF_compare_correct a (W b1 b2)).
-    destruct (VF_compare a (W b1 b2)); simpl; intuition.
+    destruct (VF_compare a (W b1 b2)); simpl; intuition auto with ord.
     symmetry. apply VW_collapse; auto.
 Qed.
 
@@ -804,7 +804,7 @@ Lemma Wnorm_equal : forall a b,
     VF_denote (Wnorm a b) ≈ (VF_denote (W a b)).
 Proof.
   intros; unfold Wnorm; simpl.
-  destruct b; simpl in *; intuition.
+  destruct b; simpl in *; intuition auto with ord.
   generalize (VF_compare_correct a b1).
   destruct (VF_compare a b1); simpl; auto with ord. intros.
   intros. symmetry; apply veblen_fixpoints; auto with ord.
@@ -875,8 +875,8 @@ Lemma one_step_reduce_size: forall x y,
     one_step_reduce x y ->
     (VF_size x > VF_size y)%nat.
 Proof.    
-  intros x y H. induction H; simpl; intuition.
-  apply redex_size; auto.
+  intros x y H. induction H; simpl; intuition auto with ord arith.
+  apply redex_size; auto with ord.
 Qed.
 
 Theorem strongly_normalizing: forall x, exists y, normalizes x y.
@@ -984,13 +984,13 @@ Lemma VF_decompose_correct:
     cantor_ordered VF_denote (VF_decompose x) /\
     VF_denote x ≈ cantor_denote VF_denote (VF_decompose x).
 Proof.
-  induction x; simpl; intuition.
-  destruct x2; simpl; auto.
-  rewrite veblen_onePlus; auto.
-  rewrite H8. reflexivity.
-  rewrite addOrd_zero_r.
-  symmetry.
-  apply W_epsilon; auto.
+  induction x; simpl; intuition auto with ord.
+  destruct x2; simpl; auto with ord.
+  - rewrite veblen_onePlus; auto.
+    rewrite H8. reflexivity.
+  - rewrite addOrd_zero_r.
+    symmetry.
+    apply W_epsilon; auto.
 Qed.
 
 Lemma VF_recompose_correct:
@@ -999,23 +999,22 @@ Lemma VF_recompose_correct:
     cantor_ordered VF_denote xs ->
     VF_isNormal (VF_recompose xs) /\ cantor_denote VF_denote xs ≈ VF_denote (VF_recompose xs).
 Proof.
-  induction xs; simpl in *; intuition.
-  destruct xs; simpl; intuition.
-  destruct a; simpl in *; intuition.
-
-  simpl in *; intuition.
-  destruct xs; simpl in *; intuition.
-  destruct v; simpl in *; intuition.
-  destruct xs; simpl in *; intuition.
-  destruct a; simpl in *; intuition.
-  rewrite veblen_onePlus; auto with ord.
-  rewrite veblen_onePlus; auto with ord.
-  rewrite veblen_onePlus; auto with ord.
-  rewrite addOrd_zero_r.
-  apply W_epsilon; auto.
-  rewrite H5.
-  rewrite veblen_onePlus; auto.
-  reflexivity.
+  induction xs; simpl in *; intuition auto with ord.
+  - destruct xs; simpl; intuition.
+    destruct a; simpl in *; intuition.
+    simpl in *; intuition.
+    destruct xs; simpl in *; intuition.
+    destruct v; simpl in *; intuition.
+  - destruct xs; simpl in *; intuition.
+    destruct a; simpl in *; intuition.
+    rewrite veblen_onePlus; auto with ord.
+    rewrite veblen_onePlus; auto with ord.
+    rewrite veblen_onePlus; auto with ord.
+    rewrite addOrd_zero_r.
+    apply W_epsilon; auto.
+    rewrite H5.
+    rewrite veblen_onePlus; auto.
+    reflexivity.
 Qed.
 
 Definition VF_has_cantor_decomposition : has_cantor_decomposition VF_denote VF_isNormal :=
@@ -1050,7 +1049,7 @@ Proof.
   rewrite veblen_onePlus; auto.
   rewrite addOrd_zero_r.
   rewrite expOrd_zero.
-  intuition.
+  intuition auto with ord.
 Qed.
 
 Theorem VF_succ_reflects: reflects VForm VF_denote VF_isNormal (ORD ==> ORD) succOrd VF_succ.
@@ -1278,7 +1277,7 @@ Proof.
 Qed.
 
 
-Require Import ClassicalFacts.
+From Stdlib Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 Theorem VW_has_enough_notations (EM:excluded_middle) :

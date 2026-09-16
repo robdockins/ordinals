@@ -1,8 +1,8 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import Lia.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import Lia.
 
 Unset Printing Records.
 
@@ -12,7 +12,7 @@ From Ordinal Require Import Arith.
 From Ordinal Require Import Cantor.
 From Ordinal Require Import Fixpoints.
 
-Require Import ClassicalFacts.
+From Stdlib Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 
@@ -936,7 +936,9 @@ Proof.
       apply addOrd_increasing; auto.
       rewrite Hj; auto.
   - intros. apply IHxs with b; simpl in *; intuition.
-    rewrite H. auto.
+    + apply Hxs2; simpl.
+      apply List.in_or_app; auto.
+    + rewrite H. auto.
 Qed.
 
 Fixpoint cantor_denote_nadd (xs:list Ord) : Ord :=

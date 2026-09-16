@@ -1,7 +1,8 @@
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import List.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import List.
+
 Import ListNotations.
 Open Scope list.
 
@@ -31,9 +32,9 @@ Open Scope ord_scope.
     normal form, and define a subset type that restricts the type of
     Cantor forms to the Cantor _normal_ forms.
  *)
+Scheme All for list.
 Inductive CantorForm : Set :=
   | CantorSum : list CantorForm -> CantorForm.
-
 
 (** The denotation function for Cantor forms. Each "CantorSum"
     corresponds to a sum of terms of the form ωˣ.
@@ -571,7 +572,7 @@ Proof.
       * simpl; intuition.
       * simpl; intuition.
         apply H1.
-      * simpl; intuition.
+      * simpl; intuition auto with ord.
 Qed.
 
 Lemma normalize_is_equal (x:CF) : CF_denote x ≈ CF_denote (normalize x).
@@ -823,7 +824,7 @@ Proof.
   destruct (cantorSum_add xs ys).
   - simpl in *; intuition.
   - generalize (CNF_compare_correct a c).
-    case_eq (cantorCompare a c); simpl in * ; intuition.
+    case_eq (cantorCompare a c); simpl in * ; intuition auto with ord.
     apply H3.
 Qed.
 
@@ -1055,7 +1056,7 @@ Definition CF_nat (n:nat) : CF := CantorSum (repeat CF_zero n).
 Lemma CF_nat_normal : forall n, cantorIsNormal (CF_nat n).
 Proof.
   induction n; simpl; intuition.
-  destruct n; simpl in *; intuition.
+  destruct n; simpl in *; intuition auto with ord.
 Qed.
 
 Lemma CF_nat_correct : forall n, CF_nat n ≈ natOrdSize n.
@@ -1423,7 +1424,7 @@ Proof.
 Qed.
 
 
-Require Import ClassicalFacts.
+From Stdlib Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 (** Here, we must rely on the axiom of the excluded middle
@@ -1496,11 +1497,9 @@ Proof.
     rewrite <- (sup_le _ _ 2%nat).
     simpl.
     unfold powOmega.
-    rewrite expOrd_lub.
-    rewrite <- lub_le1.
-    rewrite expOrd_one'.
-    apply (index_lt _ 1%nat).
-    apply (index_lt _ 0%nat).
+    rewrite <- (expOrd_zero ω).
+    apply expOrd_increasing; auto with ord.
+    apply expOrd_nonzero.
   - destruct (CNF_decide_order CNF_zero c).
     right.
     rewrite Hc.

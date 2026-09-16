@@ -1,8 +1,9 @@
-Require Import Lia.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import List.
+From Stdlib Require Import Lia.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import List.
+
 Import ListNotations.
 Open Scope list.
 
@@ -19,7 +20,7 @@ From Ordinal Require Import NaturalArith.
 From Ordinal Require Import VeblenDefs.
 From Ordinal Require Import VeblenCon.
 
-Require Import ClassicalFacts.
+From Stdlib Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 Open Scope ord_scope.
@@ -139,7 +140,7 @@ Section cantor_arithmetic.
       unfold cantor_zero.
       destruct (cantor_recompose_correct X []); simpl; auto.
     - induction n; simpl; intuition.
-      destruct n; simpl; intuition.
+      destruct n; simpl; intuition auto with ord.
     - split; auto.
       rewrite <- H0.
       clear H H0.
@@ -227,7 +228,7 @@ Section cantor_arithmetic.
     destruct (cantor_decomp_compare X x y); simpl in *; intuition.
     cut (forall xs x, cantor_ordered f (x::xs) -> f x < f y ->
                         cantor_denote f (x::xs) + cantor_denote f (y::ys) ≈ cantor_denote f (y::ys)).
-    intro Hcut. rewrite (Hcut xs x); simpl; intuition.
+    intro Hcut. rewrite (Hcut xs x); simpl; intuition auto with ord.
     { clear - X. induction xs; simpl; intuition.
       rewrite addOrd_zero_r. rewrite addOrd_assoc.
       split.
@@ -309,7 +310,7 @@ Section cantor_arithmetic.
       rewrite Ha3. simpl.
       rewrite addOrd_zero_r.
       rewrite expOrd_zero.
-      intuition.
+      intuition auto with ord.
       rewrite addOrd_zero_r.
       apply limit_unreachable.
       apply additively_closed_limit.
@@ -328,7 +329,7 @@ Section cantor_arithmetic.
 
     rewrite <- H0.
     destruct (cantor_list_pred xs).
-    intuition.
+    intuition auto with ord.
     simpl.
     rewrite H5.
     rewrite addOrd_succ.
@@ -849,7 +850,7 @@ Section cantor_arithmetic.
         apply succ_least. rewrite <- addOrd_le1. apply expOrd_nonzero.
         rewrite <- H8.
         { revert H H5; clear.
-          induction x; simpl; intuition.
+          induction x; simpl; intuition auto with ord.
           rewrite IHx.
           rewrite <- onePlus_finite_succ.
           rewrite ordDistrib_left.
@@ -1046,7 +1047,7 @@ Section cantor_arithmetic.
 
     set (Q:= fun o => exists v:A, P v /\ i <= f v /\ o ≈ f v).
     assert (HP: exists o, Q o).
-    { subst Q. exists (f a), a; intuition. }
+    { subst Q. exists (f a), a; intuition auto with ord. }
     destruct HP as [o0 Ho0].
     destruct (classical.ord_well_ordered EM Q o0) as [z [Hz1 Hz2]]; auto.
     destruct Hz1 as [v [Hv1[Hv2 Hv3]]].
@@ -1056,7 +1057,7 @@ Section cantor_arithmetic.
     rewrite has_interpolants_unfold in Hinterp.
     destruct Hinterp with i as [q [Hq1 [Hq2 [Hq3 _]]]]; auto.
     assert (HQq: Q (f q)).
-    { hnf. exists q. intuition. }
+    { hnf. exists q. intuition auto with ord. }
     apply Hz2 in HQq.
     elim (ord_lt_irreflexive z).
     rewrite HQq at 1.
@@ -1248,7 +1249,7 @@ Section cantor_arithmetic.
           rewrite has_interpolants_unfold in Hb2.
           destruct (Hb2 (b k)) as [q [Hq1 [Hq2 [Hq3 Hq4]]]]; auto with ord.
           exists (vr a q).
-          destruct Hvr_reflects with (f a) a (f q) q as [Hvr1 Hvr2]; intuition.
+          destruct Hvr_reflects with (f a) a (f q) q as [Hvr1 Hvr2]; intuition auto with ord.
           rewrite <- Hvr1.
           rewrite Hi0.
           rewrite <- HA.
@@ -1913,11 +1914,11 @@ Section cantor_arithmetic.
           apply addOrd_increasing; auto.
           rewrite Hy3. auto.
       - intros.
-        apply IHxs with b; simpl in *; intuition.
-        rewrite each_app in Hxs1. simpl in *; intuition.
+        apply IHxs with b; simpl in *; intuition auto with ord.
+        rewrite each_app in Hxs1. simpl in *; intuition auto with ord.
+        apply Hxs2. apply List.in_or_app; auto.
         rewrite H0. auto.
     Qed.
-
 
     Fixpoint cantor_denote_nadd (xs:list A) : Ord :=
       match xs with
@@ -2016,9 +2017,9 @@ Section cantor_arithmetic.
       simpl; intros.
       generalize (cantor_decomp_compare_correct X x y).
       destruct (cantor_decomp_compare X x y); simpl in *; intuition.
-      - destruct ys; simpl in *; intuition.
+      - destruct ys; simpl in *; intuition auto with ord.
         generalize (cantor_decomp_compare_correct X x a).
-        destruct (cantor_decomp_compare X x a); simpl; intuition.
+        destruct (cantor_decomp_compare X x a); simpl; intuition auto with ord.
       - rewrite H11.
         rewrite (naddOrd_comm (expOrd ω (f y))).
         rewrite <- naddOrd_assoc.
@@ -2037,9 +2038,9 @@ Section cantor_arithmetic.
         rewrite naddOrd_assoc.
         reflexivity.
       - apply IHxs; simpl; auto.
-      - destruct xs; simpl; intuition.
+      - destruct xs; simpl; intuition auto with ord.
         generalize (cantor_decomp_compare_correct X a y).
-        destruct (cantor_decomp_compare X a y); simpl; intuition.
+        destruct (cantor_decomp_compare X a y); simpl; intuition auto with ord.
       - apply IHxs; simpl; auto.
       - destruct (IHxs (y::ys)) as [?[??]]; simpl; auto.
         rewrite H13.

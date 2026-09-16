@@ -1,6 +1,6 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
 
 Unset Printing Records.
 

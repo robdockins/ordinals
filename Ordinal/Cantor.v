@@ -1,8 +1,8 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import ClassicalFacts.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import ClassicalFacts.
 
 Unset Printing Records.
 
@@ -594,7 +594,7 @@ Proof.
   simpl; split; auto.
 Qed.
 
-Require Import List.
+From Stdlib Require Import List.
 Import ListNotations.
 Open Scope list.
 
@@ -694,7 +694,7 @@ Proof.
         apply (IHxs a o); intuition.
         eapply addOrd_cancel. apply H1.
         split; apply expOrd_monotone; auto.
-      * elimtype False.
+      * exfalso.
         assert (expOrd ω o + cantor_denote ys < expOrd ω a).
         { apply expOmega_additively_closed.
           apply classical.ord_complete; auto.
@@ -719,7 +719,7 @@ Proof.
         elim (ord_lt_irreflexive (expOrd ω a)).
         eapply ord_le_lt_trans; [ | apply H4 ].
         apply addOrd_le1.
-    + elimtype False.
+    + exfalso.
       assert (expOrd ω a + cantor_denote xs < expOrd ω o).
       { apply expOmega_additively_closed.
         apply classical.ord_complete; auto.
@@ -779,7 +779,7 @@ Proof.
       destruct H5 as [[??]?].
       exists a. exists b'. unfold ord_eq. intuition.
       destruct (classical.order_total EM (a+b') x); auto.
-      elimtype False.
+      exfalso.
       rewrite addOrd_unfold in H8.
       apply lub_lt in H8.
       destruct H8.
@@ -842,7 +842,7 @@ Proof.
   destruct (H (classical.truth_ord' P)) as [ls [?[??]]].
   apply classical.truth_ord'_complete.
   destruct ls; simpl in *.
-  - elimtype False.
+  - exfalso.
     destruct H2.
     unfold classical.truth_ord' in H3.
     rewrite ord_le_unfold in H3.

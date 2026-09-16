@@ -1,11 +1,12 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import List.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import List.
+From Stdlib Require Import Lia.
+
 Import ListNotations.
 Open Scope list.
-Require Import Lia.
 
 Unset Printing Records.
 
@@ -855,7 +856,7 @@ Proof.
     apply addOrd_monotone; auto with ord.
 Qed.
 
-Require Import ClassicalFacts.
+From Stdlib Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 Lemma enum_fixpoint_decompose (EM:excluded_middle) f (Hf:normal_function f) :

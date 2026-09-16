@@ -1,7 +1,8 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import Lia.
 
 Unset Printing Records.
 
@@ -294,6 +295,7 @@ Proof.
   auto.
 Qed.
 
+Create Rewrite HintDb ord.
 Global Hint Rewrite addOrd_zero_r addOrd_zero_l: ord.
 Global Hint Resolve addOrd_monotone addOrd_complete addOrd_le1 addOrd_le2: ord.
 
@@ -1280,7 +1282,7 @@ Proof.
   apply ord_le_lt_trans with (KnuthUp n ω ω).
   destruct n. inversion H.
   apply KnuthUp_saturates; auto.
-  inversion H; auto with arith.
+  inversion H; lia.
   apply (index_lt _ 0%nat).
   apply H0.
   apply succ_lt.

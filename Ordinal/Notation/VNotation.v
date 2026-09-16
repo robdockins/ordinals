@@ -1,12 +1,13 @@
-Require Import Relations.Relation_Operators.
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import List.
+From Stdlib Require Import Relations.Relation_Operators.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import List.
+From Stdlib Require Import Lia.
+
 Import ListNotations.
 Open Scope list.
-Require Import Lia.
 
 Unset Printing Records.
 
@@ -83,23 +84,23 @@ Proof.
   simpl; intros.
   apply ord_lt_le_trans with (veblen (addOrd 1) (VF_denote a) 0).
   - clear x.
-    induction a; simpl; intuition.
-    apply veblen_shrink_lemma; auto.
+    induction a; simpl; intuition auto with ord.
+    apply veblen_shrink_lemma; auto with ord.
   - apply veblen_monotone; auto with ord.
 Qed.
 
 Lemma VF_denote_le2 : forall x a,
   VF_denote x <= VF_denote (V a x).
 Proof.
-  induction x; simpl; intuition.
-  apply veblen_inflationary; auto.
+  induction x; simpl; intuition auto with ord.
+  apply veblen_inflationary; auto with ord.
 Qed.
 
 Lemma VF_denote_shrink2 : forall x a,
   VF_normal (V a x) ->
   VF_denote x < VF_denote (V a x).
 Proof.
-  induction x; simpl; intuition.
+  induction x; simpl; intuition auto with ord.
   apply veblen_increasing'; auto.
   apply IHx2. simpl; intuition.
 Qed.
@@ -158,28 +159,28 @@ Proof.
 
   - generalize (IHx y).
     destruct (VF_compare x y); intro Hxy.
-    + eapply ord_lt_le_trans. apply veblen_increasing; auto. apply Hxy.
-      apply veblen_monotone_first; auto.
-      intros; apply addOrd_monotone; auto with ord.
+    + apply ord_lt_le_trans with (veblen (addOrd 1) (VF_denote a) (VF_denote y)).
+      apply veblen_increasing; auto with ord.
+      apply veblen_monotone_first; auto with ord.
       apply Hab.
     + split.
-      etransitivity.
-      apply veblen_monotone_first; auto.
-      intros; apply addOrd_monotone; auto with ord.
-      apply Hab.
-      apply veblen_monotone; auto.
-      intros; apply addOrd_monotone; auto with ord.
-      apply Hxy.
-      etransitivity.
-      apply veblen_monotone_first; auto.
-      intros; apply addOrd_monotone; auto with ord.
-      apply Hab.
-      apply veblen_monotone; auto.
-      intros; apply addOrd_monotone; auto with ord.
-      apply Hxy.
-    + eapply ord_lt_le_trans. apply veblen_increasing; auto. apply Hxy.
-      apply veblen_monotone_first; auto.
-      intros; apply addOrd_monotone; auto with ord.
+      * etransitivity.
+        apply veblen_monotone_first; auto.
+        intros; apply addOrd_monotone; auto with ord.
+        apply Hab.
+        apply veblen_monotone; auto.
+        intros; apply addOrd_monotone; auto with ord.
+        apply Hxy.
+      * etransitivity.
+        apply veblen_monotone_first; auto.
+        intros; apply addOrd_monotone; auto with ord.
+        apply Hab.
+        apply veblen_monotone; auto.
+        intros; apply addOrd_monotone; auto with ord.
+        apply Hxy.
+    + eapply ord_lt_le_trans with (veblen (addOrd 1) (VF_denote b) (VF_denote x)).
+      apply veblen_increasing; auto with ord.
+      apply veblen_monotone_first; auto with ord.
       apply Hab.
 
   - change (match (VF_compare (V a x) y) with
@@ -281,7 +282,7 @@ Proof.
   destruct x2.
   - intuition.
   - generalize (VF_compare_correct x2_1 x1).
-    destruct (VF_compare x2_1 x1); intuition.
+    destruct (VF_compare x2_1 x1); intuition auto with ord.
     left; intuition. apply H.
     right; intuition.
     elim (ord_lt_irreflexive (VF_denote x1)).
@@ -406,7 +407,7 @@ Proof.
   unfold Vnorm; simpl; intros.
   destruct x; simpl in *; intuition.
   generalize (VF_compare_correct a x1).
-  destruct (VF_compare a x1); simpl; intuition.
+  destruct (VF_compare a x1); simpl; intuition auto with ord.
   rewrite H2. reflexivity.
 Qed.
 
@@ -415,7 +416,7 @@ Proof.
   simpl. unfold Vnorm.
   destruct x; simpl; try reflexivity.
   generalize (VF_compare_correct a x1).
-  destruct (VF_compare a x1); simpl; intuition.
+  destruct (VF_compare a x1); simpl; intuition auto with ord.
   apply veblen_fixpoints; auto.
 Qed.
 
@@ -446,7 +447,7 @@ Qed.
 
 Lemma Vnormalize_equal : forall x, VF_denote (Vnormalize x) ≈ VF_denote x.
 Proof.
-  induction x; simpl; intuition.
+  induction x; simpl; intuition auto with ord.
   rewrite <- Vnorm_V. simpl.
   transitivity (veblen (addOrd 1) (VF_denote x1) (VF_denote (Vnormalize x2))).
   - split; apply veblen_monotone_first; auto with ord; apply IHx1.
@@ -534,8 +535,8 @@ Lemma one_step_reduce_size: forall x y,
     one_step_reduce x y ->
     (VF_size x > VF_size y)%nat.
 Proof.    
-  intros x y H. induction H; simpl; intuition.
-  apply redex_size; auto.
+  intros x y H. induction H; simpl; intuition auto with ord arith.
+  apply redex_size; auto with ord.
 Qed.
 
 Theorem strongly_normalizing: forall x, exists y, normalizes x y.
@@ -608,7 +609,7 @@ Lemma VF_decompose_correct:
     cantor_ordered VF_denote (VF_decompose x) /\
     VF_denote x ≈ cantor_denote VF_denote (VF_decompose x).
 Proof.
-  induction x; simpl; intuition.
+  induction x; simpl; intuition auto with ord.
   destruct x2; simpl; auto.
   rewrite veblen_onePlus; auto.
   rewrite H8. reflexivity.
@@ -620,7 +621,7 @@ Lemma VF_recompose_correct:
     cantor_ordered VF_denote xs ->
     VF_normal (VF_recompose xs) /\ cantor_denote VF_denote xs ≈ VF_denote (VF_recompose xs).
 Proof.
-  induction xs; simpl in *; intuition.
+  induction xs; simpl in *; intuition auto with ord.
   destruct xs; simpl; intuition.
   rewrite veblen_onePlus; auto with ord.
   rewrite H5.
@@ -658,7 +659,7 @@ Proof.
   rewrite veblen_onePlus; auto.
   rewrite addOrd_zero_r.
   rewrite expOrd_zero.
-  intuition.
+  intuition auto with ord.
 Qed.
 
 Theorem VF_succ_reflects: reflects VForm VF_denote VF_normal (ORD ==> ORD) succOrd VF_succ.
@@ -745,7 +746,7 @@ Proof.
   apply VF_has_all_interpolants.
 Qed.
 
-Require Import ClassicalFacts.
+From Stdlib Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 Theorem VF_has_enough_notations (EM:excluded_middle) :

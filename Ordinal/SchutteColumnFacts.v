@@ -1,11 +1,12 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import List.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import List.
+From Stdlib Require Import Lia.
+
 Import ListNotations.
 Open Scope list.
-Require Import Lia.
 
 Unset Printing Records.
 
@@ -483,7 +484,6 @@ Proof.
       apply schutte_column_monotone_full; auto with ord.
       intros. rewrite schutte_column_arg0; auto with ord.
       intros. rewrite schutte_column_arg0; auto with ord.
-      simpl; auto with ord.
   - apply sup_least; intro i.
     apply schutte_column_monotone_full; auto with ord.
 Qed.  
@@ -951,7 +951,7 @@ Lemma schutte_stack_normal: forall xs f,
 Proof.
   unfold list_complete.
   induction xs as [|a xs']; simpl; intros; auto.
-  apply IHxs'; intuition.
+  apply IHxs'; intuition auto with ord.
 Qed.
 
 Global Hint Resolve schutte_stack_normal: ord.
@@ -1051,7 +1051,7 @@ Proof.
     auto.
   - simpl; intros.
     rewrite <- (schutte_column_fixpoint _ δ 0 f (sz (length xs)) a); intuition auto with ord.
-    eapply ord_lt_le_trans; [ apply IHxs with (a:=a) (δ:=δ); intuition |].
+    eapply ord_lt_le_trans; [ apply IHxs with (a:=a) (δ:=δ); intuition auto with ord |].
     apply schutte_column_monotone_full; auto with ord.
     intros. apply schutte_column_monotoneβ; auto with ord.
 Qed.
@@ -1227,7 +1227,7 @@ Lemma schutte_matrix_normal: forall m f,
   normal_function (schutte_matrix f m).
 Proof.
   induction m as [|[a b] m']; simpl; intros; auto.
-  apply IHm'; intuition.
+  apply IHm'; intuition auto with ord.
 Qed.
 
 Global Hint Resolve schutte_matrix_normal: ord.
@@ -1524,6 +1524,7 @@ Proof.
            *** repeat (split; auto with ord).
            *** simpl; intuition.
                eapply ord_le_lt_trans; [| apply (H [])]; simpl; auto with ord.
+               apply succ_lt.
       * destruct (complete_zeroDec x); auto.
         ** eapply ord_le_lt_trans; [| apply (H [(β,α)])]; simpl; auto with ord.
         ** eapply ord_le_lt_trans; [| apply (H [(β,α);(0,x)])]; auto with ord.

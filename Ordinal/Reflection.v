@@ -1,8 +1,8 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import List.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import List.
 
 Unset Printing Records.
 
@@ -131,7 +131,7 @@ Lemma nat_compare_correct :
 Proof.
   induction x; destruct y; simpl; auto with arith.
   generalize (IHx y).
-  destruct (nat_compare x y); intuition.
+  destruct (nat_compare x y); intuition auto with arith.
 Qed.
 
 Add Parametric Morphism o : (ordering_correct o)

@@ -1,7 +1,7 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import Coq.Program.Wf.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import Program.Wf.
 
 Unset Printing Records.
 
@@ -138,9 +138,9 @@ Notation "x > y" := (ord_lt y x) : ord_scope.
 Notation "x < y" := (ord_lt x y) : ord_scope.
 Notation "x >= y" := (ord_le y x) : ord_scope.
 Notation "x <= y" := (ord_le x y) : ord_scope.
-Notation "x ≥ y" := (ord_le y x) (at level 70, no associativity) : ord_scope.
-Notation "x ≤ y" := (ord_le x y) (at level 70, no associativity) : ord_scope.
-Notation "x ≈ y" := (ord_eq x y) (at level 70, no associativity) : ord_scope.
+Notation "x ≥ y" := (ord_le y x) (at level 70, no associativity)  : ord_scope.
+Notation "x ≤ y" := (ord_le x y) (at level 70, no associativity)  : ord_scope.
+Notation "x ≈ y" := (ord_eq x y) (at level 70, no associativity)  : ord_scope.
 
 (*  The notation "x ◃ y" indicates that "x" has a strictly smaller ordinal measure
     than "y".  Note that "x" and "y" do not need to have the same type.
@@ -152,14 +152,14 @@ Notation "x ⊴ y" := (sz x ≤ sz y)%ord (at level 80, no associativity).
 
 (** Characteristic equation for less-than *)
 Lemma ord_lt_unfold x y :
-  x < y = exists b:y, x ≤ y b.
+  (x < y) = exists b:y, x ≤ y b.
 Proof.
   destruct x; destruct y; simpl; auto.
 Qed.
 
 (** Characteristic equation for less-equal *)
 Lemma ord_le_unfold x y :
-  x ≤ y = forall a:x, x a < y.
+  (x ≤ y) = forall (a:x), x a < y.
 Proof.
   destruct x; destruct y; simpl; auto.
 Qed.
@@ -502,7 +502,7 @@ Qed.
 
 
 (** * Some auxiliary definitions that will be useful later. *)
-Require Import List.
+From Stdlib Require Import List.
 Import ListNotations.
 
 Fixpoint each {A:Type} (P:A -> Prop) (xs:list A) : Prop :=

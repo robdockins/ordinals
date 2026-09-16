@@ -1,11 +1,13 @@
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import List.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import List.
+From Stdlib Require Import Lia.
+
 Import ListNotations.
 Open Scope list.
-Require Import Lia.
+
 
 Unset Printing Records.
 
@@ -18,7 +20,6 @@ From Ordinal Require Import Reflection.
 From Ordinal Require Import VeblenDefs.
 From Ordinal Require Import VeblenCon.
 From Ordinal Require Import VeblenFacts.
-From Ordinal Require Import VTowerFin.
 
 Open Scope ord_scope.
 

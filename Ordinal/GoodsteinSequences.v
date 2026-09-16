@@ -1,13 +1,13 @@
-Require Import Coq.Arith.Wf_nat.
-Require Import Setoid.
-Require Import Morphisms.
-Require Import Coq.Program.Basics.
-Require Import NArith.
-Require Import List.
+From Stdlib Require Import Arith.Wf_nat.
+From Stdlib Require Import Setoid.
+From Stdlib Require Import Morphisms.
+From Stdlib Require Import Program.Basics.
+From Stdlib Require Import NArith.
+From Stdlib Require Import List.
+From Stdlib Require Import Lia.
 
 Import ListNotations.
 Open Scope list.
-Require Import Lia.
 
 Unset Printing Records.
 
@@ -334,7 +334,7 @@ Proof.
                     lia.
                     rewrite Hi1 in Hx.
                     lia.
-           *** elimtype False.
+           *** exfalso.
                inversion Ha; subst.
                inversion Hb; subst.
 
@@ -355,7 +355,7 @@ Proof.
                  rewrite Hi2 in  H10.
                  lia. }
                lia.
-        ** elimtype False.
+        ** exfalso.
            inversion Ha; subst.
            inversion Hb; subst.
            destruct Hind with (y:= (hbn_interp base e2 + hbn_interp base e1)%N) (a:= e2) (b:=e1)
@@ -452,7 +452,7 @@ Proof.
         rewrite Hi1.
         simpl in *.
         destruct (N.lt_total (hbn_interp base e1) (hbn_interp base b)); auto.
-        elimtype False.
+        exfalso.
         assert (hbn_interp base b <= hbn_interp base e1)%N by lia.
         clear H0.
         assert (base ^ hbn_interp base e1 * n1 + hbn_interp base x1 < base ^ hbn_interp base e1 * n1)%N.

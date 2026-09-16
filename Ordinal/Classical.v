@@ -1,10 +1,9 @@
-From Coq Require Import ClassicalFacts.
-From Coq Require Import ChoiceFacts.
-From Coq Require Import Arith.
-From Coq Require Import Lia.
+From Stdlib Require Import ClassicalFacts.
+From Stdlib Require Import ChoiceFacts.
+From Stdlib Require Import Arith.
+From Stdlib Require Import Lia.
 
 Unset Printing Records.
-
 
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
@@ -87,8 +86,7 @@ Section classic.
   Theorem ord_complete (x:Ord) : complete x.
   Proof.
     induction x as [A f]; simpl; intuition.
-    + apply ord_directed.
-    + apply EM.
+    apply ord_directed.
   Qed.
 
   (** Classical ordinals are well-ordered by <=. More precisely,
