@@ -2533,6 +2533,18 @@ Inductive confirm_lt : ordering -> list (Ord * Ord) -> Ord -> Prop :=
     a > z ->
     confirm_lt GT ((b,a)::xs) z.
 
+Add Parametric Morphism o xs : (confirm_lt o xs) with signature ord_eq ==> impl
+      as confirm_lt_eq_mor.
+Proof.
+  unfold impl. intros x y H Hconfirm.
+  induction Hconfirm.
+  - apply confirm_lt_nil.
+  - apply confirm_lt_lt; auto. rewrite <- H; auto.
+  - apply confirm_lt_eq1; auto. rewrite <- H; auto.
+  - apply confirm_lt_eq2; auto. rewrite <- H; auto.
+  - apply confirm_lt_gt; auto. rewrite <- H; auto.
+Qed.
+
 Lemma ordering_correct_swap: forall o x y,
     ordering_correct (ordering_swap o) x y <-> ordering_correct o y x.
 Proof.
@@ -2592,6 +2604,14 @@ Inductive schutte_matrix_compare : ordering -> (Ord -> Ord) -> list (Ord * Ord) 
 | mat_comp_nil_nil: forall f,
     schutte_matrix_compare EQ f [] []
 
+| mat_comp_nil_left: forall f b a n,
+    a > 0 ->
+    schutte_matrix_compare LT f [] ((b,a)::n)
+
+| mat_comp_nil_right: forall f b a m,
+    a > 0 ->
+    schutte_matrix_compare GT f ((b,a)::m) []
+
 | mat_comp_zl : forall o f m b a n,
     a ≈ 0 ->
     schutte_matrix_compare o f m n ->
@@ -2644,6 +2664,16 @@ Lemma schutte_matrix_compare_correct: forall o f m n,
 Proof.
     intros o f m n Hcomp. induction Hcomp.
     - simpl; intuition auto with ord.
+    - simpl; intuition.
+      rewrite <- schutte_matrix_base; auto with ord.
+      rewrite schutte_column_unroll.
+      rewrite <- lub_le1.
+      apply normal_increasing; auto with ord.
+    - simpl; intuition.
+      rewrite <- schutte_matrix_base; auto with ord.
+      rewrite schutte_column_unroll.
+      rewrite <- lub_le1.
+      apply normal_increasing; auto with ord.
     - simpl; intuition.
       cut (ordering_correct o
              (schutte_matrix f m 0)
