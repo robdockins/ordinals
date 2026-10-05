@@ -1713,6 +1713,46 @@ Definition VF_ackermann a x := Nnorm [a; Z; x].
 Definition VF_SAO := N [VF_omega; Z; Z].
 Definition VF_LAO := N [VF_one; Z; Z; Z].
 
+
+Fixpoint VF_nat (n:nat) : VForm :=
+  match n with
+  | O => Z
+  | S O => N []
+  | S n => N [VF_nat n]
+  end.
+
+Lemma VF_nat_eq: forall n, VF_denote (VF_nat n) ≈ natOrdSize n.
+Proof.
+  induction n; simpl; intuition auto with ord.
+  destruct n; simpl; auto with ord.
+  { rewrite addOrd_zero_r; auto with ord. }
+  rewrite schutte_column0.
+  rewrite IHn.
+  simpl.
+  rewrite addOrd_zero_r.
+  apply (onePlus_finite_succ (S n)).
+Qed.
+
+Lemma VF_nat_normal: forall n, VF_normal (VF_nat n).
+Proof.
+  induction n; simpl; intuition.
+  destruct n; simpl in *; intuition.
+  destruct n; discriminate.
+  rewrite schutte_column0.
+  rewrite (VF_nat_eq (S n)).
+  simpl.
+  rewrite addOrd_zero_r.
+  rewrite (onePlus_finite_succ (S n)).
+  auto with ord.
+Qed.
+
+Theorem VF_natOrdSize_reflects n : reflects VForm VF_denote VF_normal ORD (natOrdSize n) (VF_nat n).
+Proof.
+  simpl; intuition.
+  symmetry. apply VF_nat_eq.
+  apply VF_nat_normal.
+Qed.
+
 Theorem VF_powOmega_reflects: reflects VForm VF_denote VF_normal (ORD ==> ORD) powOmega VF_powOmega.
 Proof.
   unfold VF_powOmega.
@@ -1860,4 +1900,542 @@ Proof.
   - assert (exists H, VF_normal_dec VF_LAO = left H).
     { eexists. reflexivity. }
     destruct H; auto.
+Qed.
+
+
+Lemma final_index_last: forall m q i a,
+  final_index q (m ++ [(i,a)]) = i.
+Proof.
+  induction m; simpl; intuition.
+Qed.
+
+Lemma has_interpolants_lub: forall X (denote: X -> Ord) normal p q,
+    has_interpolants denote normal p ->
+    has_interpolants denote normal q ->
+    has_interpolants denote normal (p ⊔ q).
+Proof.
+  intros X denote normal p q Hp Hq.
+  rewrite has_interpolants_unfold in *.
+  intros i Hi.
+  apply lub_lt in Hi.
+  destruct Hi; auto.
+  - destruct (Hp i) as [y ?]; auto.
+    exists y; intuition auto with ord.
+    rewrite <- lub_le1. auto.
+  - destruct (Hq i) as [y ?]; auto.
+    exists y; intuition auto with ord.
+    rewrite <- lub_le2. auto.
+Qed.
+
+Lemma has_interpolants_sup: forall X (denote: X -> Ord) normal A f,
+    (forall a:A, has_interpolants denote normal (f a)) ->
+    has_interpolants denote normal (supOrd f).
+Proof.
+  intros X denote normal A f Hf.
+  rewrite has_interpolants_unfold.
+  intros i Hi. apply sup_lt in Hi.
+  destruct Hi as [a Hi].
+  generalize (Hf a).
+  rewrite has_interpolants_unfold.
+  intro Ha.
+  destruct (Ha i Hi) as [y ?].
+  exists y; intuition.
+  rewrite <- (sup_le _ _ a); auto.
+Qed.
+
+Lemma has_interpolants_add: forall X (denote: X -> Ord) normal add,
+    reflects X denote normal (ORD ==> ORD ==> ORD) addOrd add ->
+    forall p q,
+      normal p ->
+      has_interpolants denote normal (denote p) ->
+      has_interpolants denote normal q ->
+      has_interpolants denote normal (denote p + q).
+Proof.
+  intros X denote normal add Hadd.
+  induction q as [q IHq] using ordinal_induction.
+  intros Hp1 Hp2 Hq.
+  rewrite addOrd_unfold.
+  apply has_interpolants_lub; auto.
+
+  rewrite has_interpolants_unfold.
+  simpl; intros i Hi.
+  apply sup_lt in Hi.
+  destruct Hi as [q' Hi].
+  rewrite ord_lt_unfold in Hi. destruct Hi as [[] Hi]. simpl in Hi.
+  rewrite has_interpolants_unfold in Hq.
+  destruct (Hq q') as [y [Hy1 [Hy2 [Hy3 Hy4]]]]; auto with ord.
+  exists (add p y).
+  destruct Hadd with (denote p) p (denote y) y as [Hadd1 Hadd2]; intuition auto with ord.
+  - rewrite <- Hadd1.
+    rewrite Hi.
+    apply addOrd_monotone; auto with ord.
+  - rewrite <- Hadd1.
+    rewrite ord_lt_unfold in Hy3.
+    destruct Hy3 as [q'' Hy3].
+    rewrite <- (sup_le _ _ q'').
+    apply succ_trans.
+    apply addOrd_monotone; auto with ord.
+  - rewrite <- Hadd1.
+    apply IHq; auto with ord.
+Qed.
+
+Lemma VF_has_interpolants_nat:
+  forall n, has_interpolants VF_denote VF_normal (natOrdSize n).
+Proof.
+  induction n; simpl.
+  - rewrite has_interpolants_unfold.
+    intros i Hi. rewrite ord_lt_unfold in Hi. destruct Hi as [[] _].
+  - rewrite has_interpolants_unfold.
+    intros i Hi. rewrite ord_lt_unfold in Hi. destruct Hi as [[] Hi]. simpl in Hi.
+    exists (VF_nat n). intuition.
+    + apply VF_nat_normal.
+    + rewrite VF_nat_eq; auto.
+    + rewrite VF_nat_eq; auto with ord.
+    + rewrite VF_nat_eq; auto.
+Qed.
+
+Fixpoint make_sparse (xs: list (nat * VForm)) :=
+  match xs with
+  | [] => []
+  | (n,Z)::xs => make_sparse xs
+  | x::xs => x :: make_sparse xs
+  end.
+
+Lemma make_sparse_correct: forall xs,
+    is_sparse (make_sparse xs) /\
+    (forall f, normal_function f ->
+               schutte_matrix f (sparse_matrix (make_sparse xs)) 0 ≈
+                 schutte_matrix f (sparse_matrix xs) 0) /\
+    (forall p q, schutte_matrix_proper (sparse_matrix xs) p q ->
+      schutte_matrix_proper (sparse_matrix (make_sparse xs)) p q).
+Proof.
+  induction xs as [|[n a] xs IHxs]; simpl; auto with ord.
+  destruct a; simpl; intuition; try discriminate.
+  - rewrite H1; auto.
+    split; apply schutte_matrix_monotone_func; auto with ord.
+    intros; rewrite schutte_column_arg0; auto with ord.
+    intros; rewrite schutte_column_arg0; auto with ord.
+  - apply H2.
+    eapply schutte_matrix_proper_monotone; try eassumption; auto with ord.
+Qed.
+
+Lemma exhibit_matrix_form_sparse: forall xs p,
+  schutte_matrix_proper (sparse_matrix xs) p SmallVeblenOrdinal ->
+  is_sparse xs ->
+  exists y : VForm, VF_denote y ≈ schutte_matrix (addOrd 1) (sparse_matrix xs) 0.
+Proof.
+  intros xs p H1 H2.
+  assert (Hys: exists ys, sparse_stack ys = xs /\ natOrdSize (length ys) <= p).
+  { revert p H1 H2. induction xs as [|[n a] xs IHxs]; simpl; intuition.
+    - exists []; simpl; auto with ord.
+    - destruct (IHxs (natOrdSize n)) as [ys [Hys1 Hys2]]; auto.
+      exists (a :: repeat Z (n - length ys) ++ ys); simpl.
+      destruct a; [ elim H1; auto |].
+      rewrite length_app.
+      rewrite repeat_length.
+      replace (n - length ys + length ys)%nat with n.
+      split.
+      + f_equal.
+        generalize (n - length ys).
+        intro i; induction i; simpl; auto.
+      + apply succ_least; auto.
+      + cut (length ys <= n)%nat. lia.
+        revert Hys2. clear.
+        revert n.
+        generalize (length ys).
+        intro i; induction i; simpl; intuition auto with ord arith.
+        destruct n; simpl in *.
+        * elim (ord_lt_irreflexive 0).
+          rewrite <- Hys2 at 2; auto with ord.
+        * rewrite ord_le_unfold in Hys2.
+          specialize (Hys2 tt). simpl in *.
+          rewrite ord_lt_unfold in Hys2.
+          destruct Hys2 as [[] Hys2]. simpl in *.
+          apply IHi in Hys2. lia. }
+  destruct Hys as [ys [Hys1 Hys2]].
+  exists (N ys). rewrite <- Hys1.
+  rewrite <- sparse_matrix_eq; auto with ord.
+Qed.
+
+Lemma exhibit_matrix_form: forall xs p,
+  schutte_matrix_proper (sparse_matrix xs) p SmallVeblenOrdinal ->
+  exists y : VForm, VF_denote y ≈ schutte_matrix (addOrd 1) (sparse_matrix xs) 0.
+Proof.
+  intros.
+  destruct (make_sparse_correct xs) as [H1[H2 H3]].
+  destruct (exhibit_matrix_form_sparse (make_sparse xs) p) as [y Hy]; auto.
+  exists y. rewrite Hy.
+  auto.
+Qed.
+
+Lemma schutte_column_sparse_matrix_interpolants:
+  forall (n : nat) (xs : list (nat * VForm)) (p: Ord),
+    all_complete (sparse_matrix xs) ->
+    schutte_matrix_proper (sparse_matrix xs) p SmallVeblenOrdinal ->
+    succOrd (natOrdSize n) ≤ final_index p (sparse_matrix xs) ->
+    let f := schutte_matrix (addOrd 1) (sparse_matrix xs) in
+    normal_function f ->
+    (forall x : Ord,
+        complete x ->
+        has_interpolants VF_denote VF_normal x ->
+        has_interpolants VF_denote VF_normal (f x)) ->
+    (forall a : VForm,
+      has_interpolants VF_denote VF_normal (VF_denote a) ->
+      forall x : Ord,
+        complete x ->
+        has_interpolants VF_denote VF_normal x ->
+        has_interpolants VF_denote VF_normal
+          (schutte_column f (natOrdSize n) (VF_denote a) x)) /\
+      (forall b:Ord,
+          complete b ->
+          has_interpolants VF_denote VF_normal b ->
+          has_interpolants VF_denote VF_normal
+            (schutte_column f (natOrdSize n) b 0)).
+Proof.
+  induction n as [n Hindn] using (size_induction natOrdSize).
+  intros xs p Hxs1 Hxs2 Hxs3 f Hf Hxs4.
+  assert (main_lemma: forall a : VForm,
+             has_interpolants VF_denote VF_normal (VF_denote a) ->
+             forall x : Ord,
+               complete x ->
+               has_interpolants VF_denote VF_normal x ->
+               has_interpolants VF_denote VF_normal
+                 (schutte_column f (natOrdSize n) (VF_denote a) x)).
+  - induction a as [a Hinda] using (size_induction VF_denote).
+    intros Ha1.
+    induction x as [x Hindx] using ordinal_induction.
+    intros Hx1 Hx2.
+
+    rewrite schutte_column_unroll.
+    apply has_interpolants_lub.
+    + apply Hxs4; auto with ord.
+      rewrite <- (VF_normalize_eq a).
+      apply has_interpolants_add with VF_add; auto with ord.
+      apply VF_add_reflects.
+      apply VF_normalize_normal.
+      rewrite VF_normalize_eq. auto.
+    + rewrite has_interpolants_unfold.
+      intros i Hi.
+      apply sup_lt in Hi. destruct Hi as [l Hi].
+      apply sup_lt in Hi. destruct Hi as [a' Hi].
+
+      rewrite has_interpolants_unfold in Ha1.
+      destruct (Ha1 a') as [aq Haq]; auto with ord.
+
+      assert (l <= natOrdSize (pred n) /\ (pred n < n)%nat).
+      { destruct n. simpl in l. intuition.
+        simpl in *; subst.
+        simpl. split; auto with ord. }
+
+      set (lim := limOrd
+                    (fun i0 : x =>
+                       schutte_column f (natOrdSize n) (VF_denote a) (sz i0))).
+
+      assert (HlimInterp: has_interpolants VF_denote VF_normal lim).
+      { rewrite has_interpolants_unfold.
+        intros j Hj.
+        rewrite ord_lt_unfold in Hj.
+        simpl in Hj.
+        destruct Hj as [x' Hj].
+        rewrite has_interpolants_unfold in Hx2.
+        destruct (Hx2 x') as [xq Hxq]; auto with ord.
+
+        assert (Hy: exists y, VF_denote y ≈ schutte_matrix (addOrd 1) (sparse_matrix (xs ++ [(n,a);(O,xq)])) 0).
+        { assert (Hproper:
+                   schutte_matrix_proper (sparse_matrix (xs ++ [(n,a);(O,xq)])) p SmallVeblenOrdinal).
+          { rewrite sparse_matrix_app.
+            rewrite schutte_matrix_proper_app.
+            simpl; intuition.
+            rewrite <- Hxs3. auto with ord.
+            apply VForm_bounded.
+            destruct n; simpl in *; intuition auto with ord.
+            apply VForm_bounded. }
+
+          eapply exhibit_matrix_form; eauto.
+        }
+
+        destruct Hy as [y Hy].
+        exists (VF_normalize y); intuition.
+        - apply VF_normalize_normal.
+        - rewrite VF_normalize_eq. rewrite Hy.
+          rewrite Hj.
+          rewrite sparse_matrix_app.
+          rewrite schutte_matrix_app; simpl.
+          rewrite schutte_column0.
+          apply schutte_column_monotone; auto with ord.
+          rewrite addOrd_zero_r. auto with ord.
+        - rewrite VF_normalize_eq. unfold lim.
+          rewrite Hy.
+          rewrite sparse_matrix_app.
+          rewrite schutte_matrix_app; simpl.
+          rewrite schutte_column0.
+          rewrite ord_lt_unfold in H6.
+          destruct H6 as [x'' Hx'].
+          rewrite ord_lt_unfold. simpl.
+          exists x''.
+          apply schutte_column_monotone; auto with ord.
+          rewrite addOrd_zero_r; auto with ord.
+        - rewrite VF_normalize_eq; auto.
+          rewrite Hy.
+          rewrite sparse_matrix_app.
+          rewrite schutte_matrix_app; simpl.
+          rewrite schutte_column0.
+          apply Hindx; auto with ord.
+          rewrite addOrd_zero_r. auto.
+          rewrite addOrd_zero_r. auto.
+      }
+
+      assert (HfixInterp: has_interpolants VF_denote VF_normal
+                            (fixOrd (fun δ : Ord =>
+                                       schutte_column (schutte_column f (natOrdSize n) (VF_denote aq)) (natOrdSize (pred n)) δ 0)
+                               lim)).
+      { unfold fixOrd. apply has_interpolants_sup. intro k. induction k; simpl; auto.
+        set (f' := schutte_matrix (addOrd 1) (sparse_matrix (xs++[(n, aq)]))).
+        cut (has_interpolants VF_denote VF_normal (schutte_column f' (natOrdSize (pred n))
+                                                        (iter_f
+                                                           (fun δ : Ord =>
+                                                              schutte_column
+                                                                (schutte_column f (natOrdSize n) (VF_denote aq))
+                                                                (natOrdSize (Nat.pred n)) δ 0)
+                                                           lim k)
+                                                        0)).
+        { apply has_interpolants_eq_mor. unfold f'.
+          rewrite sparse_matrix_app; simpl.
+          split; apply schutte_column_monotone_func; intuition auto with ord.
+          + apply normal_monotone; auto with ord.
+            apply schutte_matrix_normal; auto with ord.
+            rewrite all_complete_app; simpl; intuition.
+          + rewrite schutte_matrix_app. simpl; auto with ord.
+          + apply normal_monotone; auto with ord.
+            apply schutte_matrix_normal; auto with ord.
+            rewrite all_complete_app; simpl; intuition.
+          + rewrite schutte_matrix_app. simpl; auto with ord. }
+
+        destruct (Hindn (pred n)) with (xs:=xs++[(n, aq)]) (p:=p) as [_ Hind]; auto with ord.
+        - apply natOrdSize_increasing.
+          destruct n; intuition.
+        - rewrite sparse_matrix_app. rewrite schutte_matrix_proper_app; simpl; intuition auto with ord.
+          rewrite <- Hxs3. auto with ord.
+          transitivity (VF_denote a); auto.
+          apply VForm_bounded.
+        - rewrite sparse_matrix_app. simpl.
+          rewrite final_index_last.
+          apply succ_least.
+          apply natOrdSize_increasing. lia.
+        - intros. rewrite sparse_matrix_app.
+          rewrite schutte_matrix_app.
+          simpl.
+          apply Hinda; intuition auto with ord.
+        - apply Hind; auto with ord.
+          apply iter_f_complete; auto with ord.
+          unfold lim. apply lim_complete; auto with ord.
+          apply directed_monotone; auto with ord.
+          destruct x; apply Hx1.
+      }
+
+      rewrite has_interpolants_unfold in HfixInterp.
+      destruct (HfixInterp i) as [z Hz].
+      { eapply ord_lt_le_trans; [ apply Hi |].
+        apply fixOrd_monotone_func; auto with ord.
+        intros. apply schutte_column_monotone_full; intuition auto with ord. }
+      exists z. intuition.
+      assert (Hpred: natOrdSize (pred n) < natOrdSize n).
+      { apply natOrdSize_increasing; auto. }
+      rewrite ord_lt_unfold in Hpred. destruct Hpred as [pred_q Hpred_q].
+      rewrite <- (sup_le _ _ pred_q).
+      rewrite ord_lt_unfold in H4.
+      destruct H4 as [aq' Haq].
+      rewrite <- (sup_le _ _ aq').
+      eapply ord_lt_le_trans; [ apply H6 |].
+      apply fixOrd_monotone_func; auto with ord.
+      intros; apply schutte_column_monotone_full; auto with ord.
+
+  - split; auto.
+    induction b as [b Hindb] using ordinal_induction.
+    intros Hb1 Hb2.
+    rewrite schutte_column_unroll.
+    apply has_interpolants_lub.
+    + apply Hxs4; auto with ord.
+      rewrite addOrd_zero_r. auto.
+    + rewrite has_interpolants_unfold.
+      intros i Hi.
+      apply sup_lt in Hi. destruct Hi as [l Hi].
+      apply sup_lt in Hi. destruct Hi as [b' Hi].
+      rewrite has_interpolants_unfold in Hb2.
+      destruct (Hb2 b') as [bq Hbq]; auto with ord.
+      assert (Hfix: has_interpolants VF_denote VF_normal
+                            (fixOrd (fun δ : Ord =>
+                                       schutte_column (schutte_column f (natOrdSize n) (VF_denote bq)) (natOrdSize (pred n)) δ 0)
+                            0)).
+      { unfold fixOrd. apply has_interpolants_sup. intro k. induction k; simpl; auto.
+        { rewrite has_interpolants_unfold. intros j Hj.
+          rewrite ord_lt_unfold in Hj. destruct Hj as [[] _]. }
+        set (f' := schutte_matrix (addOrd 1) (sparse_matrix (xs++[(n, bq)]))).
+        cut (has_interpolants VF_denote VF_normal (schutte_column f' (natOrdSize (pred n))
+                                                        (iter_f
+                                                           (fun δ : Ord =>
+                                                              schutte_column
+                                                                (schutte_column f (natOrdSize n) (VF_denote bq))
+                                                                (natOrdSize (Nat.pred n)) δ 0)
+                                                           0 k)
+                                                        0)).
+        { apply has_interpolants_eq_mor. unfold f'.
+          rewrite sparse_matrix_app; simpl.
+          split; apply schutte_column_monotone_func; auto with ord.
+          + intros. apply normal_monotone; auto.
+            apply schutte_matrix_normal; auto with ord.
+            rewrite all_complete_app; simpl; intuition; auto.
+          + intros. rewrite schutte_matrix_app; simpl; auto with ord.
+          + intros. apply normal_monotone; auto.
+            apply schutte_matrix_normal; auto with ord.
+            rewrite all_complete_app; simpl; intuition; auto.
+          + intros. rewrite schutte_matrix_app; simpl; auto with ord. }
+        destruct (Hindn (pred n)) with (xs:=xs++[(n, bq)]) (p:=p) as [_ Hind]; auto with ord.
+        + destruct n; simpl in *; intuition auto with ord.
+        + rewrite sparse_matrix_app.
+          rewrite schutte_matrix_proper_app; simpl; intuition.
+          rewrite <- Hxs3; auto with ord.
+          apply VForm_bounded.
+        + rewrite sparse_matrix_app; simpl.
+          rewrite final_index_last.
+          apply succ_least.
+          apply natOrdSize_increasing.
+          destruct n; simpl in *; intuition.
+        + intros.
+          rewrite sparse_matrix_app; simpl.
+          rewrite schutte_matrix_app; simpl.
+          apply main_lemma; intuition.
+        + apply Hind; auto with ord.
+          apply iter_f_complete; auto with ord. }
+      rewrite has_interpolants_unfold in Hfix.
+      destruct (Hfix i) as [q Hq].
+      { eapply ord_lt_le_trans; [ apply Hi |].
+        eapply ord_le_trans with (fixOrd _ 0); [ apply fixOrd_monotone; auto with ord |].
+        { apply limit_least; intros []. }
+        apply fixOrd_monotone_func; auto with ord.
+        intros. apply schutte_column_monotone_full; auto with ord.
+        intros; apply schutte_column_monotone; intuition auto with ord.
+        destruct n; simpl in *; intuition auto with ord. }
+      exists q; intuition.
+      eapply ord_lt_le_trans; [ apply H4 |].
+      destruct n; simpl in *; intuition.
+      rewrite <- (sup_le _ _ tt).
+      rewrite ord_lt_unfold in H2.
+      destruct H2 as [b'' ?].
+      rewrite <- (sup_le _ _ b'').
+      eapply ord_le_trans with (fixOrd _ 0); [| apply fixOrd_monotone; auto with ord].
+      apply fixOrd_monotone_func; auto with ord.
+      intros; apply schutte_column_monotone_func; auto with ord.
+Qed.
+
+Lemma sparse_stack_interpolants:
+  forall ys xs p,
+    all_complete (sparse_matrix xs) ->
+    schutte_matrix_proper (sparse_matrix xs) p SmallVeblenOrdinal ->
+    natOrdSize (length ys) <= final_index p (sparse_matrix xs) ->
+    let f := schutte_matrix (addOrd 1) (sparse_matrix xs) in
+    (forall x,
+        complete x ->
+        has_interpolants VF_denote VF_normal x ->
+        has_interpolants VF_denote VF_normal (f x)) ->
+    each VF_normal ys ->
+    each (has_interpolants VF_denote VF_normal) (map VF_denote ys) ->
+    has_interpolants VF_denote VF_normal (schutte_stack f (map VF_denote ys) 0).
+Proof.
+  induction ys; intros xs p q Hxs1 Hxs2 f Hxs3.
+  - simpl; intuition. apply Hxs3; auto with ord.
+    rewrite has_interpolants_unfold.
+    intros. rewrite ord_lt_unfold in H1. destruct H1 as [[] _].
+  - simpl. intros [Ha1 Hys1] [Ha2 Hys2].
+    rewrite length_map.
+    set (f' := (schutte_matrix (addOrd 1) (sparse_matrix (xs ++ [(length ys, a)])))).
+    assert (Hf: normal_function f).
+    { unfold f. apply schutte_matrix_normal; auto with ord. }
+
+    assert (Hf': normal_function f').
+    { unfold f'. apply schutte_matrix_normal; auto with ord. }
+    cut (has_interpolants VF_denote VF_normal (schutte_stack f' (map VF_denote ys) 0)).
+    { apply has_interpolants_eq_mor.
+      unfold f' in *; rewrite sparse_matrix_app in *; simpl in *.
+      split; apply schutte_stack_monotone_func; auto with ord.
+      + intros; rewrite schutte_matrix_app; simpl. auto with ord.
+      + intros; rewrite schutte_matrix_app; simpl. auto with ord. }
+    apply IHys with p; auto with ord; clear IHys.
+    + rewrite sparse_matrix_app; simpl.
+      rewrite schutte_matrix_proper_app; simpl; intuition.
+      simpl in *. rewrite ord_le_unfold in Hxs2.
+      apply (Hxs2 tt).
+      apply VForm_bounded.
+    + rewrite sparse_matrix_app; simpl.
+      rewrite final_index_last; auto with ord.
+    + intros x Hx1 Hx2.
+      rewrite sparse_matrix_app. rewrite schutte_matrix_app. simpl. fold f.
+      simpl in *.
+      apply schutte_column_sparse_matrix_interpolants with p; auto.
+Qed.
+
+Lemma schutte_stack_interpolants:
+  forall ys q,
+    each (fun y => VF_denote y < q) ys ->
+    each VF_normal ys ->
+    each (has_interpolants VF_denote VF_normal) (map VF_denote ys) ->
+    has_interpolants VF_denote VF_normal (schutte_stack (addOrd 1) (map VF_denote ys) 0).
+Proof.
+  intros.
+  apply (sparse_stack_interpolants ys [] (natOrdSize (length ys))); simpl; auto with ord.
+  intros. apply onePlus_interpolants with Z (VF_add VF_one); auto.
+  - simpl; auto with ord.
+  - apply (reflects_app ORD (ORD ==> ORD)).
+    apply VF_add_reflects.
+    simpl; intuition.
+    rewrite addOrd_zero_r; auto with ord.
+Qed.
+
+Theorem schutte_stack_has_all_interpolants:
+  has_all_interpolants VF_denote VF_normal.
+Proof.
+  hnf.
+  induction a as [a Hinda] using (size_induction VF). intro Ha.
+  destruct a; simpl in *.
+  { hnf; simpl; intuition.
+    elim (ord_lt_irreflexive 0).
+    eapply ord_le_lt_trans with i; auto with ord. }
+  apply schutte_stack_interpolants with (schutte_stack (addOrd 1) (map VF_denote l) 0); intuition.
+  cut (forall xs,
+          each VF_normal xs ->
+          each (fun x => VF_denote x < schutte_stack (addOrd 1) (map VF_denote l) 0) xs ->
+          each (has_interpolants VF_denote VF_normal) (map VF_denote xs)).
+  intuition.
+  induction xs; simpl; intuition.
+Qed.
+
+Definition VF_nadd := cantor_nadd VF_has_cantor_decomposition.
+
+Theorem VF_reflects_nadd: reflects VForm VF_denote VF_normal (ORD ==> ORD ==> ORD) naddOrd VF_nadd.
+Proof.
+  apply cantor_nadd_reflects.
+  apply schutte_stack_has_all_interpolants.
+Qed.
+
+From Stdlib Require Import ClassicalFacts.
+From Ordinal Require Import Classical.
+
+Theorem VF_has_enough_notations (EM:excluded_middle) :
+  forall x:Ord, x < SmallVeblenOrdinal -> exists! a:VForm, VF_normal a /\ VF_denote a ≈ x.
+Proof.
+  intros.
+  rewrite <- VF_SVO in H.
+  assert (Hreplete: has_enough_notations VF_denote VF_normal).
+  { apply has_interpolants_has_enough_notations with (A:=VForm) (f:=VF_denote) (P:=VF_normal); auto.
+    apply schutte_stack_has_all_interpolants. }
+  hnf in Hreplete.
+  rewrite ord_lt_unfold in H.
+  destruct H as [a Ha].
+  destruct (Hreplete (VF_normalize a) x) as [c [Hc1 Hc2]]; auto.
+  - apply VF_normalize_normal.
+  - rewrite VF_normalize_eq; auto.
+  - exists c; auto.
+    hnf; intuition.
+    apply VF_normal_form_unique; auto.
+    rewrite Hc2. symmetry; auto.
 Qed.

@@ -51,6 +51,15 @@ Fixpoint reflects (A:Type) (f:A -> Ord) (P:A -> Prop) (S:Shape) : ordShape S -> 
   | ARROW S1 S2 => fun g h => forall x a, reflects A f P S1 x a -> reflects A f P S2 (g x) (h a)
   end.
 
+Lemma reflects_app: forall S T X denote P f g x y,
+    reflects X denote P (S ==> T) f g ->
+    reflects X denote P S x y ->
+    reflects X denote P T (f x) (g y).
+Proof.    
+  simpl; intros.
+  apply H; auto.
+Qed.
+
 Remark ε0_least_exp_closed :
   forall X denote P zeroX succX expOmegaX,
     (forall x:X, exists x', denote x ≈ denote x' /\ P x') ->
