@@ -2375,8 +2375,7 @@ Proof.
 Qed.
 
 Lemma schutte_stack_interpolants:
-  forall ys q,
-    each (fun y => VF_denote y < q) ys ->
+  forall ys,
     each VF_normal ys ->
     each (has_interpolants VF_denote VF_normal) (map VF_denote ys) ->
     has_interpolants VF_denote VF_normal (schutte_stack (addOrd 1) (map VF_denote ys) 0).
@@ -2400,7 +2399,7 @@ Proof.
   { hnf; simpl; intuition.
     elim (ord_lt_irreflexive 0).
     eapply ord_le_lt_trans with i; auto with ord. }
-  apply schutte_stack_interpolants with (schutte_stack (addOrd 1) (map VF_denote l) 0); intuition.
+  apply schutte_stack_interpolants; intuition.
   cut (forall xs,
           each VF_normal xs ->
           each (fun x => VF_denote x < schutte_stack (addOrd 1) (map VF_denote l) 0) xs ->

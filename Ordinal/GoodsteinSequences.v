@@ -560,7 +560,7 @@ Section hbn_decompose.
   Next Obligation.
     apply Wf.measure_wf.
     apply N.lt_wf_0.
-  Defined.
+  Qed.
 
   Lemma hbn_decompose_step_eq:
     forall n i tail Hni,

@@ -23,6 +23,7 @@ Definition succOrd (x:Ord) : Ord := ord unit (fun _ => x).
 Number Notation Ord Nat.of_num_uint Nat.to_num_uint
          (via nat mapping [zeroOrd => O, succOrd => S]) : ord_scope.
 
+(** Alternate notation for limit ordinals, which makes the type argument implicit. *)
 Definition limOrd {A:Type} (f:A -> Ord) := ord A f.
 
 (** The binary upper bound of two ordinals is constructed using a sum type

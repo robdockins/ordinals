@@ -486,7 +486,7 @@ Proof.
       intros. rewrite schutte_column_arg0; auto with ord.
   - apply sup_least; intro i.
     apply schutte_column_monotone_full; auto with ord.
-Qed.  
+Qed.
 
 Lemma fixpoint_schutte_unreachable f x:
   normal_function f ->
@@ -537,7 +537,7 @@ Lemma SVO_sup:
   SmallVeblenOrdinal ≈ supOrd (fun i:ω => schutte_column (expOrd ω) i 1 0).
 Proof.
   unfold SmallVeblenOrdinal. apply schutte_column_omega_sup; auto with ord.
-Qed.  
+Qed.
 
 Lemma SVO_finite_unreachable: forall i α x,
     complete α ->
@@ -545,7 +545,7 @@ Lemma SVO_finite_unreachable: forall i α x,
     α < SmallVeblenOrdinal ->
     x < SmallVeblenOrdinal ->
     schutte_column (expOrd ω) (natOrdSize i) α x < SmallVeblenOrdinal.
-Proof.    
+Proof.
   unfold SmallVeblenOrdinal. intros.
   apply schutte_column_unreachable_apex; auto with ord.
 Qed.
@@ -612,7 +612,7 @@ Lemma schutte_column_2_ackermann_tower:
     complete a ->
     complete x ->
     schutte_column f 2 a x ≈ ackermann_tower f a x.
-Proof.  
+Proof.
   intros f.
   induction a as [a Hinda] using ordinal_induction.
   induction x as [x Hindx] using ordinal_induction.
@@ -726,7 +726,7 @@ Lemma schutte_column_succ:
     complete x ->
     schutte_column f (succOrd β) α x ≈
       f x ⊔
-      supOrd (fun a:α => 
+      supOrd (fun a:α =>
                 fixOrd (fun δ => schutte_column (schutte_column f (succOrd β) a) β δ 0)
                   (limOrd (fun i:x => schutte_column f (succOrd β) α i))).
 Proof.
@@ -823,7 +823,7 @@ Proof.
       { apply schutte_column_tower_base_eq; auto with ord.
         rewrite <- addOrd_le2.
         auto with ord.
-        rewrite <- (schutte_column_fixpoint ω 1 0 (addOrd 1) 0 0) at 2; auto with ord.        
+        rewrite <- (schutte_column_fixpoint ω 1 0 (addOrd 1) 0 0) at 2; auto with ord.
         rewrite schutte_column0.
         rewrite schutte_column_arg0; auto with ord. }
       apply schutte_column_monotone_func'; auto with ord.
@@ -996,8 +996,8 @@ Proof.
   intros; simpl; split; apply schutte_stack_monotone_func; auto with ord.
   - intros; rewrite schutte_column_arg0; auto with ord.
   - intros; rewrite schutte_column_arg0; auto with ord.
-Qed.    
-  
+Qed.
+
 Definition schutte_stack_proper xs α := each (fun x => x < α) xs.
 
 Lemma schutte_stack_proper_monotone:
@@ -1096,8 +1096,8 @@ Proof.
     intuition.
     apply schutte_column_monotone_func; auto with ord.
     intro. rewrite schutte_column_arg0; auto with ord.
-Qed.    
-    
+Qed.
+
 Lemma schutte_stack_unreachable:
   forall f xs x,
     normal_function f ->
@@ -1116,7 +1116,7 @@ Lemma schutte_stack_least_unreachable:
     normal_function f ->
     complete X ->
     0 < X ->
-    (forall xs x, 
+    (forall xs x,
         list_complete xs ->
         complete x ->
         x < X ->
@@ -1153,7 +1153,7 @@ Lemma SVO_stack_unreachable:
     x < SmallVeblenOrdinal ->
     schutte_stack_proper xs SmallVeblenOrdinal ->
     schutte_stack (expOrd ω) xs x < SmallVeblenOrdinal.
-Proof.    
+Proof.
   intros.
   unfold SmallVeblenOrdinal in *.
   apply proper_stack_apex_unreachable; auto with ord.
@@ -1166,7 +1166,7 @@ Lemma SVO_stack_unreachable':
     x < SmallVeblenOrdinal ->
     schutte_stack_proper xs SmallVeblenOrdinal ->
     schutte_stack (addOrd 1) xs x < SmallVeblenOrdinal.
-Proof.    
+Proof.
   intros.
   rewrite SVO_alt in *.
   assert (schutte_stack_proper xs (schutte_column (addOrd 1) ω 1 0)).
@@ -1179,7 +1179,7 @@ Lemma SVO_least_stack_unreachable:
   forall X,
     complete X ->
     0 < X ->
-    (forall xs x, 
+    (forall xs x,
         list_complete xs ->
         complete x ->
         x < X ->
@@ -1195,7 +1195,7 @@ Lemma SVO_least_stack_unreachable':
   forall X,
     complete X ->
     0 < X ->
-    (forall xs x, 
+    (forall xs x,
         list_complete xs ->
         complete x ->
         x < X ->
@@ -1401,7 +1401,7 @@ Proof.
   intros. rewrite schutte_matrix_app. simpl.
   induction n as [|[p q] n IHn]; simpl in *; intuition.
   - rewrite <- schutte_matrix_base; auto with ord.
-    apply ord_le_lt_trans with 
+    apply ord_le_lt_trans with
       (schutte_column (schutte_column (schutte_matrix f m) b a) p 0 0).
     + rewrite schutte_column_arg0; auto with ord.
     + apply normal_increasing with (f:= fun x => schutte_column _ _ x 0); auto with ord.
@@ -1425,7 +1425,7 @@ Proof.
   intros. rewrite schutte_matrix_app. simpl.
   induction n as [|[p q] n IHn]; simpl in *; intuition.
   - rewrite <- schutte_matrix_base; auto with ord.
-    apply ord_le_lt_trans with 
+    apply ord_le_lt_trans with
       (schutte_column (schutte_column (schutte_matrix f m) b a) p 0 0).
     + rewrite schutte_column_arg0; auto with ord.
       transitivity (schutte_column (schutte_matrix f m) b 1 0); auto with ord.
@@ -1501,7 +1501,7 @@ Fixpoint final_index (q: Ord) (m:list (Ord*Ord)) : Ord :=
 
 Lemma schutte_matrix_proper_app: forall m n q p,
   schutte_matrix_proper (m++n) q p <-> schutte_matrix_proper m q p /\ schutte_matrix_proper n (final_index q m) p.
-Proof.  
+Proof.
   induction m; simpl; intuition.
   - rewrite IHm in H2; intuition.
   - rewrite IHm in H2; intuition.
@@ -1583,6 +1583,49 @@ Proof.
     intuition.
 Qed.
 
+Lemma max_index_exists: forall (m: list (Ord*Ord)) q,
+    0 < q ->
+    complete q ->
+    each (fun x => fst x < q) m ->
+    exists r:q, each (fun x => fst x <= r) m.
+Proof.
+  induction m as [|[b a] m IHm]; simpl; auto with ord.
+  - intros. rewrite ord_lt_unfold in H. destruct H as [r _].
+    exists r. auto.
+  - intros q Hq0 Hq1 [Hq2 Hm].
+    destruct (IHm q) as [r Hr]; auto.
+    rewrite ord_lt_unfold in Hq2.
+    destruct Hq2 as [s Hs].
+    destruct (complete_directed q Hq1 s r) as [t [??]].
+    exists t; split; auto.
+    rewrite Hs; auto.
+    revert Hr.
+    apply each_implies; intros.
+    rewrite <- H0; auto.
+Qed.
+
+Fixpoint pump_matrix (x:Ord) (m:list (Ord*Ord)) :=
+  match m with
+  | [] => []
+  | ((_,a)::m) => (x + natOrdSize (S (length m)), a) :: pump_matrix x m
+  end.
+
+Lemma pump_matrix_proper: forall m p q,
+    each (fun x => snd x < q) m ->
+    schutte_matrix_proper (pump_matrix p m) (p + natOrdSize (S (length m))) q.
+Proof.
+  induction m as [|[b a] m IHm]; simpl in *; intuition.
+  apply addOrd_increasing; auto with ord.
+Qed.
+
+Lemma pump_matrix_all_complete: forall m q,
+  all_complete m ->
+  complete q ->
+  all_complete (pump_matrix q m).
+Proof.
+  induction m as [|[b a] m IHm]; simpl; intuition auto with ord.
+Qed.
+
 Lemma proper_matrix_E_unreachable:
   forall m f x E,
     normal_function f ->
@@ -1610,6 +1653,60 @@ Proof.
     apply normal_inflationary with (f:=fun x => schutte_column f x 1 0); auto with ord.
   - apply ord_lt_le_trans with E; auto.
     apply normal_inflationary with (f:=fun x => schutte_column f x 1 0); auto with ord.
+Qed.
+
+Lemma matrix_E_unreachable:
+  forall m f x E,
+    normal_function f ->
+    complete E ->
+    complete x ->
+    all_complete m ->
+    each (fun x => fst x < E /\ snd x < E) m ->
+    x < E ->
+    schutte_column f E 1 0 ≤ E ->
+    schutte_matrix f m x < E.
+Proof.
+  intros.
+  destruct (max_index_exists m E) as [q Hq]; auto with ord.
+  - apply ord_le_lt_trans with x; auto with ord.
+  - revert H3; apply each_implies. intuition.
+  - assert (Hle: schutte_matrix f m x <= schutte_matrix f (pump_matrix q m) x).
+    { clear H3 H5.
+      revert f H.
+      induction m as [|[b a] m IHm]; simpl in *; intuition auto with ord.
+      rewrite H8; auto with ord.
+      apply schutte_matrix_monotone_func; auto with ord.
+      intros. apply schutte_column_monotoneβ; auto with ord.
+      rewrite <- addOrd_le1. auto. }
+    rewrite Hle.
+    apply proper_matrix_E_unreachable; auto with ord.
+    + apply pump_matrix_all_complete; auto with ord.
+    + eapply schutte_matrix_proper_monotone; [| | apply (pump_matrix_proper m q E) ]; auto with ord.
+      rewrite <- H5 at 2.
+      apply ord_lt_le.
+      apply schutte_column_add_closed; auto with ord.
+      * rewrite <- H5.
+        rewrite schutte_column_unroll.
+        rewrite <- lub_le1.
+        rewrite <- addOrd_zero_r at 1.
+        rewrite <- (onePlus_least_normal f); auto with ord.
+        apply addOrd_increasing.
+        rewrite addOrd_zero_r. auto with ord.
+      * apply ord_lt_le_trans with E; auto with ord.
+        apply normal_inflationary with (f:=fun x => schutte_column _ x 1 0); auto with ord.
+      * apply ord_lt_le_trans with ω; auto with ord.
+        transitivity (schutte_column f 1 1 0).
+        ** rewrite schutte_column_veblen; auto with ord.
+           transitivity (veblen (addOrd 1) 1 0).
+           rewrite veblen_onePlus; auto with ord.
+           rewrite addOrd_zero_r.
+           rewrite expOrd_one'; auto with ord.
+           apply veblen_monotone_func; auto with ord.
+           intros; apply onePlus_least_normal; auto with ord.
+        ** apply schutte_column_monotone_full; auto with ord.
+           rewrite <- H5.
+           apply normal_inflationary with (f:=fun x => schutte_column _ _ x 0); auto with ord.
+      * revert H3; apply each_implies; intuition.
 Qed.
 
 Definition proper_matrix_is_unreachable f E :=
@@ -1713,7 +1810,7 @@ Proof.
   apply proper_matrix_is_unreachable_iff; auto.
 Qed.
 
-Lemma LVO_matrix_unreachable:
+Lemma LVO_proper_matrix_unreachable:
   proper_matrix_is_unreachable (expOrd ω) LargeVeblenOrdinal.
 Proof.
   apply proper_matrix_is_unreachable_iff; auto with ord.
@@ -1770,7 +1867,7 @@ Qed.
 
 Lemma stack_to_matrix_complete: forall xs,
     all_complete (stack_to_matrix xs) <-> list_complete xs.
-Proof.    
+Proof.
   unfold list_complete.
   induction xs; simpl; intuition.
   apply natOrdSize_complete.
@@ -1785,7 +1882,7 @@ Proof.
   rewrite ord_le_unfold in H0. simpl in H0.
   apply H0; exact tt.
   apply IHxs; intuition auto with ord.
-Qed.  
+Qed.
 
 Lemma schutte_column_collapse :
   forall f (Hf:normal_function f),
@@ -1847,7 +1944,7 @@ Proof.
   induction m as [|[b x] m IHm]; intros f Hf1 Hf2 x0 p q Hx0; simpl; intuition.
   apply IHm; auto with ord.
   intros. apply schutte_column_preserves_add_closed; auto with ord.
-Qed.    
+Qed.
 
 Lemma schutte_matrix_add_closed:
   forall f b x x0 m p q,
@@ -1866,7 +1963,7 @@ Proof.
   simpl in *.
   apply schutte_matrix_preserves_add_closed; auto with ord.
   intros; apply schutte_column_add_closed; auto with ord.
-Qed.  
+Qed.
 
 Lemma schutte_matrix_fixpoint1 : forall m x0 f g,
     all_complete m ->
@@ -1907,7 +2004,7 @@ Proof.
       rewrite <- H3; auto with ord.
       apply normal_monotone; auto with ord.
       rewrite <- (normal_inflationary f); auto with ord.
-Qed.    
+Qed.
 
 Lemma schutte_matrix_fixpoint2: forall m x0 f r s,
     normal_function f ->
@@ -1934,7 +2031,7 @@ Proof.
       rewrite <- (IHm x0 _ r s) at 2; auto with ord.
       rewrite schutte_column_unroll.
       rewrite <- lub_le1; auto with ord.
-Qed.      
+Qed.
 
 Lemma schutte_matrix_unreachable :
   forall m x f vs,
@@ -1988,7 +2085,7 @@ Proof.
   intros. rewrite <- (schutte_column_fixpoint b a z f b' 0) at 2; auto with ord.
   apply schutte_column_monotone_full; auto with ord.
   intros. rewrite schutte_column_arg0; auto with ord.
-Qed.  
+Qed.
 
 Lemma schutte_matrix_column_lt1:
   forall m f q,
@@ -2010,7 +2107,7 @@ Proof.
     rewrite <- (schutte_column_fixpoint q _ 0 f r s); auto with ord.
     apply schutte_column_monotone_full; auto with ord.
     intros; apply schutte_column_monotone_full; auto with ord.
-Qed.  
+Qed.
 
 Lemma schutte_matrix_column_lt2:
   forall m f b a,
@@ -2032,7 +2129,7 @@ Proof.
     apply schutte_column_monotone; auto with ord.
     simpl.
     apply normal_inflationary with (f:= fun x => schutte_column f b x 0); auto with ord.
-Qed.  
+Qed.
 
 Lemma schutte_matrix_rev_induction:
   forall f (P: list (Ord*Ord) -> Ord -> Ord -> Prop),
@@ -2051,7 +2148,7 @@ Proof.
     rewrite schutte_matrix_app.
     destruct a. simpl.
     apply HPind; auto.
-Qed.    
+Qed.
 
 Lemma all_complete_app M N:
   all_complete (M++N) <-> all_complete M /\ all_complete N.
@@ -2131,7 +2228,7 @@ Proof.
       apply ord_le_lt_trans with r; auto with ord.
     }
 
-    destruct (complete_zeroDec a); auto.          
+    destruct (complete_zeroDec a); auto.
     { right. left.
       assert (Heq: schutte_matrix (schutte_column f b a) m x0 ≈ f (x + x0)).
       { transitivity (schutte_matrix f m x0).
@@ -2207,7 +2304,7 @@ Proof.
   rewrite <- schutte_matrix_fixpoint2 with r s at 2; auto with ord.
   rewrite <- (schutte_column_fixpoint b ya _ f v xa); auto with ord.
   apply schutte_column_monotone; auto with ord.
-Qed.  
+Qed.
 
 Lemma schutte_matrix_lt2: forall xs f b xa ys ya y0,
     normal_function f ->
@@ -2273,7 +2370,7 @@ Inductive matrix_lex_lt (b:option Ord) : list (Ord * Ord) -> list (Ord * Ord) ->
 | matrix_lex_lt_zl: forall xb xa xs ys,
     xa ≈ 0 ->
     matrix_lex_lt b xs ys ->
-    matrix_lex_lt b ((xb,xa)::xs) ys 
+    matrix_lex_lt b ((xb,xa)::xs) ys
 
 | matrix_lex_lt_zr: forall xs yb ya ys,
     ya ≈ 0 ->
@@ -2290,7 +2387,7 @@ Inductive matrix_lex_lt (b:option Ord) : list (Ord * Ord) -> list (Ord * Ord) ->
     xb < yb ->
     0 < ya ->
     matrix_lex_lt b ((xb,xa)::xs) ((yb,ya)::ys)
-    
+
 | matrix_lex_lt_arg: forall xb xa xs yb ya ys,
     xb ≈ yb ->
     xa < ya ->
@@ -2306,7 +2403,7 @@ Inductive matrix_lex_eq : list (Ord * Ord) -> list (Ord * Ord) -> Prop :=
 | matrix_lex_eq_zl: forall xb xa xs ys,
     xa ≈ 0 ->
     matrix_lex_eq xs ys ->
-    matrix_lex_eq ((xb,xa)::xs) ys 
+    matrix_lex_eq ((xb,xa)::xs) ys
 
 | matrix_lex_eq_zr: forall xs yb ya ys,
     ya ≈ 0 ->
@@ -2395,7 +2492,7 @@ Proof.
     split; apply schutte_matrix_monotone_func; auto with ord.
     + intros. transitivity (schutte_column f yb 0 a).
       * rewrite schutte_column_arg0; auto with ord.
-      * apply schutte_column_monotone; auto with ord. 
+      * apply schutte_column_monotone; auto with ord.
     + intros. transitivity (schutte_column f yb 0 a); auto with ord.
       * apply schutte_column_monotone; auto with ord.  apply H.
       * rewrite schutte_column_arg0; auto with ord.
@@ -2425,7 +2522,7 @@ Proof.
   - simpl; intuition.
     transitivity (schutte_matrix f (xs ++ [(b, schutte_matrix f ys 0)]) 0).
     + apply schutte_matrix_monotone_func; auto with ord.
-      intros. transitivity (schutte_column f xb 0 a). 
+      intros. transitivity (schutte_column f xb 0 a).
       * apply schutte_column_monotone; auto with ord. apply H.
       * rewrite schutte_column_arg0; auto with ord.
     + apply IHHmn with xb; auto with ord.
@@ -2434,21 +2531,21 @@ Proof.
     { repeat rewrite schutte_matrix_app; simpl.
       apply schutte_column_monotone; auto with ord.
       apply schutte_matrix_monotone_func; auto with ord.
-      intros. transitivity (schutte_column f yb 0 a). 
+      intros. transitivity (schutte_column f yb 0 a).
       * apply schutte_column_monotone; auto with ord. apply H.
       * rewrite schutte_column_arg0; auto with ord. }
     transitivity (schutte_matrix f ys 0).
     { apply IHHmn with q; auto.
       eapply schutte_matrix_proper_monotone; [ reflexivity | | eassumption ].
       apply schutte_matrix_monotone_func; auto with ord.
-      intros. transitivity (schutte_column f yb 0 a). 
+      intros. transitivity (schutte_column f yb 0 a).
       * apply schutte_column_monotone; auto with ord. apply H.
       * rewrite schutte_column_arg0; auto with ord.
       * destruct H5 as [s [t [?[??]]]].
         exists yb, t. auto. }
     apply schutte_matrix_monotone_func; auto with ord.
-    intros. transitivity (schutte_column f yb 0 a). 
-    * rewrite schutte_column_arg0; auto with ord. 
+    intros. transitivity (schutte_column f yb 0 a).
+    * rewrite schutte_column_arg0; auto with ord.
     * apply schutte_column_monotone; auto with ord.
 
   - simpl; intuition. inversion H0; subst.
@@ -2501,13 +2598,13 @@ Proof.
       eapply schutte_matrix_proper_monotone; try eassumption; auto with ord.
       apply schutte_matrix_monotone_func; auto with ord.
       intros; apply schutte_column_monotone_full; auto with ord.
-      apply H. apply H0. 
+      apply H. apply H0.
       destruct H6 as [s[t[?[??]]]].
       exists yb, t; auto.
 
     + apply schutte_matrix_monotone_func; auto with ord.
       intros; apply schutte_column_monotone_full; auto with ord.
-      apply H. apply H0. 
+      apply H. apply H0.
 Qed.
 
 Inductive confirm_lt : ordering -> list (Ord * Ord) -> Ord -> Prop :=
@@ -2523,12 +2620,12 @@ Inductive confirm_lt : ordering -> list (Ord * Ord) -> Ord -> Prop :=
     a ≈ z ->
     trivial_matrix xs ->
     confirm_lt EQ ((b,a)::xs) z
-    
+
 | confirm_lt_eq2 : forall b a xs z,
     a ≈ z ->
     nontrivial_matrix xs ->
     confirm_lt GT ((b,a)::xs) z
-    
+
 | confirm_lt_gt: forall b a xs z,
     a > z ->
     confirm_lt GT ((b,a)::xs) z.
@@ -2598,7 +2695,7 @@ Proof.
   - simpl; intuition.
     apply ord_lt_le_trans with a; auto.
     rewrite <- schutte_matrix_base; auto with ord.
-Qed.    
+Qed.
 
 Inductive schutte_matrix_compare : ordering -> (Ord -> Ord) -> list (Ord * Ord) -> list (Ord * Ord) -> Prop :=
 | mat_comp_nil_nil: forall f,
@@ -2617,7 +2714,7 @@ Inductive schutte_matrix_compare : ordering -> (Ord -> Ord) -> list (Ord * Ord) 
     schutte_matrix_compare o f m n ->
     schutte_matrix_compare o f ((b,a)::m) n
 
-| mat_comp_zr : forall o f m n b a, 
+| mat_comp_zr : forall o f m n b a,
     a ≈ 0 ->
     schutte_matrix_compare o f m n ->
     schutte_matrix_compare o f m ((b,a)::n)
@@ -2754,7 +2851,7 @@ Proof.
       apply schutte_matrix_lt2; eauto with ord.
       simpl; auto.
       eapply schutte_matrix_proper_monotone; try eassumption; auto with ord. apply H.
-      
+
     - simpl; intuition.
 
       assert (confirm_lt_is_correct (ordering_swap o) n (schutte_matrix f ((mb, ma) :: m) 0) (schutte_column f nb na) nb).
