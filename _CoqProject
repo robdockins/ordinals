@@ -16,11 +16,11 @@ Ordinal/VeblenDefs.v
 Ordinal/VeblenClassical.v
 Ordinal/VeblenCon.v
 Ordinal/VeblenFacts.v
-Ordinal/VeblenSymbol.v
-Ordinal/Countable.v
 Ordinal/AckermannTower.v
 Ordinal/SchutteColumn.v
 Ordinal/SchutteColumnFacts.v
+
+Ordinal/Countable.v
 
 Ordinal/Notation/CantorNotation.v
 Ordinal/Notation/CantorDecomposition.v
