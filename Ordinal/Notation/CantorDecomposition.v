@@ -1074,6 +1074,76 @@ Section cantor_arithmetic.
     apply has_enough_notations_EM; auto.
   Qed.
 
+  Lemma has_interpolants_lub: forall p q,
+      has_interpolants p ->
+      has_interpolants q ->
+      has_interpolants (p ⊔ q).
+  Proof.
+    intros p q Hp Hq.
+    rewrite has_interpolants_unfold in *.
+    intros i Hi.
+    apply lub_lt in Hi.
+    destruct Hi; auto.
+    - destruct (Hp i) as [y ?]; auto.
+      exists y; intuition auto with ord.
+      rewrite <- lub_le1. auto.
+    - destruct (Hq i) as [y ?]; auto.
+      exists y; intuition auto with ord.
+      rewrite <- lub_le2. auto.
+  Qed.
+
+  Lemma has_interpolants_sup: forall B g,
+      (forall b:B, has_interpolants (g b)) ->
+      has_interpolants (supOrd g).
+  Proof.
+    intros B g Hg.
+    rewrite has_interpolants_unfold.
+    intros i Hi. apply sup_lt in Hi.
+    destruct Hi as [b Hi].
+    generalize (Hg b).
+    rewrite has_interpolants_unfold.
+    intro Hb.
+    destruct (Hb i Hi) as [y ?].
+    exists y; intuition.
+    rewrite <- (sup_le _ _ b); auto.
+  Qed.
+
+  Lemma has_interpolants_add: forall add,
+      reflects A f P (ORD ==> ORD ==> ORD) addOrd add ->
+      forall p q,
+        P p ->
+        has_interpolants (f p) ->
+        has_interpolants q ->
+        has_interpolants (f p + q).
+  Proof.
+    intros add Hadd.
+    induction q as [q IHq] using ordinal_induction.
+    intros Hp1 Hp2 Hq.
+    rewrite addOrd_unfold.
+    apply has_interpolants_lub; auto.
+
+    rewrite has_interpolants_unfold.
+    simpl; intros i Hi.
+    apply sup_lt in Hi.
+    destruct Hi as [q' Hi].
+    rewrite ord_lt_unfold in Hi. destruct Hi as [[] Hi]. simpl in Hi.
+    rewrite has_interpolants_unfold in Hq.
+    destruct (Hq q') as [y [Hy1 [Hy2 [Hy3 Hy4]]]]; auto with ord.
+    exists (add p y).
+    destruct Hadd with (f p) p (f y) y as [Hadd1 Hadd2]; intuition auto with ord.
+    - rewrite <- Hadd1.
+      rewrite Hi.
+      apply addOrd_monotone; auto with ord.
+    - rewrite <- Hadd1.
+      rewrite ord_lt_unfold in Hy3.
+      destruct Hy3 as [q'' Hy3].
+      rewrite <- (sup_le _ _ q'').
+      apply succ_trans.
+      apply addOrd_monotone; auto with ord.
+    - rewrite <- Hadd1.
+      apply IHq; auto with ord.
+  Qed.
+
   Section fix_interpolants.
     Variable g: Ord -> Ord.
     Hypothesis Hg1: forall b, complete b -> complete (g b).
