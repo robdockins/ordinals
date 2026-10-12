@@ -1902,13 +1902,6 @@ Proof.
     destruct H; auto.
 Qed.
 
-
-Lemma final_index_last: forall m q i a,
-  final_index q (m ++ [(i,a)]) = i.
-Proof.
-  induction m; simpl; intuition.
-Qed.
-
 Lemma VF_has_interpolants_nat:
   forall n, has_interpolants VF_denote VF_normal (natOrdSize n).
 Proof.

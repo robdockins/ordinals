@@ -1499,6 +1499,20 @@ Fixpoint final_index (q: Ord) (m:list (Ord*Ord)) : Ord :=
   | ((b,a)::m) => final_index b m
   end.
 
+Lemma final_index_last: forall m q i a,
+  final_index q (m ++ [(i,a)]) = i.
+Proof.
+  induction m; simpl; intuition.
+Qed.
+
+Lemma final_index_monotone: 
+  forall p q xs,
+    p <= q ->
+    final_index p xs <= final_index q xs.
+Proof.
+  intros. destruct xs as [|[b a] xs]; simpl; intuition auto with ord.
+Qed.  
+
 Lemma schutte_matrix_proper_app: forall m n q p,
   schutte_matrix_proper (m++n) q p <-> schutte_matrix_proper m q p /\ schutte_matrix_proper n (final_index q m) p.
 Proof.
