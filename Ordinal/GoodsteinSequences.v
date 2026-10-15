@@ -36,7 +36,7 @@ Proof.
   apply N.lt_le_trans with (base^e1 * (N.pred base) + base^e1)%N; [|lia].
   apply N.add_le_lt_mono; auto.
   apply N.mul_le_mono_l; lia.
-Qed.  
+Qed.
 
 Lemma base_term_lt_lemma2 base e1 n1 x1 e2 n2 x2:
   (1 < base)%N ->
@@ -53,7 +53,7 @@ Proof.
   2:{ apply N.mul_le_mono_l. lia. }
   rewrite N.mul_succ_r.
   apply N.add_le_lt_mono; auto; lia.
-Qed.  
+Qed.
 
 Lemma base_term_eq_lemma base e1 n1 x1 e2 n2 x2:
   (1 < base)%N ->
@@ -166,7 +166,7 @@ Inductive hbn_lt : HBN -> HBN -> Prop :=
 
 Lemma hbn_lt_total: forall a b,
   hbn_lt a b \/ a = b \/ hbn_lt b a.
-Proof.    
+Proof.
   induction a as [|e1 He1 n x1 Hx1].
   - intro b. destruct b as [|e2 n2 x2]; auto.
     left. apply HBN_LT_Z.
@@ -212,20 +212,20 @@ Inductive hbn_proper (base:N) : HBN -> Prop :=
     hbn_proper base (HBN_Term e n x).
 
 Lemma interp0_iff: forall base x,
-  hbn_proper base x ->    
+  hbn_proper base x ->
   (hbn_interp base x < 1)%N <-> x = HBN_Z.
 Proof.
   intuition; subst; simpl; try lia.
   destruct x; simpl in *; auto.
   inversion H; subst.
   lia.
-Qed.  
+Qed.
 
 Lemma lt_equiv base :
   (1 < base)%N ->
   forall sz a b,
     (hbn_interp base a + hbn_interp base b <= sz)%N ->
-    hbn_proper base a -> 
+    hbn_proper base a ->
     hbn_proper base b ->
     (hbn_lt a b <-> (hbn_interp base a < hbn_interp base b)%N) /\
     (hbn_smaller_exp b a <-> hbn_interp base a < base ^ hbn_interp base b)%N.
@@ -343,7 +343,7 @@ Proof.
                  destruct Hind with (y:= (hbn_interp base x2 + hbn_interp base e2)%N) (a:= x2) (b:=e2)
                    as [Hi1 Hi2]; auto.
                  { red. simpl. split. lia.
-                   unfold id. simpl in *. 
+                   unfold id. simpl in *.
                    apply N.lt_le_trans with (hbn_interp base x2 + base ^ hbn_interp base e2 * n2)%N.
                    2:{ lia. }
                    apply N.add_le_lt_mono; try lia.
@@ -361,7 +361,7 @@ Proof.
            destruct Hind with (y:= (hbn_interp base e2 + hbn_interp base e1)%N) (a:= e2) (b:=e1)
              as [Hi1 Hi2]; auto.
            { red. split. lia.
-             unfold id. 
+             unfold id.
              apply N.lt_le_trans with (base ^ hbn_interp base e2 * n2 + base ^ hbn_interp base e1 * n1)%N.
              2: { lia. }
              apply N.add_le_lt_mono.
@@ -446,7 +446,7 @@ Proof.
           apply N.add_lt_le_mono; try lia.
           apply N.lt_le_trans with (base ^ hbn_interp base e1 * 1)%N.
           ring_simplify.
-          apply N.pow_gt_lin_r; auto. 
+          apply N.pow_gt_lin_r; auto.
           apply N.mul_le_mono; lia. }
         simpl in *; lia.
         rewrite Hi1.
@@ -468,7 +468,7 @@ Qed.
 Lemma hbn_lt_equiv base :
   (1 < base)%N ->
   forall a b,
-    hbn_proper base a -> 
+    hbn_proper base a ->
     hbn_proper base b ->
     (hbn_lt a b <-> (hbn_interp base a < hbn_interp base b)%N).
 Proof.
@@ -480,7 +480,7 @@ Qed.
 Lemma hbn_smaller_exp_equiv base :
   (1 < base)%N ->
   forall a b,
-    hbn_proper base a -> 
+    hbn_proper base a ->
     hbn_proper base b ->
     (hbn_smaller_exp b a <-> hbn_interp base a < base ^ hbn_interp base b)%N.
 Proof.
@@ -501,7 +501,7 @@ Proof.
   destruct (hbn_lt_total a b) as [Hlt|[Heq|Hgt]]; auto.
   - rewrite (hbn_lt_equiv base) in Hlt; auto. lia.
   - rewrite (hbn_lt_equiv base) in Hgt; auto. lia.
-Qed.  
+Qed.
 
 Lemma hbn_proper_mono a b x:
   (a <= b)%N ->
@@ -545,7 +545,7 @@ Section hbn_decompose.
       apply N.mul_le_mono_l. lia. }
     lia.
   Qed.
-  Next Obligation.  
+  Next Obligation.
     assert (n / base * base ^ (i + 1) <= n * base ^ i)%N.
     { rewrite N.pow_add_r.
       rewrite N.pow_1_r.
@@ -558,13 +558,14 @@ Section hbn_decompose.
     generalize (N.div_lt n base). lia.
   Qed.
   Next Obligation.
+    apply (Acc_intro_generator 100).
     apply Wf.measure_wf.
     apply N.lt_wf_0.
-  Qed.
+  Defined.
 
   Lemma hbn_decompose_step_eq:
     forall n i tail Hni,
-    hbn_decompose_step n i tail Hni = 
+    hbn_decompose_step n i tail Hni =
       match N.eq_dec n 0 with
       | left _ => tail
       | right Hnz =>
@@ -646,19 +647,20 @@ Section hbn_decompose.
 End hbn_decompose.
 
 Program Fixpoint hbn_decompose
-  (base:N) (Hbase: (1 < base)%N) (n:N) 
+  (base:N) (Hbase: (1 < base)%N) (n:N)
   { wf N.lt n } : HBN :=
-  
+
   hbn_decompose_step base Hbase n
     (fun x H => hbn_decompose base Hbase x)
     n 0 HBN_Z _.
 Next Obligation.
   lia.
-Qed.
+Defined.
 Next Obligation.
+  apply (Acc_intro_generator 100).
   apply Wf.measure_wf.
   apply N.lt_wf_0.
-Qed.
+Defined.
 
 Lemma hbn_decompose_step_cong:
   forall base Hbase n sz f g i tail Hni,
@@ -671,7 +673,7 @@ Proof.
   intros sz f g i tail Hni Hfg.
   rewrite (hbn_decompose_step_eq base Hbase sz f n i tail Hni).
   rewrite (hbn_decompose_step_eq base Hbase sz g n i tail Hni).
-  destruct (N.eq_dec n 0); auto.
+  destruct (N.eq_dec n 0); [ auto |].
   rewrite (Hfg i).
   apply Hind; auto.
   red.
@@ -679,11 +681,11 @@ Proof.
   { apply N.div_lt; lia. }
   split. lia.
   unfold id. auto.
-Qed.  
+Qed.
 
 Lemma hbn_decompose_eq (base:N) (Hbase: (1 < base)%N) :
-  forall n, 
-    hbn_decompose base Hbase n = 
+  forall n,
+    hbn_decompose base Hbase n =
       hbn_decompose_step base Hbase n (fun x H => hbn_decompose base Hbase x)
                          n 0 HBN_Z (hbn_decompose_func_obligation_2 base Hbase n).
 Proof.
@@ -762,7 +764,38 @@ Proof.
   hnf; intros.
   hnf; intros.
   subst; auto.
-Qed.  
+Qed.
+
+(* The initial part of Goodstein's sequence with initial value 4.
+   Taken from the OEIS (https://oeis.org/A056193) *)
+Definition A056193 : list N :=
+  [4; 26; 41; 60; 83; 109; 139; 173; 211; 253; 299; 348; 401; 458; 519; 584; 653; 726; 803; 884; 969; 1058; 1151; 1222; 1295; 1370; 1447; 1526; 1607; 1690; 1775; 1862; 1951; 2042; 2135; 2230; 2327; 2426; 2527; 2630; 2735; 2842; 2951; 3062; 3175; 3290; 3407]%N.
+
+Definition all_index := seq 0 (length A056193).
+Definition compute_goodstein4 := map (fun i => goodstein_sequence 4 (N.of_nat i)) all_index.
+
+Lemma compute_goodstein_eq : compute_goodstein4 = A056193.
+Proof. reflexivity. Qed.
+
+(* Show that we agreee with the OEIS sequence for G(4) *)
+Theorem goodstein4_correct_initial_sequence:
+  forall i, (i < length A056193)%nat ->
+     nth_error A056193 i = Some (goodstein_sequence 4 (N.of_nat i)).
+Proof.
+  rewrite <- compute_goodstein_eq. unfold compute_goodstein4.
+  rewrite length_map. unfold all_index.
+  rewrite length_seq.
+  intros.
+  rewrite nth_error_map.
+  rewrite nth_error_seq.
+  generalize H.
+  rewrite <- PeanoNat.Nat.ltb_lt. intro H1.
+  rewrite H1. unfold option_map.
+  reflexivity.
+Qed.
+
+(* Keep from unfolding the definition of hbn_decompose too much in proofs *)
+Local Opaque Acc_intro_generator.
 
 Definition goodstein_hbn (init:N) (i:N) : HBN :=
   hbn_decompose (i + 2) (plus2_base i) (goodstein_sequence init i).
@@ -771,7 +804,7 @@ Lemma goodstein_alt (init:N) (i:N):
   goodstein_sequence init (N.succ i) = (hbn_interp (i + 3) (goodstein_hbn init i) - 1)%N.
 Proof.
   intros. rewrite goodstein_sequence_succ. reflexivity.
-Qed.  
+Qed.
 
 
 Inductive hbn_dec (base:N) : HBN -> HBN -> Prop :=
@@ -798,7 +831,7 @@ Lemma hbn_dec_correct base (Hbase: (1 < base)%N) :
     (hbn_exp_dec base x x' <-> base^hbn_interp base x = hbn_interp base x' + 1)%N.
 Proof.
   induction x as [x Hind] using (well_founded_induction (Wf.measure_wf (N.lt_wf 0) (hbn_interp base ))).
-  
+
   assert (Hdec: hbn_proper base x -> forall x', hbn_proper base x' ->
     (hbn_dec base x x' <-> hbn_interp base x = (hbn_interp base x' + 1)%N)).
   { intros Hx x' Hx'.
@@ -855,10 +888,10 @@ Proof.
         apply hbn_exp_dec_Z. }
 
       simpl in H.
-      
+
       inversion Hx; subst; clear Hx.
       inversion Hx'; subst; clear Hx'.
-      
+
       destruct (N.eq_dec (hbn_interp base x2) 0)%N.
       { rewrite e in H. ring_simplify in H.
         assert (Hx2: (hbn_interp base x2 < 1)%N) by lia.
@@ -877,7 +910,7 @@ Proof.
         rewrite Hn in H.
         ring_simplify in H.
         assert (Hnpred: (N.pred n > 0)%N) by lia.
-        assert (hbn_interp base x1 = hbn_interp base x'1 /\ N.pred n = n0 /\ 
+        assert (hbn_interp base x1 = hbn_interp base x'1 /\ N.pred n = n0 /\
                   base ^ hbn_interp base x1 = hbn_interp base x'2 + 1)%N.
         { rewrite (hbn_smaller_exp_equiv base) in *; auto.
           apply base_term_eq_lemma' with base; try lia. }
@@ -895,7 +928,7 @@ Proof.
           apply exp_lt_lemma. lia. }
         rewrite Hind2.
         auto.
-      } 
+      }
 
       assert (hbn_interp base x1 = hbn_interp base x'1 /\ n = n0 /\ hbn_interp base x2 = hbn_interp base x'2 +1)%N.
       { rewrite (hbn_smaller_exp_equiv base) in *; auto.
@@ -909,7 +942,7 @@ Proof.
       { red. simpl. lia. }
       rewrite Hind1.
       auto.
-  } 
+  }
 
   intros x' Hx Hx'.
   split. apply Hdec; auto.
@@ -983,7 +1016,7 @@ Proof.
     apply hbn_decompose_proper. }
   assert (Hi': (i + 3 = N.succ i + 2)%N) by lia.
   rewrite <- H.
-  rewrite H0.	  
+  rewrite H0.
   unfold goodstein_hbn at 2.
   rewrite Hi'.
   rewrite hbn_decompose_correct.
@@ -998,7 +1031,7 @@ Proof.
     apply hbn_decompose_proper.
   + lia.
 Qed.
-  
+
 Fixpoint hbn_shadow (hbn:HBN) : Ord :=
   match hbn with
   | HBN_Z => 0
@@ -1064,7 +1097,7 @@ Proof.
           apply HBN_proper_Term; auto. lia.
           rewrite (hbn_smaller_exp_equiv base); auto.
           destruct (hbn_dec_correct base Hbase e x0); auto.
-          rewrite H9 in H. lia. 
+          rewrite H9 in H. lia.
         * rewrite Hn.
           rewrite addOrd_succ.
           rewrite addOrd_zero_r.
@@ -1102,7 +1135,7 @@ Proof.
       2:{ apply mulOrd_increasing2.
           apply expOrd_nonzero.
           rewrite nOrd_commute.
-          
+
           apply ord_le_lt_trans with (natOrdSize (N.to_nat (N.pred base) + 1)).
           - rewrite PeanoNat.Nat.add_comm.
             rewrite natOrdSize_add.
@@ -1113,7 +1146,7 @@ Proof.
     rewrite addOrd_zero_r.
     rewrite mulOrd_succ.
     apply addOrd_monotone; auto with ord.
-Qed.    
+Qed.
 
 Lemma shadow_le0_hbn_Z base hbn:
   hbn_proper base hbn ->
@@ -1132,8 +1165,8 @@ Proof.
   - apply mulOrd_monotone2; auto with ord.
     repeat rewrite nOrd_commute.
     apply natOrdSize_monotone. lia.
-Qed.  
-    
+Qed.
+
 Lemma hbn_decompose_zero base (Hbase: (1 < base)%N) x:
   hbn_decompose base Hbase x = HBN_Z ->
   x = 0%N.
