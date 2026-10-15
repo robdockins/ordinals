@@ -1384,6 +1384,8 @@ Definition nOrd (n:N) : Ord :=
   | Npos p => posOrd p
   end.
 
+Canonical Structure ωN := ord N nOrd.
+
 Lemma posOrd_commute p:
   posOrd p ≈ natOrdSize (Pos.to_nat p).
 Proof.
@@ -1414,4 +1416,40 @@ Lemma nOrd_commute n:
 Proof.
   destruct n; simpl; auto with ord.
   apply posOrd_commute.
+Qed.
+
+Lemma nOrd_monotone: forall (m n:N),
+    (m <= n)%N ->
+    nOrd m <= nOrd n.
+Proof.
+  intros.
+  rewrite nOrd_commute.
+  rewrite nOrd_commute.
+  apply natOrdSize_monotone.
+  lia.
+Qed.
+
+Lemma nOrd_increasing: forall (m n:N),
+    (m < n)%N ->
+    nOrd m < nOrd n.
+Proof.
+  intros.
+  rewrite nOrd_commute.
+  rewrite nOrd_commute.
+  apply natOrdSize_increasing.
+  lia.
+Qed.
+
+(* The obvious ordinal measures on Peano and binary naturals yield the same bounding ordinal *)
+Lemma omegaN_eq : ωN ≈ ω.
+Proof.
+  split.
+  - apply limit_least. intro i.
+    rewrite nOrd_commute.
+    rewrite ord_lt_unfold. exists (N.to_nat i); auto with ord.
+  - apply limit_least. intro i.
+    rewrite ord_lt_unfold. exists (N.of_nat i); simpl.
+    rewrite nOrd_commute.
+    rewrite Nat2N.id.
+    reflexivity.
 Qed.

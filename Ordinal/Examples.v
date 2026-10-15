@@ -1,10 +1,13 @@
+From Stdlib Require Import Lia.
 From Stdlib Require Import Setoid.
 From Stdlib Require Import Morphisms.
 From Stdlib Require Import Program.Basics.
 From Stdlib Require Import Permutation.
 From Stdlib Require Import List.
+From Stdlib Require Import NArith.
 From Stdlib Require Import Relations.
 From Stdlib Require Import Program.Wf.
+From Stdlib Require Import Wellfounded.
 From Stdlib Require Import Wellfounded.Transitive_Closure.
 
 Import ListNotations.
@@ -14,7 +17,9 @@ Unset Printing Records.
 
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
+From Ordinal Require Import Arith.
 From Ordinal Require Import NaturalArith.
+From Ordinal Require Import WellFounded.
 
 (** Functions into sized types have sizes defined by nontrivial
     limit ordinals.
@@ -46,139 +51,97 @@ Qed.
 
 Global Hint Resolve fun_lt dep_lt : ord.
 
-
 (** * Lexicographic orders, encoded as ordinals *)
 
-Definition lex {α β:Ord} (x:α) (y:β) :=
-  β × sz x ⊕ sz y.
+Definition lex (α β:Ord) (x:α) (y:β) := (β * x + y)%ord.
 
 Lemma lex1 (α β:Ord) (x x':α) (y y':β) :
   x ◃ x' ->
-  lex x y < lex x' y'.
+  lex _ _ x y < lex _ _ x' y'.
 Proof.
   unfold lex; intros.
-  apply ord_lt_le_trans with (β × succOrd x ⊕ y').
-  - rewrite <- (naddOrd_le1 _ (sz y')).
-    rewrite jmulOrd_succ.
-    apply naddOrd_increasing2; auto with ord.
-  - apply naddOrd_monotone; auto with ord.
-    apply jmulOrd_monotone2.
-    apply succ_least. auto.
+  apply ord_lt_le_trans with (β * succOrd x + y').
+  - rewrite <- (addOrd_le1 _ (sz y')).
+    rewrite mulOrd_succ.
+    apply addOrd_increasing; auto with ord.
+  - apply addOrd_monotone; auto with ord.
+    apply mulOrd_monotone2; auto with ord.
 Qed.
 
-Lemma lex2 (α β:Ord) (x x':α) (y y':β) :
-  x ⊴ x' ->
+Lemma lex2 (α β:Ord) (x:α) (y y':β) :
   y ◃ y' ->
-  lex x y < lex x' y'.
+  lex _ _ x y < lex _ _ x y'.
 Proof.
   unfold lex; intros.
-  rewrite H.
-  apply naddOrd_increasing2; auto.
+  apply addOrd_increasing; auto.
 Qed.
 
-(** * Well-founded relations generate ordinals *)
-
-Section wf_ord.
-  Variable A:Type.
-  Variable R:A -> A -> Prop.
-  Hypothesis Hwf : well_founded R.
-
-  Fixpoint mk_wf_ord (a:A) (X:Acc R a) : Ord :=
-    match X with
-    | Acc_intro _ H => ord { a':A | R a' a } (fun x => mk_wf_ord (proj1_sig x) (H _ (proj2_sig x)))
-    end.
-  Definition wf_ord_elt (a:A) : Ord := mk_wf_ord a (Hwf a).
-
-  Lemma wf_ord_lt : forall a a', R a' a -> wf_ord_elt a' < wf_ord_elt a.
-  Proof.
-    unfold wf_ord_elt. intros a a'.
-    generalize (Hwf a'). revert a'.
-    generalize (Hwf a).
-    induction a using (well_founded_induction Hwf); intros.
-    destruct a0; simpl.
-    rewrite ord_lt_unfold.
-    exists (exist _ a' H0); simpl.
-    rewrite ord_le_unfold.
-    destruct a1. simpl; intros.
-    destruct a2. simpl.
-    apply H; auto.
-  Qed.
-
-  Lemma wf_ord_lt_trans : forall a a', clos_trans _ R a' a -> wf_ord_elt a' < wf_ord_elt a.
-  Proof.
-    intros; induction H.
-    - apply wf_ord_lt; auto.
-    - eapply ord_lt_trans; eauto.
-  Qed.
-
-  Lemma wf_ord_le_trans : forall a a', clos_refl_trans _ R a' a -> wf_ord_elt a' ≤ wf_ord_elt a.
-  Proof.
-    intros; induction H.
-    - apply ord_lt_le; apply wf_ord_lt; auto.
-    - apply ord_le_refl.
-    - eapply ord_le_trans; eauto.
-  Qed.
-
-End wf_ord.
-
-Definition wf_ord {A:Type} {R: A -> A -> Prop} (H:well_founded R) : Ord :=
-  limOrd (wf_ord_elt A R H).
-
-Lemma wf_ord_lt_nat_omega : wf_ord Wf_nat.lt_wf ≈ ω.
-Proof.
-  split.
-  - rewrite ord_le_unfold. simpl; intro i.
-    rewrite ord_lt_unfold. simpl. exists i.
-    unfold wf_ord_elt. generalize (Wf_nat.lt_wf i).
-    induction i using (well_founded_induction Wf_nat.lt_wf); simpl.
-    intros [Hacc]; simpl.
-    rewrite ord_le_unfold; simpl.
-    intros [j Hj]. simpl.
-    rewrite H; auto.
-    apply natOrdSize_increasing; auto.
-  - rewrite ord_le_unfold; intro i.
-    rewrite ord_lt_unfold.
-    simpl. exists i.
-    unfold wf_ord_elt.
-    generalize (Wf_nat.lt_wf i).
-    induction i; simpl; intros; auto with ord.
-    apply succ_least.
-    destruct a; simpl.
-    rewrite ord_lt_unfold; simpl.
-    exists (exist _ i (PeanoNat.Nat.lt_succ_diag_r i)); simpl.
-    apply IHi.
-Qed.
-
-
-Definition ord_measure (o:Ord) := Acc ord_lt o.
-
-Definition Ack_measure (m:nat) (n:nat) := ord_measure (@lex ω ω m n).
-
-Program Fixpoint Ackdef (m:nat) (n:nat) {HM : Ack_measure m n} {struct HM}: nat :=
+(* The well-known 2-argument Ackermann-Peter function, defined over the
+   binary natural number representation N. *)
+Program Fixpoint Ack (m:N) (n:N) {measure (lex ωN ωN m n) ord_lt} : N :=
   match m, n with
-  | O   , _    => n+1
-  | S m', O    => Ackdef m' 1%nat
-  | S m', S n' => Ackdef m' (Ackdef m n')
+  | N0     , _       => N.succ n
+  | Npos pm, N0      => Ack (Pos.pred_N pm) 1%N
+  | Npos pm, Npos pn => Ack (Pos.pred_N pm) (Ack m (Pos.pred_N pn))
   end.
 Next Obligation.
-  destruct HM as [HM]; apply HM; simpl.
-  apply lex1.
-  apply succ_lt.
-Defined.
+  apply lex1. apply nOrd_increasing. lia.
+Qed.
 Next Obligation.
-  destruct HM as [HM]; apply HM; simpl.
-  apply lex2.
-  apply ord_le_refl.
-  apply succ_lt.
-Defined.
+  apply lex2. apply nOrd_increasing. lia.
+Qed.
 Next Obligation.
-  - destruct HM as [HM]; apply HM; simpl.
-    apply lex1. apply succ_lt.
-  - destruct HM as [HM]; apply HM; simpl.
-    apply lex1. apply succ_lt.
+  apply lex1. apply nOrd_increasing. lia.
+Qed.
+Next Obligation.
+  apply (Acc_intro_generator 250).
+  apply measure_wf.
+  apply ord_lt_wf.
 Defined.
 
-Definition Ack m n := @Ackdef m n (ord_lt_wf _).
+(* CF: The OEIS sequence for the Simplified Ackermann function:
+     https://oeis.org/A046859 *)
+Eval vm_compute in (Ack 0 0).
+Eval vm_compute in (Ack 1 1).
+Eval vm_compute in (Ack 2 2).
+Eval vm_compute in (Ack 3 3).
+(* Ack 4 4 is much to large to attempt to compute inside the Coq kernel *)
+
+(* Defining the Ackermann function requires recursion up to ω*ω ≈ ω², which is the
+   supremum of all the ordinal measures that may appear in its definition. *)
+Theorem ackermann_bound:
+  supOrd (fun m => (supOrd (fun n => lex ωN ωN m n))) ≈ expOrd ω 2.
+Proof.
+  transitivity (ωN * ωN).
+  2:{ rewrite expOrd_succ; auto with ord.
+      rewrite expOrd_one'; auto with ord.
+      repeat rewrite omegaN_eq.
+      reflexivity. }
+  split.
+  - apply sup_least; intro m.
+    apply sup_least; intro n.
+    unfold lex.
+    rewrite (mulOrd_unfold ωN ωN).
+    rewrite <- (sup_le _ _ m).
+    apply addOrd_monotone; auto with ord.
+  - rewrite (mulOrd_unfold ωN ωN).
+    apply sup_least; intro m.
+    rewrite addOrd_unfold. apply lub_least.
+    + rewrite <- (sup_le _ _ m).
+      rewrite <- (sup_le _ _ 0%N).
+      unfold lex. simpl.
+      rewrite addOrd_zero_r.
+      reflexivity.
+    + apply sup_least; intro n.
+      rewrite <- (sup_le _ _ m).
+      rewrite <- (sup_le _ _ (N.succ n)).
+      unfold lex. simpl.
+      apply succ_least.
+      apply addOrd_increasing.
+      apply nOrd_increasing.
+      lia.
+Qed.
+
 
 Lemma subterm_trans : forall {A B C:Ord} (x:A) (y:B) (z:C),
   x ◃ y -> y ◃ z -> x ◃ z.
