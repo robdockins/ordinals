@@ -72,9 +72,15 @@ Proof.
   simpl; auto.
 Qed.
 
-Lemma naddOrd_zero x : x ≈ x ⊕ 0.
+Lemma naddOrd_zero_r x : x ⊕ 0 ≈ x.
 Proof.
   split.
+  - induction x as [A f].
+    rewrite naddOrd_unfold.
+    apply lub_least.
+    apply limit_least; intros.
+    rewrite H. apply limit_lt.
+    apply limit_least; intros [].
   - induction x as [A f].
     rewrite naddOrd_unfold.
     simpl.
@@ -82,12 +88,6 @@ Proof.
     rewrite <- lub_le1.
     eapply ord_le_lt_trans; [ | apply (limit_lt _ _ a) ].
     simpl; apply H.
-  - induction x as [A f].
-    rewrite naddOrd_unfold.
-    apply lub_least.
-    apply limit_least; intros.
-    rewrite H. apply limit_lt.
-    apply limit_least; intros [].
 Qed.
 
 Lemma naddOrd_comm_le x y : x ⊕ y ≤ y ⊕ x.
@@ -111,6 +111,11 @@ Qed.
 Lemma naddOrd_comm x y : x ⊕ y ≈ y ⊕ x.
 Proof.
   split; apply naddOrd_comm_le; auto.
+Qed.
+
+Lemma naddOrd_zero_l x: 0 ⊕ x ≈ x.
+Proof.
+  rewrite naddOrd_comm. apply naddOrd_zero_r.
 Qed.
 
 Lemma naddOrd_assoc1 : forall x y z,  x ⊕ (y ⊕ z) ≤ (x ⊕ y) ⊕ z.
@@ -448,7 +453,7 @@ Lemma nadd_1_omega : 1⊕ω ≈ ω+1.
 Proof.
   rewrite naddOrd_comm.
   rewrite naddOrd_succ2.
-  rewrite <- naddOrd_zero.
+  rewrite naddOrd_zero_r.
   rewrite addOrd_succ.
   rewrite addOrd_zero_r.
   reflexivity.
@@ -791,7 +796,7 @@ Proof.
     simpl in Hx.
     rewrite Hx.
     rewrite naddOrd_comm.
-    rewrite <- naddOrd_zero.
+    rewrite naddOrd_zero_r.
     auto. }
   rewrite expOrd_unfold in Hy.
     apply lub_lt in Hy.
@@ -800,7 +805,7 @@ Proof.
       destruct Hy as [[] Hy].
       simpl in Hy.
       rewrite Hy.
-      rewrite <- naddOrd_zero.
+      rewrite naddOrd_zero_r.
       rewrite expOrd_unfold.
       rewrite <- lub_le2.
       auto. }
@@ -844,11 +849,10 @@ Lemma nadd_add_same_powers (EM:excluded_middle):
 Proof.
   intros.
   destruct m. rewrite mulOrd_zero_r.
-  rewrite naddOrd_comm.
-  rewrite <- naddOrd_zero.
+  rewrite naddOrd_zero_l.
   simpl. reflexivity.
   destruct n. rewrite mulOrd_zero_r.
-  rewrite <- naddOrd_zero.
+  rewrite naddOrd_zero_r.
   simpl.
   replace (m+0)%nat with m by lia.
   reflexivity.
@@ -907,7 +911,7 @@ Lemma cantor_denote_nadd_add (EM:excluded_middle):
 Proof.
   induction xs as [|x xs] using List.rev_ind; simpl; auto with ord.
   { intros.
-    rewrite naddOrd_comm. rewrite <- naddOrd_zero.
+    rewrite naddOrd_zero_l.
     rewrite addOrd_zero_l. reflexivity. }
   intros b Hxs1 Hxs2.
   intros q Hq.
@@ -952,7 +956,7 @@ Lemma cantor_denote_nadd_app: forall xs ys,
   cantor_denote_nadd (xs ++ ys) ≈ cantor_denote_nadd xs ⊕ cantor_denote_nadd ys.
 Proof.
   induction xs; simpl; intros.
-  { rewrite naddOrd_comm. rewrite <- naddOrd_zero. reflexivity. }
+  { rewrite naddOrd_zero_l. auto with ord. }
   rewrite IHxs.
   rewrite naddOrd_assoc.
   reflexivity.
@@ -978,7 +982,7 @@ Proof.
   rewrite cantor_denote_nadd_app.
   simpl.
   rewrite addOrd_zero_r.
-  rewrite <- naddOrd_zero.
+  rewrite naddOrd_zero_r.
   rewrite <- IHxs with b.
   split.
   apply add_nadd_le.
@@ -1007,7 +1011,7 @@ Lemma cantor_denote_nadd_merge:
 Proof.
   intros xs ys zs H.
   induction H; simpl.
-  - rewrite <- naddOrd_zero. reflexivity.
+  - rewrite naddOrd_zero_r. reflexivity.
   - rewrite <- naddOrd_assoc.
     rewrite IHmerge_lists.
     reflexivity.
@@ -1131,7 +1135,7 @@ Proof.
   rewrite naddOrd_comm.
   rewrite naddOrd_succ.
   rewrite naddOrd_comm.
-  rewrite <- naddOrd_zero.
+  rewrite naddOrd_zero_r.
   rewrite ord_lt_unfold; exists tt. simpl.
   apply nmulOrd_monotone; auto.
   apply naddOrd_monotone; auto with ord.
@@ -1185,7 +1189,7 @@ Proof.
   rewrite nmulOrd_unfold.
   apply lub_least.
   - apply sup_least; intro a.
-    rewrite <- naddOrd_zero.
+    rewrite naddOrd_zero_r.
     apply H.
   - apply sup_least. intros [].
 Qed.
@@ -1202,13 +1206,13 @@ Proof.
   rewrite naddOrd_comm.
   rewrite naddOrd_succ.
   rewrite naddOrd_comm.
-  rewrite <- naddOrd_zero.
+  rewrite naddOrd_zero_r.
   apply succ_least.
   apply (index_lt _ a).
   apply sup_least. simpl; intro.
   rewrite nmulOrd_zero.
   rewrite naddOrd_comm.
-  rewrite <- naddOrd_zero.
+  rewrite naddOrd_zero_r.
   auto with ord.
 
   rewrite <- lub_le2.
@@ -1216,7 +1220,7 @@ Proof.
   simpl.
   rewrite nmulOrd_zero.
   rewrite naddOrd_comm.
-  rewrite <- naddOrd_zero.
+  rewrite naddOrd_zero_r.
   auto with ord.
 Qed.
 
@@ -1246,7 +1250,6 @@ Proof.
     rewrite <- lub_le1. simpl.
     rewrite <- (sup_le _ _ tt). reflexivity.
 Qed.
-
 
 Lemma nmulDistrib1 : forall x y z,
   x ⊗ (y ⊕ z) ≤ (x ⊗ y) ⊕ (x ⊗ z).
@@ -1296,7 +1299,7 @@ Proof.
        rewrite nmulOrd_comm.
        rewrite nmulOrd_one.
        apply ord_le_lt_trans with (Q ⊕ 0).
-       apply naddOrd_zero.
+       apply naddOrd_zero_r.
        apply naddOrd_increasing2.
        unfold Q.
        rewrite <- (sup_le _ _ 0%nat); simpl; auto with ord. }
@@ -1451,7 +1454,7 @@ Proof.
   rewrite <- (sup_le _ _ c).
   apply ord_le_lt_trans with (jmulOrd a (h c)); [ apply jmulOrd_monotone2 ; assumption | ].
   apply ord_le_lt_trans with (naddOrd (jmulOrd a (h c)) zeroOrd).
-  - rewrite <- naddOrd_zero. reflexivity.
+  - rewrite naddOrd_zero_r. reflexivity.
   - apply naddOrd_increasing2. auto.
 Qed.
 
@@ -1484,7 +1487,7 @@ Proof.
   induction a as [A f Ha].
   split; simpl.
   - apply sup_least; intro x.
-    rewrite <- naddOrd_zero.
+    rewrite naddOrd_zero_r.
     apply Ha.
   - apply zero_least.
 Qed.
@@ -1502,7 +1505,7 @@ Proof.
   rewrite jmulOrd_succ.
   rewrite jmulOrd_zero_r.
   rewrite naddOrd_comm.
-  rewrite <- naddOrd_zero.
+  rewrite naddOrd_zero_r.
   reflexivity.
 Qed.
 
@@ -1521,13 +1524,9 @@ Proof.
   destruct H0 as [b _].
   simpl in *.
   rewrite <- (sup_le _ _ b).
-  rewrite (naddOrd_zero 0).
-  apply ord_le_lt_trans with (ord A f × g b ⊕ 0).
-  apply naddOrd_le_mor; apply zero_least.
-  apply naddOrd_increasing2.
-  rewrite ord_lt_unfold. simpl.
-  exists a.
-  apply zero_least.
+  rewrite <- naddOrd_le2.
+  rewrite ord_lt_unfold. exists a.
+  auto with ord.
 Qed.
 
 Lemma jmulOrd_limit : forall a b,
@@ -1558,4 +1557,149 @@ Proof.
   rewrite (jmulOrd_unfold a (f i)).
   rewrite <- (sup_le _ _ q).
   reflexivity.
+Qed.
+
+Definition smash_sum (x y:Ord) :=
+  limOrd (fun i => x (fst i) ⊕ y (snd i)).
+
+Lemma smash_sum_zero_l : forall x, smash_sum 0 x ≈ 0.
+Proof.
+  intro x. split; auto with ord.
+  unfold smash_sum.
+  rewrite ord_le_unfold. simpl.
+  intros [[] _].
+Qed.
+
+Lemma smash_sum_zero_r : forall x, smash_sum x 0 ≈ 0.
+Proof.
+  intro x. split; auto with ord.
+  unfold smash_sum.
+  rewrite ord_le_unfold.
+  intros [_ []].
+Qed.
+
+Lemma smash_sum_one_l: forall x, smash_sum 1 x ≈ x.
+Proof.
+  intro x. split.
+  - apply limit_least. intros [[] i]; simpl.
+    rewrite naddOrd_zero_l. auto with ord.
+  - rewrite ord_le_unfold. intro i.
+    rewrite ord_lt_unfold. simpl.
+    exists (tt, i). simpl.
+    rewrite naddOrd_zero_l. auto with ord.
+Qed.
+
+Lemma smash_sum_one_r: forall x, smash_sum x 1 ≈ x.
+Proof.
+  intro x. split.
+  - apply limit_least. intros [i []]; simpl.
+    rewrite naddOrd_zero_r. auto with ord.
+  - rewrite ord_le_unfold. intro i.
+    rewrite ord_lt_unfold. simpl.
+    exists (i, tt). simpl.
+    rewrite naddOrd_zero_r. auto with ord.
+Qed.
+
+Lemma smash_sum_sym_le: forall x y, smash_sum x y <= smash_sum y x.
+Proof.
+  unfold smash_sum. intros.
+  rewrite ord_le_unfold. intros [a b].
+  rewrite ord_lt_unfold. exists (b,a).
+  simpl.
+  apply naddOrd_comm.
+Qed.
+
+Lemma smash_sum_sym: forall x y, smash_sum x y ≈ smash_sum y x.
+Proof.
+  intros; split; apply smash_sum_sym_le.
+Qed.
+
+Lemma smash_sum_assoc1: forall x y z, smash_sum x (smash_sum y z) <= smash_sum (smash_sum x y) z.
+Proof.
+  unfold smash_sum; simpl. intros x y z.
+  apply limit_least; intros [a [b c]]. simpl.
+  rewrite ord_lt_unfold. simpl.
+  exists (a,b,c). simpl.
+  apply naddOrd_assoc.
+Qed.
+
+Lemma smash_sum_assoc2: forall x y z, smash_sum (smash_sum x y) z <= smash_sum x (smash_sum y z).
+Proof.
+  unfold smash_sum; simpl. intros x y z.
+  apply limit_least; intros [[a b] c]. simpl.
+  rewrite ord_lt_unfold. simpl.
+  exists (a,(b,c)). simpl.
+  apply naddOrd_assoc.
+Qed.
+
+Lemma smash_sum_assoc: forall x y z, smash_sum (smash_sum x y) z ≈ smash_sum x (smash_sum y z).
+Proof.
+  intros; split.
+  apply smash_sum_assoc2.
+  apply smash_sum_assoc1.
+Qed.
+
+Definition iterated_smash_sum (x:Ord) :=
+  limOrd (fun xs:list x => List.fold_right (fun x y => sz x ⊕ y) 0 xs).
+
+Lemma iterated_smash_sum_nonzero: forall x, 0 < iterated_smash_sum x.
+Proof.
+  intros. rewrite ord_lt_unfold. exists nil.
+  auto with ord.
+Qed.
+
+Lemma iterated_smash_sum_monotone: forall x y,
+    x <= y -> iterated_smash_sum x <= iterated_smash_sum y.
+Proof.
+  intros x y H.
+  unfold iterated_smash_sum.
+  apply limit_least. intro xs.
+  assert (Hys: exists ys: list y, pairwise (fun x y => sz x <= sz y) xs ys).
+  { induction xs; simpl.
+    - exists nil. apply pairwise_nil.
+    - rewrite ord_le_unfold in H.
+      specialize (H a). rewrite ord_lt_unfold in H.
+      destruct H as [b H].
+      destruct IHxs as [ys Hys].
+      exists (b::ys).
+      constructor; auto.
+  }
+  destruct Hys as [ys Hys].
+  rewrite ord_lt_unfold. simpl.
+  exists ys.
+  induction Hys; simpl; auto with ord.
+  apply naddOrd_monotone; auto with ord.
+Qed.
+
+Lemma iterated_smash_sum_eq (x:Ord) :
+  iterated_smash_sum x ≈ supOrd (fun i:nat => Nat.iter i (smash_sum x) 1).
+Proof.
+  split.
+  - unfold iterated_smash_sum.
+    apply limit_least; intro xs.
+    rewrite <- (sup_le _ _ (length xs)).
+    induction xs; simpl; auto with ord.
+    rewrite ord_lt_unfold in IHxs.
+    destruct IHxs as [b Hb]. simpl in *.
+    rewrite Hb.
+    unfold smash_sum. rewrite ord_lt_unfold; simpl.
+    exists (a, b). simpl.
+    apply naddOrd_monotone; auto with ord.
+  - apply sup_least. intro i.
+    induction i; simpl.
+    + apply succ_least. unfold iterated_smash_sum.
+      rewrite ord_lt_unfold; simpl.
+      exists nil. auto with ord.
+    + unfold smash_sum. apply limit_least. simpl.
+      intros [a q]. simpl.
+      rewrite ord_le_unfold in IHi.
+      specialize (IHi q).
+      rewrite ord_lt_unfold in IHi. unfold iterated_smash_sum in IHi.
+      simpl in IHi.
+      destruct IHi as [xs Hxs].
+      rewrite Hxs.
+      unfold iterated_smash_sum.
+      rewrite ord_lt_unfold; simpl.
+      exists (a::xs). simpl.
+      auto with ord.
 Qed.

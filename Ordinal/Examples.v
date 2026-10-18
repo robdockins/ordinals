@@ -8,7 +8,6 @@ From Stdlib Require Import NArith.
 From Stdlib Require Import Relations.
 From Stdlib Require Import Program.Wf.
 From Stdlib Require Import Wellfounded.
-From Stdlib Require Import Wellfounded.Transitive_Closure.
 
 Import ListNotations.
 Open Scope list.
@@ -220,8 +219,7 @@ Lemma listAdd (A:Ord) (xs ys:list A) :
   sz (xs ++ ys) ≈ sz xs ⊕ sz ys.
 Proof.
   induction xs; simpl.
-  - rewrite naddOrd_comm.
-    apply naddOrd_zero.
+  - rewrite naddOrd_zero_l. auto with ord.
   - rewrite naddOrd_succ.
     rewrite IHxs.
     rewrite naddOrd_assoc.
@@ -250,7 +248,7 @@ Global Hint Resolve head_lt tail_lt : ord.
 Lemma app_lt1 : forall (A:Ord) (xs ys:list A), ys <> [] ->  xs ◃ xs ++ ys.
 Proof.
   intros. rewrite listAdd. simpl.
-  rewrite naddOrd_zero at 1.
+  rewrite <- naddOrd_zero_r at 1.
   apply naddOrd_increasing2.
   destruct ys.
   + elim H; auto.
@@ -262,7 +260,7 @@ Qed.
 Lemma app_lt2 : forall (A:Ord) (xs ys:list A), xs <> [] -> ys ◃ xs ++ ys.
 Proof.
   intros. rewrite listAdd. simpl.
-  rewrite naddOrd_zero at 1.
+  rewrite <- naddOrd_zero_r at 1.
   rewrite naddOrd_comm.
   apply naddOrd_increasing1.
   destruct xs.

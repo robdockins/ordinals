@@ -1865,7 +1865,7 @@ Section cantor_arithmetic.
         simpl in Hx.
         rewrite Hx.
         rewrite naddOrd_comm.
-        rewrite <- naddOrd_zero.
+        rewrite naddOrd_zero_r.
         auto. }
       rewrite expOrd_unfold in Hy.
       apply lub_lt in Hy.
@@ -1874,7 +1874,7 @@ Section cantor_arithmetic.
         destruct Hy as [[] Hy].
         simpl in Hy.
         rewrite Hy.
-        rewrite <- naddOrd_zero.
+        rewrite naddOrd_zero_r.
         rewrite expOrd_unfold.
         rewrite <- lub_le2.
         auto. }
@@ -1943,7 +1943,7 @@ Section cantor_arithmetic.
     Proof.
       induction xs as [|x xs] using List.rev_ind; simpl; auto with ord.
       { intros.
-        rewrite naddOrd_comm. rewrite <- naddOrd_zero.
+        rewrite naddOrd_zero_l.
         rewrite addOrd_zero_l. reflexivity. }
       intros b Hxs1 Hxs2.
       intros q Hq1 Hq2.
@@ -2001,7 +2001,7 @@ Section cantor_arithmetic.
         cantor_denote_nadd (xs ++ ys) ≈ cantor_denote_nadd xs ⊕ cantor_denote_nadd ys.
     Proof.
       induction xs; simpl; intros.
-      { rewrite naddOrd_comm. rewrite <- naddOrd_zero. reflexivity. }
+      { rewrite naddOrd_zero_l. reflexivity. }
       rewrite IHxs.
       rewrite naddOrd_assoc.
       reflexivity.
@@ -2020,7 +2020,7 @@ Section cantor_arithmetic.
       rewrite cantor_denote_nadd_app.
       simpl.
       rewrite addOrd_zero_r.
-      rewrite <- naddOrd_zero.
+      rewrite naddOrd_zero_r.
       rewrite <- IHxs.
       split.
       apply add_nadd_le.
@@ -2076,13 +2076,12 @@ Section cantor_arithmetic.
       induction xs as [|x xs]; simpl.
       { intros.
         destruct ys; simpl in *; intuition.
-        rewrite <- naddOrd_zero. reflexivity.
-        rewrite (naddOrd_comm 0).
-        rewrite <- naddOrd_zero.
+        rewrite naddOrd_zero_r. reflexivity.
+        rewrite naddOrd_zero_l.
         reflexivity. }
       induction ys as [|y ys]; simpl.
       { intuition.
-        rewrite <- naddOrd_zero.
+        rewrite naddOrd_zero_r.
         reflexivity. }
       simpl; intros.
       generalize (cantor_decomp_compare_correct X x y).

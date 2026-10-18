@@ -5,7 +5,7 @@ From Stdlib Require Import Permutation.
 From Stdlib Require Import List.
 From Stdlib Require Import Relations.
 From Stdlib Require Import Program.Wf.
-From Stdlib Require Import Wellfounded.Transitive_Closure.
+From Stdlib Require Import Wellfounded.
 
 Import ListNotations.
 Open Scope list.
@@ -14,6 +14,7 @@ Unset Printing Records.
 
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
+From Ordinal Require Import Arith.
 From Ordinal Require Import NaturalArith.
 
 (** * Well-founded relations generate ordinals *)
@@ -27,9 +28,6 @@ Section wf_ord.
     | Acc_intro _ H => ord { a':A | R a' a } (fun x => mk_wf_ord (proj1_sig x) (H _ (proj2_sig x)))
     end.
 
-  Hypothesis Hwf : well_founded R.
-  Definition wf_ord_elt (a:A) : Ord := mk_wf_ord a (Hwf a).
-
   Lemma wf_ord_Acc_irrelevant: forall a H1 H2, mk_wf_ord a H1 ≤ mk_wf_ord a H2.
   Proof.
     intros a Hacc. generalize Hacc. induction Hacc.
@@ -39,34 +37,57 @@ Section wf_ord.
     apply H0; auto.
   Qed.
 
+  Lemma mk_wf_ord_lt : forall a Ha a' Ha', R a' a -> mk_wf_ord a' Ha' < mk_wf_ord a Ha.
+  Proof.
+    intros a Ha. generalize Ha.
+    induction Ha. intros.
+    destruct Ha as [Ha]. simpl.
+    rewrite ord_lt_unfold. simpl.
+    exists (exist _ a' H1); simpl.
+    apply wf_ord_Acc_irrelevant.
+  Qed.
+
+  Lemma mk_wf_ord_lt_trans : forall a Ha a' Ha', clos_trans _ R a' a -> mk_wf_ord a' Ha' < mk_wf_ord a Ha.
+  Proof.
+    intros.
+    apply clos_trans_tn1 in H.
+    induction H.
+    - apply mk_wf_ord_lt; auto.
+    - destruct Ha. simpl.
+      rewrite ord_lt_unfold; simpl.
+      exists (exist _ y H). simpl.
+      apply ord_lt_le. apply IHclos_trans_n1.
+  Qed.
+
+  Lemma mk_wf_ord_le_trans : forall a Ha a' Ha', clos_refl_trans _ R a' a -> mk_wf_ord a' Ha' ≤ mk_wf_ord a Ha.
+  Proof.
+    intros. apply clos_rt_rtn1 in H. induction H.
+    - apply wf_ord_Acc_irrelevant.
+    - destruct Ha as [Ha].
+      rewrite (IHclos_refl_trans_n1 (Ha y H)).
+      apply ord_lt_le.
+      apply mk_wf_ord_lt; auto.
+  Qed.
+
+  Hypothesis Hwf : well_founded R.
+  Definition wf_ord_elt (a:A) : Ord := mk_wf_ord a (Hwf a).
+
   Lemma wf_ord_lt : forall a a', R a' a -> wf_ord_elt a' < wf_ord_elt a.
   Proof.
-    unfold wf_ord_elt. intros a a'.
-    generalize (Hwf a'). revert a'.
-    generalize (Hwf a).
-    induction a using (well_founded_induction Hwf); intros.
-    destruct a0; simpl.
-    rewrite ord_lt_unfold.
-    exists (exist _ a' H0); simpl.
-    rewrite ord_le_unfold.
-    destruct a1. simpl; intros.
-    destruct a2. simpl.
-    apply H; auto.
+    unfold wf_ord_elt. intros a a' H.
+    apply mk_wf_ord_lt; auto.
   Qed.
 
   Lemma wf_ord_lt_trans : forall a a', clos_trans _ R a' a -> wf_ord_elt a' < wf_ord_elt a.
   Proof.
-    intros; induction H.
-    - apply wf_ord_lt; auto.
-    - eapply ord_lt_trans; eauto.
+    unfold wf_ord_elt. intros a a' H.
+    apply mk_wf_ord_lt_trans; auto.
   Qed.
 
   Lemma wf_ord_le_trans : forall a a', clos_refl_trans _ R a' a -> wf_ord_elt a' ≤ wf_ord_elt a.
   Proof.
-    intros; induction H.
-    - apply ord_lt_le; apply wf_ord_lt; auto.
-    - apply ord_le_refl.
-    - eapply ord_le_trans; eauto.
+    unfold wf_ord_elt. intros a a' H.
+    apply mk_wf_ord_le_trans; auto.
   Qed.
 
 End wf_ord.
@@ -135,10 +156,17 @@ Fixpoint ord_transitive_closure_ord (x:Ord): ord_transitive_closure_type x -> Or
 Definition ord_transitive_closure (x:Ord): Ord :=
   ord (ord_transitive_closure_type x) (ord_transitive_closure_ord x).
 
-Definition ord_transitive_closure_inj (x:Ord) : x -> ord_transitive_closure_type x :=
+Definition ord_transitive_closure_inj (x:Ord) : x -> ord_transitive_closure x :=
   match x as x' return x' -> ord_transitive_closure_type x' with
   | ord A f => fun i => inl i
   end.
+
+Lemma ord_transitive_closure_inj_correct: forall (x:Ord) (i:x),
+    ord_transitive_closure_inj x i ≈ i.
+Proof.
+  intros [A f]; simpl.
+  intro; auto with ord.
+Qed.
 
 Fixpoint transitive_closure_collapse (x:Ord) :
   forall (i:ord_transitive_closure_type x) (j: ord_transitive_closure_ord x i),
@@ -157,13 +185,6 @@ Fixpoint transitive_closure_collapse (x:Ord) :
         end
   end.
 
-Lemma ord_transitive_closure_inj_correct: forall (x:Ord) (i:x),
-    ord_transitive_closure_ord x (ord_transitive_closure_inj x i) ≈ i.
-Proof.
-  intros [A f]; simpl.
-  intro; auto with ord.
-Qed.
-
 Lemma transitive_closure_collapse_correct:
   forall (x:Ord) (i:ord_transitive_closure_type x) (j: ord_transitive_closure_ord x i),
     ord_transitive_closure_ord x (transitive_closure_collapse x i j) ≈ j.
@@ -175,7 +196,8 @@ Proof.
 Qed.
 
 Lemma ord_transitive_closure_transitive (x:Ord):
-  forall (i: ord_transitive_closure x) (j: i), exists (k: ord_transitive_closure x),
+  forall (i: ord_transitive_closure x) (j: i),
+  exists (k: ord_transitive_closure x),
     k ≈ j.
 Proof.
   simpl in *; intros.
@@ -586,3 +608,1359 @@ Proof.
       rewrite ord_transitive_closure_eq.
       apply wf_ord_Acc_irrelevant.
 Qed.
+
+Section inverse_image.
+  Variables A B : Type.
+  Variable R : B -> B -> Prop.
+  Variable f : A -> B.
+
+  Lemma Rof_simulates : simulates (fun x y => R (f x) (f y)) R.
+  Proof.
+    hnf. exists (fun a b => f a = b).
+    split.
+    - hnf. simpl; intros.
+      subst b. exists (f a'); split; auto.
+    - hnf. eauto.
+  Qed.
+
+  Hypothesis HwfR: well_founded R.
+
+  Lemma inverse_image_ord: wf_ord _ (wf_inverse_image A B R f HwfR) <= wf_ord R HwfR.
+  Proof.
+    rewrite wf_ord_simulates. apply Rof_simulates.
+  Qed.
+
+End inverse_image.
+
+Section inclusion.
+  Variable A : Type.
+  Variables R1 R2 : A -> A -> Prop.
+
+  Hypothesis Hincl: inclusion A R1 R2.
+
+  Lemma inclusion_simulates: simulates R1 R2.
+  Proof.
+    exists (@eq A).
+    split.
+    - hnf; simpl. intuition; subst; eauto.
+    - hnf; simpl; intuition; eauto.
+  Qed.
+
+  Hypothesis HwfR2: well_founded R2.
+
+  Lemma inclusion_ord: wf_ord R1 (wf_incl A R1 R2 Hincl HwfR2) <= wf_ord R2 HwfR2.
+  Proof.
+    rewrite wf_ord_simulates. apply inclusion_simulates.
+  Qed.
+End inclusion.
+
+Section transitive_closure.
+  Variable A: Type.
+  Variable R: A -> A -> Prop.
+
+  Lemma t_clos_simulates1: simulates R (clos_trans A R).
+  Proof.
+    hnf. exists (@eq A). split.
+    - hnf; simpl; intuition subst.
+      exists a'; split; auto.
+      apply t_step; auto.
+    - hnf; eauto.
+  Qed.
+
+  Lemma t_clos_simulates2: simulates (clos_trans A R) R.
+  Proof.
+    hnf. exists (fun x y => clos_refl_trans A R x y).
+    split.
+    - hnf; simpl; intros.
+      assert (clos_trans A R a' b).
+      { induction H0; subst; auto.
+        apply t_trans with x; auto.
+        apply t_step; auto. }
+      apply clos_trans_tn1 in H1.
+      inversion H1; subst.
+      + exists a'; split; auto.
+        apply rt_refl.
+      + exists y; split; auto.
+        apply clos_t_clos_rt.
+        apply clos_tn1_trans; auto.
+    - hnf. intros. exists a. apply rt_refl.
+  Qed.
+
+  Hypothesis HwfR: well_founded R.
+
+  Lemma clos_trans_ord_eq: wf_ord (clos_trans A R) (wf_clos_trans A R HwfR) ≈ wf_ord R HwfR.
+  Proof.
+    split; rewrite wf_ord_simulates.
+    apply t_clos_simulates2.
+    apply t_clos_simulates1.
+  Qed.
+End transitive_closure.
+
+
+Section zero_relation.
+  Definition zero_R (x y:False) : Prop := False.
+
+  Lemma zero_R_wf: well_founded zero_R.
+  Proof.
+    hnf; intros. elim a.
+  Qed.
+
+  Lemma zero_relation_is_zero: wf_ord zero_R zero_R_wf ≈ 0.
+  Proof.
+    split; unfold wf_ord; auto with ord.
+    apply limit_least. intros [].
+  Qed.
+End zero_relation.
+
+Section succ_relation.
+  Variable A: Type.
+  Variable R: A -> A -> Prop.
+
+  Hypothesis HwfR: well_founded R.
+
+  Inductive succ_R : option A -> option A -> Prop :=
+  | succ_R_start: forall a, succ_R (Some a) None
+  | succ_R_step : forall a' a, R a' a -> succ_R (Some a') (Some a).
+
+  Lemma succ_R_Some_Acc: forall a, Acc (succ_R) (Some a).
+  Proof.
+    induction a as [a Hinda] using (well_founded_induction HwfR).
+    constructor; intros a' Ha'.
+    inversion Ha'; subst.
+    apply Hinda. auto.
+  Qed.
+
+  Lemma well_founded_succ_R: well_founded (succ_R).
+  Proof.
+    hnf. intros [a|].
+    - apply succ_R_Some_Acc.
+    - constructor; intros a' Ha'.
+      inversion Ha'; subst.
+      apply succ_R_Some_Acc.
+  Qed.
+
+  Lemma succ_R_some_elt:
+    forall (a:A) Ha1 Ha2,
+      mk_wf_ord (option A) succ_R (Some a) Ha1 ≈ mk_wf_ord A R a Ha2.
+  Proof.
+    intros a Ha1 Ha2. generalize Ha2. revert Ha1.
+    induction Ha2. intros [Ha1] [Ha2]; simpl.
+    split.
+    - apply limit_least; intros [a' Ha']; simpl.
+      rewrite ord_lt_unfold. simpl.
+      inversion Ha'; subst.
+      exists (exist _ a'0  H3). simpl.
+      apply H0; auto.
+    - apply limit_least; intros [a' Ha']; simpl.
+      rewrite ord_lt_unfold. simpl.
+      exists (exist _ (Some a') (succ_R_step _ _ Ha')). simpl.
+      apply H0; auto.
+  Qed.
+
+  Lemma succ_R_is_succ: wf_ord succ_R well_founded_succ_R ≈ succOrd (wf_ord R HwfR).
+  Proof.
+    unfold wf_ord; split; simpl.
+    - apply limit_least. intros [a|]; simpl.
+      + apply succ_trans.
+        apply ord_lt_le. rewrite ord_lt_unfold; simpl.
+        exists a. apply succ_R_some_elt.
+      + unfold wf_ord_elt. destruct (well_founded_succ_R None); simpl; intros.
+        apply succ_trans. apply limit_least.
+        intros [a' Ha]. simpl.
+        inversion Ha; subst.
+        rewrite ord_lt_unfold. simpl. exists a0.
+        apply succ_R_some_elt.
+    - apply succ_least.
+      rewrite ord_lt_unfold. simpl.
+      exists None.
+      apply limit_least. intro a.
+      unfold wf_ord_elt. simpl.
+      destruct (well_founded_succ_R None). simpl.
+      rewrite ord_lt_unfold. simpl.
+      exists (exist _ (Some a) (succ_R_start a)). simpl.
+      apply succ_R_some_elt.
+   Qed.
+End succ_relation.
+
+Section disjoint_union.
+  Variables A B : Type.
+  Variable R : A -> A -> Prop.
+  Variable S : B -> B -> Prop.
+
+  Hypothesis HwfR: well_founded R.
+  Hypothesis HwfS: well_founded S.
+
+  Lemma disj_union_is_add1: forall a Ha Hab,
+      mk_wf_ord (A+B) (le_AsB A B R S) (inl _ a) Hab <= mk_wf_ord A R a Ha.
+  Proof.
+    induction a as [a Hinda] using (well_founded_induction HwfR).
+    intros [Ha] [Hab]. simpl.
+    apply limit_least. intros [q Hq]. simpl.
+    inversion Hq; subst.
+    rewrite ord_lt_unfold. simpl.
+    exists (exist _ x H1). simpl.
+    apply Hinda; auto.
+  Qed.
+
+  Lemma disj_union_is_add2: forall b Hb Hab,
+      mk_wf_ord (A+B) (le_AsB A B R S) (inr _ b) Hab <=
+        (wf_ord R HwfR) + mk_wf_ord B S b Hb.
+  Proof.
+    induction b as [b Hindb] using (well_founded_induction HwfS).
+    intros [Hb] [Hab]. simpl.
+    apply limit_least. intros [q Hq]. simpl.
+    inversion Hq; subst.
+    - rewrite addOrd_unfold. rewrite <- lub_le1.
+      rewrite ord_lt_unfold. simpl.
+      exists x. apply disj_union_is_add1.
+    - rewrite addOrd_unfold. rewrite <- lub_le2. simpl.
+      rewrite <- (sup_le _ _ (exist _ x H1)). simpl.
+      apply succ_trans.
+      apply Hindb; auto.
+  Qed.
+
+  Lemma disj_union_is_add3: forall a Ha Hab,
+      mk_wf_ord A R a Ha <=
+        mk_wf_ord (A+B) (le_AsB A B R S) (inl _ a) Hab.
+  Proof.
+    induction a as [a Hinda] using (well_founded_induction HwfR).
+    intros [Ha] [Hab]. simpl.
+    apply limit_least. intros [a' Ha']. simpl.
+    rewrite ord_lt_unfold. simpl.
+    assert (H: le_AsB A B R S (inl a') (inl a)).
+    { apply le_aa; auto. }
+    exists (exist _ (inl a') H). simpl.
+    apply Hinda; auto.
+  Qed.
+
+  Lemma disj_union_is_add4: forall b Hb Hab,
+      (wf_ord R HwfR) + mk_wf_ord B S b Hb <=
+        mk_wf_ord (A+B) (le_AsB A B R S) (inr _ b) Hab.
+  Proof.
+    induction b as [b Hindb] using (well_founded_induction HwfS).
+    intros [Hb] [Hab]. simpl.
+    rewrite addOrd_unfold; simpl. apply lub_least.
+    - apply limit_least. intro a.
+      assert (H: le_AsB A B R S (inl a) (inr b)).
+      { apply le_ab; auto. }
+      rewrite ord_lt_unfold; simpl.
+      exists (exist _ (inl a) H). simpl.
+      apply disj_union_is_add3.
+    - apply sup_least; intros [b' Hb']. apply succ_least; simpl.
+      assert (H: le_AsB A B R S (inr b') (inr b)).
+      { apply le_bb; auto. }
+      rewrite ord_lt_unfold. simpl.
+      exists (exist _ (inr b') H). simpl.
+      apply Hindb. auto.
+  Qed.
+
+  Lemma disj_union_add1:
+    wf_ord (le_AsB A B R S) (wf_disjoint_sum A B R S HwfR HwfS) <= wf_ord R HwfR + wf_ord S HwfS.
+  Proof.
+    apply limit_least. intros [a|b].
+    - rewrite addOrd_unfold. rewrite <- lub_le1.
+      rewrite ord_lt_unfold. simpl. exists a.
+      apply disj_union_is_add1.
+    - rewrite addOrd_unfold. rewrite <- lub_le2. simpl.
+      rewrite <- (sup_le _ _ b). apply succ_trans.
+      apply disj_union_is_add2.
+  Qed.
+
+  Lemma disj_union_add2:
+    wf_ord R HwfR + wf_ord S HwfS <= wf_ord (le_AsB A B R S) (wf_disjoint_sum A B R S HwfR HwfS).
+  Proof.
+    rewrite addOrd_unfold. apply lub_least.
+    - apply limit_least. intro a.
+      rewrite ord_lt_unfold. simpl. exists (inl a).
+      unfold wf_ord_elt.
+      apply disj_union_is_add3.
+    - simpl. apply sup_least. intro b.
+      apply succ_least.
+      rewrite ord_lt_unfold. simpl. exists (inr b).
+      unfold wf_ord_elt.
+      apply disj_union_is_add4.
+  Qed.
+
+  Lemma disj_union_add:
+    wf_ord (le_AsB A B R S) (wf_disjoint_sum A B R S HwfR HwfS) ≈ wf_ord R HwfR + wf_ord S HwfS.
+  Proof.
+    split. apply disj_union_add1. apply disj_union_add2.
+  Qed.
+End disjoint_union.
+
+Section symprod.
+  Variable A : Type.
+  Variable B : Type.
+  Variable R : A -> A -> Prop.
+  Variable S : B -> B -> Prop.
+
+  Hypothesis HwfR: well_founded R.
+  Hypothesis HwfS: well_founded S.
+
+  Lemma symprod_elt_is_nadd1: forall a b Ha Hb Hab,
+      mk_wf_ord (A*B) (symprod A B R S) (a,b) Hab <=
+        mk_wf_ord A R a Ha ⊕ mk_wf_ord B S b Hb.
+  Proof.
+    induction a as [a Hinda] using (well_founded_induction HwfR).
+    induction b as [b Hindb] using (well_founded_induction HwfS).
+    intros [HaccR] [HaccS] [HaccProd]; simpl.
+    apply limit_least; intros [[a' b'] H]; simpl.
+    inversion H; subst.
+    - rewrite naddOrd_unfold.
+      rewrite <- lub_le1.
+      rewrite ord_lt_unfold; simpl.
+      exists (exist _ a' H1); simpl.
+      rewrite (Hinda a' H1 b (HaccR a' H1) (Acc_intro _ HaccS)).
+      simpl; auto with ord.
+    - rewrite naddOrd_unfold.
+      rewrite <- lub_le2.
+      rewrite ord_lt_unfold; simpl.
+      exists (exist _ b' H1); simpl.
+      rewrite (Hindb b' H1 (Acc_intro _ HaccR) (HaccS b' H1)).
+      simpl; auto with ord.
+  Qed.
+
+  Lemma symprod_elt_is_nadd2: forall a b Ha Hb Hab,
+      mk_wf_ord A R a Ha ⊕ mk_wf_ord B S b Hb <=
+        mk_wf_ord (A*B) (symprod A B R S) (a,b) Hab.
+  Proof.
+    induction a as [a Hinda] using (well_founded_induction HwfR).
+    induction b as [b Hindb] using (well_founded_induction HwfS).
+    intros [Ha] [Hb] [Hab]; simpl.
+    rewrite naddOrd_unfold; simpl.
+    apply lub_least.
+    - apply limit_least; intros [a' Ha']; simpl.
+      rewrite ord_lt_unfold. simpl.
+      assert (Hab': symprod A B R S (a',b) (a,b)).
+      { apply left_sym; auto. }
+      exists (exist _ (a',b) Hab'); simpl.
+      apply (Hinda a' Ha' b (Ha a' Ha') (Acc_intro _ Hb)).
+    - apply limit_least. intros [b' Hb']. simpl.
+      rewrite ord_lt_unfold. simpl.
+      assert (Hab': symprod A B R S (a,b') (a,b)).
+      { apply right_sym; auto. }
+      exists (exist _ (a,b') Hab'); simpl.
+      apply (Hindb b' Hb' (Acc_intro _ Ha) (Hb b' Hb')).
+  Qed.
+
+  Lemma symprod_elt_is_nadd: forall a b,
+      wf_ord_elt (A*B) (symprod A B R S) (wf_symprod A B R S HwfR HwfS) (a,b) ≈
+                 wf_ord_elt A R HwfR a ⊕ wf_ord_elt B S HwfS b.
+  Proof.
+    intros. unfold wf_ord_elt. split.
+    apply symprod_elt_is_nadd1.
+    apply symprod_elt_is_nadd2.
+  Qed.
+
+  Lemma symprod_is_nadd:
+    supOrd (fun ab => wf_ord_elt (A*B) (symprod A B R S) (wf_symprod A B R S HwfR HwfS) ab) ≈
+           supOrd (fun a => supOrd (fun b => wf_ord_elt A R HwfR a ⊕ wf_ord_elt B S HwfS b)).
+  Proof.
+    split. unfold wf_ord_elt.
+    - apply sup_least; intros [a b].
+      rewrite <- (sup_le _ _ a).
+      rewrite <- (sup_le _ _ b).
+      apply symprod_elt_is_nadd1.
+    - apply sup_least; intro a.
+      apply sup_least; intro b.
+      rewrite <- (sup_le _ _ (a,b)).
+      apply symprod_elt_is_nadd2.
+  Qed.
+
+  Lemma symprod_is_smash_sum:
+    wf_ord (symprod A B R S) (wf_symprod A B R S HwfR HwfS) ≈ smash_sum (wf_ord R HwfR) (wf_ord S HwfS).
+  Proof.
+    split.
+    - apply limit_least. intros [a b]. simpl.
+      unfold smash_sum.
+      rewrite ord_lt_unfold. simpl.
+      exists (a,b). apply symprod_elt_is_nadd.
+    - apply limit_least. intros [a b]. simpl.
+      unfold wf_ord.
+      rewrite ord_lt_unfold. simpl.
+      exists (a,b). apply symprod_elt_is_nadd.
+  Qed.
+
+  Lemma symprod_le_nadd:
+    wf_ord (symprod A B R S) (wf_symprod A B R S HwfR HwfS) ≤ wf_ord R HwfR ⊕ wf_ord S HwfS.
+  Proof.
+    unfold wf_ord. apply limit_least.
+    intros [a b]. simpl.
+    rewrite naddOrd_unfold.
+    rewrite <- lub_le1.
+    rewrite ord_lt_unfold. simpl. exists a.
+    rewrite naddOrd_unfold. rewrite <- lub_le2.
+    apply ord_lt_le. rewrite ord_lt_unfold. simpl. exists b.
+    apply symprod_elt_is_nadd1.
+  Qed.
+End symprod.
+
+Section symprod'.
+  Variable A : Type.
+  Variable B : Type.
+  Variable R : A -> A -> Prop.
+  Variable S : B -> B -> Prop.
+
+  Hypothesis HwfR: well_founded R.
+  Hypothesis HwfS: well_founded S.
+
+  Inductive symprod' : ((A + B) + A*B) -> ((A + B) + A*B) -> Prop :=
+  | sym_A: forall a a', R a a' -> symprod' (inl (inl a)) (inl (inl a'))
+  | sym_B: forall b b', S b b' -> symprod' (inl (inr b)) (inl (inr b'))
+  | sym_A_to_pair: forall a b, symprod' (inr (a,b)) (inl (inl a))
+  | sym_B_to_pair: forall a b, symprod' (inr (a,b)) (inl (inr b))
+  | sym_left : forall a a' b, R a a' -> symprod' (inr (a,b)) (inr (a',b))
+  | sym_right: forall a b' b, S b b' -> symprod' (inr (a,b)) (inr (a,b')).
+
+  Lemma Acc_symprod'_pair : forall a b, Acc symprod' (inr (a,b)).
+  Proof.
+    induction a as [a Hinda] using (well_founded_induction HwfR).
+    induction b as [b Hindb] using (well_founded_induction HwfS).
+    apply Acc_intro. intros y Hy.
+    inversion Hy; subst.
+    - apply Hinda. auto.
+    - apply Hindb. auto.
+  Qed.
+
+  Lemma wf_symprod' : well_founded symprod'.
+  Proof.
+    hnf. intros [[a|b]|[a b]].
+    - induction a as [a Hinda] using (well_founded_induction HwfR).
+      apply Acc_intro. intros y Hy.
+      inversion Hy; subst.
+      + apply Hinda; auto.
+      + apply Acc_symprod'_pair.
+    - induction b as [b Hindb] using (well_founded_induction HwfS).
+      apply Acc_intro. intros y Hy.
+      inversion Hy; subst.
+      + apply Hindb; auto.
+      + apply Acc_symprod'_pair.
+    - apply Acc_symprod'_pair.
+  Qed.
+
+  Lemma symprod'_elt_is_nadd1: forall a b Ha Hb Hab,
+      mk_wf_ord (A + B + A*B) symprod' (inr (a,b)) Hab <=
+        mk_wf_ord A R a Ha ⊕ mk_wf_ord B S b Hb.
+  Proof.
+    induction a as [a Hinda] using (well_founded_induction HwfR).
+    induction b as [b Hindb] using (well_founded_induction HwfS).
+    intros [HaccR] [HaccS] [HaccProd]; simpl.
+    apply limit_least; intros [y H]; simpl.
+    inversion H; subst.
+    - rewrite naddOrd_unfold.
+      rewrite <- lub_le1.
+      rewrite ord_lt_unfold; simpl.
+      exists (exist _ a0 H2); simpl.
+      rewrite (Hinda a0 H2 b (HaccR a0 H2) (Acc_intro _ HaccS)).
+      simpl; auto with ord.
+    - rewrite naddOrd_unfold.
+      rewrite <- lub_le2.
+      rewrite ord_lt_unfold; simpl.
+      exists (exist _ b0 H2); simpl.
+      rewrite (Hindb b0 H2 (Acc_intro _ HaccR) (HaccS b0 H2)).
+      simpl; auto with ord.
+  Qed.
+
+  Lemma symprod'_elt_is_nadd2: forall a b Ha Hb Hab,
+      mk_wf_ord A R a Ha ⊕ mk_wf_ord B S b Hb <=
+        mk_wf_ord (A+B+A*B) symprod' (inr (a,b)) Hab.
+  Proof.
+    induction a as [a Hinda] using (well_founded_induction HwfR).
+    induction b as [b Hindb] using (well_founded_induction HwfS).
+    intros [Ha] [Hb] [Hab]; simpl.
+    rewrite naddOrd_unfold; simpl.
+    apply lub_least.
+    - apply limit_least; intros [a' Ha']; simpl.
+      rewrite ord_lt_unfold. simpl.
+      assert (Hab': symprod' (inr (a',b)) (inr (a,b))).
+      { apply sym_left; auto. }
+      exists (exist _ (inr (a',b)) Hab'); simpl.
+      apply (Hinda a' Ha' b (Ha a' Ha') (Acc_intro _ Hb)).
+    - apply limit_least. intros [b' Hb']. simpl.
+      rewrite ord_lt_unfold. simpl.
+      assert (Hab': symprod' (inr (a,b')) (inr (a,b))).
+      { apply sym_right; auto. }
+      exists (exist _ (inr (a,b')) Hab'); simpl.
+      apply (Hindb b' Hb' (Acc_intro _ Ha) (Hb b' Hb')).
+  Qed.
+
+  Lemma symprod'_elt_is_nadd3: forall a Ha Hab,
+      mk_wf_ord (A+B+A*B) symprod' (inl (inl a)) Hab <=
+        mk_wf_ord A R a Ha ⊕ (wf_ord S HwfS).
+  Proof.
+    induction a as [a Hinda] using (well_founded_induction HwfR).
+    intros Ha [Hab]. simpl.
+    apply limit_least. intros [y Hy]. simpl.
+    inversion Hy; subst.
+    - destruct Ha as [Ha].
+      rewrite naddOrd_unfold. rewrite <- lub_le1.
+      rewrite ord_lt_unfold. simpl.
+      exists (exist _ a0 H1). simpl.
+      apply Hinda; auto.
+    - rewrite naddOrd_unfold. rewrite <- lub_le2.
+      rewrite ord_lt_unfold. simpl.
+      exists b.
+      apply symprod'_elt_is_nadd1.
+  Qed.
+
+  Lemma symprod'_elt_is_nadd4: forall a Ha Hab,
+      mk_wf_ord A R a Ha ⊕ (wf_ord S HwfS) <=
+        mk_wf_ord (A+B+A*B) symprod' (inl (inl a)) Hab.
+  Proof.
+    induction a as [a Hinda] using (well_founded_induction HwfR).
+    intros Ha [Hab]. simpl.
+    rewrite naddOrd_unfold. apply lub_least; simpl.
+    - destruct Ha as [Ha]. apply limit_least. simpl.
+      intros [a' Ha']. simpl.
+      rewrite ord_lt_unfold. simpl.
+      assert (H: symprod' (inl (inl a')) (inl (inl a))).
+      { apply sym_A. auto. }
+      exists (exist _ (inl (inl a')) H). simpl.
+      apply Hinda; auto.
+    - apply limit_least. intro b.
+      rewrite ord_lt_unfold. simpl.
+      assert (H: symprod' (inr (a,b)) (inl (inl a))).
+      { apply sym_A_to_pair. }
+      exists (exist _ (inr (a,b)) H). simpl.
+      apply symprod'_elt_is_nadd2.
+  Qed.
+
+  Lemma symprod'_elt_is_nadd5: forall b Hb Hab,
+      mk_wf_ord (A+B+A*B) symprod' (inl (inr b)) Hab <=
+        (wf_ord R HwfR) ⊕ mk_wf_ord B S b Hb.
+  Proof.
+    induction b as [b Hindb] using (well_founded_induction HwfS).
+    intros Hb [Hab]. simpl.
+    apply limit_least. intros [y Hy]. simpl.
+    inversion Hy; subst.
+    - destruct Hb as [Hb].
+      rewrite naddOrd_unfold. rewrite <- lub_le2.
+      rewrite ord_lt_unfold; simpl.
+      exists (exist _ b0 H1). simpl.
+      apply Hindb; auto.
+    - rewrite naddOrd_unfold. rewrite <- lub_le1.
+      rewrite ord_lt_unfold; simpl.
+      exists a.
+      apply symprod'_elt_is_nadd1.
+  Qed.
+
+  Lemma symprod'_elt_is_nadd6: forall b Hb Hab,
+      (wf_ord R HwfR) ⊕ mk_wf_ord B S b Hb <=
+        mk_wf_ord (A+B+A*B) symprod' (inl (inr b)) Hab.
+  Proof.
+    induction b as [b Hindb] using (well_founded_induction HwfS).
+    intros Hb [Hab]. simpl.
+    rewrite naddOrd_unfold.
+    apply lub_least.
+    - apply limit_least; simpl; intro a.
+      rewrite ord_lt_unfold. simpl.
+      assert (H: symprod' (inr (a,b)) (inl (inr b))).
+      { apply sym_B_to_pair. }
+      exists (exist _ (inr (a,b)) H). simpl.
+      apply symprod'_elt_is_nadd2.
+    - destruct Hb as [Hb]. apply limit_least. simpl.
+      intros [b' Hb']. simpl.
+      rewrite ord_lt_unfold; simpl.
+      assert (H: symprod' (inl (inr b')) (inl (inr b))).
+      { apply sym_B. auto. }
+      exists (exist _ (inl (inr b')) H). simpl.
+      apply Hindb. auto.
+  Qed.
+
+  Lemma symprod'_is_nadd:
+    wf_ord symprod' wf_symprod' ≈ wf_ord R HwfR ⊕ wf_ord S HwfS.
+  Proof.
+    unfold wf_ord.
+    split.
+    - apply limit_least.
+      intros [[a|b]|[a b]]; simpl.
+      + rewrite naddOrd_unfold. rewrite <- lub_le1.
+        rewrite ord_lt_unfold. simpl.
+        exists a.
+        apply symprod'_elt_is_nadd3.
+      + rewrite naddOrd_unfold. rewrite <- lub_le2.
+        rewrite ord_lt_unfold. simpl.
+        exists b.
+        apply symprod'_elt_is_nadd5.
+      + rewrite naddOrd_unfold. simpl.
+        rewrite <- lub_le1.
+        rewrite ord_lt_unfold; simpl.
+        exists a.
+        rewrite naddOrd_unfold. simpl.
+        rewrite <- lub_le2.
+        apply ord_lt_le.
+        rewrite ord_lt_unfold; simpl.
+        exists b.
+        apply symprod'_elt_is_nadd1.
+    - rewrite naddOrd_unfold. apply lub_least.
+      + apply limit_least. simpl. intro a.
+        rewrite ord_lt_unfold. simpl.
+        exists (inl (inl a)).
+        apply symprod'_elt_is_nadd4.
+      + apply limit_least. simpl. intro b.
+        rewrite ord_lt_unfold. simpl.
+        exists (inl (inr b)).
+        apply symprod'_elt_is_nadd6.
+  Qed.
+
+  Lemma symprod_simulates: simulates (symprod A B R S) symprod'.
+  Proof.
+    hnf. exists (fun a b => inr a = b). split.
+    - hnf; simpl; intuition subst.
+      inversion H; subst.
+      + exists (inr (a,b)). split; auto.
+        apply sym_left; auto.
+      + exists (inr (a0,b0)). split; auto.
+        apply sym_right; auto.
+    - hnf. eauto.
+  Qed.
+
+  Lemma symprod_ord_le:
+    wf_ord (symprod A B R S) (wf_symprod A B R S HwfR HwfS) <= wf_ord symprod' wf_symprod'.
+  Proof.
+    rewrite wf_ord_simulates. apply symprod_simulates.
+  Qed.
+End symprod'.
+
+Section slexprod.
+  Variables A B:Type.
+  Variable R: A -> A -> Prop.
+  Variable S: B -> B -> Prop.
+
+  Hypothesis HwfR: well_founded R.
+  Hypothesis HwfS: well_founded S.
+
+  Lemma slexprod_is_mul1:
+    wf_ord (slexprod A B R S) (wf_slexprod A B R S HwfR HwfS) ≤
+           (wf_ord S HwfS) * (wf_ord R HwfR).
+  Proof.
+    unfold wf_ord. apply limit_least.
+    intros [a b].
+    rewrite mulOrd_unfold. simpl.
+    rewrite <- (sup_le _ _ a); simpl.
+    rewrite addOrd_unfold.
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ b); simpl.
+    apply succ_trans.
+    unfold wf_ord_elt; simpl.
+    generalize (HwfS b).
+    generalize (HwfR a).
+    generalize (wf_slexprod A B R S HwfR HwfS (a, b)).
+    revert b.
+    induction a as [a Hinda] using (well_founded_induction HwfR).
+    induction b as [b Hindb] using (well_founded_induction HwfS).
+    intros [HAccLex] [HAccR] [HAccB]; simpl.
+    rewrite ord_le_unfold; simpl.
+    intros [[a' b'] H]; simpl.
+    inversion H; simpl; subst.
+    - rewrite <- addOrd_le1.
+      rewrite mulOrd_unfold; simpl.
+      rewrite <- (sup_le _ _ (exist _ a' H1)). simpl.
+      rewrite addOrd_unfold. rewrite <- lub_le2.
+      simpl. rewrite <- (sup_le _ _ b').
+      apply succ_trans.
+      apply Hinda; auto.
+    - rewrite addOrd_unfold. rewrite <- lub_le2.
+      simpl. rewrite <- (sup_le _ _ (exist _ b' H1)).
+      apply succ_trans. simpl.
+      rewrite (Hindb b' H1 _ (Acc_intro _ HAccR)); auto with ord.
+  Qed.
+
+  Lemma slexprod_is_mul2:
+    (wf_ord S HwfS) * (wf_ord R HwfR) ≤
+       wf_ord (slexprod A B R S) (wf_slexprod A B R S HwfR HwfS).
+  Proof.
+    unfold wf_ord. rewrite mulOrd_unfold. apply sup_least; simpl.
+    unfold wf_ord_elt; simpl.
+    intro a. generalize (HwfR a).
+    induction a as [a Hinda] using (well_founded_induction HwfR).
+    intros HaccR. simpl.
+    rewrite addOrd_unfold. apply lub_least.
+    - rewrite mulOrd_unfold. simpl.
+      apply sup_least; simpl.
+      destruct HaccR as [HaccR].
+      intros [a' HR]. simpl.
+      apply Hinda; auto.
+    - simpl. apply sup_least; intro b.
+      apply succ_least.
+      clear Hinda.
+      rewrite ord_lt_unfold. exists (a,b). simpl.
+      generalize (wf_slexprod A B R S HwfR HwfS (a, b)).
+      generalize (HwfS b).
+      intros HaccS HaccLex.
+      revert b HaccR HaccS HaccLex.
+      induction a as [a Hinda2] using (well_founded_induction HwfR).
+      induction b as [b Hindb] using (well_founded_induction HwfS).
+      intros HaccR [HaccS] HaccLex; simpl.
+      rewrite addOrd_unfold; simpl.
+      apply lub_least.
+      + destruct HaccR as [HaccR].
+        rewrite mulOrd_unfold; simpl. apply sup_least.
+        intros [a' HR]; simpl.
+        rewrite addOrd_unfold. apply lub_least.
+        * transitivity (limOrd (fun a0 : B => mk_wf_ord B S a0 (HwfS a0)) * mk_wf_ord A R a' (HaccR a' HR) + mk_wf_ord B S b (HwfS b)); auto with ord.
+           rewrite Hinda2 with (HaccLex := wf_slexprod A B R S HwfR HwfS (a',b)); auto with ord.
+           rewrite <- (wf_ord_Acc_irrelevant _ _ (a,b) (wf_slexprod A B R S HwfR HwfS (a,b)) HaccLex).
+           apply wf_ord_le_trans.
+           apply rt_step.
+           apply left_slex; auto.
+        * simpl. apply sup_least; intro b'.
+          apply succ_least.
+          rewrite Hinda2 with (HaccLex := wf_slexprod A B R S HwfR HwfS (a',b')); auto with ord.
+          rewrite <- (wf_ord_Acc_irrelevant _ _ (a,b) (wf_slexprod A B R S HwfR HwfS (a,b)) HaccLex).
+           apply wf_ord_lt_trans.
+           apply t_step.
+           apply left_slex; auto.
+      + apply sup_least; intros [b' HS].
+        apply succ_least; simpl.
+        rewrite Hindb with (HaccLex:=(wf_slexprod A B R S HwfR HwfS (a,b'))); auto.
+        rewrite <- (wf_ord_Acc_irrelevant _ _ (a,b) (wf_slexprod A B R S HwfR HwfS (a,b)) HaccLex).
+        apply wf_ord_lt_trans.
+        apply t_step.
+        apply right_slex; auto.
+  Qed.
+
+  Lemma slexprod_is_mul:
+    wf_ord (slexprod A B R S) (wf_slexprod A B R S HwfR HwfS) ≈
+           (wf_ord S HwfS) * (wf_ord R HwfR).
+  Proof.
+    split. apply slexprod_is_mul1. apply slexprod_is_mul2.
+  Qed.
+End slexprod.
+
+Theorem slexprod_nat_omega2:
+  wf_ord (slexprod nat nat lt lt) (wf_slexprod nat nat lt lt Wf_nat.lt_wf Wf_nat.lt_wf) ≈
+    expOrd ω 2.
+Proof.
+  rewrite slexprod_is_mul.
+  repeat rewrite wf_ord_lt_nat_omega.
+  rewrite expOrd_succ; auto with ord.
+  rewrite expOrd_one'; auto with ord.
+Qed.
+
+
+Section dep_lexprod.
+  Variable A : Type.
+  Variable B : A -> Type.
+  Variable R : A -> A -> Prop.
+  Variable S : forall x : A, B x -> B x -> Prop.
+
+  Hypothesis HwfR: well_founded R.
+  Hypothesis HwfS: forall i, well_founded (S i).
+
+  Lemma lexprod_elt_le_mul: forall q0 Hacc Hacci Haccx,
+    mk_wf_ord _ (lexprod A B R S) q0 Hacc ≤
+      (supOrd (fun i =>
+        (limOrd (fun x =>
+                   mk_wf_ord (B i) (S i) x (HwfS i x))))) *
+      (mk_wf_ord A R (projT1 q0) Hacci) +
+      (mk_wf_ord (B (projT1 q0)) (S (projT1 q0)) (projT2 q0) Haccx).
+  Proof.
+    induction q0 as [q0 Hind] using (well_founded_induction (wf_lexprod A B R S HwfR HwfS)).
+    intros [Hacc] Hacci Haccx. simpl.
+    apply limit_least.
+    intros [q Hq]. simpl.
+    inversion Hq; subst.
+    - rewrite <- addOrd_le1.
+      rewrite mulOrd_unfold. simpl.
+      destruct Hacci as [Hacci]. simpl.
+      rewrite <- (sup_le _ _ (exist _ x H)). simpl.
+      rewrite (Hind (existT _ x y) Hq _ (Hacci x H) (HwfS x y)).
+      apply addOrd_increasing.
+      rewrite <- (sup_le _ _ x).
+      rewrite ord_lt_unfold. simpl.
+      exists y. auto with ord.
+    - destruct Haccx as [Haccx].
+      rewrite (Hind (existT _ x y) Hq _ Hacci (Haccx y H)).
+      simpl. apply addOrd_increasing.
+      rewrite ord_lt_unfold. simpl.
+      exists (exist _ y H). simpl.
+      auto with ord.
+  Qed.
+
+  Lemma lexprod_le_mul:
+    wf_ord (lexprod A B R S) (wf_lexprod A B R S HwfR HwfS) <=
+      (supOrd (fun i:A => wf_ord (S i) (HwfS i))) * (wf_ord R HwfR).
+  Proof.
+    unfold wf_ord. apply limit_least. intros [i x]. simpl.
+    rewrite mulOrd_unfold. simpl.
+    rewrite <- (sup_le _ _ i).
+    rewrite addOrd_unfold. rewrite <- lub_le2.
+    rewrite (sup_unfold A). simpl.
+    rewrite <- (sup_le _ _ (existT _ i x)). simpl.
+    apply succ_trans. unfold wf_ord_elt.
+    apply (lexprod_elt_le_mul (existT _ i x)).
+  Qed.
+End dep_lexprod.
+
+Section lex_exp.
+  Variable A : Set.
+  Variable R : A -> A -> Prop.
+
+  Hypothesis HwfR: well_founded R.
+
+  Fixpoint list_interp (xs:list A) : Ord :=
+    match xs with
+    | [] => 0
+    | x::xs => expOrd ω (wf_ord_elt A R HwfR x) + list_interp xs
+    end.
+
+  Lemma list_interp_dominated: forall a x Hacc,
+      Desc A R (a :: x) ->
+      list_interp x <= expOrd ω (mk_wf_ord A R a Hacc) * natOrdSize (length x).
+  Proof.
+    intros.
+    apply desc_hd in H.
+    rewrite Forall_forall in H.
+    induction x.
+    { simpl in *; intuition auto with ord. }
+    intros.
+    replace (length (a0::x)) with (length x + 1)%nat by (simpl; auto with arith).
+    rewrite natOrdSize_add.
+    rewrite ordDistrib_left.
+    simpl.
+    rewrite mulOrd_one_r.
+    apply addOrd_monotone; auto with ord.
+    + apply expOrd_monotone; auto with ord.
+      apply mk_wf_ord_le_trans.
+      apply H; simpl; auto.
+    + apply IHx. intuition.
+      apply H. simpl in *; intuition.
+  Qed.
+
+  Lemma lex_exp_lt_interp:
+    forall xs ys, Ltl A R xs ys -> Desc A R xs -> list_interp xs < list_interp ys.
+  Proof.
+    intros xs ys H. induction H; simpl; intros.
+    - rewrite <- addOrd_le1. apply expOrd_nonzero.
+    - rewrite <- (addOrd_le1 _ (list_interp y)).
+      rewrite (expOrd_unfold _ (wf_ord_elt A R HwfR b)).
+      rewrite <- lub_le2.
+      unfold wf_ord_elt. simpl.
+      destruct (HwfR b); simpl.
+      rewrite <- (sup_le _ _ (exist _ a H)). simpl.
+      rewrite mulOrd_unfold.
+      rewrite <- (sup_le  _ _ (length x + 1)%nat). simpl.
+      rewrite natOrdSize_add. rewrite ordDistrib_left.
+      simpl.
+      rewrite mulOrd_one_r.
+      rewrite (wf_ord_Acc_irrelevant A R a (HwfR a) (a0 a H)).
+      rewrite <- addOrd_assoc. apply addOrd_increasing.
+      apply ord_lt_le_trans with (list_interp x + expOrd ω (mk_wf_ord A R a (a0 a H))).
+      { rewrite <- addOrd_zero_r at 1.
+        apply addOrd_increasing.
+        apply expOrd_nonzero. }
+      apply addOrd_monotone; auto with ord.
+      apply list_interp_dominated; auto.
+    - apply addOrd_increasing.
+      apply IHLtl.
+      apply (dist_Desc_concat _ _ [a] x) in H0. intuition.
+  Qed.
+
+  Lemma list_interp_correct1: forall (xs:Pow A R) Hacc,
+    mk_wf_ord (Pow A R) (lex_exp A R) xs Hacc <= list_interp (proj1_sig xs).
+  Proof.
+    induction xs as [xs Hindxs] using (well_founded_induction (wf_clos_trans _ _ (wf_lex_exp A R HwfR))).
+    intros [Hacc]; simpl.
+    apply limit_least. intros [ys Hys]. simpl.
+    generalize (Hacc ys Hys). clear Hacc.
+    revert Hindxs. red in Hys.
+    destruct ys as [ys Hysdesc].
+    destruct xs as [xs Hxsdesc]. simpl in *.
+    induction Hys; simpl; intros.
+    - apply ord_le_lt_trans with 0; auto with ord.
+      + apply (Hindxs (exist _ [] Hysdesc)). apply t_step. apply Lt_nil.
+      + rewrite <- addOrd_le1. rewrite expOrd_unfold. rewrite <- lub_le1. auto with ord.
+    - rewrite <- addOrd_le1.
+      rewrite expOrd_unfold.
+      rewrite <- lub_le2. unfold wf_ord_elt. simpl.
+      destruct (HwfR b) as [Haccb]. simpl.
+      rewrite <- (sup_le _ _ (exist _ a H)). simpl.
+      rewrite mulOrd_unfold; simpl.
+      rewrite <- (sup_le _ _ (length x + 1)%nat).
+      apply ord_le_lt_trans with
+        (expOrd ω (mk_wf_ord A R a (Haccb a H)) * natOrdSize (length x + 1) + 0).
+      2: { apply addOrd_increasing. apply expOrd_nonzero. }
+      rewrite addOrd_zero_r.
+      rewrite natOrdSize_add. simpl.
+      rewrite ordDistrib_left.
+      rewrite mulOrd_one_r.
+      rewrite Hindxs; auto.
+      2:{ apply t_step. auto. apply Lt_hd. auto. }
+      simpl.
+      apply addOrd_monotone.
+      { apply expOrd_monotone. unfold wf_ord_elt. apply wf_ord_Acc_irrelevant. }
+      apply list_interp_dominated; auto.
+
+    - rewrite Hindxs.
+      2:{ apply t_step; auto. apply Lt_tl; auto. }
+      simpl. apply addOrd_increasing.
+      apply lex_exp_lt_interp; auto.
+      generalize (dist_Desc_concat _ _ [a] x Hysdesc).
+      intuition.
+  Qed.
+
+  Lemma clos_trans_Lt_tail: forall x a b,
+      clos_trans _ (Ltl A R) a b ->
+      clos_trans _ (Ltl A R) (x::a) (x::b).
+  Proof.
+    intros x a b H. induction H.
+    - apply t_step. apply Lt_tl. auto.
+    - apply t_trans with (x::y); auto.
+  Qed.
+
+  Lemma Desc_frontways: forall xs x,
+      Desc A R (x::xs) <->
+      match xs with
+      | [] => True
+      | (x'::xs') => clos_refl A R x' x /\ Desc A R (x'::xs')
+      end.
+  Proof.
+    intros xs. rewrite <- (rev_involutive xs).
+    generalize (rev xs). clear xs.
+    induction l; simpl; intuition.
+    - apply d_one.
+    - inversion H; subst.
+      { clear -H2. induction l; simpl in *; intuition. }
+      apply (app_inj_tail (l0++[y]) (x::rev l)) in H0.
+      destruct H0; subst.
+      rewrite H0 in H2.
+      generalize H2.
+      rewrite (IHl x).
+      case_eq (rev l); simpl; intros.
+      + rewrite H3 in H0.
+        destruct l0; simpl in *; inversion H0; subst.
+        * split; auto. apply d_one.
+        * destruct l0; discriminate.
+      + split; intuition.
+        change (Desc A R ((a0 :: l1) ++ [a])).
+        rewrite <- H3.
+        destruct l; simpl.
+        { apply d_one. }
+        apply d_conc; auto.
+        * simpl in H0.
+          apply (app_inj_tail l0 (x::rev l)) in H0.
+          intuition subst. auto.
+        * rewrite <- H3 in H6. auto.
+    - destruct l; simpl in *; intuition.
+      + apply (d_conc A R a x []); auto.
+        simpl. apply d_one.
+      + case_eq (rev l); intros.
+        * rewrite H0 in H. simpl in *.
+          intuition.
+          inversion H2; subst.
+          apply (app_inj_tail (l0++[y]) ([a0])) in H.
+          intuition subst.
+          destruct l0; simpl in *; inversion H5; subst.
+          ** apply (d_conc A R a a0 [x]); auto.
+             simpl.
+             apply (d_conc A R a0 x []); auto.
+             simpl.
+             apply d_one.
+          ** destruct l0; discriminate.
+        * simpl.
+          rewrite H0 in H. simpl in *.
+          intuition.
+          inversion H2; subst.
+          { destruct l0; discriminate. }
+          apply (app_inj_tail (l1++[y]) (a1::l0++[a0])) in H.
+          destruct H; subst; auto.
+          apply (app_inj_tail l1 (a1::l0)) in H.
+          destruct H; subst; simpl in *.
+          apply (d_conc A R a a0 (x::a1::l0)); auto.
+          rewrite <- H0.
+          simpl.
+          rewrite (IHl x).
+          rewrite H0. simpl.
+          split; auto.
+  Qed.
+
+  Lemma desc_ltl: forall xs x,
+      Desc A R (x :: xs) ->
+      Ltl A R xs (x::xs).
+  Proof.
+    induction xs; intros.
+    { apply Lt_nil. }
+    apply Desc_frontways in H. destruct H.
+    inversion H; subst.
+    - apply Lt_hd; auto.
+    - apply Lt_tl. auto.
+  Qed.
+
+  Hypothesis R_trans: forall x y z, R x y -> R y z -> R x z.
+
+  Lemma list_interp_correct2: forall (xs:Pow A R) Hacc,
+    list_interp (proj1_sig xs) <= mk_wf_ord (Pow A R) (lex_exp A R) xs Hacc.
+  Proof.
+    induction xs as [xs Hindxs] using (well_founded_induction (wf_clos_trans _ _ (wf_lex_exp A R HwfR))).
+    intros [Hacc]; simpl.
+    destruct xs as [xs Hxs].
+    destruct xs as [|x xs].
+    { simpl; intros; auto with ord. }
+    simpl.
+    rewrite addOrd_unfold.
+    apply lub_least.
+    - simpl.
+      rewrite expOrd_unfold. apply lub_least.
+      { apply succ_least.
+        rewrite ord_lt_unfold. simpl.
+        exists (exist _ (exist _ [] (d_nil _ _)) (Lt_nil _ _ _ _)).
+        auto with ord. }
+      apply sup_least. simpl. unfold wf_ord_elt.
+      destruct (HwfR x) as [Haccx]. simpl.
+      intros [x' Hx']. simpl.
+      rewrite mulOrd_unfold. simpl.
+      apply sup_least; intro i.
+      set (q := repeat x' (S i)).
+      assert (Hq1: Desc A R q).
+      { subst q.
+        induction i; simpl.
+        { apply d_one. }
+        apply Desc_frontways; auto.
+        split; auto. apply r_refl. }
+      assert (Hq2: Ltl A R q (x::xs)).
+      { apply Lt_hd; auto. }
+      apply ord_lt_le.
+      rewrite ord_lt_unfold. simpl.
+      exists (exist _ (exist _ q Hq1) (Hq2)); simpl.
+      rewrite <- Hindxs; auto.
+      2:{ apply t_step. auto. }
+      transitivity (expOrd ω (mk_wf_ord A R x' (Haccx x' Hx')) * natOrdSize (1+i)).
+      { rewrite natOrdSize_add. simpl.
+        rewrite ordDistrib_left.
+        rewrite mulOrd_one_r.
+        auto with ord. }
+      simpl proj1_sig. subst q.
+      simpl Nat.add.
+      generalize (S i).
+      induction n.
+      { simpl. rewrite mulOrd_zero_r. auto with ord. }
+      replace (S n) with (n+1)%nat at 1 by auto with arith.
+      rewrite natOrdSize_add.
+      rewrite ordDistrib_left.
+      simpl.
+      rewrite mulOrd_one_r.
+      apply addOrd_monotone; auto.
+      apply expOrd_monotone; auto.
+      unfold wf_ord_elt.
+      apply wf_ord_Acc_irrelevant.
+    - apply sup_least. intro i. apply succ_least.
+      assert (Hxs': Desc A R xs).
+      { generalize Hxs. rewrite Desc_frontways.
+        destruct xs; intuition. apply d_nil.
+      }
+      assert (Hi : i < mk_wf_ord (Pow A R) (lex_exp A R) (exist _ xs Hxs') (wf_lex_exp A R HwfR _)).
+      { rewrite <- Hindxs; auto with ord.
+        apply t_step. apply desc_ltl; auto. }
+      destruct (wf_lex_exp A R HwfR (exist (Desc A R) xs Hxs')) as [Hacc']. simpl in Hi.
+      rewrite ord_lt_unfold in Hi. simpl in Hi.
+      destruct Hi as [[[q Hq1] Hq2] Hi]. simpl in *.
+      assert (Hxq1: Desc A R (x::q)).
+      { rewrite Desc_frontways. destruct q; split; auto.
+        generalize Hxs. rewrite Desc_frontways.
+        destruct xs; auto. intro.
+        inversion Hq2. red in Hq2. simpl in Hq2.
+        intuition.
+        inversion Hq2; subst.
+        inversion H; subst; auto.
+        apply r_step. apply R_trans with a0; auto.
+        inversion Hq2; subst.
+        apply r_step; auto.
+        apply r_refl.
+        generalize Hxs. rewrite Desc_frontways.
+        intuition. }
+      assert (Hxq2: Ltl A R (x::q) (x::xs)).
+      { apply Lt_tl; auto. }
+      rewrite ord_lt_unfold. simpl.
+      exists (exist _ (exist _ (x::q) Hxq1) Hxq2). simpl.
+      rewrite <- Hindxs; simpl; auto.
+      apply addOrd_monotone; auto with ord.
+      rewrite Hi.
+      apply list_interp_correct1.
+      apply t_step. auto.
+  Qed.
+
+  Lemma list_interp_correct: forall (xs:Pow A R) Hacc,
+      mk_wf_ord (Pow A R) (lex_exp A R) xs Hacc ≈ list_interp (proj1_sig xs).
+  Proof.
+    intros. split. apply list_interp_correct1. apply list_interp_correct2.
+  Qed.
+
+  Lemma lex_exp_eq:
+    wf_ord (lex_exp A R) (wf_lex_exp A R HwfR) ≈ expOrd ω (wf_ord R HwfR).
+  Proof.
+    unfold wf_ord.
+    split.
+    - apply limit_least.
+      intros [q Hq]. simpl.
+      destruct q. simpl.
+
+      { rewrite expOrd_unfold.
+        rewrite <- lub_le1. simpl.
+        apply succ_trans. unfold wf_ord_elt. simpl.
+        destruct (wf_lex_exp A R HwfR (exist (Desc A R) [] Hq)); simpl.
+        apply limit_least.
+        intros [[q' Hq'] H]; simpl.
+        inversion H. }
+      rewrite expOrd_unfold. rewrite <- lub_le2. simpl.
+      rewrite <- (sup_le _ _ a).
+      unfold wf_ord_elt.
+      rewrite list_interp_correct.
+      simpl.
+      rewrite mulOrd_unfold.
+      rewrite <- (sup_le _ _ (length q+1)%nat). simpl.
+      apply ord_le_lt_trans with
+        (expOrd ω (mk_wf_ord A R a (HwfR a)) * natOrdSize (length q + 1) + 0).
+      2:{ apply addOrd_increasing. apply expOrd_nonzero. }
+      rewrite addOrd_zero_r.
+      rewrite natOrdSize_add. rewrite ordDistrib_left. simpl.
+      rewrite mulOrd_one_r.
+      apply addOrd_monotone; auto with ord.
+      apply list_interp_dominated; auto.
+    - rewrite expOrd_unfold.
+      apply lub_least.
+      { apply succ_least.
+        rewrite ord_lt_unfold. simpl.
+        exists (exist _ [] (d_nil _ _)). auto with ord. }
+      simpl. apply sup_least; intro a.
+      rewrite mulOrd_unfold. apply sup_least; intro i.
+      apply ord_lt_le. rewrite ord_lt_unfold. simpl.
+      set (q := repeat a (S i)).
+      assert (Hq: Desc A R q).
+      { subst q.
+        induction i; simpl.
+        { apply d_one. }
+        apply Desc_frontways; auto.
+        split; auto. apply r_refl. }
+      exists (exist _ q Hq).
+      unfold wf_ord_elt.
+      rewrite list_interp_correct. simpl.
+      unfold wf_ord_elt.
+      subst q. clear Hq.
+      induction i.
+      + simpl.
+        rewrite addOrd_zero_r.
+        rewrite mulOrd_zero_r.
+        rewrite addOrd_zero_l.
+        auto with ord.
+      + replace (S i) with (i+1)%nat at 1 by auto with arith.
+        rewrite natOrdSize_add. simpl.
+        rewrite ordDistrib_left.
+        rewrite mulOrd_one_r.
+        rewrite <- addOrd_assoc.
+        apply addOrd_monotone; auto with ord.
+  Qed.
+End lex_exp.
+
+Fixpoint tree_selection (x:Ord) :=
+  match x with
+  | ord A f => iterated_smash_sum (ord A (fun a => tree_selection (f a)))
+  end.
+
+Lemma tree_selection_nonzero: forall x, 0 < tree_selection x.
+Proof.
+  intros [A f]; simpl. apply iterated_smash_sum_nonzero.
+Qed.
+
+Lemma tree_selection_monotone: forall x y,
+    x <= y -> tree_selection x <= tree_selection y.
+Proof.
+  induction x as [A f Hx]; intros [B g]; simpl; intro H.
+  apply iterated_smash_sum_monotone.
+  apply limit_least; intro a.
+  rewrite ord_le_unfold in H.
+  specialize (H a).
+  rewrite ord_lt_unfold in H.
+  destruct H as [b H].
+  rewrite ord_lt_unfold. simpl.
+  exists b.
+  auto.
+Qed.
+
+Section list_ext.
+  Variable A:Type.
+  Variable R:A -> A -> Prop.
+
+  Hypothesis HwfR: well_founded R.
+
+  Fixpoint list_ext_interp (xs:list A) : Ord :=
+    match xs with
+    | [] => 0
+    | x::xs => tree_selection (mk_wf_ord A R x (HwfR x)) ⊕ list_ext_interp xs
+    end.
+
+  Lemma list_ext_interp_app: forall xs ys,
+      list_ext_interp (xs++ys) ≈ list_ext_interp xs ⊕ list_ext_interp ys.
+  Proof.
+    induction xs; simpl; intros.
+    - rewrite naddOrd_comm. rewrite naddOrd_zero_r. auto with ord.
+    - rewrite IHxs.
+      apply naddOrd_assoc.
+  Qed.
+
+  Lemma list_ext_nil: forall l,
+      clos_refl_trans (list A) (list_ext A R) [] l.
+  Proof.
+    intros. destruct l. apply rt_refl.
+    apply clos_t_clos_rt.
+    apply clos_trans_list_ext_nil_l.
+    discriminate.
+  Qed.
+
+  Lemma list_ext_interp_le: forall xs Hxs,
+    mk_wf_ord (list A) (list_ext A R) xs Hxs <= list_ext_interp xs.
+  Proof.
+    induction xs using (well_founded_induction (wf_clos_trans _ _ (wf_list_ext A R HwfR))).
+    intros [Hxs]. simpl. apply limit_least.
+    intros [ys Hys]. simpl.
+    inversion Hys; subst.
+    rewrite (H (l1 ++ bs ++ l2)); auto.
+    2:{ apply t_step; auto. }
+    repeat rewrite list_ext_interp_app; simpl.
+    apply naddOrd_increasing2.
+    apply naddOrd_increasing1.
+    destruct (HwfR a). simpl.
+    assert (Hqs: exists qs:list
+                             (limOrd
+                                (fun a1 : {a' : A | R a' a} =>
+                                   tree_selection (mk_wf_ord A R (proj1_sig a1) (a0 (proj1_sig a1) (proj2_sig a1))))),
+               pairwise (fun x y => tree_selection (mk_wf_ord A R x (HwfR x)) <= sz y)
+                                      bs qs).
+    { cut (clos_trans _ (list_ext A R) bs (l1 ++ a :: l2)).
+      { clear Hys.
+        induction H0; simpl.
+        { exists nil. constructor. }
+        intros. destruct IHForall as [qs Hqs].
+        { apply t_trans with (x::l); auto.
+          change (clos_trans _ (list_ext A R) ([] ++ l) ([x]++l)).
+          apply clos_trans_list_ext_app_l.
+          apply clos_trans_list_ext_nil_l. discriminate.
+          apply rt_refl.
+        }
+        assert (Hx: clos_trans _ (list_ext A R) [x] (l1 ++ a:: l2)).
+        { apply clos_rt_t with (l1 ++ x :: l2).
+          { apply rt_trans with ([x] ++ l2).
+            rewrite <- (app_nil_r [x]) at 1.
+            apply (clos_refl_trans_list_ext_app_l _ _ [x] nil l2).
+            apply list_ext_nil.
+            simpl.
+            apply (clos_refl_trans_list_ext_app_r _ _ [] l1 (x::l2)).
+            apply list_ext_nil.
+          }
+          apply t_step.
+          apply (list_ext_intro _ _ a [x] l1 l2).
+          constructor; auto.
+        }
+        generalize (H [x] Hx (wf_list_ext A R HwfR [x])).
+        destruct (wf_list_ext A R HwfR [x]); simpl; intros.
+        exists (exist _ x H0 :: qs).
+        constructor; simpl; auto.
+        apply tree_selection_monotone.
+        apply wf_ord_Acc_irrelevant. }
+
+      apply clos_rt_t with (l1 ++ bs ++ l2).
+      2:{ apply t_step. auto. }
+      apply rt_trans with (bs ++ l2).
+      { apply rt_trans with (bs ++ []).
+        rewrite app_nil_r. apply rt_refl.
+        apply clos_refl_trans_list_ext_app_l.
+        apply list_ext_nil. }
+      change (bs ++ l2) with ([] ++ bs ++ l2).
+      apply clos_refl_trans_list_ext_app_r.
+      apply list_ext_nil. }
+
+    destruct Hqs as [qs Hqs].
+    unfold iterated_smash_sum.
+    rewrite ord_lt_unfold. exists qs. simpl.
+    clear -Hqs.
+    induction Hqs; simpl; auto with ord.
+    apply naddOrd_monotone; auto with ord.
+  Qed.
+
+  Lemma list_ext_interp_lt: forall xs q,
+      q < list_ext_interp xs ->
+      exists l1, exists x, exists l2, exists q',
+        xs = l1 ++ x :: l2 /\
+        q' < tree_selection (mk_wf_ord A R x (HwfR x)) /\
+          q <= list_ext_interp l1 ⊕ q' ⊕ list_ext_interp l2.
+  Proof.
+    induction xs. simpl; intros.
+    { elim (zero_lt q); auto. }
+    simpl; intros q H.
+    rewrite naddOrd_unfold in H.
+    apply lub_lt in H. destruct H.
+    - rewrite ord_lt_unfold in H.
+      destruct H as [q' Hq]. simpl in *.
+      exists []. exists a. exists xs.
+      exists q'.
+      simpl; intuition auto with ord.
+      rewrite (naddOrd_comm 0).
+      rewrite naddOrd_zero_r.
+      auto.
+    - rewrite ord_lt_unfold in H.
+      destruct H as [q' Hq]; simpl in *.
+      destruct (IHxs q' ) as [l1 [x [l2 [q'' [?[??]]]]]]; auto with ord.
+      exists (a::l1), x, l2, q''. simpl; intuition.
+      rewrite H; auto.
+      rewrite  Hq.
+      rewrite <- naddOrd_assoc.
+      apply naddOrd_monotone; auto with ord.
+  Qed.
+
+  Lemma tree_selection_lt: forall q x Hacc,
+      q < tree_selection (mk_wf_ord A R x Hacc) ->
+      exists xs, Forall (fun b => R b x) xs /\ q <= list_ext_interp xs.
+  Proof.
+    intros q x [Hacc]; simpl. intro H.
+    unfold iterated_smash_sum in H. simpl in H.
+    rewrite ord_lt_unfold in H. simpl in H.
+    destruct H as [xs Hxs].
+    exists (map (@proj1_sig _ (fun z => R z x)) xs).
+    rewrite Hxs. simpl.
+    clear q Hxs.
+    induction xs; simpl; intuition auto with ord.
+    - constructor; auto.
+      destruct a; auto.
+    - apply naddOrd_monotone; auto with ord.
+      apply tree_selection_monotone.
+      apply wf_ord_Acc_irrelevant.
+  Qed.
+
+  Lemma list_ext_interp_le2: forall xs Hxs,
+    list_ext_interp xs <= mk_wf_ord (list A) (list_ext A R) xs Hxs.
+  Proof.
+    induction xs using (well_founded_induction (wf_list_ext A R HwfR)).
+    intros [Hxs]. simpl.
+    apply ord_le_intro.
+    intros q Hq.
+    destruct (list_ext_interp_lt xs q Hq) as [l1 [x [l2 [q' [?[??]]]]]].
+    rewrite H2.
+    destruct (tree_selection_lt q' x (HwfR x)) as [qs [Hqs1 Hqs2]]; auto.
+    rewrite ord_lt_unfold. simpl.
+    assert (Hext: list_ext A R (l1++qs++l2) xs).
+    { rewrite H0.
+      apply (list_ext_intro _ _ x qs l1 l2); auto.
+    }
+    exists (exist _ (l1++qs++l2) Hext). simpl.
+    rewrite <- H; auto.
+    repeat rewrite list_ext_interp_app.
+    repeat apply naddOrd_monotone; auto with ord.
+  Qed.
+
+  Lemma list_ext_is_tree_selection:
+    wf_ord (list_ext A R) (wf_list_ext A R HwfR) ≈ tree_selection (wf_ord R HwfR).
+  Proof.
+    split.
+    - unfold wf_ord. simpl.
+      apply limit_least. intro xs. unfold iterated_smash_sum.
+      rewrite ord_lt_unfold; simpl.
+      exists xs.
+      apply list_ext_interp_le.
+    - unfold wf_ord. simpl. unfold iterated_smash_sum.
+      apply limit_least. simpl.
+      intros xs.
+      rewrite ord_lt_unfold. exists xs.
+      simpl.
+      apply list_ext_interp_le2.
+  Qed.
+End list_ext.
