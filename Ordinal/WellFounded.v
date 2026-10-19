@@ -6,16 +6,209 @@ From Stdlib Require Import List.
 From Stdlib Require Import Relations.
 From Stdlib Require Import Program.Wf.
 From Stdlib Require Import Wellfounded.
+From Stdlib Require Import ClassicalFacts.
 
 Import ListNotations.
 Open Scope list.
 
 Unset Printing Records.
 
+From Ordinal Require Import Classical.
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
 From Ordinal Require Import NaturalArith.
+
+Lemma well_founded_iff_ind (A:Type) (R:A->A->Prop) :
+  well_founded R <->
+    (forall P:(A -> Prop),
+        (forall x, (forall y, R y x -> P y) -> P x) ->
+        (forall x, P x)).
+Proof.
+  split.
+  - intros. apply (well_founded_induction H); auto.
+  - intros. hnf. intro a.
+    apply H. intros. apply Acc_intro; auto.
+Qed.
+
+(** Simulations are ways to describe the way that well-founded relations
+    are related to one another. If `simulates R S`, then every decrease
+    via the relation `R` can be mimiced by some correspnding decrease in the
+    relation `S`.
+
+    This notion of simulation is reflexive and transitive, and the wellf-foundedness
+    of `S` implies well-foundeness of `R`. As we will show below, simulation
+    of wellfounded relations plays the same role between relations as `<=` does
+    between ordinals. There is likewise a related notion of domination of relations
+    that mirrors the relation of `<` between ordinals. *)
+
+Section simulates.
+  Context {A B: Type}.
+  Variable R: A -> A -> Prop.
+  Variable S: B -> B -> Prop.
+
+  Definition simulation (F: A -> B -> Prop) :=
+    forall (a a':A) (b:B), R a' a -> F a b -> exists b', S b' b /\ F a' b'.
+
+  Definition total (F: A -> B -> Prop) :=
+    forall (a:A), exists (b:B), F a b.
+
+  Definition has_dominator (F: A -> B -> Prop) :=
+    exists b, forall a, exists b', S b' b /\ F a b'.
+
+  Lemma simulation_Acc: forall F,
+      simulation F ->
+      forall b,
+      Acc S b ->
+      forall a,
+        F a b ->
+        Acc R a.
+  Proof.
+    intros F HF b Hb.
+    induction Hb as [b Hacc Hind].
+    intros a Hab.
+    constructor; intros a' Ha'.
+    destruct (HF a a' b) as [b' [Hb'1 Hb'2]]; auto.
+    apply Hind with b'; auto.
+  Qed.
+
+  Definition simulates := exists F, simulation F /\ total F.
+
+  Definition dominates := exists F, simulation F /\ has_dominator F.
+
+  Lemma simulates_wf:
+    simulates ->
+    well_founded S ->
+    well_founded R.
+  Proof.
+    intros [F [HF1 HF2]] Hwf.
+    intro a.
+    destruct (HF2 a) as [b Hb].
+    apply simulation_Acc with F b; auto.
+  Qed.
+
+  Lemma dominates_simulates: dominates -> simulates.
+  Proof.
+    intros [F [HF1 HF2]].
+    destruct HF2 as [b HF2].
+    exists F; split; auto.
+    hnf; intros.
+    destruct (HF2 a) as [b' [Hb1 Hb2]].
+    eauto.
+  Qed.
+End simulates.
+
+Definition transitive_simulation
+  {A B C:Type} (F: A -> B -> Prop) (G:B -> C -> Prop) : A -> C -> Prop :=
+  fun a c => exists b, F a b /\ G b c.
+
+Lemma transitive_is_simulation (A B C:Type) (F: A -> B -> Prop) (G:B -> C -> Prop)
+  (R: A -> A -> Prop)
+  (S: B -> B -> Prop)
+  (T: C -> C -> Prop) :
+
+  simulation R S F ->
+  simulation S T G ->
+  simulation R T (transitive_simulation F G).
+Proof.
+  intros HsimF HsimG.
+  intros a a' c HR [b [HF HG]].
+  destruct (HsimF a a' b HR HF) as [b' [HS HF2]].
+  destruct (HsimG b b' c HS HG) as [c' [HT HG2]].
+  exists c'; split; auto.
+  hnf. exists b'. split; auto.
+Qed.
+
+Lemma simulates_refl (A:Type) (R:A -> A -> Prop): simulates R R.
+Proof.
+  exists (@eq A). split.
+  - hnf. intros; subst; eauto.
+  - hnf; intros. eauto.
+Qed.
+
+Lemma simulates_transitive (A B C:Type)
+  (R: A -> A -> Prop)
+  (S: B -> B -> Prop)
+  (T: C -> C -> Prop) :
+  simulates R S -> simulates S T -> simulates R T.
+Proof.
+  intros [F [HF1 HF2]] [G [HG1 HG2]].
+  exists (transitive_simulation F G).
+  split. eapply transitive_is_simulation; eauto.
+  hnf; intros.
+  destruct (HF2 a) as [b Hb].
+  destruct (HG2 b) as [c Hc].
+  exists c. exists b. split; auto.
+Qed.
+
+Lemma sim_dom_dom (A B C:Type)
+  (R: A -> A -> Prop)
+  (S: B -> B -> Prop)
+  (T: C -> C -> Prop) :
+  simulates R S -> dominates S T -> dominates R T.
+Proof.
+  intros [F [HF1 HF2]].
+  intros [G [HG1 HG2]].
+  exists (transitive_simulation F G). split.
+  eapply transitive_is_simulation; eauto.
+  destruct HG2 as [c H].
+  hnf.
+  exists c.
+  intros a.
+  destruct (HF2 a) as [b Hb].
+  destruct (H b) as [c' [Hc1 Hc2]].
+  exists c'. split; auto.
+  hnf. eauto.
+Qed.
+
+Lemma dom_sim_dom (A B C:Type)
+  (R: A -> A -> Prop)
+  (S: B -> B -> Prop)
+  (T: C -> C -> Prop) :
+  dominates R S -> simulates S T -> dominates R T.
+Proof.
+  intros [F [HF1 HF2]].
+  intros [G [HG1 HG2]].
+  exists (transitive_simulation F G). split.
+  eapply transitive_is_simulation; eauto.
+  destruct HF2 as [b Hb].
+  destruct (HG2 b) as [c Hc].
+  exists c.
+  intros a.
+  destruct (Hb a) as [b' [Hb1 Hb2]].
+  destruct (HG1 b b' c) as [c' [Hc1 Hc2]]; auto.
+  exists c'; split; auto.
+  hnf; eauto.
+Qed.
+
+Lemma dominates_transitive (A B C:Type)
+  (R: A -> A -> Prop)
+  (S: B -> B -> Prop)
+  (T: C -> C -> Prop) :
+  dominates R S -> dominates S T -> dominates R T.
+Proof.
+  intros.
+  eapply dom_sim_dom; eauto.
+  apply dominates_simulates; auto.
+Qed.
+
+Lemma dominates_wf_irreflexive (A:Type) (R: A -> A -> Prop):
+  well_founded R ->
+  dominates R R ->
+  False.
+Proof.
+  intro Hwf.
+  intros [F [HF1 HF2]].
+  destruct HF2 as [a H].
+  destruct (H a) as [a' [Ha1 Ha2]].
+  clear H.
+  revert a' Ha1 Ha2.
+  induction a as [a Hinda] using (well_founded_induction Hwf).
+  intros.
+  destruct (HF1 a a' a') as [x [Hx1 Hx2]]; auto.
+  apply (Hinda a' Ha1 x Hx1 Hx2).
+Qed.
+
 
 (** * Well-founded relations generate ordinals *)
 
@@ -104,7 +297,7 @@ Proof.
   apply wf_ord_Acc_irrelevant.
 Qed.
 
-(* The ordinal generated by a well-founded relation depends only on the relation,
+(** The ordinal generated by a well-founded relation depends only on the relation,
    not on the proof of well-foundedness. *)
 Theorem wf_ord_proof_irr: forall A (R: A -> A -> Prop) H1 H2,
   wf_ord R H1 ≈ wf_ord R H2.
@@ -112,7 +305,7 @@ Proof.
   intros; split; apply wf_ord_proof_irr_le; auto.
 Qed.
 
-(* The ordinal generated by the strict order on natural numbers is omega. *)
+(** The ordinal generated by the strict order on natural numbers is omega. *)
 Theorem wf_ord_lt_nat_omega : wf_ord lt Wf_nat.lt_wf ≈ ω.
 Proof.
   split.
@@ -137,6 +330,27 @@ Proof.
     exists (exist _ i (PeanoNat.Nat.lt_succ_diag_r i)); simpl.
     apply IHi.
 Qed.
+
+(** This next ordinal construction is called "transitive closure".
+    It doesn't change the ordinal's strength (as measured by ≈),
+    but makes it so that the carrier set of the ordinal contains all
+    of the possible intermediate states you could reach by following
+    paths, using this ordinal as the root.
+
+    The purpose of this construction is roughly to generate a "small"
+    type that corresponds to the set of all ordinals less than x.
+    If we just tried to build the subset type { a:Ord | a < x }, this
+    would be a "large" type and will cause universe inconsistencies
+    if we try to use it in places where a small type is expected.
+    This transitive closure construction strikes a delicate balance,
+    allowing us to convince Coq that a suitable small type exists.
+
+    The primary use of this construction is to demonstrate that
+    every ordinal generates a well-founded relation on a small type
+    (the ord_R relation below). This allows us to feed this WF relation
+    back into the construction that generates ordinals from WF relations
+    and show that the round-trip produces an equivalent ordinal.
+*)
 
 Fixpoint ord_transitive_closure_type (x:Ord) : Type :=
   match x with
@@ -290,90 +504,6 @@ Proof.
   rewrite Hinda; auto with ord.
 Qed.
 
-Section simulates.
-  Context {A B: Type}.
-  Variable R: A -> A -> Prop.
-  Variable S: B -> B -> Prop.
-
-  Definition simulation (F: A -> B -> Prop) :=
-    forall (a a':A) (b:B), R a' a -> F a b -> exists b', S b' b /\ F a' b'.
-
-  Definition total (F: A -> B -> Prop) :=
-    forall (a:A), exists (b:B), F a b.
-
-  Lemma simulation_Acc: forall F,
-      simulation F ->
-      forall b,
-      Acc S b ->
-      forall a,
-        F a b ->
-        Acc R a.
-  Proof.
-    intros F HF b Hb.
-    induction Hb as [b Hacc Hind].
-    intros a Hab.
-    constructor; intros a' Ha'.
-    destruct (HF a a' b) as [b' [Hb'1 Hb'2]]; auto.
-    apply Hind with b'; auto.
-  Qed.
-
-  Definition simulates :=  exists F, simulation F /\ total F.
-
-  Lemma simulates_wf:
-    simulates ->
-    well_founded S ->
-    well_founded R.
-  Proof.
-    intros [F [HF1 HF2]] Hwf.
-    intro a.
-    destruct (HF2 a) as [b Hb].
-    apply simulation_Acc with F b; auto.
-  Qed.
-End simulates.
-
-Definition transitive_simulation
-  {A B C:Type} (F: A -> B -> Prop) (G:B -> C -> Prop) : A -> C -> Prop :=
-  fun a c => exists b, F a b /\ G b c.
-
-Lemma transitive_is_simulation (A B C:Type) (F: A -> B -> Prop) (G:B -> C -> Prop)
-  (R: A -> A -> Prop)
-  (S: B -> B -> Prop)
-  (T: C -> C -> Prop) :
-
-  simulation R S F ->
-  simulation S T G ->
-  simulation R T (transitive_simulation F G).
-Proof.
-  intros HsimF HsimG.
-  intros a a' c HR [b [HF HG]].
-  destruct (HsimF a a' b HR HF) as [b' [HS HF2]].
-  destruct (HsimG b b' c HS HG) as [c' [HT HG2]].
-  exists c'; split; auto.
-  hnf. exists b'. split; auto.
-Qed.
-
-Lemma simulates_refl (A:Type) (R:A -> A -> Prop): simulates R R.
-Proof.
-  exists (@eq A). split.
-  - hnf. intros; subst; eauto.
-  - hnf; intros. eauto.
-Qed.
-
-Lemma simulates_transitive (A B C:Type)
-  (R: A -> A -> Prop)
-  (S: B -> B -> Prop)
-  (T: C -> C -> Prop) :
-  simulates R S -> simulates S T -> simulates R T.
-Proof.
-  intros [F [HF1 HF2]] [G [HG1 HG2]].
-  exists (transitive_simulation F G).
-  split. eapply transitive_is_simulation; eauto.
-  hnf; intros.
-  destruct (HF2 a) as [b Hb].
-  destruct (HG2 b) as [c Hc].
-  exists c. exists b. split; auto.
-Qed.
-
 Lemma ord_R_simulates1: forall (x y: Ord),
     x <= y ->
     simulates (ord_R x) (ord_R y).
@@ -421,11 +551,77 @@ Proof.
     rewrite Hk; auto with ord.
 Qed.
 
+Lemma ord_R_dominates1: forall (x y: Ord),
+    x < y ->
+    dominates (ord_R x) (ord_R y).
+Proof.
+  intros x y H.
+  exists (fun a b => ord_transitive_closure_ord x a <= ord_transitive_closure_ord y b).
+  split.
+  - hnf; simpl; intros.
+    unfold ord_R in *.
+    assert (H2: ord_transitive_closure_ord x a' < ord_transitive_closure_ord y b).
+    { apply ord_lt_le_trans with (ord_transitive_closure_ord x a); auto. }
+    rewrite ord_lt_unfold in H2.
+    destruct H2 as [q Hq].
+    destruct (ord_transitive_closure_transitive y b q) as [b' Hb'].
+    exists b'; split; rewrite Hb'; auto with ord.
+  - hnf; simpl; intros.
+    assert (ord_transitive_closure x < ord_transitive_closure y).
+    { repeat rewrite ord_transitive_closure_eq; auto. }
+    rewrite ord_lt_unfold in H0.
+    destruct H0 as [b Hb].
+    exists b. intros.
+    rewrite ord_le_unfold in Hb.
+    specialize (Hb a).
+    rewrite ord_lt_unfold in Hb.
+    destruct Hb as [q Hq].
+    destruct (ord_transitive_closure_transitive y b q) as [b' Hb'].
+    exists b'. split.
+    hnf. rewrite Hb'. auto with ord.
+    rewrite Hb'; auto.
+Qed.
+
+Lemma ord_R_dominates2: forall (x y: Ord),
+    dominates (ord_R x) (ord_R y) ->
+    x < y.
+Proof.
+  intros x y [F [HF1 HF2]].
+  cut (ord_transitive_closure x < ord_transitive_closure y).
+  { repeat rewrite ord_transitive_closure_eq; auto. }
+  hnf in HF1. unfold ord_R in HF1.
+  destruct HF2 as [b Hb].
+  rewrite ord_lt_unfold. exists b.
+  rewrite ord_le_unfold. intro a.
+  destruct (Hb a) as [b' [Hb1 Hb2]].
+  hnf in Hb1.
+  apply ord_le_lt_trans with (ord_transitive_closure_ord y b'); auto.
+  clear -HF1 Hb2.
+  revert b' Hb2.
+  induction a as [a Hind] using size_induction.
+  intros b Hb.
+  rewrite ord_le_unfold; intro q.
+  destruct (ord_transitive_closure_transitive x a q) as [k Hk].
+  destruct (HF1 a k b) as [b' [Hb'1 Hb'2]]; auto.
+  - rewrite Hk. auto with ord.
+  - rewrite <- Hk.
+    rewrite Hind with (b':=b'); auto with ord.
+    rewrite Hk; auto with ord.
+Qed.
+
+
 Lemma ord_R_simulates: forall x y, x <= y <-> simulates (ord_R x) (ord_R y).
 Proof.
   intuition.
   apply ord_R_simulates1; auto.
   apply ord_R_simulates2; auto.
+Qed.
+
+Lemma ord_R_dominates: forall x y, x < y <-> dominates (ord_R x) (ord_R y).
+Proof.
+  intuition.
+  apply ord_R_dominates1; auto.
+  apply ord_R_dominates2; auto.
 Qed.
 
 Lemma wf_ord_simulates1:
@@ -493,6 +689,76 @@ Proof.
     auto.
 Qed.
 
+Lemma wf_ord_dominates1:
+  forall A B
+    (R:A -> A -> Prop)
+    (S:B -> B -> Prop)
+    (HR: well_founded R)
+    (HS: well_founded S),
+    dominates R S -> wf_ord R HR < wf_ord S HS.
+Proof.
+  intros A B R S HR HS [F [HF1 HF2]].
+  unfold wf_ord.
+  destruct HF2 as [b Hb].
+  rewrite ord_lt_unfold. simpl. exists b.
+  apply limit_least; intro a.
+  destruct (Hb a) as [b' [Hb1 Hb2]].
+  rewrite ord_lt_unfold. unfold wf_ord_elt. simpl.
+  destruct (HS b) as [Haccb]. simpl.
+  exists (exist _ b' Hb1). simpl.
+  generalize (HR a) (Haccb b' Hb1).
+  intros HaccR HaccS.
+  revert HaccR HaccS.
+  clear -HF1 Hb2 HR.
+  revert b' Hb2.
+  induction a as [a Hind] using (well_founded_induction HR).
+  intros b Hb [HaccR] [HaccS].
+  rewrite ord_le_unfold. simpl.
+  intros [a' Ha']; simpl.
+  destruct (HF1 a a' b) as [b' [Hb'1 Hb'2]]; auto.
+  rewrite (Hind a') with (b':=b') (HaccS:=HaccS b' Hb'1); auto.
+  rewrite ord_lt_unfold; simpl.
+  exists (exist _  b' Hb'1); simpl.
+  auto with ord.
+Qed.
+
+Lemma wf_ord_dominates2:
+  forall A B
+    (R:A -> A -> Prop)
+    (S:B -> B -> Prop)
+    (HR: well_founded R)
+    (HS: well_founded S),
+    wf_ord R HR < wf_ord S HS ->
+    dominates R S.
+Proof.
+  intros A B R S HR HS H.
+  hnf.
+  exists (fun a b => exists Ha, exists Hb,
+              mk_wf_ord A R a Ha <= mk_wf_ord B S b Hb).
+  split.
+  - hnf; simpl.
+    intros a a' b Hr [[Ha] [[Hb] HF]].
+    simpl in *.
+    rewrite ord_le_unfold in HF. simpl in HF.
+    specialize (HF (exist _ a' Hr)); simpl in HF.
+    rewrite ord_lt_unfold in HF.
+    destruct HF as [[b' Hs] HF]. simpl in *.
+    exists b'; split; eauto.
+  - hnf. unfold wf_ord in H.
+    rewrite ord_lt_unfold in H. simpl in H.
+    destruct H as [b Hb].
+    exists b.
+    intro a.
+    rewrite ord_le_unfold in Hb.
+    specialize (Hb a).
+    rewrite ord_lt_unfold in Hb.
+    unfold wf_ord_elt in Hb.
+    destruct (HS b). simpl in *.
+    destruct Hb as [[b' Hb1] Hb2]. simpl in *.
+    exists b'. split; auto.
+    eauto.
+Qed.
+
 Lemma wf_ord_simulates:
   forall A B
     (R:A -> A -> Prop)
@@ -506,6 +772,19 @@ Proof.
   apply wf_ord_simulates1.
 Qed.
 
+Lemma wf_ord_dominates:
+  forall A B
+    (R:A -> A -> Prop)
+    (S:B -> B -> Prop)
+    (HR: well_founded R)
+    (HS: well_founded S),
+    wf_ord R HR < wf_ord S HS <-> dominates R S.
+Proof.
+  intros; split.
+  apply wf_ord_dominates2.
+  apply wf_ord_dominates1.
+Qed.
+
 Theorem ordinal_simulations:
   (forall (x y:Ord),
       x <= y <-> simulates (ord_R x) (ord_R y)) /\
@@ -517,6 +796,19 @@ Theorem ordinal_simulations:
       wf_ord R HR <= wf_ord S HS <-> simulates R S).
 Proof.
   split. apply ord_R_simulates. apply wf_ord_simulates.
+Qed.
+
+Theorem ordinal_dominations:
+  (forall (x y:Ord),
+      x < y <-> dominates (ord_R x) (ord_R y)) /\
+  (forall A B
+    (R:A -> A -> Prop)
+    (S:B -> B -> Prop)
+    (HR: well_founded R)
+    (HS: well_founded S),
+      wf_ord R HR < wf_ord S HS <-> dominates R S).
+Proof.
+  split. apply ord_R_dominates. apply wf_ord_dominates.
 Qed.
 
 Lemma ord_R_round_trip: forall (x:Ord),
@@ -1338,7 +1630,6 @@ Proof.
   rewrite expOrd_one'; auto with ord.
 Qed.
 
-
 Section dep_lexprod.
   Variable A : Type.
   Variable B : A -> Type.
@@ -1775,6 +2066,114 @@ Proof.
   rewrite ord_lt_unfold. simpl.
   exists b.
   auto.
+Qed.
+
+Lemma tree_selection_increasing: forall x y,
+    x < y -> tree_selection x < tree_selection y.
+Proof.
+  intros x [Y g] H.
+  rewrite ord_lt_unfold in H.
+  destruct H as [b Hb].
+  simpl. unfold iterated_smash_sum. simpl.
+  rewrite ord_lt_unfold. simpl.
+  exists [b]. simpl.
+  rewrite naddOrd_zero_r.
+  apply tree_selection_monotone; auto.
+Qed.
+
+From Ordinal Require Import VeblenCon.
+
+Lemma tree_selection_scott_continuous:
+  scott_continuous tree_selection.
+Proof.
+  hnf; simpl; intros.
+  rewrite sup_unfold. simpl.
+  unfold iterated_smash_sum. simpl.
+  apply limit_least. simpl.
+  intros xs. destruct xs as [|x xs].
+  { simpl. rewrite <- (sup_le _ _ a0).
+    apply tree_selection_nonzero. }
+  assert (exists i:A, Forall (fun x => f (projT1 x) <= f i) (x::xs)).
+  { induction xs; simpl.
+    - exists (projT1 x). constructor; auto with ord.
+    - destruct IHxs as [i Hi].
+      destruct (H i (projT1 a)) as [j [Hj1 Hj2]].
+      exists j.
+      constructor; auto. inversion Hi; subst.
+      rewrite H3. auto.
+      constructor; auto with ord.
+      inversion Hi; subst.
+      clear -H4 Hj1.
+      induction xs; simpl; auto with ord.
+      inversion H4; subst.
+      constructor; auto.
+      rewrite H1; auto. }
+  destruct H1 as [i Hi].
+  rewrite <- (sup_le _ _ i).
+  case_eq (f i). intros Q g HQ.
+  simpl tree_selection.
+  rewrite HQ in Hi.
+  unfold iterated_smash_sum.
+  rewrite ord_lt_unfold. simpl.
+
+  assert (Hqs: exists qs: list Q, pairwise (fun x q => ordSize (f (projT1 x)) (projT2 x) <= g q) (x::xs) qs).
+  { revert Hi; clear.
+    generalize (x::xs). intros l H.
+    induction H.
+    { exists []. constructor. }
+    destruct IHForall as [qs Hqs].
+    destruct x0 as [a z]. simpl in *.
+    rewrite ord_le_unfold in H.
+    specialize (H z). rewrite ord_lt_unfold in H.
+    destruct H as [q Hq].
+    exists (q::qs). constructor; simpl; auto. }
+  destruct Hqs as [qs Hqs].
+  exists qs. simpl.
+  inversion Hqs; subst.
+  simpl. apply naddOrd_monotone.
+  apply tree_selection_monotone; auto.
+  clear -H5.
+  induction H5; simpl; auto with ord.
+  apply naddOrd_monotone; auto.
+  apply tree_selection_monotone; auto.
+Qed.
+
+Lemma tree_selection_complete: forall x,
+    complete x ->
+    complete (tree_selection x).
+Proof.
+  induction x as [A f Hind]; simpl.
+  repeat split.
+  - hnf; simpl; intros.
+    exists (a1 ++ a2). split.
+    + induction a1; simpl; auto with ord.
+      apply naddOrd_monotone; auto with ord.
+    + induction a1; simpl; auto with ord.
+      rewrite <- naddOrd_le2. auto with ord.
+  - left. apply (inhabits nil).
+  - (* It's not clear how, or if, this proof can be completed... *)
+Abort.
+
+(** Classicaly, at least, the `tree_selection` function is normal. This means
+    it has has fixpoints, as all normal functions do. I suspect it behaves
+    in a similar way to the standard `expOrd ω x` function. In particular,
+    I suspect that the least fixpoint of both functions coincide, as ε(0).
+
+    I find this result quite surprising, as the natural addition operation
+    is not continuous in either of it's arguments.
+
+    However, as it currently stands, this proof requires the excluded middle,
+    as I do not know how, or if, this function can be proved to preserve
+    the completeness of ordinals without it.
+*)
+Lemma normal_tree_selection (EM:excluded_middle): normal_function tree_selection.
+Proof.
+  constructor.
+  - intros; apply tree_selection_monotone; auto.
+  - intros; apply tree_selection_increasing; auto.
+  - apply tree_selection_scott_continuous.
+  - intros. apply (classical.ord_complete EM).
+  - intros. apply tree_selection_nonzero.
 Qed.
 
 Section list_ext.

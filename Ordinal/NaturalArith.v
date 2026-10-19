@@ -1671,7 +1671,7 @@ Proof.
   apply naddOrd_monotone; auto with ord.
 Qed.
 
-Lemma iterated_smash_sum_eq (x:Ord) :
+Theorem iterated_smash_sum_eq (x:Ord) :
   iterated_smash_sum x ≈ supOrd (fun i:nat => Nat.iter i (smash_sum x) 1).
 Proof.
   split.

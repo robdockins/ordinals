@@ -777,7 +777,7 @@ Definition compute_goodstein4 := map (fun i => goodstein_sequence 4 (N.of_nat i)
 Lemma compute_goodstein_eq : compute_goodstein4 = A056193.
 Proof. reflexivity. Qed.
 
-(* Show that we agreee with the OEIS sequence for G(4) *)
+(* Show that we agree with the OEIS sequence for G(4) *)
 Theorem goodstein4_correct_initial_sequence:
   forall i, (i < length A056193)%nat ->
      nth_error A056193 i = Some (goodstein_sequence 4 (N.of_nat i)).
