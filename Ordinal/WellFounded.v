@@ -2048,6 +2048,12 @@ Fixpoint tree_selection (x:Ord) :=
   | ord A f => iterated_smash_sum (ord A (fun a => tree_selection (f a)))
   end.
 
+Lemma tree_selection_unfold: forall x,
+    tree_selection x = iterated_smash_sum (limOrd (fun a:x => tree_selection a)).
+Proof.
+  intros [A f]. simpl. reflexivity.
+Qed.
+
 Lemma tree_selection_nonzero: forall x, 0 < tree_selection x.
 Proof.
   intros [A f]; simpl. apply iterated_smash_sum_nonzero.
@@ -2174,6 +2180,87 @@ Proof.
   - apply tree_selection_scott_continuous.
   - intros. apply (classical.ord_complete EM).
   - intros. apply tree_selection_nonzero.
+Qed.
+
+Lemma powOmega_le_tree_selection: forall x,
+    expOrd ω x ≤ tree_selection x.
+Proof.
+  induction x as [x Hindx] using ordinal_induction.
+  rewrite expOrd_unfold. apply lub_least.
+  { apply succ_least. apply tree_selection_nonzero. }
+  apply sup_least; intro q.
+  rewrite mulOrd_unfold.
+  apply sup_least; intro i. simpl.
+  rewrite tree_selection_unfold.
+  unfold iterated_smash_sum. simpl.
+  apply ord_lt_le.
+  rewrite ord_lt_unfold.
+  exists (List.repeat q (S i)). simpl.
+  rewrite naddOrd_comm.
+  rewrite add_nadd_le.
+  apply naddOrd_monotone; auto with ord.
+  induction i; simpl; auto with ord.
+  - rewrite mulOrd_zero_r. auto with ord.
+  - rewrite mulOrd_succ.
+    rewrite naddOrd_comm.
+    rewrite add_nadd_le.
+    apply naddOrd_monotone; auto with ord.
+Qed.
+
+Lemma tree_selection_le_powOmega (EM:excluded_middle) : forall x,
+    tree_selection x ≤ expOrd ω x.
+Proof.
+  induction x as [x Hindx] using ordinal_induction.
+  rewrite tree_selection_unfold. unfold iterated_smash_sum.
+  apply limit_least; simpl; intros xs.
+  case_eq xs.
+  { intros. subst. simpl. auto with ord. }
+  intros o l Hxs.
+  rewrite <- Hxs.
+  rewrite expOrd_unfold.
+  rewrite <- lub_le2.
+  assert (exists i:x, Forall (fun x => sz x <= sz i) xs).
+  { assert (Hx: complete x) by (apply classical.ord_complete; auto).
+    subst xs.
+    induction l; simpl.
+    { exists o. constructor; auto with ord. }
+    destruct IHl as [i Hi].
+    inversion Hi; subst.
+    destruct (complete_directed x Hx i a) as [k [??]].
+    exists k.
+    constructor. rewrite H1; auto.
+    constructor; auto.
+    clear Hi.
+    induction H2; simpl; intuition.
+    constructor; auto with ord.
+    rewrite H2; auto. }
+  clear o l Hxs.
+  destruct H as [i Hi].
+  rewrite <- (sup_le _ _ i).
+  rewrite mulOrd_unfold.
+  rewrite <- (sup_le _ _ (length xs)).
+  apply ord_le_lt_trans with
+    (expOrd ω (x i) * (natOrdSize (length xs)) + 0).
+  2:{ apply addOrd_increasing; auto with ord. }
+  rewrite addOrd_zero_r.
+  induction Hi.
+  { simpl. auto with ord. }
+  replace (length (x0::l)) with (1+length l)%nat by (simpl; auto with ord).
+  rewrite <- nadd_add_same_powers; auto with ord.
+  simpl.
+  rewrite IHHi.
+  rewrite Hindx; auto with ord.
+  rewrite mulOrd_one_r.
+  apply naddOrd_monotone; auto with ord.
+  apply classical.ord_complete. auto.
+Qed.
+
+Theorem tree_selection_eq_powOmega (EM:excluded_middle) :
+  forall x, tree_selection x ≈ expOrd ω x.
+Proof.
+  intros; split.
+  apply tree_selection_le_powOmega; auto.
+  apply powOmega_le_tree_selection.
 Qed.
 
 Section list_ext.
