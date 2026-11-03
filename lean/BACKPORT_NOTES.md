@@ -545,3 +545,35 @@ The `V`/`V` and `W`/`W` cases are the same argument for the two normal
 functions, `1 + ·` and `ε`. One lemma, generic in the normal function, covers
 both. The mixed cases share another lemma: a normal `V` form never equals a `W`
 form.
+
+## Notation/ATowerFinNotation.v
+
+### The repeated "tower fixpoint" argument
+
+The Rocq file repeats one argument a dozen times, in `Vmn_collapse`,
+`Vmn_collapse2`, `normal_subterm_shrink`, `VF_compare_correct` and
+`veblen_tower_epsilon`. It shows `veblen (T m) (veblen (T n) b c) 0 ≤ veblen (T n) b c`
+for `m < n` by a case split on `VF_isZero b`, `veblen_zero`,
+`veblen_fixpoints` and `ackermann_tower_fin_fixpoints`.
+
+It is cleaner as two lemmas:
+
+- every value `veblen (T n) x y` equals `T n s` for some complete `s` (`s = y`
+  when `x ≈ 0`, otherwise `s` is the value itself, by `veblen_fixpoints` at
+  `0`);
+- the statement follows from that and `ackermann_tower_fin_fixpoints`.
+
+`veblen_tower_epsilon` is then the instance `m = 0`.
+
+### `nat_compare` in `VF_isNormal`
+
+The proofs repeatedly destruct `nat_compare m n` inside the normality
+condition. One lemma, stating the condition on `V n x y` as "if `m < n` then
+`V n x y ≤ a`, and if `m = n` then `x ≤ a`", lets the rest of the file avoid
+`nat_compare` entirely.
+
+### `VF_has_all_interpolants`
+
+The interpolation property of the tower levels (`T n` preserves interpolants)
+is a separate induction on `n`. It does not need the outer `size_induction` on
+forms. The outer induction is then structural.

@@ -27,3 +27,4 @@ import ConstructiveOrdinals.Notation.Cantor
 import ConstructiveOrdinals.Notation.CantorDecomposition
 import ConstructiveOrdinals.Notation.V
 import ConstructiveOrdinals.Notation.VW
+import ConstructiveOrdinals.Notation.ATowerFin
