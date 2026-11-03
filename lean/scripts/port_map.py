@@ -109,8 +109,8 @@ LEAN_DECL_RE = re.compile(
     r"^\s*(?:@\[[^\]]*\]\s*)?(?:private\s+|protected\s+|noncomputable\s+|partial\s+)*"
     r"(theorem|lemma|def|abbrev|structure|inductive|class|instance)\s+([^\s:({\[]+)?"
 )
-NS_RE = re.compile(r"^\s*namespace\s+(\S+)")
-END_RE = re.compile(r"^\s*end\s+(\S+)")
+NS_RE = re.compile(r"^\s*(namespace|section)(?:\s+(\S+))?\s*$")
+END_RE = re.compile(r"^\s*end(?:\s+(\S+))?\s*$")
 CITE_RE = re.compile(r"`((?:Notation\.)?[A-Z][A-Za-z]*)\.([^`\s]+)`")
 
 
@@ -139,14 +139,16 @@ def lean_citations():
                     else:
                         pending = refs
                 continue
+            # `ns` is a stack of (kind, components); sections add no components.
             if (m := NS_RE.match(line)):
-                ns += m.group(1).split(".")
+                comps = m.group(2).split(".") if m.group(1) == "namespace" and m.group(2) else []
+                ns.append(comps)
                 continue
-            if (m := END_RE.match(line)) and ns:
-                del ns[-len(m.group(1).split(".")):]
+            if END_RE.match(line) and ns:
+                ns.pop()
                 continue
             if pending and (m := LEAN_DECL_RE.match(line)):
-                name = ".".join(ns + [m.group(2) or "(anonymous)"])
+                name = ".".join([c for comps in ns for c in comps] + [m.group(2) or "(anonymous)"])
                 for r in pending:
                     cites.setdefault(r, []).append(name)
                 pending = []

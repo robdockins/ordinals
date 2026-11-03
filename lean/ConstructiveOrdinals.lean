@@ -2,6 +2,7 @@ import ConstructiveOrdinals.Tactic.OrdAuto
 import ConstructiveOrdinals.Tactic.OrdRewrite
 import ConstructiveOrdinals.Prelude.Logic
 import ConstructiveOrdinals.Prelude.Nat
+import ConstructiveOrdinals.Prelude.List
 import ConstructiveOrdinals.Defs
 import ConstructiveOrdinals.Operators
 import ConstructiveOrdinals.Arith
@@ -14,3 +15,4 @@ import ConstructiveOrdinals.Veblen.Defs
 import ConstructiveOrdinals.Veblen.Constructive
 import ConstructiveOrdinals.Veblen.Facts
 import ConstructiveOrdinals.Veblen.Classical
+import ConstructiveOrdinals.NaturalArith

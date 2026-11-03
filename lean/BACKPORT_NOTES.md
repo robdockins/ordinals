@@ -250,3 +250,80 @@ Lean: same name.
 The `≥` direction's first component, `enum_fixpoints f x ≤ veblen f (1+a) x`,
 can be a local `have` proved by its own induction on `x`, without `clear`-ing
 the outer induction hypotheses.
+
+## NaturalArith.v
+
+### A probable bug: `nmulOrd_eq_mor`
+`nmulOrd_eq_mor` is declared with `Add Parametric Morphism : naddOrd …`, so it
+states the congruence of `⊕` (natural addition), not `⊗` (natural
+multiplication). It looks like a copy-paste slip. The Lean port keeps the
+statement as written (Lean: `IncorrectNmul.nmul_eq_mor`).
+
+### `naddOrd_increasing_both`
+Lean: `nadd_increasing_both`.
+
+This follows directly from `naddOrd_monotone` plus the two "index" facts
+`x a ⊕ y < x ⊕ y` and `x ⊕ y b < x ⊕ y`. For example, if `x < y` there is
+some `b` with `x ≤ y b`, and then
+
+```
+x ⊕ z1 ≤ y b ⊕ z2 < y ⊕ z2
+```
+
+No triple induction is needed. Proving `naddOrd_monotone` first, before
+associativity, also simplifies `naddOrd_assoc1`.
+
+### `naddOrd_assoc2`
+Lean: `nadd_assoc2`.
+
+This follows from `naddOrd_assoc1` and `naddOrd_comm_le`, used five times in
+a chain:
+
+```
+(x⊕y)⊕z ≤ z⊕(x⊕y) ≤ (z⊕x)⊕y ≤ y⊕(z⊕x) ≤ (y⊕z)⊕x ≤ x⊕(y⊕z)
+```
+
+No second induction is needed.
+
+### `naddOrd_cancel`
+Lean: `nadd_cancel`.
+
+Using the case split "`q < x ⊕ y` implies `q ≤ x a ⊕ y` or `q ≤ x ⊕ y b`"
+(Lean: `nadd_lt_cases`) as a lemma makes this and several later proofs
+shorter.
+
+### `nadd_add_same_powers_step` (about 90 lines → about 10)
+Lean: same name.
+
+This is one application of `nadd_closed_technical2`, with `m := S m` and
+`q := expOrd ω a * S n` (whose hypothesis holds by reflexivity):
+
+```
+expOrd ω a * S m ⊕ expOrd ω a * S n
+  ≤ expOrd ω a * S m + expOrd ω a * S n
+  ≈ expOrd ω a * (S m + S n)               (ordDistrib_left)
+  ≈ expOrd ω a * natOrdSize (m + n + 2)    (natOrdSize_add)
+```
+
+The double induction is not needed.
+
+### `nadd_closed_technical2`
+Lean: same name.
+
+Induction on `m` (and `q`) is enough. The induction on `n` is never used.
+
+### `cantor_denote_nadd_add`
+Lean: same name.
+
+Ordinary induction on `xs` from the left works, so `rev_ind` isn't needed.
+Rewrite `(ω^x + D xs) ⊕ q` with `add_nadd_assoc2`, whose side condition is
+`ω^x ⊕ q0 ≤ ω^x + q0` for `q0 ≤ q`, then apply the induction hypothesis.
+(`cantor_denote_nadd_eq` does still need `rev_ind`.)
+
+### `leading_cantor_term`
+Lean: same name.
+
+The case `o < a` follows at once from `expOmega_additively_closed` and the
+`Cantor.v` lemma bounding `cantor_denote ys` by `expOrd ω a`. That lemma is
+inlined twice in `cantor_decomposition_unique`; see the `Cantor.v` notes. This
+avoids the explicit computation with `length ls`.

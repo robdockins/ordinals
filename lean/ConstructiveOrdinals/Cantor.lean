@@ -78,12 +78,12 @@ theorem additively_closed_omega : AdditivelyClosed (ω : Ordinal.{u}) := fun a b
     (lt_of_lt_of_le hb (one_mul ω).ge)) (one_mul ω).le
 
 /-- `ω ^ c` bounds `ω ^ (c i) * ω` for each index `i` of `c`. -/
-private theorem pow_index_mul_omega_le (c : Ordinal.{u}) (i : c) : ω ^ c i * ω ≤ ω ^ c := by
+theorem pow_index_mul_omega_le (c : Ordinal.{u}) (i : c) : ω ^ c i * ω ≤ ω ^ c := by
   rw [pow_unfold ω c]
   exact le_trans (sup_le (fun i : c => ω ^ c i * ω) i) (lub_le2 _ _)
 
 /-- `ω ≤ ω ^ c` when `0 < c`. -/
-private theorem omega_le_pow_omega {c : Ordinal.{u}} (h₀ : 0 < c) : ω ≤ ω ^ c := by
+theorem omega_le_pow_omega {c : Ordinal.{u}} (h₀ : 0 < c) : ω ≤ ω ^ c := by
   obtain ⟨c₀, _⟩ := lt_elim h₀
   exact le_trans (le_trans (one_mul ω).ge (mul_le_mul_right ω (succ_least (pow_pos ω _))))
     (pow_index_mul_omega_le c c₀)
@@ -370,7 +370,7 @@ private theorem one_le_cantorDenote_cons (o : Ordinal.{u}) (ys : List Ordinal.{u
     1 ≤ cantorDenote (o :: ys) :=
   le_trans (succ_least (pow_pos ω o)) (le_add_right _ _)
 
-private theorem cantorDenote_lt (em : ExcludedMiddle) :
+theorem cantorDenote_lt (em : ExcludedMiddle) :
     ∀ (ys : List Ordinal.{u}) (o a : Ordinal.{u}), CantorSequence o ys → o < a →
       cantorDenote ys < ω ^ a
   | [], _, a, _, _ => pow_pos ω a
