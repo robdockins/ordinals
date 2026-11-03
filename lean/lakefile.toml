@@ -1,0 +1,10 @@
+name = "constructive-ordinals"
+version = "0.1.0"
+defaultTargets = ["ConstructiveOrdinals"]
+
+[leanOptions]
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[lean_lib]]
+name = "ConstructiveOrdinals"

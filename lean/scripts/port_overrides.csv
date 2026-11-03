@@ -1,0 +1,2 @@
+rocq_module,rocq_name,lean_name,status,note
+Countable,*,,dropped,experimental; not ported by decision

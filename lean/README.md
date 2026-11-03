@@ -1,0 +1,57 @@
+# Constructive Ordinals in Lean 4 (port in progress)
+
+This directory is a Lean 4 port of the Rocq development in `../Ordinal`. The
+port aims to be mathematically faithful: every definition and theorem keeps
+its meaning, including every `complete`, excluded-middle and choice
+hypothesis. Names and syntax follow Lean conventions.
+
+The type of ordinals is `ConstructiveOrdinals.Ordinal`.
+
+## Rules
+
+- **No axioms.** No declaration may depend on `propext`, `Quot.sound`,
+  `Classical.choice`, `sorryAx` or `Lean.ofReduceBool`. Classical principles
+  appear only as explicit hypotheses (`ExcludedMiddle`,
+  `DependentFunctionalChoice`, … in `Prelude/Logic.lean`).
+  `scripts/AxiomAudit.lean` enforces this.
+  In practice this rules out `simp`, `omega`, and `rw` with an `↔`. Many core
+  `List` lemmas also use `propext`, so `Prelude/` re-proves the facts we need.
+- **Lean core only.** No Mathlib, Batteries or Aesop.
+- **Every Rocq declaration is accounted for.** Each Lean docstring cites its
+  Rocq source as ``Rocq: `File.name` ``. `scripts/port_map.py` generates
+  `PORTING_MAP.csv` from these citations, plus `scripts/port_overrides.csv` for
+  deliberate drops and merges. It fails if any declaration of a Rocq file
+  that has a Lean module is unaccounted for.
+
+## Tactics
+
+Lean has no counterpart to Rocq's setoid rewriting, so
+`Tactic/OrdRewrite.lean` provides one:
+
+- `ord_rw [h, ← h']` rewrites with `h : a ≤ b`, `a < b` or `a ≈ b` inside
+  goals or hypotheses of the form `L ρ R`, for `ρ` one of `≤`, `<` or `≈`. It
+  proves the needed monotonicity facts with lemmas tagged `@[ord_mono]`, the
+  analogue of Rocq's `Add Parametric Morphism`. It also accepts `=` (passed to
+  `rw`) and `↔` (applied with `Iff.mpr`, avoiding `propext`).
+- `ord_mono` proves `s ρ t` by congruence, like Mathlib's `gcongr`.
+- `ord_auto` is the analogue of `auto with ord`: a `solve_by_elim` over
+  lemmas tagged `@[ord_hint]`.
+
+## Commands (run from this directory)
+
+```sh
+lake build                              # build the library
+lake env lean test/OrdRewrite.lean      # tactic tests
+lake env lean scripts/AxiomAudit.lean   # axiom audit
+python3 scripts/port_map.py             # porting map and progress
+```
+
+## Status
+
+| Rocq file | Lean module | State |
+|---|---|---|
+| `Defs.v` | `Defs.lean` | done |
+| `Operators.v` | `Operators.lean` | done |
+| everything else | — | not started |
+
+The `Countable.v` theory is experimental and is not being ported.
