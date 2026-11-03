@@ -24,3 +24,4 @@ import ConstructiveOrdinals.AckermannTower
 import ConstructiveOrdinals.Schutte.Column
 import ConstructiveOrdinals.Schutte.ColumnFacts
 import ConstructiveOrdinals.Notation.Cantor
+import ConstructiveOrdinals.Notation.CantorDecomposition

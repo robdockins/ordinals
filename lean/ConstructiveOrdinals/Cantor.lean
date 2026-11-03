@@ -41,7 +41,7 @@ theorem additively_closed_limit {x : Ordinal.{u}} (h₁ : 1 < x) (hx : Additivel
     ⟨a', le_elim ha' PUnit.unit⟩⟩
 
 /-- `a + a * n ≤ a * (n + 1)` for finite `n`. -/
-private theorem add_mul_ofNat_le (a : Ordinal.{u}) (n : Nat) :
+theorem add_mul_ofNat_le (a : Ordinal.{u}) (n : Nat) :
     a + a * ofNat n ≤ a * ofNat (n + 1) :=
   calc a + a * ofNat n ≤ a * 1 + a * ofNat n := add_le_add (mul_one a).ge (le_refl _)
     _ ≤ a * (1 + ofNat n) := (mul_add a 1 _).ge

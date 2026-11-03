@@ -456,3 +456,47 @@ Most lemmas about Cantor forms (`CF_below_epsilon`, `CNF_compare_correct`,
 recursion over the nested inductive: one lemma for forms and one for lists of
 forms. In Rocq this corresponds to a nested `fix` in the proof term, avoiding
 the `◃` side conditions that `size_induction` generates.
+
+## Notation/CantorDecomposition.v
+
+### `has_interpolants_rec_eq_mor`
+
+No ordinal induction is needed. Only the top level of `has_interpolants_rec`
+mentions `x`; each witness `z` and its interpolant proof can be reused as is,
+moving the recursive part to a different accessibility proof with
+`has_interpolants_rec_H_irrelevant`. (In Lean the two accessibility proofs are
+definitionally equal, so the witness is reused unchanged.)
+
+### `fix_has_interpolants`
+
+`fixOrd g b` is a `supOrd` of iterates, so this is `has_interpolants_sup`
+applied to `iter_has_interpolants`. The Rocq proof unfolds the supremum by
+hand.
+
+### One reflection lemma for `cantor_add`, `cantor_mul` and `cantor_exp`
+
+The three `*_reflects` proofs are the same argument: decompose both
+arguments, apply the list operation, recompose. One lemma, parameterised by
+the list operation, its congruence and its two correctness facts, covers all
+three.
+
+### `cantor_exp_single_prop_ordered` and `cantor_exp_single_correct`
+
+Both follow the same seven-way case split. Proving them together in one lemma
+(well-formedness, ordering and value) removes the duplicated case analysis and
+the repeated `cantor_recompose_correct` calls.
+
+### `cantor_add_ordered`
+
+Generalising the loop invariant to "the head of `cantor_add_loop xs y ys` is
+bounded by any common bound of `y` and the head of `xs`" turns the proof into
+a short induction. It avoids the `case_eq` and `inversion` on the loop result.
+The same strengthening (a head bound as a fourth conjunct) makes
+`cantor_nadd_list_correct` a short induction.
+
+### `nadd_add_same_powers_step`
+
+The two halves of the `naddOrd_least3` split are symmetric. The interesting
+case of each (below `ω^a * m + t` with `t < ω^a`) can be one auxiliary lemma,
+applied once directly and once after `naddOrd_comm`. The case "below
+`ω^a * m`" is the induction hypothesis in both halves.

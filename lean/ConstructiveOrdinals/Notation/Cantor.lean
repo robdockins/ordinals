@@ -139,8 +139,6 @@ theorem compareList_swap : ∀ xs ys : List CantorForm, compareList xs ys = (com
     rw [compare_swap x y, compareList_swap xs ys, lexCompare_swap]
 end
 
-theorem omega_pos : (0 : Ordinal.{0}) < ω := index_lt ω ⟨0⟩
-
 mutual
 /-- Rocq: `Notation.CantorNotation.CantorForm_complete`. -/
 theorem denote_complete : ∀ x : CantorForm, Complete (denote x)
@@ -148,7 +146,7 @@ theorem denote_complete : ∀ x : CantorForm, Complete (denote x)
 
 theorem denoteList_complete : ∀ xs : List CantorForm, Complete (denoteList xs)
   | [] => zero_complete
-  | x :: xs => add_complete (pow_complete omega_pos omega_complete (denote_complete x))
+  | x :: xs => add_complete (pow_complete omega_gt0 omega_complete (denote_complete x))
       (denoteList_complete xs)
 end
 
@@ -537,7 +535,7 @@ theorem reflects_one : Reflects CantorNormalForm denote (fun _ => True) .ord 1 o
 /-- Rocq: `Notation.CantorNotation.CNF_reflects_omega`. -/
 theorem reflects_omega : Reflects CantorNormalForm denote (fun _ => True) .ord ω omega :=
   ⟨equiv_symm (equiv_trans (add_zero _) (equiv_trans
-      (pow_congr (equiv_refl ω) (equiv_trans (add_zero _) (pow_zero ω))) (pow_one' omega_pos))),
+      (pow_congr (equiv_refl ω) (equiv_trans (add_zero _) (pow_zero ω))) (pow_one' omega_gt0))),
     trivial⟩
 
 end CantorNormalForm
@@ -585,7 +583,7 @@ theorem isFinite_inf : ∀ x : CantorForm, isFinite x = none → 1 + denote x �
     have he : 1 ≤ denote (sum (c :: cs)) := le_trans (succ_least (pow_pos ω _)) (le_add_right _ _)
     have h₁ : 1 < ω ^ denote (sum (c :: cs)) :=
       lt_of_lt_of_le omega_gt1
-        (le_trans (pow_one' omega_pos).ge (pow_le_pow_right ω he))
+        (le_trans (pow_one' omega_gt0).ge (pow_le_pow_right ω he))
     exact calc 1 + (ω ^ denote (sum (c :: cs)) + denoteList xs)
         ≈ (1 + ω ^ denote (sum (c :: cs))) + denoteList xs := add_assoc _ _ _
       _ ≈ ω ^ denote (sum (c :: cs)) + denoteList xs :=
@@ -686,12 +684,6 @@ theorem mulList_normal (x : CantorForm) :
 /-- Rocq: `Notation.CantorNotation.CF_mul_normal`. -/
 theorem mul_normal : ∀ {x y : CantorForm}, IsNormal x → IsNormal y → IsNormal (mul x y)
   | x, sum ys, hx, hy => mulList_normal x ys hx hy
-
-/-- `a + a * n ≤ a * (n + 1)` for finite `n`. -/
-private theorem add_mul_ofNat_le (a : Ordinal.{0}) (n : Nat) : a + a * ofNat n ≤ a * ofNat (n + 1) :=
-  calc a + a * ofNat n ≤ a * 1 + a * ofNat n := add_le_add (mul_one a).ge (le_refl _)
-    _ ≤ a * (1 + ofNat n) := (mul_add a 1 _).ge
-    _ ≤ a * ofNat (n + 1) := mul_le_mul_left a (ofNat_add n 1).ge
 
 private theorem firstTerm_dominates_aux (x : CantorForm) : ∀ (c : CantorForm) (xs : List CantorForm),
     IsNormalSeq c xs → denote c ≤ denote x → denoteList xs ≤ ω ^ denote x * ofNat xs.length
@@ -911,7 +903,7 @@ theorem expSingle_correct (x e : CantorForm) (hx : IsNormal x) (he : IsNormal e)
         have h₁ : 1 ≤ denote (sum (l :: ls)) := le_trans (succ_least (pow_pos ω _)) (le_add_right _ _)
         calc ofNat xs.length + 1 ≈ ofNat (1 + xs.length) := equiv_symm (ofNat_add 1 xs.length)
           _ ≤ ω := le_of_lt (index_lt ω ⟨1 + xs.length⟩)
-          _ ≤ ω ^ 1 := (pow_one' omega_pos).ge
+          _ ≤ ω ^ 1 := (pow_one' omega_gt0).ge
           _ ≤ ω ^ denote (sum (l :: ls)) := pow_le_pow_right ω h₁
     show denote (match isFinite e with
       | some 0 => sum (sum (l :: ls) :: xs)
@@ -984,7 +976,7 @@ private theorem discriminateList : ∀ xs : List CantorForm, IsNormal (sum xs) �
     | .inl hc =>
       -- `0 < c`, so `ω ^ c` is a limit
       have h₁ : 1 < ω ^ denote c :=
-        lt_of_lt_of_le omega_gt1 (le_trans (pow_one' omega_pos).ge
+        lt_of_lt_of_le omega_gt1 (le_trans (pow_one' omega_gt0).ge
           (pow_le_pow_right ω (succ_least hc)))
       .inr (.inr ((isLimit_iff _).2 ⟨lt_of_lt_of_le (pow_pos ω _) (le_add_right _ _),
         fun i hi => ⟨i + 1,
@@ -1100,7 +1092,7 @@ theorem has_enough_notations_is_classical_for_complete_ordinals
     ExcludedMiddle :=
   succ_limit_dec_EM fun x hx₀ hxω hxc =>
     have hω : ω < ε 0 :=
-      lt_of_le_of_lt (pow_one' omega_pos).ge (lt_of_lt_of_le
+      lt_of_le_of_lt (pow_one' omega_gt0).ge (lt_of_lt_of_le
         (pow_lt_pow_right omega_gt1 one_lt_epsilon) (ε_fixpoint 0).ge)
     let ⟨c, hc⟩ := h x hxc (lt_of_le_of_lt hxω hω)
     match discriminate c with
