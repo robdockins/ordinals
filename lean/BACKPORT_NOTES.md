@@ -327,3 +327,23 @@ The case `o < a` follows at once from `expOmega_additively_closed` and the
 `Cantor.v` lemma bounding `cantor_denote ys` by `expOrd ω a`. That lemma is
 inlined twice in `cantor_decomposition_unique`; see the `Cantor.v` notes. This
 avoids the explicit computation with `length ls`.
+
+## WellFounded.v
+
+### `wf_lex_exp` and `wf_list_ext` are free
+
+The Rocq proofs import well-foundedness of lexicographic exponentiation and of
+list extension from the standard library, then compute their order types.
+Both facts follow in one line from lemmas `WellFounded.v` proves anyway:
+`list_interp` strictly decreases along `lex_exp` (`lex_exp_lt_interp`), and
+`list_ext_interp` strictly decreases along `list_ext`. So each relation is
+included in an inverse image of the ordinal `<`. That gives a self-contained
+proof that does not use the standard library's long `Desc` combinatorics.
+
+### `Desc_frontways`
+
+Lean: same name.
+
+This is just the equivalence between back-to-front and front-to-back `Desc`
+(`desc_iff` in `Prelude/Relations.lean`), unfolded one step. With that
+lemma available, the 40-line `rev` induction in Rocq is not needed.

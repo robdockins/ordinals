@@ -62,6 +62,8 @@ python3 scripts/port_map.py             # porting map and progress
 | `VeblenCon.v` | `Veblen/Constructive.lean` | done |
 | `VeblenFacts.v` | `Veblen/Facts.lean` | done |
 | `VeblenClassical.v` | `Veblen/Classical.lean` | done |
+| `NaturalArith.v` | `NaturalArith.lean` | done |
+| `WellFounded.v` | `WellFounded.lean` | done |
 | everything else | — | not started |
 
 `python3 scripts/port_map.py` prints per-file progress.
@@ -71,6 +73,12 @@ Deliberate differences from Rocq (statements are otherwise transliterated):
 - Rocq's binary `positive`/`N` and their ordinal embeddings (`posOrd`,
   `nOrd`, `ωN`) are merged into the `Nat` embedding `Ordinal.ofNat`, since
   Lean's `Nat` is already binary in the kernel.
+- The Rocq standard library's relation constructions (closures, `Desc`,
+  `lex_exp`, `list_ext`, `Permutation`, symmetric and lexicographic
+  products) are re-proved axiom-free in `Prelude/Relations.lean`. In
+  `WellFounded`, `wf_lex_exp` and `wf_list_ext` are not taken from a library
+  but derived from the ordinal interpretations (`lex_exp_lt_interp`,
+  `listExtInterp_lt_of_ext`).
 - Lean has no universe cumulativity, so carriers built from `Prop` or `Nat`
   use `PLift`/`ULift` (for example `truthOrd P` is indexed by
   `ULift (PLift P)`, and `ω` by `ULift Nat`). In `Reflection`, the
