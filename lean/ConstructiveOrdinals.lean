@@ -22,3 +22,4 @@ import ConstructiveOrdinals.Examples
 import ConstructiveOrdinals.GoodsteinSequences
 import ConstructiveOrdinals.AckermannTower
 import ConstructiveOrdinals.Schutte.Column
+import ConstructiveOrdinals.Schutte.ColumnFacts
