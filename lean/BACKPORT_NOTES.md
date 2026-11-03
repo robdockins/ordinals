@@ -608,7 +608,7 @@ Separating the computation (plain functions over fuel) from the correctness
 proof also lets comparison compute by `reflexivity` without the
 `Acc_intro_generator` machinery.
 
-### `VF_has_enough_notations'`-style duplication
+### Repeated stack rewrites in `VF_decompose_correct` and `VF_recompose_correct`
 
 `VF_decompose_correct` and `VF_recompose_correct` repeat the same
 `schutte_column0`, `schutte_column_veblen` and `veblen_onePlus` rewrites many
@@ -623,3 +623,47 @@ induction hypothesis for column `n - 1`, applied to the matrix extended by
 `(n, aq)`. Stating once that the extended matrix's function is pointwise equal
 to `schutte_column f n aq` removes four copies of the
 `schutte_column_monotone_func` bookkeeping.
+
+## Notation/SchutteMatrix.v
+
+### Size bounds in `check_lt` and `matrix_compare`
+
+As in `SchutteStack.v`, `matrix_compare` threads three size budgets
+(`Hsz1`–`Hsz3`) through every recursive call. The invariant "every index and
+argument of a matrix is smaller than the term" is enough. The correctness
+lemma then takes only "the comparison function is correct on these pairs",
+for the index pairs and the argument pairs, as hypotheses.
+
+### Denotations of small matrices in `VF_decompose_correct` and `VF_recompose_correct`
+
+Both proofs repeat the `schutte_column0`, `schutte_column_veblen` and
+`veblen_onePlus` rewrites many times. A few lemmas absorb them:
+- `N [(Z, a)] ≈ 1 + a`;
+- `N [(N [], a)] ≈ ω^a`, which is `expOmega_denote`;
+- `N [(N [], a); (b, x)] ≈ ω^a + x` whenever `b ≈ 0`;
+- `1 < N ((b', a') :: l)` whenever `a' ≠ Z`. This one is proved twice inline,
+  in the ε-number cases of both theorems.
+
+The repeated "`x < 1`, so `x ≤ 0`" step (`rewrite ord_lt_unfold; destruct
+H as [[] H]`) is also worth naming.
+
+Properness rules out every matrix that starts with `(Z, a)` and has more than
+one entry, and every matrix that starts with `(N [], a)` and has more than two.
+With that, both proofs become plain case analyses on the shape of the matrix,
+with no nested `destruct`s of the tail.
+
+### `redex_proper`, `one_step_reduce_proper` and `VF_normalize_correct`
+
+Two general facts about `VF_matrix_proper` cover both congruence cases
+uniformly, instead of a separate induction on `l1` in each:
+- dropping an entry preserves properness;
+- replacing an entry `(b, a)` by `(b', a')` preserves properness, provided
+  `b' ≈ b` and properness carries over from `b` to `b'` and from `a` to `a'`.
+
+`VF_normalize_correct` re-proves the properness of the normalized matrix by
+induction twice. A single induction over the matrix can prove three facts at
+once:
+- the normalized matrix denotes the same value under every normal function;
+- it is proper;
+- its entries are normal.
+
