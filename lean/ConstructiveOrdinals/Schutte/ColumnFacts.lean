@@ -664,6 +664,686 @@ theorem LVO_alt : LargeVeblenOrdinal.{u} ≈ fixOrd (fun x => schutteColumn (fun
   exact le_trans (schutte_column_fixpoint _ 1 0 _ _ 0 hc one_complete onePlus_normal (index_lt _ b') zero_lt_one'
     hb'c zero_complete zero_complete) hfix.ge
 
+/-! ## Stacks of columns -/
+
+/-- A stack of Schütte columns: the `i`-th entry from the end is the
+`α`-argument of column `i`. Rocq: `SchutteColumnFacts.schutte_stack`. -/
+def schutteStack (f : Ordinal.{u} → Ordinal.{u}) : List Ordinal.{u} → Ordinal.{u} → Ordinal.{u}
+  | [] => f
+  | α :: xs => schutteStack (schutteColumn f (ofNat xs.length) α) xs
+
+/-- Rocq: `SchutteColumnFacts.schutte_stack_monotone_func`. -/
+theorem schutte_stack_monotone_func (xs : List Ordinal.{u}) :
+    ∀ (f g : Ordinal.{u} → Ordinal.{u}) (x : Ordinal.{u}), (∀ a b, a ≤ b → f a ≤ f b) →
+      (∀ a b, a ≤ b → g a ≤ g b) → (∀ a, f a ≤ g a) → schutteStack f xs x ≤ schutteStack g xs x := by
+  induction xs with
+  | nil => intro f g x _ _ hfg; exact hfg x
+  | cons a xs ih =>
+    intro f g x hf hg hfg
+    exact ih _ _ x (fun _ _ h => schutte_column_monotone f _ a _ a _ hf (le_refl a) h)
+      (fun _ _ h => schutte_column_monotone g _ a _ a _ hg (le_refl a) h)
+      (fun z => schutte_column_monotone_func f g _ a z a z hf hg hfg (le_refl a) (le_refl z))
+
+/-- Rocq: `SchutteColumnFacts.list_complete`. -/
+def ListComplete (xs : List Ordinal.{u}) : Prop := Each Complete xs
+
+/-- Rocq: `SchutteColumnFacts.schutte_stack_normal`. -/
+theorem schutte_stack_normal (xs : List Ordinal.{u}) :
+    ∀ f : Ordinal.{u} → Ordinal.{u}, ListComplete xs → NormalFunction f → NormalFunction (schutteStack f xs) := by
+  induction xs with
+  | nil => intro f _ hf; exact hf
+  | cons a xs ih =>
+    intro f h hf
+    exact ih _ h.2 (schutte_column_normal _ a f (ofNat_complete _) h.1 hf)
+
+/-- Rocq: `SchutteColumnFacts.schutte_stack_base`. -/
+theorem schutte_stack_base (xs : List Ordinal.{u}) :
+    ∀ (f : Ordinal.{u} → Ordinal.{u}) (x : Ordinal.{u}), NormalFunction f → ListComplete xs →
+      f x ≤ schutteStack f xs x := by
+  induction xs with
+  | nil => intro f x _ _; exact le_refl _
+  | cons a xs ih =>
+    intro f x hf h
+    exact le_trans (le_trans (hf.monotone _ _ (le_add_left a x)) (schutte_column_le_f _ a x f hf.monotone))
+      (ih _ x (schutte_column_normal _ a f (ofNat_complete _) h.1 hf) h.2)
+
+/-- Rocq: `SchutteColumnFacts.schutte_stack_zero_column`. -/
+theorem schutte_stack_zero_column (f : Ordinal.{u} → Ordinal.{u}) (x y : Ordinal.{u}) :
+    schutteStack f [x] y ≈ f (x + y) :=
+  schutte_column0 f x y
+
+/-- Rocq: `SchutteColumnFacts.schutte_stack_veblen`. -/
+theorem schutte_stack_veblen (f : Ordinal.{u} → Ordinal.{u}) (α x y : Ordinal.{u}) (hf : NormalFunction f)
+    (hα : Complete α) (hx : Complete x) (hy : Complete y) :
+    schutteStack f [α, x] y ≈ veblen f α (x + y) :=
+  equiv_trans (schutte_column0 (schutteColumn f 1 α) x y)
+    (schutte_column_veblen α (x + y) f hf hα (add_complete hx hy))
+
+/-- Rocq: `SchutteColumnFacts.schutte_stack_leading_zero`. -/
+theorem schutte_stack_leading_zero (f : Ordinal.{u} → Ordinal.{u}) (xs : List Ordinal.{u}) (y : Ordinal.{u})
+    (hf : NormalFunction f) : schutteStack f (0 :: xs) y ≈ schutteStack f xs y :=
+  have hm := fun _ _ h => schutte_column_monotone f (ofNat xs.length) 0 _ 0 _ hf.monotone (le_refl 0) h
+  equiv_intro
+    (schutte_stack_monotone_func xs _ f y hm hf.monotone (fun z => (schutte_column_arg0 _ z f hf.monotone).le))
+    (schutte_stack_monotone_func xs f _ y hf.monotone hm (fun z => (schutte_column_arg0 _ z f hf.monotone).ge))
+
+/-- Every entry of the stack is below `α`. Rocq: `SchutteColumnFacts.schutte_stack_proper`. -/
+def SchutteStackProper (xs : List Ordinal.{u}) (α : Ordinal.{u}) : Prop := Each (· < α) xs
+
+/-- Rocq: `SchutteColumnFacts.schutte_stack_proper_monotone`. -/
+theorem schutte_stack_proper_monotone (xs : List Ordinal.{u}) (α α' : Ordinal.{u}) (h : α ≤ α')
+    (hp : SchutteStackProper xs α) : SchutteStackProper xs α' :=
+  Each.imp (fun _ hx => lt_of_lt_of_le hx h) hp
+
+/-- Rocq: `SchutteColumnFacts.schutte_stack_zeros`. -/
+theorem schutte_stack_zeros (i : Nat) :
+    ∀ (f : Ordinal.{u} → Ordinal.{u}) (x : Ordinal.{u}), (∀ a b, a ≤ b → f a ≤ f b) →
+      schutteStack f (List.replicate i 0) x ≈ f x := by
+  induction i with
+  | zero => intro f x _; exact equiv_refl _
+  | succ i ih =>
+    intro f x hf
+    exact equiv_trans (ih _ x fun _ _ h => schutte_column_monotone f _ 0 _ 0 _ hf (le_refl 0) h)
+      (schutte_column_arg0 _ x f hf)
+
+private theorem length_replicate {α : Type u} (a : α) : ∀ i : Nat, (List.replicate i a).length = i
+  | 0 => rfl
+  | i + 1 => congrArg (· + 1) (length_replicate a i)
+
+private theorem each_replicate {α : Type u} {P : α → Prop} {a : α} (h : P a) : ∀ i : Nat, Each P (List.replicate i a)
+  | 0 => trivial
+  | i + 1 => ⟨h, each_replicate h i⟩
+
+/-- Rocq: `SchutteColumnFacts.schutte_column_to_stack`. -/
+theorem schutte_column_to_stack (f : Ordinal.{u} → Ordinal.{u}) (i : Nat) (a x : Ordinal.{u})
+    (hf : ∀ a b, a ≤ b → f a ≤ f b) :
+    schutteColumn f (ofNat i) a x ≈ schutteStack f (a :: List.replicate i 0) x := by
+  show _ ≈ schutteStack (schutteColumn f (ofNat (List.replicate i (0 : Ordinal.{u})).length) a) _ x
+  rw [length_replicate]
+  exact equiv_symm (schutte_stack_zeros i _ x fun _ _ h => schutte_column_monotone f _ a _ a _ hf (le_refl a) h)
+
+/-- Rocq: `SchutteColumnFacts.list_complete_cons`. -/
+theorem list_complete_cons (x : Ordinal.{u}) (xs : List Ordinal.{u}) (hx : Complete x) (hxs : ListComplete xs) :
+    ListComplete (x :: xs) :=
+  ⟨hx, hxs⟩
+
+/-- Rocq: `SchutteColumnFacts.proper_stack_unreachable`. -/
+theorem proper_stack_unreachable (xs : List Ordinal.{u}) :
+    ∀ (f : Ordinal.{u} → Ordinal.{u}) (a δ x : Ordinal.{u}), NormalFunction f → Complete a → Complete x →
+      Complete δ → ListComplete xs → SchutteStackProper xs δ → x < δ →
+      schutteStack f xs x < schutteColumn f (ofNat xs.length) δ 0 := by
+  induction xs with
+  | nil =>
+    intro f _ δ x hf _ _ hδ _ _ hxδ
+    exact lt_of_lt_of_le (hf.increasing _ _ (add_complete hδ zero_complete) (lt_of_lt_of_le hxδ (add_zero δ).ge))
+      (schutte_column0 f δ 0).ge
+  | cons b xs ih =>
+    intro f a δ x hf ha hx hδ hxs hp hxδ
+    have hn := ofNat_complete.{u} xs.length
+    have hsn := ofNat_complete.{u} (xs.length + 1)
+    have hNb := schutte_column_normal _ b f hsn hxs.1 hf
+    have hN := schutte_column_normal _ b f hn hxs.1 hf
+    refine lt_of_lt_of_le (ih _ a δ x hN ha hx hδ hxs.2 hp.2 hxδ) ?_
+    refine le_trans (schutte_column_monotone_full _ _ _ δ 0 _ _ 0 hN.monotone hNb.monotone
+      (fun z => schutte_column_monotoneβ _ _ b z f hf.monotone (le_of_lt (succ_lt _))) (le_refl _)
+      (schutte_column_inflationary1 (ofNat (xs.length + 1)) δ 0 f (normal_inflationary hf) hδ zero_complete)
+      (le_refl 0)) ?_
+    exact schutte_column_fixpoint (ofNat (xs.length + 1)) δ 0 f (ofNat xs.length) b hsn hδ hf (succ_lt _) hp.1 hn
+      hxs.1 zero_complete
+
+/-- Rocq: `SchutteColumnFacts.proper_stack_apex_unreachable`. -/
+theorem proper_stack_apex_unreachable (xs : List Ordinal.{u}) (f : Ordinal.{u} → Ordinal.{u}) (β x : Ordinal.{u})
+    (hf : NormalFunction f) (hβ : Complete β) (hx : Complete x) (hxs : ListComplete xs)
+    (hlen : ofNat xs.length < β) (hp : SchutteStackProper xs (schutteColumn f β 1 0))
+    (hxT : x < schutteColumn f β 1 0) : schutteStack f xs x < schutteColumn f β 1 0 := by
+  have hT := (schutte_column_normal β 1 f hβ one_complete hf).complete 0 zero_complete
+  have hβ₀ : 0 < β := lt_of_le_of_lt (zero_least _) hlen
+  match xs, hxs, hlen, hp with
+  | [], _, _, _ =>
+    exact lt_of_lt_of_le (hf.increasing _ _ (add_complete hT zero_complete) (lt_of_lt_of_le hxT (add_zero _).ge))
+      (le_trans (schutte_column_arg0 β _ f hf.monotone).ge (le_trans (schutte_column0 _ _ 0).ge
+        (schutte_column_fixpoint β 1 0 f 0 0 hβ one_complete hf hβ₀ zero_lt_one' zero_complete zero_complete
+          zero_complete)))
+  | o :: xs, hxs, hlen, hp =>
+    refine lt_of_lt_of_le (proper_stack_unreachable (o :: xs) f o _ x hf hxs.1 hx hT hxs hp hxT) ?_
+    exact le_trans (schutte_column_monotone_func f _ _ _ 0 _ 0 hf.monotone
+        (fun _ _ h => schutte_column_monotone f β 0 _ 0 _ hf.monotone (le_refl 0) h)
+        (fun z => (schutte_column_arg0 β z f hf.monotone).ge) (le_refl _) (le_refl 0))
+      (schutte_column_fixpoint β 1 0 f _ 0 hβ one_complete hf hlen zero_lt_one' (ofNat_complete _) zero_complete
+        zero_complete)
+
+/-- Rocq: `SchutteColumnFacts.schutte_stack_unreachable`. -/
+theorem schutte_stack_unreachable (f : Ordinal.{u} → Ordinal.{u}) (xs : List Ordinal.{u}) (x : Ordinal.{u})
+    (hf : NormalFunction f) (hxs : ListComplete xs) (hx : Complete x) (hxT : x < schutteColumn f ω 1 0)
+    (hp : SchutteStackProper xs (schutteColumn f ω 1 0)) : schutteStack f xs x < schutteColumn f ω 1 0 :=
+  proper_stack_apex_unreachable xs f ω x hf omega_complete hx hxs (index_lt ω ⟨xs.length⟩) hp hxT
+
+/-- Rocq: `SchutteColumnFacts.schutte_stack_least_unreachable`. -/
+theorem schutte_stack_least_unreachable (f : Ordinal.{u} → Ordinal.{u}) (X : Ordinal.{u}) (hf : NormalFunction f)
+    (hX : Complete X) (hX₀ : 0 < X)
+    (h : ∀ xs x, ListComplete xs → Complete x → x < X → SchutteStackProper xs X → schutteStack f xs x < X) :
+    schutteColumn f ω 1 0 ≤ X := by
+  have h1X : 1 < X := lt_of_le_of_lt (succ_least (hf.nonzero 0)) (h [] 0 trivial zero_complete hX₀ trivial)
+  refine le_trans (schutte_column_omega_sup f hf).le (sup_least fun i => le_of_lt ?_)
+  refine lt_of_le_of_lt (schutte_column_to_stack f i.down 1 0 hf.monotone).le ?_
+  exact h _ 0 ⟨one_complete, each_replicate zero_complete i.down⟩ zero_complete hX₀
+    ⟨h1X, each_replicate (P := (· < X)) hX₀ i.down⟩
+
+/-- Rocq: `SchutteColumnFacts.SVO_stack_unreachable`. -/
+theorem SVO_stack_unreachable (xs : List Ordinal.{u}) (x : Ordinal.{u}) (hxs : ListComplete xs) (hx : Complete x)
+    (hxS : x < SmallVeblenOrdinal) (hp : SchutteStackProper xs SmallVeblenOrdinal) :
+    schutteStack powOmega xs x < SmallVeblenOrdinal :=
+  schutte_stack_unreachable powOmega xs x powOmega_normal hxs hx hxS hp
+
+/-- Rocq: `SchutteColumnFacts.SVO_stack_unreachable'`. -/
+theorem SVO_stack_unreachable' (xs : List Ordinal.{u}) (x : Ordinal.{u}) (hxs : ListComplete xs) (hx : Complete x)
+    (hxS : x < SmallVeblenOrdinal) (hp : SchutteStackProper xs SmallVeblenOrdinal) :
+    schutteStack (fun y => 1 + y) xs x < SmallVeblenOrdinal :=
+  lt_of_lt_of_le (schutte_stack_unreachable _ xs x onePlus_normal hxs hx (lt_of_lt_of_le hxS SVO_alt.le)
+    (schutte_stack_proper_monotone xs _ _ SVO_alt.le hp)) SVO_alt.ge
+
+/-- Rocq: `SchutteColumnFacts.SVO_least_stack_unreachable`. -/
+theorem SVO_least_stack_unreachable (X : Ordinal.{u}) (hX : Complete X) (hX₀ : 0 < X)
+    (h : ∀ xs x, ListComplete xs → Complete x → x < X → SchutteStackProper xs X → schutteStack powOmega xs x < X) :
+    SmallVeblenOrdinal ≤ X :=
+  schutte_stack_least_unreachable powOmega X powOmega_normal hX hX₀ h
+
+/-- Rocq: `SchutteColumnFacts.SVO_least_stack_unreachable'`. -/
+theorem SVO_least_stack_unreachable' (X : Ordinal.{u}) (hX : Complete X) (hX₀ : 0 < X)
+    (h : ∀ xs x, ListComplete xs → Complete x → x < X → SchutteStackProper xs X →
+      schutteStack (fun y => 1 + y) xs x < X) : SmallVeblenOrdinal ≤ X :=
+  le_trans SVO_alt.le (schutte_stack_least_unreachable _ X onePlus_normal hX hX₀ h)
+
+/-! ## Matrices of columns -/
+
+/-- A Schütte matrix: a list of `(column, argument)` pairs, applied from the
+front. Rocq: `SchutteColumnFacts.schutte_matrix`. -/
+def schutteMatrix (f : Ordinal.{u} → Ordinal.{u}) : List (Ordinal.{u} × Ordinal.{u}) → Ordinal.{u} → Ordinal.{u}
+  | [] => f
+  | p :: m => schutteMatrix (schutteColumn f p.1 p.2) m
+
+/-- Rocq: `SchutteColumnFacts.schutte_matrix_monotone_func`. -/
+theorem schutte_matrix_monotone_func (m : List (Ordinal.{u} × Ordinal.{u})) :
+    ∀ (f g : Ordinal.{u} → Ordinal.{u}) (x : Ordinal.{u}), (∀ a b, a ≤ b → f a ≤ f b) →
+      (∀ a b, a ≤ b → g a ≤ g b) → (∀ a, f a ≤ g a) → schutteMatrix f m x ≤ schutteMatrix g m x := by
+  induction m with
+  | nil => intro f g x _ _ hfg; exact hfg x
+  | cons p m ih =>
+    intro f g x hf hg hfg
+    exact ih _ _ x (fun _ _ h => schutte_column_monotone f p.1 p.2 _ p.2 _ hf (le_refl _) h)
+      (fun _ _ h => schutte_column_monotone g p.1 p.2 _ p.2 _ hg (le_refl _) h)
+      (fun z => schutte_column_monotone_func f g p.1 p.2 z p.2 z hf hg hfg (le_refl _) (le_refl z))
+
+/-- Rocq: `SchutteColumnFacts.all_complete`. -/
+def AllComplete : List (Ordinal.{u} × Ordinal.{u}) → Prop
+  | [] => True
+  | p :: m => Complete p.1 ∧ Complete p.2 ∧ AllComplete m
+
+/-- Rocq: `SchutteColumnFacts.schutte_matrix_normal`. -/
+theorem schutte_matrix_normal (m : List (Ordinal.{u} × Ordinal.{u})) :
+    ∀ f : Ordinal.{u} → Ordinal.{u}, AllComplete m → NormalFunction f → NormalFunction (schutteMatrix f m) := by
+  induction m with
+  | nil => intro f _ hf; exact hf
+  | cons p m ih =>
+    intro f h hf
+    exact ih _ h.2.2 (schutte_column_normal p.1 p.2 f h.1 h.2.1 hf)
+
+/-- Rocq: `SchutteColumnFacts.schutte_matrix_zero_column`. -/
+theorem schutte_matrix_zero_column (f : Ordinal.{u} → Ordinal.{u}) (x y : Ordinal.{u}) :
+    schutteMatrix f [(0, x)] y ≈ f (x + y) :=
+  schutte_column0 f x y
+
+/-- Rocq: `SchutteColumnFacts.schutte_matrix_veblen`. -/
+theorem schutte_matrix_veblen (f : Ordinal.{u} → Ordinal.{u}) (α x y : Ordinal.{u}) (hf : NormalFunction f)
+    (hα : Complete α) (hx : Complete x) (hy : Complete y) :
+    schutteMatrix f [(1, α), (0, x)] y ≈ veblen f α (x + y) :=
+  equiv_trans (schutte_column0 (schutteColumn f 1 α) x y)
+    (schutte_column_veblen α (x + y) f hf hα (add_complete hx hy))
+
+/-- Rocq: `SchutteColumnFacts.schutte_matrix_app`. -/
+theorem schutte_matrix_app : ∀ (M N : List (Ordinal.{u} × Ordinal.{u})) (f : Ordinal.{u} → Ordinal.{u})
+    (x : Ordinal.{u}), schutteMatrix f (M ++ N) x = schutteMatrix (schutteMatrix f M) N x
+  | [], _, _, _ => rfl
+  | p :: M, N, f, x => schutte_matrix_app M N (schutteColumn f p.1 p.2) x
+
+/-- Rocq: `SchutteColumnFacts.schutte_matrix_base`. -/
+theorem schutte_matrix_base (m : List (Ordinal.{u} × Ordinal.{u})) :
+    ∀ (f : Ordinal.{u} → Ordinal.{u}) (x : Ordinal.{u}), NormalFunction f → AllComplete m →
+      f x ≤ schutteMatrix f m x := by
+  induction m with
+  | nil => intro f x _ _; exact le_refl _
+  | cons p m ih =>
+    intro f x hf h
+    exact le_trans (le_trans (hf.monotone _ _ (le_add_left p.2 x)) (schutte_column_le_f p.1 p.2 x f hf.monotone))
+      (ih _ x (schutte_column_normal p.1 p.2 f h.1 h.2.1 hf) h.2.2)
+
+/-- Rocq: `SchutteColumnFacts.schutte_matrix_zero_arg`. -/
+theorem schutte_matrix_zero_arg (m₁ : List (Ordinal.{u} × Ordinal.{u})) :
+    ∀ (m₂ : List (Ordinal.{u} × Ordinal.{u})) (β : Ordinal.{u}) (f : Ordinal.{u} → Ordinal.{u}) (x : Ordinal.{u}),
+      (∀ a b, a ≤ b → f a ≤ f b) → Complete β →
+      schutteMatrix f (m₁ ++ ([(β, 0)] ++ m₂)) x ≈ schutteMatrix f (m₁ ++ m₂) x := by
+  induction m₁ with
+  | nil =>
+    intro m₂ β f x hf _
+    have hm : ∀ a b : Ordinal.{u}, a ≤ b → schutteColumn f β 0 a ≤ schutteColumn f β 0 b :=
+      fun _ _ h => schutte_column_monotone f β 0 _ 0 _ hf (le_refl 0) h
+    exact equiv_intro
+      (schutte_matrix_monotone_func m₂ _ f x hm hf (fun z => (schutte_column_arg0 β z f hf).le))
+      (schutte_matrix_monotone_func m₂ f _ x hf hm (fun z => (schutte_column_arg0 β z f hf).ge))
+  | cons p m₁ ih =>
+    intro m₂ β f x hf hβ
+    exact ih m₂ β _ x (fun _ _ h => schutte_column_monotone f p.1 p.2 _ p.2 _ hf (le_refl _) h) hβ
+
+/-- Rocq: `SchutteColumnFacts.enumerates_func_equiv`. -/
+theorem enumerates_func_equiv (f g : Ordinal.{u} → Ordinal.{u}) (P : Ordinal.{u} → Prop) (hfg : ∀ x, f x ≈ g x)
+    (hP : ∀ x y, x ≈ y → P x → P y) (hf : Con.Enumerates f P) : Con.Enumerates g P where
+  included x hx := hP _ _ (hfg x) (hf.included x hx)
+  monotone x y h := le_trans (hfg x).ge (le_trans (hf.monotone x y h) (hfg y).le)
+  increasing x y hy h := lt_of_le_of_lt (hfg x).ge (lt_of_lt_of_le (hf.increasing x y hy h) (hfg y).le)
+  least x z hx hz hPz hlt :=
+    le_trans (hfg x).ge (hf.least x z hx hz hPz fun y hy => lt_of_le_of_lt (hfg y).le (hlt y hy))
+
+/-- Every argument of the matrix is zero. Rocq: `SchutteColumnFacts.trivial_matrix`. -/
+def TrivialMatrix (m : List (Ordinal.{u} × Ordinal.{u})) : Prop := Each (fun c => c.2 ≈ 0) m
+
+/-- Some argument of the matrix is nonzero. Rocq: `SchutteColumnFacts.nontrivial_matrix`. -/
+def NontrivialMatrix : List (Ordinal.{u} × Ordinal.{u}) → Prop
+  | [] => False
+  | p :: m => 0 < p.2 ∨ NontrivialMatrix m
+
+/-- Rocq: `SchutteColumnFacts.trivial_matrix_eq`. -/
+theorem trivial_matrix_eq (m : List (Ordinal.{u} × Ordinal.{u})) :
+    ∀ (f : Ordinal.{u} → Ordinal.{u}) (x : Ordinal.{u}), NormalFunction f → TrivialMatrix m →
+      schutteMatrix f m x ≈ f x := by
+  induction m with
+  | nil => intro f x _ _; exact equiv_refl _
+  | cons p m ih =>
+    intro f x hf h
+    have hm : ∀ a b : Ordinal.{u}, a ≤ b → schutteColumn f p.1 p.2 a ≤ schutteColumn f p.1 p.2 b :=
+      fun _ _ h => schutte_column_monotone f p.1 p.2 _ p.2 _ hf.monotone (le_refl _) h
+    refine equiv_trans (equiv_intro ?_ ?_) (ih f x hf h.2)
+    · exact schutte_matrix_monotone_func m _ f x hm hf.monotone (fun z =>
+        le_trans (schutte_column_monotone f p.1 p.2 z 0 z hf.monotone h.1.le (le_refl z))
+          (schutte_column_arg0 p.1 z f hf.monotone).le)
+    · exact schutte_matrix_monotone_func m f _ x hf.monotone hm (fun z =>
+        le_trans (schutte_column_arg0 p.1 z f hf.monotone).ge
+          (schutte_column_monotone f p.1 0 z p.2 z hf.monotone (zero_least _) (le_refl z)))
+
+/-- Rocq: `SchutteColumnFacts.matrix_member_le`. -/
+theorem matrix_member_le (m n : List (Ordinal.{u} × Ordinal.{u})) (f : Ordinal.{u} → Ordinal.{u}) (b a : Ordinal.{u})
+    (hf : NormalFunction f) (hm : AllComplete m) (hb : Complete b) (ha : Complete a) (hn : AllComplete n) :
+    a ≤ schutteMatrix f (m ++ (b, a) :: n) 0 := by
+  rw [schutte_matrix_app]
+  have hM := schutte_matrix_normal m f hm hf
+  exact le_trans (schutte_column_inflationary1 b a 0 _ (normal_inflationary hM) ha zero_complete)
+    (schutte_matrix_base n _ 0 (schutte_column_normal b a _ hb ha hM) hn)
+
+/-- `b ≤ schutteColumn g b a 0` for positive `a`. -/
+private theorem index_le_col {g : Ordinal.{u} → Ordinal.{u}} (hg : NormalFunction g) {b a : Ordinal.{u}}
+    (hb : Complete b) (ha₀ : 0 < a) : b ≤ schutteColumn g b a 0 :=
+  le_trans (normal_inflationary (schutte_column_normalβ g hg) b hb)
+    (schutte_column_monotone g b 1 0 a 0 hg.monotone (succ_least ha₀) (le_refl 0))
+
+/-- Rocq: `SchutteColumnFacts.matrix_member_index_le`. -/
+theorem matrix_member_index_le (m n : List (Ordinal.{u} × Ordinal.{u})) (f : Ordinal.{u} → Ordinal.{u})
+    (b a : Ordinal.{u}) (hf : NormalFunction f) (hm : AllComplete m) (hb : Complete b) (ha : Complete a)
+    (hn : AllComplete n) (ha₀ : 0 < a) : b ≤ schutteMatrix f (m ++ (b, a) :: n) 0 := by
+  rw [schutte_matrix_app]
+  have hM := schutte_matrix_normal m f hm hf
+  exact le_trans (index_le_col hM hb ha₀) (schutte_matrix_base n _ 0 (schutte_column_normal b a _ hb ha hM) hn)
+
+/-- Rocq: `SchutteColumnFacts.matrix_member_index_lt`. -/
+theorem matrix_member_index_lt (m n : List (Ordinal.{u} × Ordinal.{u})) (f : Ordinal.{u} → Ordinal.{u})
+    (b a : Ordinal.{u}) (hf : NormalFunction f) (hm : AllComplete m) (hb : Complete b) (ha : Complete a)
+    (hn : AllComplete n) (h1a : 1 < a) : b < schutteMatrix f (m ++ (b, a) :: n) 0 := by
+  rw [schutte_matrix_app]
+  have hM := schutte_matrix_normal m f hm hf
+  exact lt_of_le_of_lt (normal_inflationary (schutte_column_normalβ _ hM) b hb)
+    (lt_of_lt_of_le ((schutte_column_normal_arg b _ hb hM).increasing 1 a ha h1a)
+      (schutte_matrix_base n _ 0 (schutte_column_normal b a _ hb ha hM) hn))
+
+/-- Anything at most `g 0` is below `schutteMatrix g n 0` for nontrivial `n`. -/
+private theorem lt_nontrivial {g : Ordinal.{u} → Ordinal.{u}} (hg : NormalFunction g) {c : Ordinal.{u}}
+    (hc : c ≤ g 0) : ∀ n : List (Ordinal.{u} × Ordinal.{u}), AllComplete n → NontrivialMatrix n →
+      c < schutteMatrix g n 0
+  | [], _, h => h.elim
+  | p :: n, hn, .inl hq =>
+    lt_of_le_of_lt (le_trans hc (schutte_column_arg0 p.1 0 g hg.monotone).ge)
+      (lt_of_lt_of_le ((schutte_column_normal_arg p.1 g hn.1 hg).increasing 0 p.2 hn.2.1 hq)
+        (schutte_matrix_base n _ 0 (schutte_column_normal p.1 p.2 g hn.1 hn.2.1 hg) hn.2.2))
+  | p :: n, hn, .inr h =>
+    lt_of_lt_of_le (lt_nontrivial hg hc n hn.2.2 h)
+      (schutte_matrix_monotone_func n g _ 0 hg.monotone
+        (fun _ _ h => schutte_column_monotone g p.1 p.2 _ p.2 _ hg.monotone (le_refl _) h)
+        (fun z => le_trans (hg.monotone _ _ (le_add_left p.2 z)) (schutte_column_le_f p.1 p.2 z g hg.monotone)))
+
+/-- Rocq: `SchutteColumnFacts.nontrivial_matrix_member_lt`. -/
+theorem nontrivial_matrix_member_lt (m n : List (Ordinal.{u} × Ordinal.{u})) (f : Ordinal.{u} → Ordinal.{u})
+    (b a : Ordinal.{u}) (hf : NormalFunction f) (hm : AllComplete m) (hb : Complete b) (ha : Complete a)
+    (hn : AllComplete n) (hnt : NontrivialMatrix n) : a < schutteMatrix f (m ++ (b, a) :: n) 0 := by
+  rw [schutte_matrix_app]
+  have hM := schutte_matrix_normal m f hm hf
+  exact lt_nontrivial (schutte_column_normal b a _ hb ha hM)
+    (schutte_column_inflationary1 b a 0 _ (normal_inflationary hM) ha zero_complete) n hn hnt
+
+/-- Rocq: `SchutteColumnFacts.nontrivial_matrix_member_index_lt`. -/
+theorem nontrivial_matrix_member_index_lt (m n : List (Ordinal.{u} × Ordinal.{u})) (f : Ordinal.{u} → Ordinal.{u})
+    (b a : Ordinal.{u}) (hf : NormalFunction f) (hm : AllComplete m) (hb : Complete b) (ha : Complete a)
+    (hn : AllComplete n) (hnt : NontrivialMatrix n) (ha₀ : 0 < a) : b < schutteMatrix f (m ++ (b, a) :: n) 0 := by
+  rw [schutte_matrix_app]
+  have hM := schutte_matrix_normal m f hm hf
+  exact lt_nontrivial (schutte_column_normal b a _ hb ha hM) (index_le_col hM hb ha₀) n hn hnt
+
+/-- Rocq: `SchutteColumnFacts.schutte_matrix_enumerates`. -/
+theorem schutte_matrix_enumerates (f : Ordinal.{u} → Ordinal.{u}) (m : List (Ordinal.{u} × Ordinal.{u}))
+    (β α : Ordinal.{u}) (hβ₀ : 0 < β) (hα₀ : 0 < α) (hf : NormalFunction f) (hm : AllComplete m) (hβ : Complete β)
+    (hα : Complete α) :
+    Con.Enumerates (fun x => schutteMatrix f (m ++ [(β, α), (0, x)]) 0)
+      (fun δ => ∀ b a, Complete b → b < β → Complete a → a < α → schutteMatrix f (m ++ [(β, a), (b, δ)]) 0 ≈ δ) := by
+  have hM := schutte_matrix_normal m f hm hf
+  have hN := schutte_column_normal β α _ hβ hα hM
+  refine enumerates_func_equiv (schutteColumn (schutteMatrix f m) β α) _ _ (fun x => ?_) (fun x y hxy hPx => ?_)
+    (Con.enumerates_equiv_pred hN (fun x _ => ⟨fun h b a hb hbβ ha haα => ?_, fun h b a hb ha hbβ haα => ?_⟩)
+      (schutte_column_enumerates _ β α hM hβ hα hβ₀ hα₀))
+  · rw [schutte_matrix_app]
+    exact equiv_trans (equiv_intro (hN.monotone _ _ (add_zero x).ge) (hN.monotone _ _ (add_zero x).le))
+      (equiv_symm (schutte_column0 _ x 0))
+  · intro b a hb hbβ ha haα
+    have h := hPx b a hb hbβ ha haα
+    rw [schutte_matrix_app] at h ⊢
+    have hNa := schutte_column_normal β a _ hβ ha hM
+    exact equiv_trans (equiv_intro (schutte_column_monotone _ b y 0 x 0 hNa.monotone hxy.ge (le_refl 0))
+      (schutte_column_monotone _ b x 0 y 0 hNa.monotone hxy.le (le_refl 0))) (equiv_trans h hxy)
+  · rw [schutte_matrix_app]; exact h b a hb ha hbβ haα
+  · have h' := h b a hb hbβ ha haα
+    rw [schutte_matrix_app] at h'
+    exact h'
+
+/-- Rocq: `SchutteColumnFacts.schutte_matrix_proper`. -/
+def SchutteMatrixProper : List (Ordinal.{u} × Ordinal.{u}) → Ordinal.{u} → Ordinal.{u} → Prop
+  | [], _, _ => True
+  | p :: m, β, α => p.1 < β ∧ p.2 < α ∧ SchutteMatrixProper m p.1 α
+
+/-- Rocq: `SchutteColumnFacts.schutte_matrix_proper_monotone`. -/
+theorem schutte_matrix_proper_monotone :
+    ∀ (m : List (Ordinal.{u} × Ordinal.{u})) (β β' α α' : Ordinal.{u}), β ≤ β' → α ≤ α' →
+      SchutteMatrixProper m β α → SchutteMatrixProper m β' α'
+  | [], _, _, _, _, _, _, _ => trivial
+  | p :: m, _, _, _, _, hβ, hα, ⟨h₁, h₂, h₃⟩ =>
+    ⟨lt_of_lt_of_le h₁ hβ, lt_of_lt_of_le h₂ hα, schutte_matrix_proper_monotone m _ _ _ _ (le_refl _) hα h₃⟩
+
+/-- Rocq: `SchutteColumnFacts.final_index`. -/
+def finalIndex (q : Ordinal.{u}) : List (Ordinal.{u} × Ordinal.{u}) → Ordinal.{u}
+  | [] => q
+  | p :: m => finalIndex p.1 m
+
+/-- Rocq: `SchutteColumnFacts.final_index_last`. -/
+theorem final_index_last : ∀ (m : List (Ordinal.{u} × Ordinal.{u})) (q i a : Ordinal.{u}),
+    finalIndex q (m ++ [(i, a)]) = i
+  | [], _, _, _ => rfl
+  | p :: m, _, i, a => final_index_last m p.1 i a
+
+/-- Rocq: `SchutteColumnFacts.final_index_monotone`. -/
+theorem final_index_monotone (p q : Ordinal.{u}) (xs : List (Ordinal.{u} × Ordinal.{u})) (h : p ≤ q) :
+    finalIndex p xs ≤ finalIndex q xs :=
+  match xs with
+  | [] => h
+  | _ :: _ => le_refl _
+
+/-- Rocq: `SchutteColumnFacts.schutte_matrix_proper_app`. -/
+theorem schutte_matrix_proper_app : ∀ (m n : List (Ordinal.{u} × Ordinal.{u})) (q p : Ordinal.{u}),
+    SchutteMatrixProper (m ++ n) q p ↔ SchutteMatrixProper m q p ∧ SchutteMatrixProper n (finalIndex q m) p
+  | [], _, _, _ => ⟨fun h => ⟨trivial, h⟩, fun h => h.2⟩
+  | r :: m, n, _, p =>
+    ⟨fun ⟨h₁, h₂, h₃⟩ =>
+      let ⟨a, b⟩ := (schutte_matrix_proper_app m n r.1 p).1 h₃
+      ⟨⟨h₁, h₂, a⟩, b⟩,
+     fun ⟨⟨h₁, h₂, a⟩, b⟩ => ⟨h₁, h₂, (schutte_matrix_proper_app m n r.1 p).2 ⟨a, b⟩⟩⟩
+
+/-- Rocq: `SchutteColumnFacts.schutte_matrix_proper_split_final`. -/
+theorem schutte_matrix_proper_split_final (m : List (Ordinal.{u} × Ordinal.{u})) (b a q p : Ordinal.{u}) :
+    SchutteMatrixProper (m ++ [(b, a)]) q p ↔ SchutteMatrixProper m q p ∧ b < finalIndex q m ∧ a < p :=
+  (schutte_matrix_proper_app m [(b, a)] q p).trans
+    ⟨fun ⟨h₁, h₂, h₃, _⟩ => ⟨h₁, h₂, h₃⟩, fun ⟨h₁, h₂, h₃⟩ => ⟨h₁, h₂, h₃, trivial⟩⟩
+
+/-- Rocq: `SchutteColumnFacts.proper_matrix_unreachable`. -/
+theorem proper_matrix_unreachable (m : List (Ordinal.{u} × Ordinal.{u})) :
+    ∀ (f : Ordinal.{u} → Ordinal.{u}) (b a δ x : Ordinal.{u}), NormalFunction f → Complete b → Complete a →
+      Complete x → Complete δ → AllComplete m → SchutteMatrixProper m b δ → (x ≈ 0 ∨ AdditivelyClosed δ) →
+      a < δ → x < δ → schutteMatrix f ((b, a) :: m) x < schutteColumn f b δ 0 := by
+  induction m with
+  | nil =>
+    intro f b a δ x hf hb ha hx hδ _ _ hcl haδ hxδ
+    show schutteColumn f b a x < _
+    match complete_zeroDec hb with
+    | .inl hb₀ =>
+      refine lt_of_le_of_lt (b := f (a + x)) ?_ ?_
+      · rw [schutte_column_unroll]
+        exact lub_least (le_refl _) (sup_least fun b' => (zero_lt _ (lt_of_lt_of_le (index_lt b b') hb₀)).elim)
+      · refine lt_of_lt_of_le (hf.increasing _ _ (add_complete hδ zero_complete) ?_)
+          (schutte_column_le_f b δ 0 f hf.monotone)
+        refine lt_of_lt_of_le ?_ (add_zero δ).ge
+        match hcl with
+        | .inl hx₀ => exact lt_of_le_of_lt (le_trans (add_le_add (le_refl a) hx₀.le) (add_zero a).le) haδ
+        | .inr hcl => exact hcl a x haδ hxδ
+    | .inr hb₀ =>
+      have hY := (schutte_column_normal b δ f hb hδ hf).complete 0 zero_complete
+      exact lt_of_lt_of_le ((schutte_column_normal b a f hb ha hf).increasing _ _ (add_complete hY zero_complete)
+          (lt_of_lt_of_le hxδ (le_trans (schutte_column_inflationary1 b δ 0 f (normal_inflationary hf) hδ
+            zero_complete) (add_zero _).ge)))
+        (le_trans (schutte_column0 _ _ 0).ge
+          (schutte_column_fixpoint b δ 0 f 0 a hb hδ hf hb₀ haδ zero_complete ha zero_complete))
+  | cons r m ih =>
+    intro f b a δ x hf hb ha hx hδ hm hp hcl haδ hxδ
+    have hNa := schutte_column_normal b a f hb ha hf
+    exact lt_of_lt_of_le (ih _ r.1 r.2 δ x hNa hm.1 hm.2.1 hx hδ hm.2.2 hp.2.2 hcl hp.2.1 hxδ)
+      (le_trans (schutte_column_monotone _ r.1 δ 0 _ 0 hNa.monotone
+        (schutte_column_inflationary1 b δ 0 f (normal_inflationary hf) hδ zero_complete) (le_refl 0))
+        (schutte_column_fixpoint b δ 0 f r.1 a hb hδ hf hp.1 haδ hm.1 ha zero_complete))
+
+/-- Rocq: `SchutteColumnFacts.proper_matrix_apex_unreachable`. -/
+theorem proper_matrix_apex_unreachable (m : List (Ordinal.{u} × Ordinal.{u})) (f : Ordinal.{u} → Ordinal.{u})
+    (β x : Ordinal.{u}) (hf : NormalFunction f) (hβ : Complete β) (hx : Complete x) (hm : AllComplete m)
+    (hcase : x ≈ 0 ∨ 1 < β) (hβ₀ : 0 < β) (hp : SchutteMatrixProper m β (schutteColumn f β 1 0))
+    (hxT : x < schutteColumn f β 1 0) : schutteMatrix f m x < schutteColumn f β 1 0 := by
+  have hT := (schutte_column_normal β 1 f hβ one_complete hf).complete 0 zero_complete
+  match m, hm, hp with
+  | [], _, _ =>
+    exact lt_of_lt_of_le (hf.increasing _ _ (add_complete hT zero_complete) (lt_of_lt_of_le hxT (add_zero _).ge))
+      (le_trans (schutte_column_arg0 β _ f hf.monotone).ge (le_trans (schutte_column0 _ _ 0).ge
+        (schutte_column_fixpoint β 1 0 f 0 0 hβ one_complete hf hβ₀ zero_lt_one' zero_complete zero_complete
+          zero_complete)))
+  | r :: m, hm, hp =>
+    have hcl : x ≈ 0 ∨ AdditivelyClosed (schutteColumn f β 1 0) := match hcase with
+      | .inl h => .inl h
+      | .inr h1β => .inr fun p q hp hq =>
+        schutte_column_add_closed f β 1 0 p q hf hβ one_complete zero_complete h1β zero_lt_one' hp hq
+    refine lt_of_lt_of_le (proper_matrix_unreachable m f r.1 r.2 _ x hf hm.1 hm.2.1 hx hT hm.2.2 hp.2.2 hcl
+      hp.2.1 hxT) ?_
+    exact le_trans (schutte_column_monotone_func f _ _ _ 0 _ 0 hf.monotone
+        (fun _ _ h => schutte_column_monotone f β 0 _ 0 _ hf.monotone (le_refl 0) h)
+        (fun z => (schutte_column_arg0 β z f hf.monotone).ge) (le_refl _) (le_refl 0))
+      (schutte_column_fixpoint β 1 0 f r.1 0 hβ one_complete hf hp.1 zero_lt_one' hm.1 zero_complete zero_complete)
+
+/-- Rocq: `SchutteColumnFacts.max_index_exists`. -/
+theorem max_index_exists : ∀ (m : List (Ordinal.{u} × Ordinal.{u})) (q : Ordinal.{u}), 0 < q → Complete q →
+    Each (fun x => x.1 < q) m → ∃ r : q.Carrier, Each (fun x => x.1 ≤ q r) m
+  | [], _, hq₀, _, _ => let ⟨r, _⟩ := lt_elim hq₀; ⟨r, trivial⟩
+  | p :: m, q, hq₀, hq, ⟨h₁, h₂⟩ =>
+    let ⟨r, hr⟩ := max_index_exists m q hq₀ hq h₂
+    let ⟨s, hs⟩ := lt_elim h₁
+    let ⟨t, hst, hrt⟩ := complete_directed hq s r
+    ⟨t, le_trans hs hst, Each.imp (fun _ hx => le_trans hx hrt) hr⟩
+
+/-- Rocq: `SchutteColumnFacts.pump_matrix`. -/
+def pumpMatrix (x : Ordinal.{u}) : List (Ordinal.{u} × Ordinal.{u}) → List (Ordinal.{u} × Ordinal.{u})
+  | [] => []
+  | p :: m => (x + ofNat (m.length + 1), p.2) :: pumpMatrix x m
+
+/-- Rocq: `SchutteColumnFacts.pump_matrix_proper`. -/
+theorem pump_matrix_proper : ∀ (m : List (Ordinal.{u} × Ordinal.{u})) (p q : Ordinal.{u}),
+    Each (fun x => x.2 < q) m → SchutteMatrixProper (pumpMatrix p m) (p + ofNat (m.length + 1)) q
+  | [], _, _, _ => trivial
+  | _ :: m, p, q, ⟨h₁, h₂⟩ => ⟨add_lt_add_left p (succ_lt _), h₁, pump_matrix_proper m p q h₂⟩
+
+/-- Rocq: `SchutteColumnFacts.pump_matrix_all_complete`. -/
+theorem pump_matrix_all_complete : ∀ (m : List (Ordinal.{u} × Ordinal.{u})) (q : Ordinal.{u}),
+    AllComplete m → Complete q → AllComplete (pumpMatrix q m)
+  | [], _, _, _ => trivial
+  | _ :: m, q, ⟨_, h₂, h₃⟩, hq => ⟨add_complete hq (ofNat_complete _), h₂, pump_matrix_all_complete m q h₃ hq⟩
+
+/-- `1 < E` when `E` is closed under `schutteColumn f · 1 0`. -/
+private theorem one_lt_of_E {f : Ordinal.{u} → Ordinal.{u}} (hf : NormalFunction f) {E : Ordinal.{u}}
+    (hfix : schutteColumn f E 1 0 ≤ E) : 1 < E :=
+  lt_of_lt_of_le (lt_of_le_of_lt (add_zero 1).ge (add_lt_add_left 1 (lt_of_lt_of_le zero_lt_one' (add_zero 1).ge)))
+    (le_trans (onePlus_least_normal hf _ (add_complete one_complete zero_complete))
+      (le_trans (schutte_column_le_f E 1 0 f hf.monotone) hfix))
+
+/-- Rocq: `SchutteColumnFacts.proper_matrix_E_unreachable`. -/
+theorem proper_matrix_E_unreachable (m : List (Ordinal.{u} × Ordinal.{u})) (f : Ordinal.{u} → Ordinal.{u})
+    (x E : Ordinal.{u}) (hf : NormalFunction f) (hE : Complete E) (hx : Complete x) (hm : AllComplete m)
+    (hp : SchutteMatrixProper m E E) (hxE : x < E) (hfix : schutteColumn f E 1 0 ≤ E) : schutteMatrix f m x < E :=
+  have hinf := normal_inflationary (schutte_column_normalβ f hf) E hE
+  have h1E := one_lt_of_E hf hfix
+  lt_of_lt_of_le (proper_matrix_apex_unreachable m f E x hf hE hx hm (.inr h1E) (lt_trans zero_lt_one' h1E)
+    (schutte_matrix_proper_monotone m E E E _ (le_refl E) hinf hp) (lt_of_lt_of_le hxE hinf)) hfix
+
+private theorem pump_le (r x : Ordinal.{u}) : ∀ (m : List (Ordinal.{u} × Ordinal.{u})) (f : Ordinal.{u} → Ordinal.{u}),
+    (∀ a b, a ≤ b → f a ≤ f b) → Each (fun p => p.1 ≤ r) m → schutteMatrix f m x ≤ schutteMatrix f (pumpMatrix r m) x
+  | [], _, _, _ => le_refl _
+  | p :: m, f, hf, ⟨h₁, h₂⟩ =>
+    have hm := fun _ _ h => schutte_column_monotone f p.1 p.2 _ p.2 _ hf (le_refl _) h
+    le_trans (pump_le r x m _ hm h₂) (schutte_matrix_monotone_func (pumpMatrix r m) _ _ x hm
+      (fun _ _ h => schutte_column_monotone f _ p.2 _ p.2 _ hf (le_refl _) h)
+      (fun z => schutte_column_monotoneβ p.1 _ p.2 z f hf (le_trans h₁ (le_add_right r _))))
+
+/-- Rocq: `SchutteColumnFacts.matrix_E_unreachable`. -/
+theorem matrix_E_unreachable (m : List (Ordinal.{u} × Ordinal.{u})) (f : Ordinal.{u} → Ordinal.{u})
+    (x E : Ordinal.{u}) (hf : NormalFunction f) (hE : Complete E) (hx : Complete x) (hm : AllComplete m)
+    (h : Each (fun p => p.1 < E ∧ p.2 < E) m) (hxE : x < E) (hfix : schutteColumn f E 1 0 ≤ E) :
+    schutteMatrix f m x < E := by
+  have hE₀ : 0 < E := lt_of_le_of_lt (zero_least x) hxE
+  obtain ⟨q, hq⟩ := max_index_exists m E hE₀ hE (Each.imp (fun _ h => h.1) h)
+  refine lt_of_le_of_lt (pump_le (E q) x m f hf.monotone hq) ?_
+  have hEq := complete_subord hE q
+  have hinf := normal_inflationary (schutte_column_normalβ f hf) E hE
+  have h1E := one_lt_of_E hf hfix
+  have hωE : (ω : Ordinal.{u}) ≤ schutteColumn f E 1 0 := by
+    have hN0 := schutte_column_normal 1 0 f one_complete zero_complete hf
+    refine le_trans (pow_one' omega_gt0).ge (le_trans (add_zero _).ge ?_)
+    refine le_trans (veblen_onePlus 1 one_complete 0 zero_complete).ge ?_
+    refine le_trans (veblen_monotone_func onePlus_normal hf (fun z hz => onePlus_least_normal hf z hz) 1 0
+      one_complete zero_complete) ?_
+    exact le_trans (schutte_column_veblen 1 0 f hf one_complete zero_complete).ge
+      (schutte_column_monotoneβ 1 E 1 0 f hf.monotone (le_of_lt h1E))
+  refine proper_matrix_E_unreachable _ f x E hf hE hx (pump_matrix_all_complete m _ hm hEq)
+    (schutte_matrix_proper_monotone _ _ E E E ?_ (le_refl E)
+      (pump_matrix_proper m (E q) E (Each.imp (fun _ h => h.2) h))) hxE hfix
+  exact le_of_lt (lt_of_lt_of_le (schutte_column_add_closed f E 1 0 _ _ hf hE one_complete zero_complete h1E
+    zero_lt_one' (lt_of_lt_of_le (index_lt E q) hinf) (lt_of_lt_of_le (index_lt ω ⟨m.length + 1⟩) hωE)) hfix)
+
+/-- Rocq: `SchutteColumnFacts.proper_matrix_is_unreachable`. -/
+def ProperMatrixIsUnreachable (f : Ordinal.{u} → Ordinal.{u}) (E : Ordinal.{u}) : Prop :=
+  0 < E ∧ ∀ m, AllComplete m → SchutteMatrixProper m E E → schutteMatrix f m 0 < E
+
+/-- Rocq: `SchutteColumnFacts.proper_matrix_is_unreachable_iff`. -/
+theorem proper_matrix_is_unreachable_iff (f : Ordinal.{u} → Ordinal.{u}) (E : Ordinal.{u}) (hf : NormalFunction f)
+    (hE : Complete E) : SchutteUnreachable f E ↔ ProperMatrixIsUnreachable f E := by
+  refine ⟨fun H => ?_, fun ⟨hE₀, H⟩ => ⟨hE₀, fun β α x hβ hα hx hβE hαE hxE => ?_⟩⟩
+  · have hT := (E_number_iff_unreachable E f hf hE).2 H
+    exact ⟨H.1, fun m hm hp => proper_matrix_E_unreachable m f 0 E hf hE zero_complete hm hp H.1 hT.le⟩
+  · have hbase : ∀ z, (∀ (b : β) (a : α), False) → f (α + x) ≤ z → schutteColumn f β α x ≤ z := by
+      intro z hne h
+      rw [schutte_column_unroll]
+      exact lub_least h (sup_least fun b => sup_least fun a => (hne b a).elim)
+    have h1E : 1 < E := lt_of_le_of_lt (succ_least (hf.nonzero 0)) (H [] trivial trivial)
+    match complete_zeroDec hα with
+    | .inl hα₀ =>
+      have hne : ∀ (b : β) (a : α), False := fun _ a => zero_lt _ (lt_of_lt_of_le (index_lt α a) hα₀)
+      match complete_zeroDec hx with
+      | .inl hx₀ =>
+        exact lt_of_le_of_lt (hbase _ hne (hf.monotone _ _ (le_trans (add_le_add hα₀ hx₀) (zero_add 0).le)))
+          (H [] trivial trivial)
+      | .inr _ =>
+        refine lt_of_le_of_lt (hbase _ hne ?_) (H [(0, x)] ⟨zero_complete, hx, trivial⟩ ⟨hE₀, hxE, trivial⟩)
+        exact le_trans (hf.monotone _ _ (le_trans (add_le_add hα₀ (add_zero x).ge) (zero_add _).le))
+          (schutte_column_le_f 0 x 0 f hf.monotone)
+    | .inr hα₀ =>
+      match complete_zeroDec hβ with
+      | .inl hβ₀ =>
+        have hne : ∀ (b : β) (a : α), False := fun b _ => zero_lt _ (lt_of_lt_of_le (index_lt β b) hβ₀)
+        match complete_zeroDec hx with
+        | .inl hx₀ =>
+          refine lt_of_le_of_lt (hbase _ hne ?_) (H [(0, α)] ⟨zero_complete, hα, trivial⟩ ⟨hE₀, hαE, trivial⟩)
+          exact le_trans (hf.monotone _ _ (add_le_add (le_refl α) hx₀)) (schutte_column_le_f 0 α 0 f hf.monotone)
+        | .inr hx₀ =>
+          refine lt_of_le_of_lt (hbase _ hne ?_) (H [(1, α), (0, x)]
+            ⟨one_complete, hα, zero_complete, hx, trivial⟩ ⟨h1E, hαE, zero_lt_one', hxE, trivial⟩)
+          exact le_trans (hf.monotone _ _ (add_le_add (le_refl α) (add_zero x).ge))
+            (le_trans (schutte_column_le_f 1 α _ f hf.monotone) (schutte_column0 _ x 0).ge)
+      | .inr hβ₀ =>
+        match complete_zeroDec hx with
+        | .inl hx₀ =>
+          exact lt_of_le_of_lt (schutte_column_monotone f β α x α 0 hf.monotone (le_refl α) hx₀)
+            (H [(β, α)] ⟨hβ, hα, trivial⟩ ⟨hβE, hαE, trivial⟩)
+        | .inr _ =>
+          have hN := schutte_column_normal β α f hβ hα hf
+          exact lt_of_le_of_lt (le_trans (hN.monotone _ _ (add_zero x).ge) (schutte_column0 _ x 0).ge)
+            (H [(β, α), (0, x)] ⟨hβ, hα, zero_complete, hx, trivial⟩ ⟨hβE, hαE, hβ₀, hxE, trivial⟩)
+
+/-- Rocq: `SchutteColumnFacts.E_number_iff_matrix_unreachable`. -/
+theorem E_number_iff_matrix_unreachable (E : Ordinal.{u}) (f : Ordinal.{u} → Ordinal.{u}) (hf : NormalFunction f)
+    (hE : Complete E) : schutteColumn f E 1 0 ≈ E ↔ ProperMatrixIsUnreachable f E :=
+  (E_number_iff_unreachable E f hf hE).trans (proper_matrix_is_unreachable_iff f E hf hE)
+
+/-- Rocq: `SchutteColumnFacts.LVO_proper_matrix_unreachable`. -/
+theorem LVO_proper_matrix_unreachable : ProperMatrixIsUnreachable powOmega (LargeVeblenOrdinal.{u}) :=
+  (proper_matrix_is_unreachable_iff powOmega _ powOmega_normal LVO_complete).1 LVO_unreachable
+
+/-- Rocq: `SchutteColumnFacts.LVO_least_matrix_unreachable`. -/
+theorem LVO_least_matrix_unreachable (E : Ordinal.{u}) (hE : Complete E) (h : ProperMatrixIsUnreachable powOmega E) :
+    LargeVeblenOrdinal ≤ E :=
+  LVO_least_unreachable E hE ((proper_matrix_is_unreachable_iff powOmega E powOmega_normal hE).2 h)
+
+/-- Rocq: `SchutteColumnFacts.LVO_matrix_unreachable'`. -/
+theorem LVO_matrix_unreachable' : ProperMatrixIsUnreachable (fun y => 1 + y) (LargeVeblenOrdinal.{u}) :=
+  (proper_matrix_is_unreachable_iff _ _ onePlus_normal LVO_complete).1
+    ⟨LVO_nonzero, fun β α x hβ hα hx h₁ h₂ h₃ =>
+      lt_of_lt_of_le ((fixpoint_schutte_unreachable _ 0 onePlus_normal zero_complete).2 β α x hβ hα hx
+        (lt_of_lt_of_le h₁ LVO_alt.le) (lt_of_lt_of_le h₂ LVO_alt.le) (lt_of_lt_of_le h₃ LVO_alt.le)) LVO_alt.ge⟩
+
+/-- Rocq: `SchutteColumnFacts.LVO_least_matrix_unreachable'`. -/
+theorem LVO_least_matrix_unreachable' (E : Ordinal.{u}) (hE : Complete E)
+    (h : ProperMatrixIsUnreachable (fun y => 1 + y) E) : LargeVeblenOrdinal ≤ E :=
+  le_trans LVO_alt.le (fixpoint_schutte_least_unreachable _ E onePlus_normal hE
+    ((proper_matrix_is_unreachable_iff _ E onePlus_normal hE).2 h))
+
+/-- Rocq: `SchutteColumnFacts.stack_to_matrix`. -/
+def stackToMatrix : List Ordinal.{u} → List (Ordinal.{u} × Ordinal.{u})
+  | [] => []
+  | x :: xs => (ofNat xs.length, x) :: stackToMatrix xs
+
+/-- Rocq: `SchutteColumnFacts.stack_to_matrix_eq`. -/
+theorem stack_to_matrix_eq : ∀ (xs : List Ordinal.{u}) (f : Ordinal.{u} → Ordinal.{u}) (x₀ : Ordinal.{u}),
+    schutteStack f xs x₀ = schutteMatrix f (stackToMatrix xs) x₀
+  | [], _, _ => rfl
+  | _ :: xs, _, x₀ => stack_to_matrix_eq xs _ x₀
+
+/-- Rocq: `SchutteColumnFacts.stack_to_matrix_complete`. -/
+theorem stack_to_matrix_complete : ∀ xs : List Ordinal.{u}, AllComplete (stackToMatrix xs) ↔ ListComplete xs
+  | [] => ⟨fun _ => trivial, fun _ => trivial⟩
+  | _ :: xs => ⟨fun ⟨_, h, h'⟩ => ⟨h, (stack_to_matrix_complete xs).1 h'⟩,
+      fun ⟨h, h'⟩ => ⟨ofNat_complete _, h, (stack_to_matrix_complete xs).2 h'⟩⟩
+
+/-- Rocq: `SchutteColumnFacts.stack_to_matrix_proper`. -/
+theorem stack_to_matrix_proper : ∀ (xs : List Ordinal.{u}) (p q : Ordinal.{u}),
+    SchutteMatrixProper (stackToMatrix xs) p q ↔ ofNat xs.length ≤ p ∧ SchutteStackProper xs q
+  | [], p, _ => ⟨fun _ => ⟨zero_least p, trivial⟩, fun _ => trivial⟩
+  | _ :: xs, _, q =>
+    ⟨fun ⟨h₁, h₂, h₃⟩ => ⟨succ_least h₁, h₂, ((stack_to_matrix_proper xs _ q).1 h₃).2⟩,
+     fun ⟨hle, h₂, hs⟩ => ⟨lt_of_lt_of_le (succ_lt _) hle, h₂,
+       (stack_to_matrix_proper xs _ q).2 ⟨le_refl _, hs⟩⟩⟩
+
 end Ordinal
 
 end ConstructiveOrdinals
