@@ -18,6 +18,8 @@ From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
 From Ordinal Require Import NaturalArith.
+From Ordinal Require Import VeblenCon.
+
 
 Lemma well_founded_iff_ind (A:Type) (R:A->A->Prop) :
   well_founded R <->
@@ -208,6 +210,76 @@ Proof.
   destruct (HF1 a a' a') as [x [Hx1 Hx2]]; auto.
   apply (Hinda a' Ha1 x Hx1 Hx2).
 Qed.
+
+Definition rel_compose {A B C:Type} (R:A -> B -> Prop) (S:B -> C -> Prop) : A -> C -> Prop :=
+  fun a c => exists b, R a b /\ S b c.
+
+Section wf_self_simulation.
+  Variable A:Type.
+  Variable R:A -> A -> Prop.
+  Variable F:A -> A -> Prop.
+
+  Hypothesis F_refl: reflexive A F.
+  Hypothesis F_sym: symmetric A F.
+  Hypothesis F_trans: transitive A F.
+
+  Hypothesis F_sim: simulation R R F.
+
+  Lemma self_simulation_prefix: simulates (rel_compose F R) R.
+  Proof.
+    hnf. exists (fun b a => F a b). split.
+    - hnf; simpl.
+      intros a b c [d [H1 H2]] H3.
+      destruct (F_sim a d c) as [q [H4 H5]]; auto.
+      exists q; split; auto.
+      apply F_sym.
+      apply F_trans with d; auto.
+    - hnf. eauto.
+  Qed.
+
+  Lemma self_simulation_suffix: simulates (rel_compose R F) R.
+  Proof.
+    hnf. exists F. split.
+    - hnf; simpl. intros a b c [d [H1 H2]] H3.
+      hnf in F_sim.
+      destruct (F_sim d b c) as [q [H4 H5]]; auto.
+      { apply F_trans with a; auto. }
+      exists q; split; auto.
+    - hnf. intro a. exists a. apply F_refl.
+  Qed.
+
+  Lemma self_simulation_prefix': simulates R (rel_compose R F).
+  Proof.
+    exists (@eq A); split.
+    - hnf. intros; subst.
+      exists a'. split; auto.
+      hnf. exists b; auto.
+    - hnf. intro a. exists a. auto.
+  Qed.
+
+  Lemma self_simulation_suffix': simulates R (rel_compose F R).
+  Proof.
+    exists (@eq A); split.
+    - hnf. intros; subst.
+      exists a'. split; auto.
+      hnf. exists a'; split; auto.
+    - hnf. intro a. exists a. auto.
+  Qed.
+
+  Hypothesis Hwf: well_founded R.
+
+  Lemma wf_self_simulation_prefix: well_founded (rel_compose F R).
+  Proof.
+    apply simulates_wf with R; auto.
+    apply self_simulation_prefix.
+  Qed.
+
+  Lemma wf_self_simulation_suffix: well_founded (rel_compose R F).
+  Proof.
+    apply simulates_wf with R; auto.
+    apply self_simulation_suffix.
+  Qed.
+End wf_self_simulation.
 
 
 (** * Well-founded relations generate ordinals *)
@@ -811,7 +883,7 @@ Proof.
   split. apply ord_R_dominates. apply wf_ord_dominates.
 Qed.
 
-Lemma ord_R_round_trip: forall (x:Ord),
+Theorem ord_R_round_trip: forall (x:Ord),
     wf_ord (ord_R x) (ord_R_well_founded x) ≈ x.
 Proof.
   intros; split.
@@ -819,7 +891,7 @@ Proof.
   apply ord_R_le1.
 Qed.
 
-Lemma simulates_round_trip1:
+Theorem simulates_round_trip1:
   forall A (R:A -> A -> Prop) (HR: well_founded R),
     simulates R (ord_R (wf_ord R HR)).
 Proof.
@@ -833,7 +905,7 @@ Proof.
     exists (inl a); auto.
 Qed.
 
-Lemma simulates_round_trip2:
+Theorem simulates_round_trip2:
   forall A (R: A -> A -> Prop) (HR: well_founded R),
     simulates (ord_R (wf_ord R HR)) R.
 Proof.
@@ -917,7 +989,7 @@ Section inverse_image.
 
   Hypothesis HwfR: well_founded R.
 
-  Lemma inverse_image_ord: wf_ord _ (wf_inverse_image A B R f HwfR) <= wf_ord R HwfR.
+  Theorem inverse_image_ord: wf_ord _ (wf_inverse_image A B R f HwfR) <= wf_ord R HwfR.
   Proof.
     rewrite wf_ord_simulates. apply Rof_simulates.
   Qed.
@@ -940,7 +1012,7 @@ Section inclusion.
 
   Hypothesis HwfR2: well_founded R2.
 
-  Lemma inclusion_ord: wf_ord R1 (wf_incl A R1 R2 Hincl HwfR2) <= wf_ord R2 HwfR2.
+  Theorem inclusion_ord: wf_ord R1 (wf_incl A R1 R2 Hincl HwfR2) <= wf_ord R2 HwfR2.
   Proof.
     rewrite wf_ord_simulates. apply inclusion_simulates.
   Qed.
@@ -980,7 +1052,7 @@ Section transitive_closure.
 
   Hypothesis HwfR: well_founded R.
 
-  Lemma clos_trans_ord_eq: wf_ord (clos_trans A R) (wf_clos_trans A R HwfR) ≈ wf_ord R HwfR.
+  Theorem clos_trans_ord_eq: wf_ord (clos_trans A R) (wf_clos_trans A R HwfR) ≈ wf_ord R HwfR.
   Proof.
     split; rewrite wf_ord_simulates.
     apply t_clos_simulates2.
@@ -997,7 +1069,7 @@ Section zero_relation.
     hnf; intros. elim a.
   Qed.
 
-  Lemma zero_relation_is_zero: wf_ord zero_R zero_R_wf ≈ 0.
+  Theorem zero_relation_is_zero: wf_ord zero_R zero_R_wf ≈ 0.
   Proof.
     split; unfold wf_ord; auto with ord.
     apply limit_least. intros [].
@@ -1049,7 +1121,7 @@ Section succ_relation.
       apply H0; auto.
   Qed.
 
-  Lemma succ_R_is_succ: wf_ord succ_R well_founded_succ_R ≈ succOrd (wf_ord R HwfR).
+  Theorem succ_R_is_succ: wf_ord succ_R well_founded_succ_R ≈ succOrd (wf_ord R HwfR).
   Proof.
     unfold wf_ord; split; simpl.
     - apply limit_least. intros [a|]; simpl.
@@ -1173,7 +1245,7 @@ Section disjoint_union.
       apply disj_union_is_add4.
   Qed.
 
-  Lemma disj_union_add:
+  Theorem disj_union_add:
     wf_ord (le_AsB A B R S) (wf_disjoint_sum A B R S HwfR HwfS) ≈ wf_ord R HwfR + wf_ord S HwfS.
   Proof.
     split. apply disj_union_add1. apply disj_union_add2.
@@ -1244,22 +1316,7 @@ Section symprod.
     apply symprod_elt_is_nadd2.
   Qed.
 
-  Lemma symprod_is_nadd:
-    supOrd (fun ab => wf_ord_elt (A*B) (symprod A B R S) (wf_symprod A B R S HwfR HwfS) ab) ≈
-           supOrd (fun a => supOrd (fun b => wf_ord_elt A R HwfR a ⊕ wf_ord_elt B S HwfS b)).
-  Proof.
-    split. unfold wf_ord_elt.
-    - apply sup_least; intros [a b].
-      rewrite <- (sup_le _ _ a).
-      rewrite <- (sup_le _ _ b).
-      apply symprod_elt_is_nadd1.
-    - apply sup_least; intro a.
-      apply sup_least; intro b.
-      rewrite <- (sup_le _ _ (a,b)).
-      apply symprod_elt_is_nadd2.
-  Qed.
-
-  Lemma symprod_is_smash_sum:
+  Theorem symprod_is_smash_sum:
     wf_ord (symprod A B R S) (wf_symprod A B R S HwfR HwfS) ≈ smash_sum (wf_ord R HwfR) (wf_ord S HwfS).
   Proof.
     split.
@@ -1273,7 +1330,7 @@ Section symprod.
       exists (a,b). apply symprod_elt_is_nadd.
   Qed.
 
-  Lemma symprod_le_nadd:
+  Theorem symprod_le_nadd:
     wf_ord (symprod A B R S) (wf_symprod A B R S HwfR HwfS) ≤ wf_ord R HwfR ⊕ wf_ord S HwfS.
   Proof.
     unfold wf_ord. apply limit_least.
@@ -1459,7 +1516,7 @@ Section symprod'.
       apply Hindb. auto.
   Qed.
 
-  Lemma symprod'_is_nadd:
+  Theorem symprod'_is_nadd:
     wf_ord symprod' wf_symprod' ≈ wf_ord R HwfR ⊕ wf_ord S HwfS.
   Proof.
     unfold wf_ord.
@@ -1612,7 +1669,7 @@ Section slexprod.
         apply right_slex; auto.
   Qed.
 
-  Lemma slexprod_is_mul:
+  Theorem slexprod_is_mul:
     wf_ord (slexprod A B R S) (wf_slexprod A B R S HwfR HwfS) ≈
            (wf_ord S HwfS) * (wf_ord R HwfR).
   Proof.
@@ -1669,7 +1726,7 @@ Section dep_lexprod.
       auto with ord.
   Qed.
 
-  Lemma lexprod_le_mul:
+  Theorem lexprod_le_mul:
     wf_ord (lexprod A B R S) (wf_lexprod A B R S HwfR HwfS) <=
       (supOrd (fun i:A => wf_ord (S i) (HwfS i))) * (wf_ord R HwfR).
   Proof.
@@ -1977,7 +2034,7 @@ Section lex_exp.
     intros. split. apply list_interp_correct1. apply list_interp_correct2.
   Qed.
 
-  Lemma lex_exp_eq:
+  Theorem lex_exp_eq:
     wf_ord (lex_exp A R) (wf_lex_exp A R HwfR) ≈ expOrd ω (wf_ord R HwfR).
   Proof.
     unfold wf_ord.
@@ -2086,8 +2143,6 @@ Proof.
   rewrite naddOrd_zero_r.
   apply tree_selection_monotone; auto.
 Qed.
-
-From Ordinal Require Import VeblenCon.
 
 Lemma tree_selection_scott_continuous:
   scott_continuous tree_selection.
@@ -2433,7 +2488,7 @@ Section list_ext.
     repeat apply naddOrd_monotone; auto with ord.
   Qed.
 
-  Lemma list_ext_is_tree_selection:
+  Theorem list_ext_is_tree_selection:
     wf_ord (list_ext A R) (wf_list_ext A R HwfR) ≈ tree_selection (wf_ord R HwfR).
   Proof.
     split.
@@ -2449,4 +2504,43 @@ Section list_ext.
       simpl.
       apply list_ext_interp_le2.
   Qed.
+
+  Lemma list_ext_permutation: simulation (list_ext A R) (list_ext A R) (@Permutation A).
+  Proof.
+    hnf; intros.
+    inversion H; subst.
+    apply Permutation_sym in H0.
+    destruct (Permutation_vs_elt_inv _ _ _ H0) as [l3 [l4 Hl]].
+    subst b.
+    exists (l3 ++ bs ++ l4); split.
+    - apply list_ext_intro; auto.
+    - apply (Permutation_app_inv_m [a0]) in H0.
+      apply Permutation_app_middle; auto.
+      apply Permutation_sym. auto.
+  Qed.
+
+  Lemma wf_list_ext_perm: well_founded (rel_compose (@Permutation A) (list_ext A R)).
+  Proof.
+    apply wf_self_simulation_prefix; auto.
+    hnf. apply Permutation_refl.
+    hnf. apply Permutation_sym.
+    hnf. apply Permutation_trans.
+    apply list_ext_permutation.
+    apply wf_list_ext; auto.
+  Qed.
+
+  Lemma wf_list_ext_perm_both: well_founded (rel_compose (rel_compose (@Permutation A) (list_ext A R)) (@Permutation A)).
+  Proof.
+    apply wf_self_simulation_suffix; auto.
+    hnf. apply Permutation_refl.
+    hnf. apply Permutation_trans.
+    { hnf; simpl.
+      intros a a' b [c [H1 H2]] H3.
+      destruct (list_ext_permutation a c b) as [q [H4 H5]]; auto.
+      exists q; split; auto.
+      - exists q; split; auto with ord.
+      - apply Permutation_trans with c; auto. }
+    apply wf_list_ext_perm; auto.
+  Qed.
+
 End list_ext.
