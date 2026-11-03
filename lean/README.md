@@ -58,6 +58,10 @@ python3 scripts/port_map.py             # porting map and progress
 | `Fixpoints.v` | `Fixpoints.lean` | done |
 | `Cantor.v` | `Cantor.lean` | done |
 | `Reflection.v` | `Reflection.lean` | done |
+| `VeblenDefs.v` | `Veblen/Defs.lean` | done |
+| `VeblenCon.v` | `Veblen/Constructive.lean` | done |
+| `VeblenFacts.v` | `Veblen/Facts.lean` | done |
+| `VeblenClassical.v` | `Veblen/Classical.lean` | done |
 | everything else | — | not started |
 
 `python3 scripts/port_map.py` prints per-file progress.
@@ -71,6 +75,12 @@ Deliberate differences from Rocq (statements are otherwise transliterated):
   use `PLift`/`ULift` (for example `truthOrd P` is indexed by
   `ULift (PLift P)`, and `ω` by `ULift Nat`). In `Reflection`, the
   ordinal-side interpretations of the `prop` and `nat` shapes are `ULift`ed.
+- Rocq reuses names across files (each file is its own module); Lean's
+  namespaces are shared, so clashes are resolved as follows. `VeblenCon.v`'s
+  variants of `Enumerate.v`/`Fixpoints.v` names (with normal-function and
+  completeness hypotheses) are in `Ordinal.Con`, for example
+  `Con.Enumerates`; declarations with identical statements are merged.
+  `VeblenClassical.v` is in `Ordinal.VeblenClassical`.
 - Theorems stated in a Rocq `Section` take exactly the hypotheses Rocq's
   `Check` reports after the section is closed. `Hypothesis EM` becomes an
   explicit `(em : ExcludedMiddle)` argument.

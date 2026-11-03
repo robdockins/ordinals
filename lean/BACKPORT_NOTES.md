@@ -170,3 +170,83 @@ become lemmas:
 
 - `0 < c -> ω ≤ expOrd ω c`
 - `expOrd ω (c i) * ω ≤ expOrd ω c`
+
+## VeblenCon.v
+
+### `veblen_fixpoints_aux` (about 180 lines → about 50)
+Lean: same name.
+
+Prove it by well-founded induction on `α`, inside the given `β`.
+- The `f` part of `veblen f α (veblen f β x)` is unchanged.
+- In the `sup` part, apply `fixOrd_least` to `veblen f (α y)`. Its
+  prefixpoint condition `veblen f (α y) (veblen f β x) ≤ veblen f β x` is
+  exactly the induction hypothesis for `α y < α`.
+
+This leaves only the base case,
+`lim (fun z => veblen f α (veblen f β x z)) ≤ veblen f β x`. That follows from
+`veblen_lt_lemma` plus one use of directedness, as in the original.
+
+The original proves the `sup` part by induction on the iteration count, with
+two nested Scott-continuity arguments, over `β` and over `nat`. None of that is
+needed.
+
+### Repeated completeness side conditions
+Two facts are rebuilt inline about ten times. Each could be a lemma:
+
+- `complete β -> complete x -> complete (limOrd (fun i => veblen f β (x i)))`
+  (Lean: `lim_veblen_complete`)
+- `complete x -> complete (ord x (fun b => enum_fixpoints f (x b)))`
+  (Lean: `enumFixpoints_base_complete`)
+
+The proofs of `veblen_continuous`, `enum_fixpoints_cont`,
+`enum_fixpoints_func_mono` and others then become short. Similarly, a helper
+`veblen_normal_of_cont`, stating that `veblen f β` is normal once it is
+continuous, replaces the inline `constructor` blocks in `veblen_fixpoints_aux`
+and `veblen_continuous`.
+
+### `veblen_limit_zero`, `veblen_limit_succ`, `veblen_limit_limit`
+Lean: same names.
+
+In each, the bound on `fixOrd (veblen f (g b)) base` is a single
+`fixOrd_least`, with prefixpoint `veblen_fixpoints (g b) (g b')`. A shared
+helper (Lean: `fixOrd_le_veblen_of_lt`) replaces the inductions on `i`.
+
+## VeblenClassical.v
+
+### `veblen_fixpoints_aux`
+Lean: same name.
+
+The same induction-on-`α` restructuring applies.
+
+### `veblen_unroll_nonzero`
+Lean: same name.
+
+`f y ≤ fixOrd (veblen f (g b)) L` holds directly:
+
+```
+f y ≤ f L ≤ veblen f (g b) L ≤ fixOrd …    (the last step is iteration 1)
+```
+
+This avoids going through `fixOrd_fixpoint` and `fixOrd_monotone_func`.
+
+## VeblenFacts.v
+
+### `veblen_onePlus`, `≥` direction
+Lean: same name.
+
+The core fact is `forall n, ω^(f i) * n ≤ iter_f (veblen (addOrd 1) (f i)) L n`,
+by induction on `n` using the outer induction hypothesis together with
+`b*n + b ≤ b + b*n` for finite `n`. That last fact is one `calc`:
+
+```
+b*n + b ≈ b*(n+1) ≤ b*(1+n) ≈ b*1 + b*n ≈ b + b*n
+```
+
+This replaces the nested induction and its `clear`.
+
+### `veblen_enum_fixpoints`
+Lean: same name.
+
+The `≥` direction's first component, `enum_fixpoints f x ≤ veblen f (1+a) x`,
+can be a local `have` proved by its own induction on `x`, without `clear`-ing
+the outer induction hypotheses.

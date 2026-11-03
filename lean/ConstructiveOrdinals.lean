@@ -13,3 +13,4 @@ import ConstructiveOrdinals.Reflection
 import ConstructiveOrdinals.Veblen.Defs
 import ConstructiveOrdinals.Veblen.Constructive
 import ConstructiveOrdinals.Veblen.Facts
+import ConstructiveOrdinals.Veblen.Classical
