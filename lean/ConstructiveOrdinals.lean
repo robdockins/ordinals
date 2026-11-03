@@ -7,3 +7,4 @@ import ConstructiveOrdinals.Operators
 import ConstructiveOrdinals.Arith
 import ConstructiveOrdinals.Classical
 import ConstructiveOrdinals.Enumerate
+import ConstructiveOrdinals.Fixpoints
