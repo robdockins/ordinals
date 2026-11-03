@@ -135,11 +135,15 @@ partial def solveSubgoals (gs : List MVarId) (facts : Facts) (depth : Nat) (leav
   let mut side := []
   for g in gs do
     if ← g.isAssigned then continue
-    let (_, g') ← g.intros
+    let (fvars, g') ← g.intros
     let g' ← g'.withContext do
       let ty ← instantiateMVars (← g'.getType)
       g'.change (← Core.betaReduce ty)
-    if (← matchRel? (← g'.getType)).isSome then
+    -- A premise that introduces hypotheses (such as `∀ a b, a ≤ b → f a ≤ f b`)
+    -- is a side condition, not a pointwise congruence premise.
+    let introducesHyps ← g'.withContext do
+      fvars.anyM fun fv => do return (← inferType (← inferType (mkFVar fv))).isProp
+    if !introducesHyps && (← matchRel? (← g'.getType)).isSome then
       side := side ++ (← solveMono g' facts (depth - 1) leaves)
     else if ← tryOrdAuto g' then
       pure ()

@@ -232,10 +232,10 @@ theorem enumFixpoints_complete (hf₁ : ∀ x, Complete x → x ≤ f x)
 Rocq: `Fixpoints.ε`. -/
 def ε (x : Ordinal.{u}) : Ordinal.{u} := enumFixpoints powOmega x
 
-private theorem powOmega_monotone' : ∀ x y : Ordinal.{u}, x ≤ y → powOmega x ≤ powOmega y :=
+theorem powOmega_monotone' : ∀ x y : Ordinal.{u}, x ≤ y → powOmega x ≤ powOmega y :=
   fun _ _ => powOmega_monotone
 
-private theorem powOmega_inflationary : ∀ x : Ordinal.{u}, x ≤ powOmega x :=
+theorem powOmega_inflationary : ∀ x : Ordinal.{u}, x ≤ powOmega x :=
   increasing_inflationary fun _ _ => powOmega_increasing
 
 /-- Rocq: `Fixpoints.ε_monotone`. -/

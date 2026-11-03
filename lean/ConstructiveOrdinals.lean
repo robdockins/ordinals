@@ -10,3 +10,4 @@ import ConstructiveOrdinals.Enumerate
 import ConstructiveOrdinals.Fixpoints
 import ConstructiveOrdinals.Cantor
 import ConstructiveOrdinals.Reflection
+import ConstructiveOrdinals.Veblen.Defs
