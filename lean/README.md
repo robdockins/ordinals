@@ -79,6 +79,7 @@ python3 scripts/port_map.py             # porting map and progress
 | `Notation/VWNotation.v` | `Notation/VW.lean` | done |
 | `Notation/ATowerFinNotation.v` | `Notation/ATowerFin.lean` | done |
 | `Notation/ATowerNotation.v` | `Notation/ATower.lean` | done |
+| `Notation/SchutteStack.v` | `Notation/SchutteStack.lean` | done |
 | everything else | — | not started |
 
 `python3 scripts/port_map.py` prints per-file progress.
@@ -132,6 +133,11 @@ Deliberate differences from Rocq (statements are otherwise transliterated):
   functions on terms and on lists of terms (instead of an inner `fix` or a
   `fold_right`), and proofs about them are mutually recursive theorems of the
   same shape. Notation systems denote `Ordinal.{0}`.
+- `SchutteStack.v` defines its comparison by well-founded recursion on the
+  term size, through dependently typed functions that return their own
+  correctness proofs. The Lean port uses plain functions with explicit fuel
+  (`compareFuel`), so that comparison computes in the kernel, and proves
+  correctness separately.
 - Theorems stated in a Rocq `Section` take exactly the hypotheses Rocq's
   `Check` reports after the section is closed. `Hypothesis EM` becomes an
   explicit `(em : ExcludedMiddle)` argument.

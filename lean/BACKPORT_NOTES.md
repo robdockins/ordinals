@@ -592,3 +592,34 @@ and one lemma rephrases `NormalTail` without `VF_compare`. Two further points:
   `0 < V k l o`, so
   `1 + v ≤ 1 + veblen (T 0) v 0 ≈ veblen (T 0) v 0 ≤ v`
   by `onePlus_veblen`.
+
+## Notation/SchutteStack.v
+
+### Size bounds in `check_lt` and `sparse_compare`
+
+The Rocq comparison threads explicit size budgets
+(`sparse_term_size xs + VF_termSize ytop < n`, …) through `check_lt` and
+`sparse_compare`. Each recursive call then needs its own `lia` obligation.
+
+A simpler invariant suffices: every entry of a stack is smaller than the stack
+itself (`termSize a < termSize (N l)` for `a ∈ l`). The correctness lemmas then
+take only "the comparison function is correct on these pairs" as hypotheses.
+Separating the computation (plain functions over fuel) from the correctness
+proof also lets comparison compute by `reflexivity` without the
+`Acc_intro_generator` machinery.
+
+### `VF_has_enough_notations'`-style duplication
+
+`VF_decompose_correct` and `VF_recompose_correct` repeat the same
+`schutte_column0`, `schutte_column_veblen` and `veblen_onePlus` rewrites many
+times. Two lemmas, `N [x] ≈ 1 + x` and `N [x, y] ≈ ω^x + y`, shorten both
+proofs considerably. A third, `N [a, Z, c] ≈ schutte_column (addOrd 1) 2 a c`,
+does the same for the ε, Γ and Ackermann reflection theorems.
+
+### `schutte_column_sparse_matrix_interpolants`
+
+The fixpoint iterates in both halves are handled by one pattern: the
+induction hypothesis for column `n - 1`, applied to the matrix extended by
+`(n, aq)`. Stating once that the extended matrix's function is pointwise equal
+to `schutte_column f n aq` removes four copies of the
+`schutte_column_monotone_func` bookkeeping.
