@@ -195,7 +195,7 @@ theorem veblen_additively_closed {a b : Ordinal.{u}} (ha : Complete a) (hb : Com
   match complete_zeroDec ha with
   | .inl ha₀ =>
     (powOmega_additively_closed hb).congr (equiv_intro
-      (f_le_veblen powOmega_normal a b)
+      (f_le_veblen a b)
       (le_trans (veblen_monotone_first powOmega_normal.monotone 0 a b ha₀) (veblen_zero _ b).le))
   | .inr h₀ =>
     have hV := veblen_complete powOmega_normal powOmega_normal.complete a ha b hb
@@ -213,7 +213,7 @@ variable (hf : NormalFunction f)
 include hf
 
 /-- Rocq: `VeblenFacts.veblen_collapse`. -/
-theorem veblen_collapse (a b c : Ordinal.{u}) (ha : Complete a) (hb : Complete b)
+theorem veblen_collapse (a b c : Ordinal.{u}) (ha : Complete a) (_hb : Complete b)
     (hc : Complete c) (hac : a < c) (hbc : b ≤ c) (hcc : veblen f c 0 ≤ c) : veblen f a b ≤ c :=
   le_trans (veblen_monotone hf.monotone a _ _
       (le_trans hbc (normal_inflationary (veblen_first_normal hf) c hc)))
@@ -375,7 +375,7 @@ theorem veblen_func_onePlus (hf : NormalFunction f) (a x : Ordinal.{u}) (ha : Co
       (fun i _ => hf.monotone _ _ (le_add_left 1 i)) a x ha hx)
 
 /-- `a + x ≤ veblen f a x` for `a > 0`. -/
-private theorem add_le_veblen (hf : NormalFunction f) {a : Ordinal.{u}} (h₀ : 0 < a)
+private theorem add_le_veblen (hf : NormalFunction f) {a : Ordinal.{u}} (_h₀ : 0 < a)
     (ha : Complete a) (x : Ordinal.{u}) : Complete x → a + x ≤ veblen f a x := by
   induction x using ltRec with
   | ind x ih =>
@@ -392,7 +392,7 @@ theorem veblen_fax (hf : NormalFunction f) (a x : Ordinal.{u}) (ha : Complete a)
   match complete_zeroDec ha with
   | .inl ha₀ =>
     le_trans (hf.monotone _ _ (le_trans (add_le_add ha₀ (le_refl x)) (zero_add x).le))
-      (f_le_veblen hf a x)
+      (f_le_veblen a x)
   | .inr h₀ =>
     le_trans (hf.monotone _ _ (add_le_veblen hf h₀ ha x hx)) (veblen_fixpoint_zero hf h₀ ha hx)
 
@@ -415,7 +415,7 @@ theorem veblen_enum_fixpoints (hf : NormalFunction f) (a : Ordinal.{u}) :
       refine equiv_intro ?_ ?_
       · rw [veblen_unroll f (1 + a) x]
         refine lub_least (le_trans (hf.monotone _ _ (normal_inflationary hE x hx))
-          (le_trans (Con.enum_are_fixpoints hf x hx).ge (f_le_veblen hE a x)))
+          (le_trans (Con.enum_are_fixpoints hf x hx).ge (f_le_veblen a x)))
           (sup_least fun j => ?_)
         have hc := complete_subord h1a j
         refine normal_fix_least (veblen_normal hf _ hc) _ _ hVE (le_intro fun z => ?_) ?_
@@ -430,7 +430,7 @@ theorem veblen_enum_fixpoints (hf : NormalFunction f) (a : Ordinal.{u}) :
             | .inl ha₀ =>
               exact le_trans (hf.monotone _ _ (le_trans (veblen_monotone_first hE.monotone 0 a x ha₀)
                 (veblen_zero _ x).le))
-                (le_trans (Con.enum_are_fixpoints hf x hx).ge (f_le_veblen hE a x))
+                (le_trans (Con.enum_are_fixpoints hf x hx).ge (f_le_veblen a x))
             | .inr a₀ =>
               exact le_trans (hf.monotone _ _ (normal_inflationary hE _ hVE))
                 (le_trans (Con.enum_are_fixpoints hf _ hVE).ge (le_trans (veblen_zero _ _).ge
@@ -532,7 +532,7 @@ theorem veblen_expOrd_add (a x : Ordinal.{u}) (ha : Complete a) :
       match complete_zeroDec hx with
       | .inl hx₀ =>
         exact le_trans (pow_le_pow_right ω (le_trans (add_le_add (le_refl a) hx₀) (add_zero a).le))
-          (le_trans (le_add_right _ 0) (f_le_veblen hg x 0))
+          (le_trans (le_add_right _ 0) (f_le_veblen x 0))
       | .inr x₀ =>
         have hn : NormalFunction fun y => powOmega (a + y) :=
           compose_normal powOmega_normal (add_normal a₀ ha)

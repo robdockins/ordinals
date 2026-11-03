@@ -122,7 +122,7 @@ theorem veblen_lt_lemma (hf : NormalFunction f) (β : Ordinal.{u}) (h₀ : 0 < �
   ⟨β b, index_lt β b, hb⟩
 
 /-- Rocq: `VeblenClassical.veblen_fixpoints_aux`. -/
-theorem veblen_fixpoints_aux (hf : NormalFunction f) (hzd : ∀ x : Ordinal.{u}, x ≤ 0 ∨ 0 < x)
+theorem veblen_fixpoints_aux (hf : NormalFunction f) (_hzd : ∀ x : Ordinal.{u}, x ≤ 0 ∨ 0 < x)
     (hd : ∀ x : Ordinal.{u}, Directed x.Carrier x.size) (β : Ordinal.{u})
     (hcont : ∀ y, y < β → StronglyContinuous (veblen f y)) (α : Ordinal.{u}) :
     ∀ x, α < β → veblen f α (veblen f β x) ≤ veblen f β x := by

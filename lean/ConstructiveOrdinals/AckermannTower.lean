@@ -135,15 +135,17 @@ private theorem lim_tower_directed (i x : Ordinal.{u}) (hx : Complete x) :
     Directed x.Carrier fun x' => ackermannTower f i (x x') :=
   directed_monotone x _ (fun _ _ h => ackermann_tower_monotone_x f i hf.monotone _ _ h) hx
 
+omit hf in
 private theorem sub_normal {i : Ordinal.{u}} (hia : i ≤ a) (hi : Complete i) (i' : i) :
     NormalFunction (ackermannTower f (i i')) :=
   hinduct _ (complete_subord hi i') (lt_of_lt_of_le (index_lt i i') hia)
 
+omit hf in
 /-- The `fixOrd` in the unrolling of `ackermannTower f i x` is complete. -/
 private theorem fix_tower_complete {i x : Ordinal.{u}} (hia : i ≤ a) (hi : Complete i) (i' : i)
     (hL : Complete (lim fun x' : x => ackermannTower f i (x x'))) :
     Complete (fixOrd (fun d => veblen (ackermannTower f (i i')) d 0) (lim fun x' : x => ackermannTower f i (x x'))) :=
-  have hn := sub_normal f hf a hinduct hia hi i'
+  have hn := sub_normal f a hinduct hia hi i'
   normal_fix_complete _ hL (fun z hz => normal_inflationary (veblen_first_normal hn) z hz)
     (veblen_first_normal hn).monotone (veblen_first_normal hn).complete
 
@@ -161,7 +163,7 @@ theorem ackermann_tower_complete_le :
     lim_complete (fun x' => (ihx (x x') (index_lt x x') i hia hi0 hi (complete_subord hx x')).2)
       (lim_tower_directed f hf i x hx) hx.elim.2.1
   obtain ⟨i', _⟩ := lt_elim hi0
-  have hn := sub_normal f hf a hinduct hia hi i'
+  have hn := sub_normal f a hinduct hia hi i'
   have hxL : x ≤ lim fun x' : x => ackermannTower f i (x x') :=
     le_intro fun x' => lt_of_le_of_lt (ackermann_tower_inflationary f i (x x') hf (complete_subord hx x'))
       (limit_lt (fun x' : x => ackermannTower f i (x x')) x')
@@ -177,13 +179,13 @@ theorem ackermann_tower_complete_le :
     exact lub_le1 _ _
   refine ⟨hfx, ?_⟩
   rw [ackermann_tower_unroll]
-  refine lub_complete2 hfx (hf.complete x hx) (sup_complete (fun i' => fix_tower_complete f hf a hinduct hia hi i' hL)
+  refine lub_complete2 hfx (hf.complete x hx) (sup_complete (fun i' => fix_tower_complete f a hinduct hia hi i' hL)
     (directed_monotone i _ (fun p q h => fixOrd_monotone_func (fun d =>
       veblen_monotone_full (ackermann_tower_monotone_x f _ hf.monotone)
         (ackermann_tower_monotone_a f _ _ h hf.monotone) d 0 d 0 (le_refl d) (le_refl 0))
-      (veblen_first_normal (sub_normal f hf a hinduct hia hi q)).monotone _) hi) (.inl ⟨i', ?_⟩))
+      (veblen_first_normal (sub_normal f a hinduct hia hi q)).monotone _) hi) (.inl ⟨i', ?_⟩))
   refine lt_of_lt_of_le (ackermann_tower_nonzero f _ 0 hf)
-    (le_trans (f_le_veblen hn (lim fun x' : x => ackermannTower f i (x x')) 0) ?_)
+    (le_trans (f_le_veblen (f := ackermannTower f (i i')) (lim fun x' : x => ackermannTower f i (x x')) 0) ?_)
   exact sup_le (fun n : ULift Nat => iterF (fun d => veblen (ackermannTower f (i i')) d 0)
     (lim fun x' : x => ackermannTower f i (x x')) n.down) ⟨1⟩
 
@@ -227,9 +229,9 @@ theorem ackermann_tower_fixpoint_aux (i i' x : Ordinal.{u}) (hia : i ≤ a) (hi'
       (ackermann_tower_unroll_nonzero f hf a hinduct x i hia hi0 hi hx).le)
     obtain ⟨z, hz⟩ := lt_elim hi'i
     obtain ⟨t, hzt, hi''t⟩ := complete_directed hi z i''
-    have hnz := sub_normal f hf a hinduct hia hi z
-    have hnt := sub_normal f hf a hinduct hia hi t
-    have hΦ := fix_tower_complete f hf a hinduct hia hi t hL
+    have hnz := sub_normal f a hinduct hia hi z
+    have hnt := sub_normal f a hinduct hia hi t
+    have hΦ := fix_tower_complete f a hinduct hia hi t hL
     refine le_trans (fixOrd_monotone_func (fun d => veblen_monotone_full hnz.monotone
       (ackermann_tower_monotone_a f i' _ hz hf.monotone) q d q d (le_refl q) (le_refl d))
       (veblen_monotone hnz.monotone q) 0) ?_
@@ -262,7 +264,7 @@ theorem ackermann_tower_continuous (i : Ordinal.{u}) (hia : i ≤ a) (hi : Compl
   rw [ackermann_tower_unroll]
   refine lub_least (le_trans (hf.continuous A g a₀ hdir hg) (sup_monotone fun z => ?_)) (sup_least fun i' => ?_)
   · rw [ackermann_tower_unroll]; exact lub_le1 _ _
-  · have hn := sub_normal f hf a hinduct hia hi i'
+  · have hn := sub_normal f a hinduct hia hi i'
     refine normal_fix_least (veblen_first_normal hn) _ _ hS ?_ ?_
     · rw [sup_unfold g]
       exact limit_least fun ⟨z, q⟩ => lt_of_lt_of_le

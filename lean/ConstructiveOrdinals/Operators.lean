@@ -474,7 +474,7 @@ Rocq: `Operators.ord_isSucc`. -/
 theorem isSucc_iff (x : Ordinal.{u}) : IsSucc x ↔ ∃ o, x ≈ succ o :=
   ⟨fun ⟨a, ha⟩ => ⟨x a, equiv_intro (le_intro fun a' => lt_of_le_of_lt (ha a') (succ_lt _))
       (succ_least (index_lt x a))⟩,
-   fun ⟨o, ho⟩ =>
+   fun ⟨_, ho⟩ =>
     let ⟨a, ha⟩ := lt_elim (le_elim ho.ge PUnit.unit)
     ⟨a, fun a' => let ⟨_, hz⟩ := lt_elim (le_elim ho.le a'); le_trans hz ha⟩⟩
 
@@ -576,12 +576,12 @@ theorem pred_congr {x y : Ordinal.{u}} (h : x ≈ y) : pred x ≈ pred y :=
 
 /-- Rocq: `Operators.glb_le1`. -/
 theorem glb_le1 : ∀ x y : Ordinal.{u}, x ⊓ y ≤ x
-  | mk A f, mk B g => le_intro fun p =>
+  | mk A f, mk _ g => le_intro fun p =>
     lt_intro (show (mk A f).Carrier from p.1) (glb_le1 (f p.1) (g p.2))
 
 /-- Rocq: `Operators.glb_le2`. -/
 theorem glb_le2 : ∀ y x : Ordinal.{u}, x ⊓ y ≤ y
-  | mk B g, mk A f => le_intro fun p =>
+  | mk B g, mk _ f => le_intro fun p =>
     lt_intro (show (mk B g).Carrier from p.2) (glb_le2 (g p.2) (f p.1))
 
 /-- `⊓` is the greatest lower bound. Rocq: `Operators.glb_greatest`. -/
@@ -781,7 +781,7 @@ theorem zero_succ_unreachable : SuccUnreachable (0 : Ordinal.{u}) := fun a ha =>
 /-- Rocq: `Operators.limit_unreachable`. -/
 theorem limit_unreachable {y : Ordinal.{u}} (h : IsLimit y) : SuccUnreachable y := fun x hxy =>
   let ⟨_, hlim⟩ := (isLimit_iff y).1 h
-  let ⟨q, hq₁, hq₂⟩ := hlim x hxy
+  let ⟨_, hq₁, hq₂⟩ := hlim x hxy
   lt_of_le_of_lt (succ_least hq₁) hq₂
 
 /-- Rocq: `Operators.unreachable_limit`. -/

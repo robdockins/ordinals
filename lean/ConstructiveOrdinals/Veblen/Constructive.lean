@@ -297,17 +297,18 @@ section veblen
 variable (hf : NormalFunction f)
 include hf
 
+omit hf in
 /-- The base function is below every level of the hierarchy. -/
 theorem f_le_veblen (β y : Ordinal.{u}) : f y ≤ veblen f β y := by
   rw [veblen_unroll]; exact lub_le1 _ _
 
 /-- Rocq: `VeblenCon.veblen_nonzero`. -/
 theorem veblen_nonzero (β y : Ordinal.{u}) : 0 < veblen f β y :=
-  lt_of_lt_of_le (hf.nonzero y) (f_le_veblen hf β y)
+  lt_of_lt_of_le (hf.nonzero y) (f_le_veblen β y)
 
 /-- Rocq: `VeblenCon.veblen_inflationary`. -/
 theorem veblen_inflationary (β x : Ordinal.{u}) (hx : Complete x) : x ≤ veblen f β x :=
-  le_trans (normal_inflationary hf x hx) (f_le_veblen hf β x)
+  le_trans (normal_inflationary hf x hx) (f_le_veblen β x)
 
 /-- `f y` is below each fixpoint iteration used in unrolling `veblen f β y`. -/
 theorem f_le_fixOrd_veblen {y : Ordinal.{u}} (hy : Complete y) (β γ : Ordinal.{u}) :
@@ -315,7 +316,7 @@ theorem f_le_fixOrd_veblen {y : Ordinal.{u}} (hy : Complete y) (β γ : Ordinal.
   le_trans (hf.monotone _ _ (le_intro fun z =>
       lt_intro (show (lim fun z : y => veblen f β (y z)).Carrier from z)
         (veblen_inflationary hf β (y z) (complete_subord hy z))))
-    (le_trans (f_le_veblen hf γ _) (sup_le (fun n : ULift.{u} Nat =>
+    (le_trans (f_le_veblen γ _) (sup_le (fun n : ULift.{u} Nat =>
       iterF (veblen f γ) (lim fun z : y => veblen f β (y z)) n.down) ⟨1⟩))
 
 /-- Rocq: `VeblenCon.veblen_complete`. -/
@@ -373,7 +374,7 @@ theorem veblen_unroll_nonzero (β y : Ordinal.{u}) (hy : Complete y) (h₀ : 0 <
 /-- Rocq: `VeblenCon.veblen_increasing0`. -/
 theorem veblen_increasing0 (x y : Ordinal.{u}) (hy : Complete y) (h : x < y) :
     veblen f 0 x < veblen f 0 y := by
-  refine lt_of_le_of_lt ?_ (lt_of_lt_of_le (hf.increasing x y hy h) (f_le_veblen hf 0 y))
+  refine lt_of_le_of_lt ?_ (lt_of_lt_of_le (hf.increasing x y hy h) (f_le_veblen 0 y))
   rw [veblen_unroll]
   exact lub_least (le_refl _) (sup_least fun a => PEmpty.elim a)
 
@@ -441,7 +442,7 @@ theorem veblen_fixpoints_aux (β : Ordinal.{u}) (hβ : Complete β)
     · -- `f` of the fixpoint is below it, by continuity of `f`.
       obtain ⟨b₀, _⟩ := lt_elim h₀
       refine le_trans (hf.monotone _ _ hV.le) (le_trans (hf.continuous β.Carrier _ b₀ ?_ ?_)
-        (le_trans (sup_monotone fun b => le_trans (f_le_veblen hf (β b) _)
+        (le_trans (sup_monotone fun b => le_trans (f_le_veblen (β b) _)
           (normal_prefixpoint (hnorm b) _ hL)) hV.ge))
       · intro b₁ b₂
         obtain ⟨b', h₁, h₂⟩ := complete_directed hβ b₁ b₂
@@ -486,7 +487,7 @@ theorem veblen_continuous (β : Ordinal.{u}) : Complete β → ScottContinuous (
       veblen_complete hf hf.complete β hc _ (hh i)
     rw [veblen_unroll f β (sup h)]
     refine lub_least (le_trans (hf.continuous X h x₀ hd hh)
-      (sup_monotone fun i => f_le_veblen hf β (h i))) (sup_least fun a => ?_)
+      (sup_monotone fun i => f_le_veblen β (h i))) (sup_least fun a => ?_)
     refine normal_fix_least
       (veblen_normal_of_cont hf (complete_subord hc a) (ih (β a) (index_lt β a) (complete_subord hc a)))
       _ _ (sup_complete hcomp hdir (.inl ⟨x₀, veblen_nonzero hf β _⟩)) (le_intro fun p => ?_) ?_
@@ -507,7 +508,7 @@ theorem veblen_fixpoints (α β x : Ordinal.{u}) (hα : Complete α) (hβ : Comp
 theorem veblen_continuous_first : StronglyContinuous fun β => veblen f β 0 := fun A g a => by
   show veblen f (sup g) 0 ≤ sup fun i => veblen f (g i) 0
   rw [veblen_unroll]
-  refine lub_least (le_trans (f_le_veblen hf (g a) 0) (sup_le (fun i => veblen f (g i) 0) a))
+  refine lub_least (le_trans (f_le_veblen (g a) 0) (sup_le (fun i => veblen f (g i) 0) a))
     (sup_least fun p => ?_)
   refine le_trans ?_ (sup_le (fun i => veblen f (g i) 0) p.1)
   rw [veblen_unroll f (g p.1)]
@@ -563,7 +564,7 @@ theorem veblen_succ (a : Ordinal.{u}) : ∀ x : Ordinal.{u}, Complete a →
     · refine le_trans (le_trans (hf.monotone _ _ (le_intro fun z =>
           lt_intro (show (mk X fun z => enumFixpoints (veblen f a) (g z)).Carrier from z)
             (increasing_inflationary (fun _ _ h => enumFixpoints_increasing hm h) (g z))))
-        (f_le_veblen hf a _)) ?_
+        (f_le_veblen a _)) ?_
       exact sup_le (fun n : ULift.{u} Nat =>
         iterF (veblen f a) (mk X fun z => enumFixpoints (veblen f a) (g z)) n.down) ⟨1⟩
     · refine le_trans (fixOrd_monotone hm (le_intro fun z =>
@@ -607,7 +608,7 @@ theorem veblen_limit_succ (β x : Ordinal.{u}) (hl : IsLimit β) (hβ : Complete
   rw [veblen_unroll]
   refine equiv_intro (lub_least ?_ (sup_least fun b => ?_)) (sup_least fun b => ?_)
   · refine le_trans (le_trans (hf.monotone _ _ (succ_monotone (veblen_inflationary hf β x hx)))
-      (f_le_veblen hf (β b₀) _)) ?_
+      (f_le_veblen (β b₀) _)) ?_
     exact sup_le (fun i : β => veblen f (β i) (succ (veblen f β x))) b₀
   · obtain ⟨b', hb'⟩ := hasc b
     exact le_trans (fixOrd_le_veblen_of_lt hf (complete_subord hβ b) (complete_subord hβ b') hS hb'
@@ -640,7 +641,7 @@ theorem veblen_limit_limit (β x : Ordinal.{u}) (hlβ : IsLimit β) (hlx : IsLim
     sup_least fun z => le_of_lt (limit_lt (fun z : x => veblen f β (x z)) z)
   rw [veblen_unroll]
   refine equiv_intro (lub_least ?_ (sup_least fun b => ?_)) (sup_least fun b => ?_)
-  · refine le_trans (le_trans (hf.monotone _ _ (le_intro fun z => ?_)) (f_le_veblen hf (β b₀) _))
+  · refine le_trans (le_trans (hf.monotone _ _ (le_intro fun z => ?_)) (f_le_veblen (β b₀) _))
       (sup_le (fun i : β => veblen f (β i) (boundedSup x fun y => veblen f β y)) b₀)
     obtain ⟨z', hz'⟩ := hascx z
     exact lt_of_lt_of_le hz' (le_trans (veblen_inflationary hf β _ (complete_subord hx z'))

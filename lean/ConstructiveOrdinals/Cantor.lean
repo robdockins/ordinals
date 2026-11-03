@@ -68,7 +68,7 @@ theorem additively_closed_mul_omega (x : Ordinal.{u}) : AdditivelyClosed (x * ω
     _ ≤ x * ω := mul_ofNat_le_mul_omega x _
 
 /-- Rocq: `Cantor.additively_closed_one`. -/
-theorem additively_closed_one : AdditivelyClosed (1 : Ordinal.{u}) := fun a b ha hb =>
+theorem additively_closed_one : AdditivelyClosed (1 : Ordinal.{u}) := fun _ b ha hb =>
   let ⟨_, h⟩ := lt_elim ha
   lt_of_le_of_lt (le_trans (add_le_add h (le_refl b)) (zero_add b).le) hb
 

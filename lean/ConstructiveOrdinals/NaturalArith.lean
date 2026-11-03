@@ -487,8 +487,8 @@ theorem nadd_add_same_powers (em : ExcludedMiddle) (a : Ordinal.{u}) (m n : (ω 
 /-- Rocq: `NaturalArith.cantor_denote_app`. -/
 theorem cantor_denote_app : ∀ xs ys : List Ordinal.{u},
     cantorDenote (xs ++ ys) ≈ cantorDenote xs + cantorDenote ys
-  | [], ys => equiv_symm (zero_add _)
-  | x :: xs, ys => equiv_trans (add_congr (equiv_refl _) (cantor_denote_app xs ys)) (add_assoc _ _ _)
+  | [], _ => equiv_symm (zero_add _)
+  | _ :: xs, ys => equiv_trans (add_congr (equiv_refl _) (cantor_denote_app xs ys)) (add_assoc _ _ _)
 
 /-- Rocq: `NaturalArith.each_app`. -/
 theorem each_app {A : Type u} (P : A → Prop) : ∀ xs ys : List A,
@@ -505,7 +505,7 @@ theorem cantor_sequence_le1 : ∀ (xs : List Ordinal.{u}) (x : Ordinal.{u}),
 /-- Rocq: `NaturalArith.cantor_sequence_le`. -/
 theorem cantor_sequence_le : ∀ (xs : List Ordinal.{u}) (x : Ordinal.{u}) (ys : List Ordinal.{u}),
     CantorSequence x (xs ++ ys) → ∀ x' y, x' ∈ xs → y ∈ ys → y ≤ x'
-  | _ :: xs, _, ys, ⟨_, hseq⟩, _, y, .head _, hy =>
+  | _ :: xs, _, _, ⟨_, hseq⟩, _, y, .head _, hy =>
     cantor_sequence_le1 _ _ hseq y (List.mem_append_right xs hy)
   | _ :: xs, _, ys, ⟨_, hseq⟩, x', y, .tail _ h, hy => cantor_sequence_le xs _ ys hseq x' y h hy
 
@@ -542,8 +542,8 @@ def cantorDenoteNadd : List Ordinal.{u} → Ordinal.{u}
 /-- Rocq: `NaturalArith.cantor_denote_nadd_app`. -/
 theorem cantor_denote_nadd_app : ∀ xs ys : List Ordinal.{u},
     cantorDenoteNadd (xs ++ ys) ≈ cantorDenoteNadd xs ♯ cantorDenoteNadd ys
-  | [], ys => equiv_symm (nadd_zero_l _)
-  | x :: xs, ys =>
+  | [], _ => equiv_symm (nadd_zero_l _)
+  | _ :: xs, ys =>
     equiv_trans (nadd_congr (equiv_refl _) (cantor_denote_nadd_app xs ys)) (nadd_assoc _ _ _)
 
 /-- Rocq: `NaturalArith.cantor_sequence_app1`. -/

@@ -32,7 +32,7 @@ namespace Ordinal
 /-- Rocq: `WellFounded.well_founded_iff_ind`. -/
 theorem well_founded_iff_ind (A : Type u) (R : A → A → Prop) :
     WellFounded R ↔ ∀ P : A → Prop, (∀ x, (∀ y, R y x → P y) → P x) → ∀ x, P x :=
-  ⟨fun h P ih x => h.induction x ih, fun h => ⟨h (Acc R) fun x ih => Acc.intro x ih⟩⟩
+  ⟨fun h _ ih x => h.induction x ih, fun h => ⟨h (Acc R) fun x ih => Acc.intro x ih⟩⟩
 
 /-! ## Simulations
 
@@ -81,7 +81,7 @@ theorem simulates_wf (h : Simulates R S) (hwf : WellFounded S) : WellFounded R :
 
 /-- Rocq: `WellFounded.dominates_simulates`. -/
 theorem dominates_simulates (h : Dominates R S) : Simulates R S :=
-  let ⟨F, hF₁, b, hF₂⟩ := h
+  let ⟨F, hF₁, _, hF₂⟩ := h
   ⟨F, hF₁, fun a => let ⟨b', _, hb'⟩ := hF₂ a; ⟨b', hb'⟩⟩
 
 end simulates
@@ -168,7 +168,7 @@ variable {A : Type u} {R F : A → A → Prop}
 theorem self_simulation_prefix (_hrefl : ∀ x, F x x) (hsym : ∀ x y, F x y → F y x)
     (htrans : ∀ x y z, F x y → F y z → F x z) (hsim : Simulation R R F) :
     Simulates (relCompose F R) R :=
-  ⟨fun b a => F a b, fun a b c ⟨d, h₁, h₂⟩ h₃ =>
+  ⟨fun b a => F a b, fun a _ c ⟨d, h₁, h₂⟩ h₃ =>
     let ⟨q, h₄, h₅⟩ := hsim a d c h₂ (hsym _ _ h₃)
     ⟨q, h₄, hsym _ _ (htrans _ _ _ h₁ h₅)⟩,
    fun a => ⟨a, _hrefl a⟩⟩
@@ -176,7 +176,7 @@ theorem self_simulation_prefix (_hrefl : ∀ x, F x x) (hsym : ∀ x y, F x y �
 /-- Rocq: `WellFounded.self_simulation_suffix`. -/
 theorem self_simulation_suffix (hrefl : ∀ x, F x x) (htrans : ∀ x y z, F x y → F y z → F x z)
     (hsim : Simulation R R F) : Simulates (relCompose R F) R :=
-  ⟨F, fun a b c ⟨d, h₁, h₂⟩ h₃ =>
+  ⟨F, fun _ b c ⟨d, h₁, h₂⟩ h₃ =>
     let ⟨q, h₄, h₅⟩ := hsim d b c h₁ (htrans _ _ _ h₂ h₃)
     ⟨q, h₄, h₅⟩,
    fun a => ⟨a, hrefl a⟩⟩
@@ -1548,7 +1548,7 @@ def listExtInterp : List A → Ordinal.{u}
 theorem list_ext_interp_app : ∀ xs ys : List A,
     listExtInterp HwfR (xs ++ ys) ≈ listExtInterp HwfR xs ♯ listExtInterp HwfR ys
   | [], _ => equiv_symm (nadd_zero_l _)
-  | x :: xs, ys => equiv_trans (nadd_congr (equiv_refl _) (list_ext_interp_app xs ys)) (nadd_assoc _ _ _)
+  | _ :: xs, ys => equiv_trans (nadd_congr (equiv_refl _) (list_ext_interp_app xs ys)) (nadd_assoc _ _ _)
 
 omit HwfR in
 /-- Rocq: `WellFounded.list_ext_nil`. -/
@@ -1606,7 +1606,7 @@ theorem list_ext_interp_lt : ∀ (xs : List A) (q : Ordinal.{u}), q < listExtInt
     ∃ l₁ x l₂ q', xs = l₁ ++ x :: l₂ ∧ q' < treeSelection (mkWfOrd R x (HwfR.apply x)) ∧
       q ≤ listExtInterp HwfR l₁ ♯ q' ♯ listExtInterp HwfR l₂
   | [], _, h => (zero_lt _ h).elim
-  | a :: xs, q, h =>
+  | a :: xs, _, h =>
     match nadd_lt_cases h with
     | .inl ⟨i, hi⟩ =>
       ⟨[], a, xs, _, rfl, index_lt _ i, le_trans hi (nadd_zero_l _).ge⟩
@@ -1692,7 +1692,7 @@ include HwfR in
 theorem wf_list_ext_perm_both :
     WellFounded (relCompose (relCompose (@Permutation A) (ListExt R)) (@Permutation A)) :=
   wf_self_simulation_suffix (F := @Permutation A) Permutation.refl (fun _ _ _ h₁ h₂ => .trans h₁ h₂)
-    (fun a a' b ⟨c, h₁, h₂⟩ h₃ =>
+    (fun a _ b ⟨c, h₁, h₂⟩ h₃ =>
       let ⟨q, h₄, h₅⟩ := list_ext_permutation a c b h₂ h₃
       ⟨q, ⟨q, Permutation.refl q, h₄⟩, .trans h₁ h₅⟩)
     (wf_list_ext_perm HwfR)

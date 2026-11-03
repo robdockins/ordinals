@@ -1170,7 +1170,7 @@ theorem proper_matrix_apex_unreachable (m : List (Ordinal.{u} × Ordinal.{u})) (
 theorem max_index_exists : ∀ (m : List (Ordinal.{u} × Ordinal.{u})) (q : Ordinal.{u}), 0 < q → Complete q →
     Each (fun x => x.1 < q) m → ∃ r : q.Carrier, Each (fun x => x.1 ≤ q r) m
   | [], _, hq₀, _, _ => let ⟨r, _⟩ := lt_elim hq₀; ⟨r, trivial⟩
-  | p :: m, q, hq₀, hq, ⟨h₁, h₂⟩ =>
+  | _ :: m, q, hq₀, hq, ⟨h₁, h₂⟩ =>
     let ⟨r, hr⟩ := max_index_exists m q hq₀ hq h₂
     let ⟨s, hs⟩ := lt_elim h₁
     let ⟨t, hst, hrt⟩ := complete_directed hq s r
@@ -1351,7 +1351,6 @@ theorem stack_to_matrix_proper : ∀ (xs : List Ordinal.{u}) (p q : Ordinal.{u})
 theorem schutte_column_collapse (f : Ordinal.{u} → Ordinal.{u}) (hf : NormalFunction f) (n a b c : Ordinal.{u})
     (hn : Complete n) (ha : Complete a) (_hb : Complete b) (hc : Complete c) (hn₀ : 0 < n) (hac : a < c)
     (hbc : b ≤ c) (hfix : schutteColumn f n c 0 ≤ c) : schutteColumn f n a b ≤ c :=
-  have hY := (schutte_column_normal n c f hn hc hf).complete 0 zero_complete
   le_trans (schutte_column_monotone f n a b a _ hf.monotone (le_refl a)
       (le_trans hbc (le_trans (schutte_column_inflationary1 n c 0 f (normal_inflationary hf) hc zero_complete)
         (add_zero _).ge)))
@@ -1480,7 +1479,6 @@ theorem schutte_matrix_column_fix (f : Ordinal.{u} → Ordinal.{u}) (b b' a : Or
     schutteColumn f b' (schutteMatrix f ((b, a) :: m) x₀) 0 ≤ schutteMatrix f ((b, a) :: m) x₀ :=
   schutte_matrix_fixpoint1 m x₀ _ (fun x => schutteColumn f b' x 0) hm hx₀ (schutte_column_normal b a f hb ha hf)
     (schutte_column_normal_arg b' f hb' hf) fun z hz =>
-      have hY := (schutte_column_normal b a f hb ha hf).complete z hz
       le_trans (schutte_column_monotone_func f _ b' _ 0 _ 0 hf.monotone
           (fun _ _ h => schutte_column_monotone f b 0 _ 0 _ hf.monotone (le_refl 0) h)
           (fun w => (schutte_column_arg0 b w f hf.monotone).ge) (le_refl _) (le_refl 0))
