@@ -8,3 +8,6 @@ Arith,nOrd_commute,,merged,trivial once nOrd is ofNat
 Arith,nOrd_monotone,ConstructiveOrdinals.Ordinal.ofNat_monotone,merged,
 Arith,nOrd_increasing,ConstructiveOrdinals.Ordinal.ofNat_increasing,merged,
 Arith,omegaN_eq,,merged,trivial once ωN is ω
+VeblenCon,directed_iter_f,ConstructiveOrdinals.Ordinal.directed_iterF,merged,identical to Fixpoints.directed_iter_f
+VeblenCon,normal_fix_complete,ConstructiveOrdinals.Ordinal.normal_fix_complete,merged,identical to Fixpoints.normal_fix_complete
+VeblenCon,enum_fixpoints_succ,ConstructiveOrdinals.Ordinal.enumFixpoints_succ,merged,identical to Fixpoints.enum_fixpoints_succ
