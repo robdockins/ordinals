@@ -21,3 +21,4 @@ import ConstructiveOrdinals.WellFounded
 import ConstructiveOrdinals.Examples
 import ConstructiveOrdinals.GoodsteinSequences
 import ConstructiveOrdinals.AckermannTower
+import ConstructiveOrdinals.Schutte.Column

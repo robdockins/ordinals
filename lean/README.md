@@ -66,6 +66,8 @@ python3 scripts/port_map.py             # porting map and progress
 | `WellFounded.v` | `WellFounded.lean` | done |
 | `Examples.v` | `Examples.lean` | done |
 | `GoodsteinSequences.v` | `GoodsteinSequences.lean` | done |
+| `AckermannTower.v` | `AckermannTower.lean` | done |
+| `SchutteColumn.v` | `Schutte/Column.lean` | done |
 | everything else | — | not started |
 
 `python3 scripts/port_map.py` prints per-file progress.
