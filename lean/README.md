@@ -52,6 +52,27 @@ python3 scripts/port_map.py             # porting map and progress
 |---|---|---|
 | `Defs.v` | `Defs.lean` | done |
 | `Operators.v` | `Operators.lean` | done |
+| `Arith.v` | `Arith.lean` | done |
+| `Classical.v` | `Classical.lean` | done |
+| `Enumerate.v` | `Enumerate.lean` | done |
+| `Fixpoints.v` | `Fixpoints.lean` | done |
+| `Cantor.v` | `Cantor.lean` | done |
+| `Reflection.v` | `Reflection.lean` | done |
 | everything else | — | not started |
+
+`python3 scripts/port_map.py` prints per-file progress.
+
+Deliberate differences from Rocq (statements are otherwise transliterated):
+
+- Rocq's binary `positive`/`N` and their ordinal embeddings (`posOrd`,
+  `nOrd`, `ωN`) are merged into the `Nat` embedding `Ordinal.ofNat`, since
+  Lean's `Nat` is already binary in the kernel.
+- Lean has no universe cumulativity, so carriers built from `Prop` or `Nat`
+  use `PLift`/`ULift` (for example `truthOrd P` is indexed by
+  `ULift (PLift P)`, and `ω` by `ULift Nat`). In `Reflection`, the
+  ordinal-side interpretations of the `prop` and `nat` shapes are `ULift`ed.
+- Theorems stated in a Rocq `Section` take exactly the hypotheses Rocq's
+  `Check` reports after the section is closed. `Hypothesis EM` becomes an
+  explicit `(em : ExcludedMiddle)` argument.
 
 The `Countable.v` theory is experimental and is not being ported.
