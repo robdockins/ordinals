@@ -1,4 +1,4 @@
-# Constructive Ordinals in Lean 4 (port in progress)
+# Constructive Ordinals in Lean 4
 
 This directory is a Lean 4 port of the Rocq development in `../Ordinal`. The
 port aims to be mathematically faithful: every definition and theorem keeps
@@ -48,7 +48,13 @@ lake build                              # build the library
 lake env lean test/OrdRewrite.lean      # tactic tests
 lake env lean scripts/AxiomAudit.lean   # axiom audit
 python3 scripts/port_map.py             # porting map and progress
+lake env lean scripts/CheckPortMap.lean # every Lean name in the map exists
+python3 scripts/statement_review.py     # regenerate STATEMENT_REVIEW.md
 ```
+
+`statement_review.py` also needs the Rocq development built (`make` in the
+repository root) and `coqc` on the path. CI
+(`../.github/workflows/lean.yml`) runs all the other commands on every push.
 
 ## Status
 
@@ -81,9 +87,26 @@ python3 scripts/port_map.py             # porting map and progress
 | `Notation/ATowerNotation.v` | `Notation/ATower.lean` | done |
 | `Notation/SchutteStack.v` | `Notation/SchutteStack.lean` | done |
 | `Notation/SchutteMatrix.v` | `Notation/SchutteMatrix.lean` | done |
-| everything else | — | not started |
 
-`python3 scripts/port_map.py` prints per-file progress.
+The port is complete. Of the 1,839 Rocq declarations outside `Countable.v`:
+- 1,827 are ported;
+- 11 are merged into an equivalent declaration (mostly the binary-number
+  embeddings, which coincide with `ofNat`);
+- one, `tree_selection_complete`, is dropped because its Rocq proof is
+  aborted.
+
+`scripts/port_overrides.csv` gives a reason for each merge and drop. No
+declaration depends on any axiom, and the build has no warnings.
+
+`STATEMENT_REVIEW.md` sets the statements of 256 headline results beside their
+Rocq originals: every Rocq `Theorem`, plus the reflection, notation and
+order-type theorems. Both sides are printed by the provers themselves. The
+review found no mathematical discrepancies, and its introduction lists the
+systematic presentational differences.
+
+Kernel computations check the Goodstein sequence starting at 4 against OEIS
+A056193. Each notation system has sample comparisons or normalizations checked
+by `rfl` or `decide`.
 
 Deliberate differences from Rocq (statements are otherwise transliterated):
 

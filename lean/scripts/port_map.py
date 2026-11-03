@@ -12,6 +12,9 @@ The script writes PORTING_MAP.csv and checks that:
   * every declaration of a Rocq file whose Lean module exists is accounted for;
   * every override names a real Rocq declaration and a known status.
 
+It also writes the map's Lean names to .lake/port_map_names.txt, which
+scripts/CheckPortMap.lean checks against the built environment.
+
 Usage (from lean/):  python3 scripts/port_map.py [--strict]
 With --strict, Rocq files that have no Lean module yet are also errors.
 """
@@ -26,6 +29,8 @@ ROCQ_DIR = LEAN_DIR.parent / "Ordinal"
 LEAN_SRC = LEAN_DIR / "ConstructiveOrdinals"
 OVERRIDES = LEAN_DIR / "scripts" / "port_overrides.csv"
 OUTPUT = LEAN_DIR / "PORTING_MAP.csv"
+# Lean names in the map, one per line, for scripts/CheckPortMap.lean.
+NAMES_OUT = LEAN_DIR / ".lake" / "port_map_names.txt"
 
 # Rocq module -> Lean module path (relative to ConstructiveOrdinals/).
 MODULES = {
@@ -213,6 +218,11 @@ def main():
         w = csv.writer(f)
         w.writerow(["rocq_module", "rocq_name", "lean_name", "status", "note"])
         w.writerows(out_rows)
+
+    lean_names = sorted({n.strip() for r in out_rows for n in r[2].split(";")
+                         if n.strip() and not n.strip().startswith("(")})
+    NAMES_OUT.parent.mkdir(exist_ok=True)
+    NAMES_OUT.write_text("\n".join(lean_names) + "\n")
 
     print("Porting progress (accounted / total declarations):")
     print("\n".join(summary))

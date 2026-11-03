@@ -25,3 +25,5 @@ jobs:
         run: lake env lean scripts/AxiomAudit.lean
       - name: Porting map
         run: python3 scripts/port_map.py
+      - name: Porting map names
+        run: lake env lean scripts/CheckPortMap.lean
