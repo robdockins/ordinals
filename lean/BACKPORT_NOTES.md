@@ -415,3 +415,44 @@ matrices differ only by a zero argument in the first column, or by equivalent
 first columns. Two small lemmas, one for each situation, replace six copies of
 the same pair of `schutte_matrix_monotone_func` calls.
 
+
+## Notation/CantorNotation.v
+
+### Shared "push" step in `normalize` and `cantorSum_add`
+
+Both functions end with the same inline step: put `ω ^ x` in front of an
+already-normal sum, dropping it if it is smaller than the leading term. Making
+it a function `push x r`, with two lemmas (`push` preserves normality and
+denotes `ω ^ x + r`), shortens `normalize_is_normal`, `normalize_is_equal`,
+`cantorSum_add_normal` and `cantorSum_add_correct` to a few lines each. It
+also removes the copies of the inner `fix` that the Rocq proofs paste into
+`case_eq` and `destruct`.
+
+### `CF_denote_shrink`
+
+`ω ^ x + s < ω ^ (ω ^ x + s)` follows from additive closure of
+`ω ^ (ω ^ x + s)`: `ω ^ x < ω ^ (ω ^ x + s)` by the induction hypothesis on
+`x`, and `s < ω ^ s ≤ ω ^ (ω ^ x + s)` by the hypothesis on the tail. The Rocq
+proof goes through `expOrd_add`, multiplication by `1` and
+`mulOrd_monotone1/2`.
+
+### `CNF_has_enough_notations`
+
+To show `a < x` for the leading exponent `a` of `x`'s decomposition, the Rocq
+proof derives `ε 0 ≤ x` from `x ≤ a` by induction on the iterates of
+`fixOrd powOmega`. It is shorter to note that `x ≤ a` gives
+`ω ^ x ≤ ω ^ a ≤ x`, and to apply `ε0_least_expOmega_closed`.
+
+### `CF_discriminate`
+
+Recursing on the list of terms (with patterns `[]`, `[c]` and `c :: b :: l`)
+avoids `size_induction`, `CF_subterm_tail`, and the argument that a zero tail
+must be `nil`.
+
+### Structural mutual recursion instead of `size_induction`
+
+Most lemmas about Cantor forms (`CF_below_epsilon`, `CNF_compare_correct`,
+`CF_normal_forms_unique`, `normalize_is_*`) go through with plain structural
+recursion over the nested inductive: one lemma for forms and one for lists of
+forms. In Rocq this corresponds to a nested `fix` in the proof term, avoiding
+the `◃` side conditions that `size_induction` generates.
