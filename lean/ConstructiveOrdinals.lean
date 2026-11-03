@@ -5,3 +5,4 @@ import ConstructiveOrdinals.Prelude.Nat
 import ConstructiveOrdinals.Defs
 import ConstructiveOrdinals.Operators
 import ConstructiveOrdinals.Arith
+import ConstructiveOrdinals.Classical
