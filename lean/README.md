@@ -76,6 +76,7 @@ python3 scripts/port_map.py             # porting map and progress
 | `Notation/CantorNotation.v` | `Notation/Cantor.lean` | done |
 | `Notation/CantorDecomposition.v` | `Notation/CantorDecomposition.lean` | done |
 | `Notation/VNotation.v` | `Notation/V.lean` | done |
+| `Notation/VWNotation.v` | `Notation/VW.lean` | done |
 | everything else | — | not started |
 
 `python3 scripts/port_map.py` prints per-file progress.

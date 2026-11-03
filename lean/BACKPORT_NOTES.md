@@ -522,3 +522,26 @@ or `GT`, the result follows from `veblen_fixpoints` together with
 `veblen_increasing` or `veblen_inflationary`; when they are `EQ`, from
 monotonicity in each argument. The `change` that restates the goal in the
 `GT` case is not needed when the inner `fix` is a separate function.
+
+## Notation/VWNotation.v
+
+### `VW_has_enough_notations'`
+
+Its statement is identical to `VW_has_enough_notations` (both conclude
+`exists v:VF, v ≈ x`), so it can be proved by that lemma. Perhaps the prime
+was meant to reverse `≈`, as in `VNotation.v`.
+
+### `W_epsilon`
+
+Both cases reduce to the remark that `veblen ε x y ≈ ε s` for some `s`
+(`s = y` when `x ≈ 0`, and `s = veblen ε x y` otherwise, by
+`veblen_fixpoints` at `0`). Then `ε_fixpoint` finishes. Proving `W_epsilon`
+first also shortens `VW_collapse` and `VW_collapse2`, which re-derive it
+inline through `enum_are_fixpoints`.
+
+### `VF_normal_forms_unique`
+
+The `V`/`V` and `W`/`W` cases are the same argument for the two normal
+functions, `1 + ·` and `ε`. One lemma, generic in the normal function, covers
+both. The mixed cases share another lemma: a normal `V` form never equals a `W`
+form.
