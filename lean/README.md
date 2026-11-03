@@ -14,7 +14,11 @@ The type of ordinals is `ConstructiveOrdinals.Ordinal`.
   appear only as explicit hypotheses (`ExcludedMiddle`,
   `DependentFunctionalChoice`, … in `Prelude/Logic.lean`).
   `scripts/AxiomAudit.lean` enforces this.
-  In practice this rules out `simp`, `omega`, and `rw` with an `↔`. Many core
+  In practice this rules out `simp`, `omega`, and `rw` with an `↔`. A
+  `match` with an overlapping wildcard case (`| .eq => b | a => a`) also
+  compiles to a proof that uses `propext`, so definitions spell out every
+  case; for the same reason core's `Ordering.then` is replaced by
+  `lexCompare`. Many core
   `List` lemmas also use `propext`, so `Prelude/` re-proves the facts we need.
 - **Lean core only.** No Mathlib, Batteries or Aesop.
 - **Every Rocq declaration is accounted for.** Each Lean docstring cites its
@@ -69,6 +73,7 @@ python3 scripts/port_map.py             # porting map and progress
 | `AckermannTower.v` | `AckermannTower.lean` | done |
 | `SchutteColumn.v` | `Schutte/Column.lean` | done |
 | `SchutteColumnFacts.v` | `Schutte/ColumnFacts.lean` | done |
+| `Notation/CantorNotation.v` | `Notation/Cantor.lean` | done |
 | everything else | — | not started |
 
 `python3 scripts/port_map.py` prints per-file progress.
@@ -114,6 +119,14 @@ Deliberate differences from Rocq (statements are otherwise transliterated):
   completeness hypotheses) are in `Ordinal.Con`, for example
   `Con.Enumerates`; declarations with identical statements are merged.
   `VeblenClassical.v` is in `Ordinal.VeblenClassical`.
+- Each notation system lives in its own namespace
+  (`ConstructiveOrdinals.CantorNotation`, …), with the syntax and its
+  operations in a namespace named after the type (`CantorForm.compare`,
+  `CantorNormalForm.add`, …). The syntax types are nested inductives over
+  `List`, as in Rocq; functions on them are pairs of mutually recursive
+  functions on terms and on lists of terms (instead of an inner `fix` or a
+  `fold_right`), and proofs about them are mutually recursive theorems of the
+  same shape. Notation systems denote `Ordinal.{0}`.
 - Theorems stated in a Rocq `Section` take exactly the hypotheses Rocq's
   `Check` reports after the section is closed. `Hypothesis EM` becomes an
   explicit `(em : ExcludedMiddle)` argument.

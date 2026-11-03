@@ -93,13 +93,27 @@ theorem ε0_least_exp_closed (X : Type) (denote : X → Ordinal.{0}) (P : X → 
 
 /-! ## Comparison results
 
-Rocq's `ordering` (`LT`, `EQ`, `GT`) is Lean's `Ordering` (`lt`, `eq`, `gt`).
-Rocq's `ordering_swap` is `Ordering.swap`, and its `lexCompare` (lexicographic
-combination) is `Ordering.then`.
+Rocq's `ordering` (`LT`, `EQ`, `GT`) is Lean's `Ordering` (`lt`, `eq`, `gt`),
+and Rocq's `ordering_swap` is `Ordering.swap`.
 
-Rocq: `Reflection.ordering`, `Reflection.ordering_swap`,
-`Reflection.lexCompare`.
+Rocq: `Reflection.ordering`, `Reflection.ordering_swap`.
 -/
+
+/-- Lexicographic combination of comparison results: `o` unless it is `eq`,
+in which case `o'`. Rocq: `Reflection.lexCompare`.
+
+Core's `Ordering.then` is the same function, but its definition depends on
+`propext`: a `match` with an overlapping wildcard pattern compiles to a proof
+that uses it. Every case is therefore spelled out here. -/
+def lexCompare : Ordering → Ordering → Ordering
+  | .lt, _ => .lt
+  | .eq, o' => o'
+  | .gt, _ => .gt
+
+/-- Swapping both arguments of a lexicographic comparison swaps the result. -/
+theorem lexCompare_swap (o o' : Ordering) :
+    (lexCompare o o').swap = lexCompare o.swap o'.swap := by
+  cases o <;> rfl
 
 /-- The relation between two ordinals that a comparison result claims.
 Rocq: `Reflection.ordering_correct`. -/
