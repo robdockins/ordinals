@@ -78,6 +78,7 @@ python3 scripts/port_map.py             # porting map and progress
 | `Notation/VNotation.v` | `Notation/V.lean` | done |
 | `Notation/VWNotation.v` | `Notation/VW.lean` | done |
 | `Notation/ATowerFinNotation.v` | `Notation/ATowerFin.lean` | done |
+| `Notation/ATowerNotation.v` | `Notation/ATower.lean` | done |
 | everything else | — | not started |
 
 `python3 scripts/port_map.py` prints per-file progress.

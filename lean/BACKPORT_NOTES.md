@@ -577,3 +577,18 @@ condition. One lemma, stating the condition on `V n x y` as "if `m < n` then
 The interpolation property of the tower levels (`T n` preserves interpolants)
 is a separate induction on `n`. It does not need the outer `size_induction` on
 forms. The outer induction is then structural.
+
+## Notation/ATowerNotation.v
+
+The notes for `ATowerFinNotation.v` apply here too. In particular, one lemma
+proves that every value of `veblen (T n)` is a fixpoint of the lower levels,
+and one lemma rephrases `NormalTail` without `VF_compare`. Two further points:
+
+- In `ackermann_tower_has_interpolants`, the witness `Vnorm (VF_normalize n) Z z'`
+  can be `Vnorm n Z z'`, because `n` is already normal. That removes the
+  `VF_normalize_equal` steps.
+- In `VF_onePlus_equal`, the case `V (V k l o) a x'` needs no split on
+  `VF_isZero a`. The value is a fixpoint of `veblen (T 0) · 0` because
+  `0 < V k l o`, so
+  `1 + v ≤ 1 + veblen (T 0) v 0 ≈ veblen (T 0) v 0 ≤ v`
+  by `onePlus_veblen`.
