@@ -347,3 +347,32 @@ Lean: same name.
 This is just the equivalence between back-to-front and front-to-back `Desc`
 (`desc_iff` in `Prelude/Relations.lean`), unfolded one step. With that
 lemma available, the 40-line `rev` induction in Rocq is not needed.
+
+## GoodsteinSequences.v
+
+### `lt_equiv` (about 250 lines → about 50)
+
+Only one direction needs an induction: if `hbn_lt a b` holds for proper
+terms, then `interp a < interp b`. It follows by structural induction on `a`,
+proved together with the bound
+
+    hbn_proper (HBN_Term e n x) -> interp x < base ^ interp e
+
+(equivalently, `hbn_smaller_exp e x -> interp x < base ^ interp e`). That
+bound in turn needs only soundness on the subterms of `x`. The converse
+directions of both `hbn_lt_equiv` and `hbn_smaller_exp_equiv` then follow from
+`hbn_lt_total` and irreflexivity, with no size measure and no `sz` parameter.
+`lt_equiv` itself is kept, with the same statement, as a corollary.
+
+### `hbn_dec_correct`, `→` directions
+
+These go by mutual induction on the `hbn_dec`/`hbn_exp_dec` derivations, with
+properness of both sides as premises. Only the `←` directions need the strong
+induction on `interp x`.
+
+### `hbn_dec_shadow_dec`
+
+This is also a mutual induction on derivations, using the `→` directions of
+`hbn_dec_correct` for the properness side conditions. No well-founded
+induction on the interpretation is needed.
+

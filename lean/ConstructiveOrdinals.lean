@@ -19,3 +19,4 @@ import ConstructiveOrdinals.Veblen.Classical
 import ConstructiveOrdinals.NaturalArith
 import ConstructiveOrdinals.WellFounded
 import ConstructiveOrdinals.Examples
+import ConstructiveOrdinals.GoodsteinSequences

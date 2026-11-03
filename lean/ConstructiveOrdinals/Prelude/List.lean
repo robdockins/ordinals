@@ -43,4 +43,11 @@ theorem rev_ind (P : _root_.List α → Prop) (hnil : P [])
       exact this
   exact key xs [] hnil
 
+/-- The `n`th element of a list, if any. Core's `l[n]?` depends on `propext`
+through its `GetElem?` instance. Rocq: `List.nth_error`. -/
+def nthError : _root_.List α → Nat → Option α
+  | [], _ => none
+  | a :: _, 0 => some a
+  | _ :: l, n + 1 => nthError l n
+
 end ConstructiveOrdinals.List

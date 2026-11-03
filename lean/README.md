@@ -65,6 +65,7 @@ python3 scripts/port_map.py             # porting map and progress
 | `NaturalArith.v` | `NaturalArith.lean` | done |
 | `WellFounded.v` | `WellFounded.lean` | done |
 | `Examples.v` | `Examples.lean` | done |
+| `GoodsteinSequences.v` | `GoodsteinSequences.lean` | done |
 | everything else | — | not started |
 
 `python3 scripts/port_map.py` prints per-file progress.
@@ -87,6 +88,14 @@ Deliberate differences from Rocq (statements are otherwise transliterated):
   example, Rocq's `list (qwerty n)` becomes a third mutual type `QwertyList`,
   because Lean's kernel rejects nested occurrences whose parameters mention
   constructor arguments.
+- In `GoodsteinSequences`, binary `N` becomes `Nat`, and division and
+  remainder are `ConstructiveOrdinals.Nat.div`/`mod` (repeated subtraction
+  with fuel), because every core lemma about `/` and `%` uses `propext`. The
+  `Program Fixpoint`s `hbn_decompose_step` and `hbn_decompose` recurse on
+  explicit fuel, so `compute_goodstein_eq` is checked by kernel computation
+  (`decide +kernel`). Their unfolding equations are proved separately.
+  Rocq's `nth_error` is `ConstructiveOrdinals.List.nthError`, because core's
+  `l[i]?` depends on `propext` through its `GetElem?` instance.
 - Lean has no universe cumulativity, so carriers built from `Prop` or `Nat`
   use `PLift`/`ULift` (for example `truthOrd P` is indexed by
   `ULift (PLift P)`, and `ω` by `ULift Nat`). In `Reflection`, the
