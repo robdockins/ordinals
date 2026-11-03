@@ -1,2 +1,10 @@
 rocq_module,rocq_name,lean_name,status,note
 Countable,*,,dropped,experimental; not ported by decision
+Arith,posOrd,ConstructiveOrdinals.Ordinal.ofNat,merged,Rocq positive is represented by Lean Nat (binary in the kernel)
+Arith,nOrd,ConstructiveOrdinals.Ordinal.ofNat,merged,Rocq N is represented by Lean Nat (binary in the kernel)
+Arith,ωN,ConstructiveOrdinals.Ordinal.omega,merged,the N-indexed ω coincides with ω once N is Nat
+Arith,posOrd_commute,,merged,trivial once posOrd is ofNat
+Arith,nOrd_commute,,merged,trivial once nOrd is ofNat
+Arith,nOrd_monotone,ConstructiveOrdinals.Ordinal.ofNat_monotone,merged,
+Arith,nOrd_increasing,ConstructiveOrdinals.Ordinal.ofNat_increasing,merged,
+Arith,omegaN_eq,,merged,trivial once ωN is ω

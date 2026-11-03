@@ -783,8 +783,6 @@ theorem limit_unreachable {y : Ordinal.{u}} (h : IsLimit y) : SuccUnreachable y 
 theorem unreachable_limit {y : Ordinal.{u}} (h₀ : 0 < y) (hu : SuccUnreachable y) : IsLimit y :=
   (isLimit_iff y).2 ⟨h₀, fun i hi => ⟨succ i, succ_lt i, hu i hi⟩⟩
 
-attribute [irreducible] lub glb sup
-
 end Ordinal
 
 end ConstructiveOrdinals
