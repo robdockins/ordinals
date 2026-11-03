@@ -500,3 +500,25 @@ The two halves of the `naddOrd_least3` split are symmetric. The interesting
 case of each (below `ω^a * m + t` with `t < ω^a`) can be one auxiliary lemma,
 applied once directly and once after `naddOrd_comm`. The case "below
 `ω^a * m`" is the induction hypothesis in both halves.
+
+## Notation/VNotation.v
+
+### `VF_has_enough_notations'`
+
+The statement is `VF_has_enough_notations` with `≈` reversed, so it follows
+from that theorem by symmetry. The Rocq proof instead repeats the work through
+`ordinal_discriminate` and `veblen_decompose`. That proof is a useful
+illustration and could be kept, but it is not needed.
+
+### `VF_has_all_interpolants`
+
+Structural induction on the form suffices; `size_induction` with
+`VF_denote_shrink1`/`VF_denote_shrink2` is not needed.
+
+### `VF_compare_correct`
+
+All six cases follow the same pattern. When the first arguments compare `LT`
+or `GT`, the result follows from `veblen_fixpoints` together with
+`veblen_increasing` or `veblen_inflationary`; when they are `EQ`, from
+monotonicity in each argument. The `change` that restates the goal in the
+`GT` case is not needed when the inner `fix` is a separate function.

@@ -74,6 +74,8 @@ python3 scripts/port_map.py             # porting map and progress
 | `SchutteColumn.v` | `Schutte/Column.lean` | done |
 | `SchutteColumnFacts.v` | `Schutte/ColumnFacts.lean` | done |
 | `Notation/CantorNotation.v` | `Notation/Cantor.lean` | done |
+| `Notation/CantorDecomposition.v` | `Notation/CantorDecomposition.lean` | done |
+| `Notation/VNotation.v` | `Notation/V.lean` | done |
 | everything else | — | not started |
 
 `python3 scripts/port_map.py` prints per-file progress.
