@@ -8,3 +8,4 @@ import ConstructiveOrdinals.Arith
 import ConstructiveOrdinals.Classical
 import ConstructiveOrdinals.Enumerate
 import ConstructiveOrdinals.Fixpoints
+import ConstructiveOrdinals.Cantor
