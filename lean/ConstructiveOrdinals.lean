@@ -18,3 +18,4 @@ import ConstructiveOrdinals.Veblen.Facts
 import ConstructiveOrdinals.Veblen.Classical
 import ConstructiveOrdinals.NaturalArith
 import ConstructiveOrdinals.WellFounded
+import ConstructiveOrdinals.Examples

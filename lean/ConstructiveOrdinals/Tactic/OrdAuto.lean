@@ -29,6 +29,9 @@ the analogue of Rocq's `auto with ord`. `ord_auto [h₁, h₂]` adds extra
 lemmas, like `auto with ord h₁ h₂`. -/
 syntax (name := ordAuto) "ord_auto" (" [" Lean.Parser.Tactic.SolveByElim.arg,* "]")? : tactic
 
+-- `hygiene false` keeps the label name `ord_hint` from being renamed by the
+-- macro, which would make `solve_by_elim` look up a nonexistent attribute.
+set_option hygiene false in
 macro_rules
   | `(tactic| ord_auto) => `(tactic| solve_by_elim (maxDepth := 8) using ord_hint)
   | `(tactic| ord_auto [$ts,*]) =>

@@ -84,6 +84,14 @@ export Sized (sz)
 
 instance (x : Ordinal.{u}) : Sized x.Carrier := ⟨x.size⟩
 
+/-- `x ◃ y`: the measure of `x` is strictly smaller than that of `y`.
+Rocq: `Defs` notation `x ◃ y`. -/
+scoped notation:50 x:51 " ◃ " y:51 => sz x < sz y
+
+/-- `x ⊴ y`: the measure of `x` is no larger than that of `y`.
+Rocq: `Defs` notation `x ⊴ y`. -/
+scoped notation:50 x:51 " ⊴ " y:51 => sz x ≤ sz y
+
 namespace Ordinal
 
 /-! ## Order relations

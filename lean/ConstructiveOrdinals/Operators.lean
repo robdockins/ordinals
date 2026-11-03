@@ -83,6 +83,11 @@ def omega : Ordinal.{u} := mk (ULift Nat) fun n => ofNat n.down
 /-- ω, the least limit ordinal. -/
 scoped notation "ω" => Ordinal.omega
 
+/-- Natural numbers are measured by their ordinal embedding. Rocq declares
+`ω` as the canonical structure on `nat`; `ω`'s carrier here is `ULift Nat`,
+so the instance is on `Nat` itself. -/
+instance : Sized Nat := ⟨Ordinal.ofNat⟩
+
 /-- The supremum of `f` applied to all the ordinals below `β`.
 Rocq: `Operators.boundedSup`. -/
 def boundedSup (β : Ordinal.{u}) (f : Ordinal.{u} → Ordinal.{u}) : Ordinal.{u} :=

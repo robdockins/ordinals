@@ -57,4 +57,7 @@ example (h : a ≤ b) (h' : c ≤ a) : c ≤ b := by
   ord_rw [← h]
   exact h'
 
+-- `ord_auto` must find `@[ord_hint]` lemmas (a hygiene bug once hid them).
+example (x : Nat) : sz x < sz x.succ.succ := by ord_auto
+
 end ConstructiveOrdinals.Test

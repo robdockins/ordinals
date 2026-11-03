@@ -67,6 +67,9 @@ DECL_RE = re.compile(
     r"CoFixpoint|Inductive|Record|Class|Instance|Canonical\s+Structure|Let)\s+"
     r"([A-Za-z_\u0080-￿][\w'\u0080-￿]*)"
 )
+# Later members of a mutual `Inductive`/`Fixpoint` block: `with name ...`
+# starting a line (the name may be on the next line).
+WITH_RE = re.compile(r"^[ \t]*with\s+([A-Za-z_\u0080-\uffff][\w'\u0080-\uffff]*)(?![\w'])(?!\s*=>)(?<!signature)", re.M)
 # `Add Parametric Morphism ... as name.` / `Add Parametric Relation ... as name.`
 ADD_RE = re.compile(r"Add\s+Parametric\s+(?:Morphism|Relation)\b(.*?)\bas\s+([\w']+)\s*\.", re.S)
 
@@ -99,6 +102,7 @@ def rocq_decls():
             m = DECL_RE.match(line)
             if m:
                 names.append(m.group(2))
+        names += [m.group(1) for m in WITH_RE.finditer(text)]
         names += [m.group(2) for m in ADD_RE.finditer(text)]
         seen = set()
         decls[mod] = [n for n in names if not (n in seen or seen.add(n))]
@@ -109,7 +113,7 @@ LEAN_DECL_RE = re.compile(
     r"^\s*(?:@\[[^\]]*\]\s*)?(?:private\s+|protected\s+|noncomputable\s+|partial\s+)*"
     r"(theorem|lemma|def|abbrev|structure|inductive|class|instance)\s+([^\s:({\[]+)?"
 )
-NS_RE = re.compile(r"^\s*(namespace|section)(?:\s+(\S+))?\s*$")
+NS_RE = re.compile(r"^\s*(namespace|section|mutual)(?:\s+(\S+))?\s*$")
 END_RE = re.compile(r"^\s*end(?:\s+(\S+))?\s*$")
 CITE_RE = re.compile(r"`((?:Notation\.)?[A-Z][A-Za-z]*)\.([^`\s]+)`")
 

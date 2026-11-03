@@ -64,6 +64,7 @@ python3 scripts/port_map.py             # porting map and progress
 | `VeblenClassical.v` | `Veblen/Classical.lean` | done |
 | `NaturalArith.v` | `NaturalArith.lean` | done |
 | `WellFounded.v` | `WellFounded.lean` | done |
+| `Examples.v` | `Examples.lean` | done |
 | everything else | — | not started |
 
 `python3 scripts/port_map.py` prints per-file progress.
@@ -79,6 +80,13 @@ Deliberate differences from Rocq (statements are otherwise transliterated):
   `WellFounded`, `wf_lex_exp` and `wf_list_ext` are not taken from a library
   but derived from the ordinal interpretations (`lex_exp_lt_interp`,
   `listExtInterp_lt_of_ext`).
+- Rocq's canonical structures that attach measures to types become `Sized`
+  instances. Lemmas in `Examples` that take `(A : Ord)` and values in its
+  carrier take a type with a `[Sized α]` instance instead; the named ordinals
+  (`FunOrd`, `ListOrd`, …) are kept as definitions. In the nested-inductive
+  example, Rocq's `list (qwerty n)` becomes a third mutual type `QwertyList`,
+  because Lean's kernel rejects nested occurrences whose parameters mention
+  constructor arguments.
 - Lean has no universe cumulativity, so carriers built from `Prop` or `Nat`
   use `PLift`/`ULift` (for example `truthOrd P` is indexed by
   `ULift (PLift P)`, and `ω` by `ULift Nat`). In `Reflection`, the
