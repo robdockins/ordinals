@@ -376,3 +376,42 @@ This is also a mutual induction on derivations, using the `→` directions of
 `hbn_dec_correct` for the properness side conditions. No well-founded
 induction on the interpretation is needed.
 
+## SchutteColumn.v
+
+### `schutte_column_fixpoint'`
+
+Both cases of the `schutte_column_ltE` split on `q < schutte_column f β α x`
+end with the same argument: choose indices `bf`, `af` above everything in
+sight with `q < fixOrd (...) bf af`, then apply `Hindβ3`. Proving that once,
+as a lemma that takes `q < Φ b a` and returns such `bf`, `af`, removes about
+half of the second bullet. In the second case Rocq destructs `q < Φ` into an
+element `q'` and uses `q'` in `Hindβ3`. Using `q` itself works too, because
+`q < Φ b' a' ≤ Φ bf af`.
+
+The first case (`q < f (α + x)`) can likewise be reduced to the second, by a
+lemma showing that anything below `f (α + x)` is below some `Φ b a`. The same
+lemma serves the `j = 0` step of the first bullet. That step is also simpler
+as `fixOrd_least` (base below and prefixpoint) than as an induction on the
+iteration count.
+
+### `veblen_gt0_column_complete`
+
+The bound `1 ≤ fixOrd ...` follows from `succ_least` and nonzero-ness. The
+Rocq proof unrolls `schutte_column` twice and goes through `1 + 0` and
+`onePlus_least_normal`.
+
+## SchutteColumnFacts.v
+
+### `proper_fix_cases`
+
+When the induction hypothesis returns the second disjunct with `b' < b`, the
+case `b ≤ 0` is immediately contradictory (`b' < b ≤ 0`). The Rocq proof
+destructs `m` and handles four impossible subcases.
+
+### `schutte_matrix_lt2_aux` and `matrix_matrix_fixpoint`
+
+Both repeatedly show `schutte_matrix f m x ≈ schutte_matrix f n x` when the
+matrices differ only by a zero argument in the first column, or by equivalent
+first columns. Two small lemmas, one for each situation, replace six copies of
+the same pair of `schutte_matrix_monotone_func` calls.
+

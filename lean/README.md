@@ -68,6 +68,7 @@ python3 scripts/port_map.py             # porting map and progress
 | `GoodsteinSequences.v` | `GoodsteinSequences.lean` | done |
 | `AckermannTower.v` | `AckermannTower.lean` | done |
 | `SchutteColumn.v` | `Schutte/Column.lean` | done |
+| `SchutteColumnFacts.v` | `Schutte/ColumnFacts.lean` | done |
 | everything else | — | not started |
 
 `python3 scripts/port_map.py` prints per-file progress.
@@ -98,6 +99,11 @@ Deliberate differences from Rocq (statements are otherwise transliterated):
   (`decide +kernel`). Their unfolding equations are proved separately.
   Rocq's `nth_error` is `ConstructiveOrdinals.List.nthError`, because core's
   `l[i]?` depends on `propext` through its `GetElem?` instance.
+- `ackermannTower` and `schutteColumn` use the same pattern as `veblen`. The
+  nested Rocq `fix`es become separate inner functions, parameterised by the
+  outer recursive calls; `schutteColumn` needs two (`schutteColumnα`,
+  `schutteColumnX`), since its inner `α`-recursion supplies the base function
+  of the outer recursive call.
 - Lean has no universe cumulativity, so carriers built from `Prop` or `Nat`
   use `PLift`/`ULift` (for example `truthOrd P` is indexed by
   `ULift (PLift P)`, and `ω` by `ULift Nat`). In `Reflection`, the
