@@ -21,15 +21,16 @@ namespace Ordinal
 /-- Rocq: `Cantor.additively_closed`. -/
 def AdditivelyClosed (x : Ordinal.{u}) : Prop := ∀ a b, a < x → b < x → a + b < x
 
+/-- Additive closure is invariant under `≈`. -/
+theorem AdditivelyClosed.congr {x y : Ordinal.{u}} (h : x ≈ y) (hx : AdditivelyClosed x) :
+    AdditivelyClosed y := fun a b ha hb =>
+  lt_of_lt_of_le (hx a b (lt_of_lt_of_le ha h.ge) (lt_of_lt_of_le hb h.ge)) h.le
+
 /-- Rocq: `Cantor.additively_closed_collapse`. -/
 theorem additively_closed_collapse {a b : Ordinal.{u}} (hb : AdditivelyClosed b) (ha : a < b) :
     a + b ≤ b := by
   rw [add_unfold]
   exact lub_least (le_of_lt ha) (sup_least fun i => succ_least (hb a (b i) ha (index_lt b i)))
-
-/-- `x + 1` is above `succ x`. -/
-private theorem succ_le_add_one (x : Ordinal.{u}) : succ x ≤ x + 1 :=
-  le_trans (succ_monotone (add_zero x).ge) (add_succ x 0).ge
 
 /-- Rocq: `Cantor.additively_closed_limit`. -/
 theorem additively_closed_limit {x : Ordinal.{u}} (h₁ : 1 < x) (hx : AdditivelyClosed x) :

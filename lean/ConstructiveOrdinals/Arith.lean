@@ -157,6 +157,10 @@ theorem le_add_left (x : Ordinal.{u}) : ∀ y : Ordinal.{u}, y ≤ x + y
 /-- Rocq: `Arith.addOrd_zero_r`. -/
 theorem add_zero (x : Ordinal.{u}) : x + 0 ≈ x := fold_zero x succ
 
+/-- `x + 1` is above `succ x`. -/
+theorem succ_le_add_one (x : Ordinal.{u}) : succ x ≤ x + 1 :=
+  le_trans (succ_monotone (add_zero x).ge) (add_succ x 0).ge
+
 /-- Rocq: `Arith.addOrd_zero_l`. -/
 theorem zero_add : ∀ x : Ordinal.{u}, 0 + x ≈ x
   | mk X f => by

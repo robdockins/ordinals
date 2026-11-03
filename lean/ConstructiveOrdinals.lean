@@ -12,3 +12,4 @@ import ConstructiveOrdinals.Cantor
 import ConstructiveOrdinals.Reflection
 import ConstructiveOrdinals.Veblen.Defs
 import ConstructiveOrdinals.Veblen.Constructive
+import ConstructiveOrdinals.Veblen.Facts
