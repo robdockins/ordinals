@@ -6,6 +6,7 @@ Ordinal/Arith.v
 Ordinal/Enumerate.v
 Ordinal/Cantor.v
 Ordinal/NaturalArith.v
+Ordinal/NaturalProduct.v
 Ordinal/Classical.v
 Ordinal/WellFounded.v
 Ordinal/Examples.v
