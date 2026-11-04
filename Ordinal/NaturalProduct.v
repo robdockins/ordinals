@@ -56,7 +56,12 @@ Open Scope ord_scope.
     natural sum of [ω^(αi ⊕ βj)] over all pairs of terms, i.e.
     [nmulOrd] is Hessenberg's natural product.
 
-  Obstructions to the obvious constructive routes:
+  Reverse results:
+  - [succ_lower_WEM]: the lower half of the successor law, for all
+    ordinals, implies weak excluded middle; hence so does the lower half
+    of distributivity ([distrib_lower_WEM]).  The witness is an ordinal
+    with two children whose order depends on [P]; it was found by a
+    search in a two-world Kripke model;
   - [split_WEM]: a total split of [b ⊕ c], as used by [covers_rk],
     implies weak excluded middle;
   - [row_lower_EM]: the lower half of the row lemma over an arbitrary
@@ -65,19 +70,19 @@ Open Scope ord_scope.
   ** Open problem
 
   It is open whether the lower halves of the successor law and of
-  distributivity have constructive proofs, even for complete ordinals,
-  and equally open whether they imply some omniscience principle.  Every
+  distributivity are constructive for complete ordinals (directed
+  children), where the witness of [succ_lower_WEM] is excluded.  The
+  Kripke search found no failure among directed ordinals.  Every proof
   attempt so far reduces to the cone-cost inequality
 
       [S_gen]: if [E] contains [t × (y+1)] and [s ≤ t], then
                [rk (cut (s,y) E) ⊕ t ≤ rk E ⊕ s],
 
-  whose case [E = a × b], [s = 0] contains the successor law.  Its game proof
-  must, at each step, either shrink the [s]-chain or cut [E] at a column
-  above both [s] and the opponent's move, and choosing between these
-  compares a column with a row width.  With directed children the case
-  [s < t] avoids the comparison, but the recursion produces instances
-  with [s ≈ t], where it does not.
+  whose game proof must, at each step, either shrink the [s]-chain or
+  cut [E] at a column above both [s] and the opponent's move; choosing
+  between these compares a column with a row width.  With directed
+  children the case [s < t] avoids the comparison, but the recursion
+  produces instances with [s ≈ t], where it does not.
  *)
 
 Definition region := list (Ord * Ord).
@@ -2084,4 +2089,157 @@ Proof.
     apply (ord_lt_irreflexive ω).
     apply ord_lt_le_trans with (1 ⊕ w); auto.
     rewrite Hup. apply ord_lt_le. apply below_omega_double; auto.
+Qed.
+
+
+(** ** The successor law implies weak excluded middle
+
+  Found by a search in a two-world Kripke model (P undecided, then true).
+  Let [c1 = ord P (fun _ => ω)] (0, or ω+1 if [P]), [c2 = succ (ord P
+  (fun _ => 0))] (1, or 2 if [P]), and let [a] have exactly the two
+  children [c1] and [c2].  These children are not directed: which of them
+  is larger depends on [P].  In [a ⊕ a ≤ a ⊗ 2], the natural-sum child
+  [c1 ⊕ a] must be matched by a top-row move into [c1] or [c2]:
+  - into [c2] reaches at most [a ⊕ c2], which refutes [P];
+  - into [c1]: then [c1 ⊕ c2] must be matched by a move inside [c1 × 2]
+    (which needs a proof of [P]), at [(c1, 0)] (reaching [c1 ⊕ c1], which
+    refutes [~P]), or at [(c2, 0)] (reaching [c2 ⊕ (c1 ⊓ c2)], which
+    refutes [P]).
+  So the lower half of the successor law, for all ordinals, is not
+  constructive; the search found no such failure for directed children. *)
+
+Lemma rk_one x : rk [(x, 1)] ≈ x.
+Proof. rewrite <- nmul_rk. apply nmulOrd_one. Qed.
+
+Lemma rk_two x : rk [(x, succOrd 1)] ≤ x ⊕ x.
+Proof.
+  rewrite <- nmul_rk. rewrite nmulOrd_succ_upper.
+  apply naddOrd_monotone; [apply nmulOrd_one | reflexivity].
+Qed.
+
+Lemma succ_one_glb_child (y : ordCarrier (succOrd 1 ⊓ 1)) :
+  ordSize (succOrd 1 ⊓ 1) y ≤ 0.
+Proof.
+  rewrite ord_le_unfold. simpl in *. destruct y as [[] []]. simpl. intros [_ []].
+Qed.
+
+Theorem succ_lower_WEM :
+  (forall a b, nmulOrd a b ⊕ a ≤ nmulOrd a (succOrd b)) ->
+  weak_excluded_middle.
+Proof.
+  intros SL P.
+  pose (c1 := ord P (fun _ => ω)).
+  pose (e := ord P (fun _ => zeroOrd)).
+  pose (c2 := succOrd e).
+  pose (a := ord bool (fun x:bool => if x then c1 else c2)).
+  assert (Hc1P : P -> ω < c1).
+  { intro p. unfold c1. rewrite ord_lt_unfold. exists p. reflexivity. }
+  assert (Hc1nP : ~P -> c1 ≤ 0).
+  { intro np. unfold c1. rewrite ord_le_unfold. intro p. elim (np p). }
+  assert (Hc2small : c2 < ω).
+  { apply ord_le_lt_trans with (natOrdSize 2); [|apply (index_lt ω 2%nat)].
+    unfold c2. simpl. apply succ_monotone.
+    unfold e. rewrite ord_le_unfold. intro q. simpl. apply succ_lt. }
+  assert (Hc2pos : 0 < c2).
+  { unfold c2. apply succ_trans. apply zero_least. }
+  assert (Hc1a : c1 < a) by apply (index_lt a true).
+  assert (Hc2a : c2 < a) by apply (index_lt a false).
+  (* c1 ≤ c2 refutes P;  c2 ≤ c1 refutes ~P *)
+  assert (HnotP : c1 ≤ c2 -> ~P).
+  { intros H p. apply (ord_lt_irreflexive ω).
+    apply ord_lt_le_trans with c1; auto. rewrite H. apply ord_lt_le; auto. }
+  assert (HnotnotP : c2 ≤ c1 -> ~~P).
+  { intros H np. apply (ord_lt_irreflexive 0).
+    apply ord_lt_le_trans with c2; auto. rewrite H. auto. }
+  assert (HA : a ⊕ a ≤ rk [(a, succOrd 1)]).
+  { rewrite <- nmul_rk.
+    apply ord_le_trans with (nmulOrd a 1 ⊕ a); [|apply SL].
+    apply naddOrd_monotone; [apply nmulOrd_one | reflexivity]. }
+  assert (Hz1 : c1 ⊕ a < rk [(a, succOrd 1)]).
+  { apply ord_lt_le_trans with (a ⊕ a); auto. apply naddOrd_increasing1; auto. }
+  destruct (rk_lt_elim _ _ Hz1) as [m Hm].
+  destruct m as [[x t]|[]].
+  destruct x.
+  - (* top-row answer into c1 *)
+    change (mvpt [(a, succOrd 1)] (inl (true, t))) with (c1, natOrdSize 1) in Hm.
+    set (R1 := cut (c1, natOrdSize 1) [(a, succOrd 1)]) in *.
+    assert (Hz2 : c1 ⊕ c2 < rk R1).
+    { apply ord_lt_le_trans with (c1 ⊕ a); auto. apply naddOrd_increasing2; auto. }
+    destruct (rk_lt_elim _ _ Hz2) as [m2 Hm2].
+    destruct m2 as [[[xb p] y]|[[x2 y2]|[]]].
+    + (* a move inside c1 × 2 carries a proof of P *)
+      left. intro np. exact (np p).
+    + set (v := ordSize (succOrd 1 ⊓ 1) y2).
+      assert (Hv : v ≤ 0) by apply succ_one_glb_child.
+      destruct x2.
+      * (* at (c1, 0): reaches only c1 ⊕ c1 *)
+        left. apply HnotnotP.
+        apply (naddOrd_cancel_le _ _ c1).
+        rewrite (naddOrd_comm c2 c1).
+        rewrite Hm2.
+        rewrite <- rk_two.
+        apply rk_mono.
+        change (mvpt R1 (inr (inl (true, y2)))) with (c1, v).
+        unfold R1. rewrite !cut_cons.
+        intros r Hr. simpl in Hr.
+        destruct Hr as [Hr|[Hr|[Hr|[Hr|[]]]]]; subst r.
+        { right. exists (c1, succOrd 1). simpl; split; auto. split; simpl; [apply glb_le2 | reflexivity]. }
+        { left. right. simpl. rewrite glb_le2. auto. }
+        { right. exists (c1, succOrd 1). simpl; split; auto.
+          split; simpl; [apply glb_le2 | apply glb_le1]. }
+        { left. right. simpl. rewrite glb_le2. auto. }
+      * (* at (c2, 0): reaches only c2 ⊕ (c1 ⊓ c2) *)
+        right. apply HnotP.
+        apply ord_le_trans with (c1 ⊓ c2); [|apply glb_le2].
+        apply (naddOrd_cancel_le _ _ c2).
+        rewrite Hm2.
+        apply ord_le_trans with (rk ((c1 ⊓ c2, succOrd 1) :: [(c2, 1)])).
+        -- apply rk_mono.
+           change (mvpt R1 (inr (inl (false, y2)))) with (c2, v).
+           unfold R1. rewrite !cut_cons.
+           intros r Hr. simpl in Hr.
+           destruct Hr as [Hr|[Hr|[Hr|[Hr|[]]]]]; subst r.
+           { right. exists (c1 ⊓ c2, succOrd 1). simpl; split; auto.
+             split; simpl; [|reflexivity].
+             apply glb_greatest; [rewrite glb_le1; apply glb_le2 | apply glb_le2]. }
+           { left. right. simpl. rewrite glb_le2. auto. }
+           { right. exists (c2, 1). simpl; split; auto.
+             split; simpl; apply glb_le2. }
+           { left. right. simpl. rewrite glb_le2. auto. }
+        -- rewrite (rk_row_upper (c1 ⊓ c2) 1 [(c2, 1)]).
+           ++ rewrite rk_one. rewrite naddOrd_comm. reflexivity.
+           ++ apply rsub_in with (c2, 1); simpl; auto.
+              split; simpl; [apply glb_le2 | reflexivity].
+           ++ intros r [Hr|[]]; subst r. reflexivity.
+  - (* top-row answer into c2: reaches only a ⊕ c2 *)
+    change (mvpt [(a, succOrd 1)] (inl (false, t))) with (c2, natOrdSize 1) in Hm.
+    right. apply HnotP.
+    apply (naddOrd_cancel_le _ _ a).
+    rewrite Hm.
+    apply ord_le_trans with (rk ((c2, succOrd 1) :: [(a, 1)])).
+    + apply rk_mono. rewrite cut_cons.
+      apply rsub_cons.
+      { apply rsub_in with (c2, succOrd 1); simpl; auto.
+        split; simpl; [apply glb_le2 | reflexivity]. }
+      apply rsub_cons_r. apply rsub_cons.
+      { apply rsub_in with (a, 1); simpl; auto.
+        split; simpl; [reflexivity | apply glb_le2]. }
+      apply rsub_nil.
+    + rewrite (rk_row_upper c2 1 [(a, 1)]).
+      * rewrite rk_one. rewrite naddOrd_comm. reflexivity.
+      * apply rsub_in with (a, 1); simpl; auto.
+        split; simpl; [apply ord_lt_le; auto | reflexivity].
+      * intros r [Hr|[]]; subst r. reflexivity.
+Qed.
+
+(** Superdistributivity contains the successor law (take [c = 1]). *)
+Corollary distrib_lower_WEM :
+  (forall a b c, nmulOrd a b ⊕ nmulOrd a c ≤ nmulOrd a (b ⊕ c)) ->
+  weak_excluded_middle.
+Proof.
+  intro H. apply succ_lower_WEM. intros a b.
+  apply ord_le_trans with (nmulOrd a b ⊕ nmulOrd a 1).
+  - apply naddOrd_monotone; [reflexivity | apply nmulOrd_one].
+  - rewrite H. apply nmulOrd_monotone; [reflexivity|].
+    rewrite naddOrd_succ2, naddOrd_zero_r. reflexivity.
 Qed.
