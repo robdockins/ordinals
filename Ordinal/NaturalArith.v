@@ -861,6 +861,240 @@ Proof.
   intros. apply nadd_closed; auto.
 Qed.
 
+(** ** Constructive closure of ω-powers under natural sum
+
+  [nadd_closed] and [nadd_add_same_powers] above assume excluded middle,
+  which enters only through [nadd_closed_technical1]: it compares [ω^a]
+  with an arbitrary [q] and splits off a leading Cantor term.  Keeping
+  every quantity in the explicit form [ω^c·m + u] with [u < ω^c] avoids
+  the comparison: a child of [ω^c·m + u] is either [ω^c·m + u'] for a
+  child [u'] of [u], or lies below [ω^c·(m-1) + w] for some [w < ω^c].
+  The completeness hypothesis on the exponent is still needed (it is
+  what makes the children of [ω^a] directed); without it, closure fails
+  constructively. *)
+
+Section same_powers.
+  Variable c : Ord.
+  Let E := expOrd ω c.
+  Hypothesis Hc : forall x y, x < E -> y < E -> x ⊕ y < E.
+
+  (* E * (k+1) as E * k + E, with the successor on the right *)
+  Lemma mul_succ_strict k w : w < E -> E * natOrdSize k + w < E * natOrdSize (S k).
+  Proof.
+    intro Hw. simpl. rewrite mulOrd_succ. apply addOrd_increasing; auto.
+  Qed.
+
+  Lemma same_powers_le : forall o m u n v,
+    (E * natOrdSize m + u) ⊕ (E * natOrdSize n + v) ≤ o ->
+    u < E -> v < E ->
+    (E * natOrdSize m + u) ⊕ (E * natOrdSize n + v) ≤ E * natOrdSize (m + n) + (u ⊕ v).
+  Proof.
+    induction o as [o IH] using (well_founded_ind ord_lt_wf).
+    intros m u n v Ho Hu Hv.
+    apply naddOrd_least3.
+    - intros i Hi.
+      destruct (add_lt _ _ _ Hi) as [Hi'|[k Hk]].
+      + (* i below E * m *)
+        destruct m as [|m'].
+        { simpl in Hi'. rewrite mulOrd_zero_r in Hi'. elim (zero_lt i Hi'). }
+        simpl in Hi'. rewrite mulOrd_succ in Hi'.
+        assert (Hw : exists w, w < E /\ i ≤ E * natOrdSize m' + w).
+        { destruct (add_lt _ _ _ Hi') as [H1|[w Hw]].
+          - exists 0. split; [apply expOrd_nonzero|]. rewrite addOrd_zero_r. auto with ord.
+          - exists (ordSize E w). split; auto with ord. }
+        destruct Hw as [w [Hw Hiw]].
+        apply ord_le_lt_trans with ((E * natOrdSize m' + w) ⊕ (E * natOrdSize n + v)).
+        { apply naddOrd_monotone; auto. reflexivity. }
+        assert (Hlt : (E * natOrdSize m' + w) ⊕ (E * natOrdSize n + v) <
+                      (E * natOrdSize (S m') + u) ⊕ (E * natOrdSize n + v)).
+        { apply naddOrd_increasing1.
+          apply ord_lt_le_trans with (E * natOrdSize (S m')).
+          - apply mul_succ_strict; auto.
+          - apply addOrd_le1. }
+        rewrite (IH _ (ord_lt_le_trans _ _ _ Hlt Ho) m' w n v); auto with ord.
+        apply ord_lt_le_trans with (E * natOrdSize (S (m' + n))).
+        * apply mul_succ_strict; auto.
+        * apply addOrd_le1.
+      + (* i below E * m + u_k *)
+        rewrite Hk.
+        assert (Hlt : (E * natOrdSize m + ordSize u k) ⊕ (E * natOrdSize n + v) <
+                      (E * natOrdSize m + u) ⊕ (E * natOrdSize n + v)).
+        { apply naddOrd_increasing1. apply addOrd_increasing. auto with ord. }
+        rewrite (IH _ (ord_lt_le_trans _ _ _ Hlt Ho) m (ordSize u k) n v); auto with ord.
+        * apply addOrd_increasing. apply naddOrd_increasing1. auto with ord.
+        * apply ord_lt_trans with u; auto with ord.
+    - intros j Hj.
+      destruct (add_lt _ _ _ Hj) as [Hj'|[k Hk]].
+      + destruct n as [|n'].
+        { simpl in Hj'. rewrite mulOrd_zero_r in Hj'. elim (zero_lt j Hj'). }
+        simpl in Hj'. rewrite mulOrd_succ in Hj'.
+        assert (Hw : exists w, w < E /\ j ≤ E * natOrdSize n' + w).
+        { destruct (add_lt _ _ _ Hj') as [H1|[w Hw]].
+          - exists 0. split; [apply expOrd_nonzero|]. rewrite addOrd_zero_r. auto with ord.
+          - exists (ordSize E w). split; auto with ord. }
+        destruct Hw as [w [Hw Hjw]].
+        apply ord_le_lt_trans with ((E * natOrdSize m + u) ⊕ (E * natOrdSize n' + w)).
+        { apply naddOrd_monotone; auto. reflexivity. }
+        assert (Hlt : (E * natOrdSize m + u) ⊕ (E * natOrdSize n' + w) <
+                      (E * natOrdSize m + u) ⊕ (E * natOrdSize (S n') + v)).
+        { apply naddOrd_increasing2.
+          apply ord_lt_le_trans with (E * natOrdSize (S n')).
+          - apply mul_succ_strict; auto.
+          - apply addOrd_le1. }
+        rewrite (IH _ (ord_lt_le_trans _ _ _ Hlt Ho) m u n' w); auto with ord.
+        replace (m + S n')%nat with (S (m + n'))%nat by lia.
+        apply ord_lt_le_trans with (E * natOrdSize (S (m + n'))).
+        * apply mul_succ_strict; auto.
+        * apply addOrd_le1.
+      + rewrite Hk.
+        assert (Hlt : (E * natOrdSize m + u) ⊕ (E * natOrdSize n + ordSize v k) <
+                      (E * natOrdSize m + u) ⊕ (E * natOrdSize n + v)).
+        { apply naddOrd_increasing2. apply addOrd_increasing. auto with ord. }
+        rewrite (IH _ (ord_lt_le_trans _ _ _ Hlt Ho) m u n (ordSize v k)); auto with ord.
+        * apply addOrd_increasing. apply naddOrd_increasing2. auto with ord.
+        * apply ord_lt_trans with v; auto with ord.
+  Qed.
+
+  Lemma same_powers_lt m n :
+    E * natOrdSize m ⊕ E * natOrdSize n < E * natOrdSize (S (m + n)).
+  Proof.
+    apply ord_le_lt_trans with ((E * natOrdSize m + 0) ⊕ (E * natOrdSize n + 0)).
+    { apply naddOrd_monotone; rewrite addOrd_zero_r; reflexivity. }
+    rewrite (same_powers_le _ m 0 n 0 (ord_le_refl _)); try apply expOrd_nonzero.
+    apply mul_succ_strict. apply Hc; apply expOrd_nonzero.
+  Qed.
+End same_powers.
+
+Theorem nadd_closed_con : forall a x y,
+  complete a ->
+  x < expOrd ω a ->
+  y < expOrd ω a ->
+  x ⊕ y < expOrd ω a.
+Proof.
+  induction a as [a IHa] using ordinal_induction.
+  intros x y Ha Hx Hy.
+  rewrite expOrd_unfold in Hx. apply lub_lt in Hx.
+  destruct Hx as [Hx|Hx].
+  { rewrite ord_lt_unfold in Hx. destruct Hx as [[] Hx]. simpl in Hx.
+    rewrite Hx. rewrite naddOrd_comm, naddOrd_zero_r. auto. }
+  rewrite expOrd_unfold in Hy. apply lub_lt in Hy.
+  destruct Hy as [Hy|Hy].
+  { rewrite ord_lt_unfold in Hy. destruct Hy as [[] Hy]. simpl in Hy.
+    rewrite Hy. rewrite naddOrd_zero_r. rewrite expOrd_unfold.
+    eapply ord_lt_le_trans; [exact Hx | apply lub_le2]. }
+  apply sup_lt in Hx. destruct Hx as [i Hx].
+  apply sup_lt in Hy. destruct Hy as [j Hy].
+  destruct (complete_directed a Ha i j) as [k [Hk1 Hk2]].
+  rewrite mulOrd_unfold in Hx. apply sup_lt in Hx. destruct Hx as [m Hx].
+  rewrite mulOrd_unfold in Hy. apply sup_lt in Hy. destruct Hy as [n Hy].
+  set (E := expOrd ω (a k)).
+  assert (HE : forall x y, x < E -> y < E -> x ⊕ y < E).
+  { intros. apply IHa; auto with ord; apply complete_subord; auto. }
+  rewrite expOrd_unfold. rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ k).
+  rewrite mulOrd_unfold.
+  rewrite <- (sup_le _ _ (S (S m + S n))).
+  apply ord_le_lt_trans with (E * natOrdSize (S (S m + S n))).
+  2: { apply ord_le_lt_trans with (E * natOrdSize (S (S m + S n)) + 0);
+       [ rewrite addOrd_zero_r; reflexivity | apply addOrd_increasing; apply expOrd_nonzero ]. }
+  apply ord_lt_le.
+  apply ord_le_lt_trans with (E * natOrdSize (S m) ⊕ E * natOrdSize (S n)).
+  - apply naddOrd_monotone.
+    + apply ord_lt_le in Hx. rewrite Hx. simpl.
+      rewrite <- mulOrd_succ. apply mulOrd_monotone1. apply expOrd_monotone; auto.
+    + apply ord_lt_le in Hy. rewrite Hy. simpl.
+      rewrite <- mulOrd_succ. apply mulOrd_monotone1. apply expOrd_monotone; auto.
+  - apply same_powers_lt. auto.
+Qed.
+
+Lemma nadd_add_same_powers_con a m n :
+  complete a ->
+  expOrd ω a * natOrdSize m ⊕ expOrd ω a * natOrdSize n ≤ expOrd ω a * natOrdSize (m + n).
+Proof.
+  intro Ha.
+  apply ord_le_trans with
+      ((expOrd ω a * natOrdSize m + 0) ⊕ (expOrd ω a * natOrdSize n + 0)).
+  { apply naddOrd_monotone; rewrite addOrd_zero_r; reflexivity. }
+  rewrite (same_powers_le a (fun x y => nadd_closed_con a x y Ha) _ m 0 n 0 (ord_le_refl _));
+    try apply expOrd_nonzero.
+  rewrite naddOrd_zero_r, addOrd_zero_r. reflexivity.
+Qed.
+
+(** The completeness hypothesis cannot be dropped: closure of every
+    [ω^a] under natural sum implies weak excluded middle.  Take [a] with
+    exactly two children [c1 = ord P (fun _ => ω)] (0, or ω+1 if [P]) and
+    [c2 = succ (ord P (fun _ => 0))] (1, or 2 if [P]).  Then
+    [ω^c1 ⊕ ω^c2 < ω^a] must name a child of [ω^a]: below [ω^c1 · (n+1)],
+    refuted by [~P] (it is then finite, while [ω^c2 ≥ ω]), or below
+    [ω^c2 · (n+1)], refuted by [P] (it is then below [ω^3 ≤ ω^c1]). *)
+Theorem nadd_closed_needs_complete :
+  (forall a x y, x < expOrd ω a -> y < expOrd ω a -> x ⊕ y < expOrd ω a) ->
+  weak_excluded_middle.
+Proof.
+  intros H P.
+  pose (c1 := ord P (fun _ => ω)).
+  pose (e := ord P (fun _ => zeroOrd)).
+  pose (c2 := succOrd e).
+  pose (a := ord bool (fun b:bool => if b then c1 else c2)).
+  assert (Hc1a : c1 < a) by apply (index_lt a true).
+  assert (Hc2a : c2 < a) by apply (index_lt a false).
+  assert (Hx : expOrd ω c1 < expOrd ω a) by (apply expOrd_increasing; auto; apply omega_gt1).
+  assert (Hy : expOrd ω c2 < expOrd ω a) by (apply expOrd_increasing; auto; apply omega_gt1).
+  assert (He1 : e ≤ 1).
+  { unfold e. rewrite ord_le_unfold. intro q. simpl. apply succ_lt. }
+  assert (Hyω : ω ≤ expOrd ω c2).
+  { destruct (expOrd_one' ω omega_gt0) as [_ H2].
+    apply ord_le_trans with (expOrd ω 1); auto. apply expOrd_monotone.
+    unfold c2. apply succ_monotone. apply zero_least. }
+  generalize (H a _ _ Hx Hy). intro Hxy.
+  rewrite (expOrd_unfold ω a) in Hxy. apply lub_lt in Hxy.
+  destruct Hxy as [H1|H1].
+  { exfalso. rewrite ord_lt_unfold in H1. destruct H1 as [t H1].
+    apply (ord_lt_irreflexive 0).
+    apply ord_lt_le_trans with (expOrd ω c2); [apply expOrd_nonzero|].
+    apply ord_le_trans with (expOrd ω c1 ⊕ expOrd ω c2); [apply naddOrd_le2|].
+    exact H1. }
+  apply sup_lt in H1. destruct H1 as [i H1].
+  rewrite mulOrd_unfold in H1. apply sup_lt in H1. destruct H1 as [n H1].
+  simpl in H1.
+  destruct i; simpl in H1.
+  - (* the child c1: refuted by ~P *)
+    left. intro np.
+    assert (Hc1z : c1 ≤ 0).
+    { unfold c1. rewrite ord_le_unfold. intro p. elim (np p). }
+    assert (HE : expOrd ω c1 ≤ 1).
+    { rewrite (expOrd_monotone ω c1 0 Hc1z). apply expOrd_zero. }
+    assert (Hfin : expOrd ω c1 * natOrdSize n + expOrd ω c1 < ω).
+    { apply ord_le_lt_trans with (1 * natOrdSize n + 1).
+      - apply addOrd_monotone; auto. apply mulOrd_monotone1; auto.
+      - rewrite mulOrd_one_l.
+        change (natOrdSize n + succOrd 0 < ω).
+        rewrite addOrd_succ, addOrd_zero_r.
+        apply (index_lt ω (S n)). }
+    apply (ord_lt_irreflexive ω).
+    apply ord_le_lt_trans with (expOrd ω c1 ⊕ expOrd ω c2).
+    + apply ord_le_trans with (expOrd ω c2); auto. apply naddOrd_le2.
+    + apply ord_lt_trans with (expOrd ω c1 * natOrdSize n + expOrd ω c1); auto.
+  - (* the child c2: refuted by P *)
+    right. intro p.
+    assert (Hc1ω : ω ≤ c1).
+    { apply ord_lt_le. unfold c1. rewrite ord_lt_unfold. exists p. reflexivity. }
+    assert (Hc2 : c2 ≤ 2) by (unfold c2; apply succ_monotone; auto).
+    assert (HE : expOrd ω c2 ≤ expOrd ω 2) by (apply expOrd_monotone; auto).
+    apply (ord_lt_irreflexive (expOrd ω c1)).
+    apply ord_le_lt_trans with (expOrd ω c1 ⊕ expOrd ω c2); [apply naddOrd_le1|].
+    apply ord_lt_le_trans with (expOrd ω c2 * natOrdSize n + expOrd ω c2); auto.
+    apply ord_le_trans with (expOrd ω 2 * natOrdSize (S n)).
+    { simpl. rewrite mulOrd_succ.
+      apply addOrd_monotone; auto. apply mulOrd_monotone1; auto. }
+    apply ord_le_trans with (expOrd ω 2 * ω).
+    { apply ord_lt_le. apply mulOrd_increasing2; [apply expOrd_nonzero | apply (index_lt ω (S n))]. }
+    apply ord_le_trans with (expOrd ω (succOrd 2)).
+    { apply expOrd_succ. apply omega_gt0. }
+    apply expOrd_monotone. rewrite <- Hc1ω.
+    apply ord_lt_le. apply (index_lt ω 3%nat).
+Qed.
+
 Lemma cantor_denote_app: forall xs ys,
   cantor_denote (xs ++ ys) ≈ cantor_denote xs + cantor_denote ys.
 Proof.
