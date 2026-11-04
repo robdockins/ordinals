@@ -1,0 +1,29 @@
+name: Lean port
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lean
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build
+        run: lake build
+      - name: Tactic tests
+        run: lake env lean test/OrdRewrite.lean
+      - name: Axiom audit
+        run: lake env lean scripts/AxiomAudit.lean
+      - name: Porting map
+        run: python3 scripts/port_map.py
+      - name: Porting map names
+        run: lake env lean scripts/CheckPortMap.lean
