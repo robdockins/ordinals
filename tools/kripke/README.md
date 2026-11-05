@@ -42,6 +42,13 @@ checks it; it is slow.
   limit of directed ordinals for which the successor law is not forced.
   `explain_lim.py <width> <depth>` prints the opponent's refutation for
   one of the widths.
+- `nadd_complete.py [seed]` searches finite trees for complete `u`, `v`
+  with an incomplete natural sum. It found the pattern behind
+  `nadd_complete_WEM` and `tree_selection_complete_WEM`.
+- `pdep_widths.py` checks the successor law at widths whose value
+  depends on P only through an exponent (ω^c with c = 1, or 2 if P, and
+  ω^c + 1, ω^c · 2). These are the Kripke analogue of a notation system
+  with a P-dependent atom. Every instance checked is forced.
 
 ## Caveats
 
