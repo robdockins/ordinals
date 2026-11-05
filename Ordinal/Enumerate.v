@@ -126,6 +126,64 @@ Proof.
     apply ord_lt_le_trans with a; auto.
 Qed.
 
+(* Conversely, [enumerates_surjective] implies excluded middle.  The
+   function z ↦ c + z enumerates the ordinals above c, constructively, and
+   surjectivity is then left subtraction: c ≤ z gives a with c + a ≈ z.
+   For c = truth_ord R and z = 1, such an a decides R.
+ *)
+Lemma addOrd_enumerates c : enumerates (addOrd c) (fun z => c ≤ z).
+Proof.
+  constructor.
+  - intro x. apply addOrd_le1.
+  - intros. apply addOrd_monotone; auto with ord.
+  - intros. apply addOrd_increasing; auto.
+  - intros x z Hz H.
+    rewrite addOrd_unfold.
+    apply lub_least; auto.
+    apply sup_least; intro i.
+    apply succ_least.
+    apply H. apply index_lt.
+Qed.
+
+(* Left subtraction: classically, c ≤ z gives a unique a with c + a ≈ z.
+   Its existence alone implies excluded middle, already for z = 1. *)
+Lemma addOrd_left_subtraction_EM :
+  (forall c z, c ≤ z -> exists a, c + a ≈ z) ->
+  excluded_middle.
+Proof.
+  intros H R.
+  set (c := classical.truth_ord R).
+  assert (Hc : c ≤ 1).
+  { unfold c, classical.truth_ord.
+    rewrite ord_le_unfold; simpl; intros. apply succ_lt. }
+  destruct (H c 1 Hc) as [a [Ha1 Ha2]].
+  assert (H0 : 0 < c + a).
+  { apply ord_lt_le_trans with 1; auto. apply succ_lt. }
+  rewrite addOrd_unfold in H0.
+  apply lub_lt in H0. destruct H0 as [H0|H0].
+  - left. unfold c, classical.truth_ord in H0.
+    rewrite ord_lt_unfold in H0. destruct H0 as [HR _]. exact HR.
+  - right. intro HR.
+    apply sup_lt in H0. destruct H0 as [i _].
+    apply (ord_lt_irreflexive 1).
+    apply ord_lt_le_trans with (c + a); auto.
+    rewrite addOrd_unfold. rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ i).
+    apply ord_lt_le_trans with (succOrd c); [| apply succ_monotone, addOrd_le1 ].
+    apply ord_le_lt_trans with c; [| apply succ_lt ].
+    unfold c, classical.truth_ord.
+    rewrite ord_le_unfold; simpl; intros.
+    rewrite ord_lt_unfold. exists HR. simpl. reflexivity.
+Qed.
+
+Lemma enumerates_surjective_EM :
+  (forall f P, enumerates f P -> forall x, P x -> exists a, f a ≈ x) ->
+  excluded_middle.
+Proof.
+  intro H. apply addOrd_left_subtraction_EM.
+  intros c z Hcz. exact (H _ _ (addOrd_enumerates c) z Hcz).
+Qed.
+
 (* Morover, classically a monotone, increasing, surjective function onto P enumerates P.
  *)
 Theorem increasing_surjective_enumerates (EM:excluded_middle) f (P:Ord -> Prop) :
@@ -149,19 +207,139 @@ Proof.
 Qed.
 
 
+(* Conversely, [enumerates_range] (and so [increasing_surjective_enumerates])
+   implies excluded middle.  The function f z = z + [¬¬(0 < z)] is monotone
+   and increasing, but it does not reflect the order: f 0 < f (truth_ord R)
+   holds as soon as ¬¬R, while f 1 ≤ f (truth_ord R) gives R.
+ *)
+Section enumerates_range_EM.
+  Let g (z:Ord) := classical.truth_ord (~~(0 < z)).
+  Let f (z:Ord) := z + g z.
+
+  Let g_monotone x y : x ≤ y -> g x ≤ g y.
+  Proof.
+    intro H. unfold g, classical.truth_ord.
+    rewrite ord_le_unfold; simpl; intro Hx.
+    rewrite ord_lt_unfold; simpl.
+    exists (fun Hy => Hx (fun H0 => Hy (ord_lt_le_trans _ _ _ H0 H))).
+    reflexivity.
+  Qed.
+
+  Let g_le_one x : g x ≤ 1.
+  Proof.
+    unfold g, classical.truth_ord.
+    rewrite ord_le_unfold; simpl; intros. apply succ_lt.
+  Qed.
+
+  Let g_pos x : ~~(0 < x) -> 0 < g x.
+  Proof.
+    intro H. unfold g, classical.truth_ord.
+    rewrite ord_lt_unfold. exists H. simpl. reflexivity.
+  Qed.
+
+  Let f_monotone x y : x ≤ y -> f x ≤ f y.
+  Proof.
+    intro H. unfold f. apply addOrd_monotone; auto.
+  Qed.
+
+  Let f_le_succ x : f x ≤ succOrd x.
+  Proof.
+    unfold f.
+    transitivity (x + 1).
+    - apply addOrd_monotone; auto with ord.
+    - rewrite addOrd_succ, addOrd_zero_r. reflexivity.
+  Qed.
+
+  Let f_increasing x y : x < y -> f x < f y.
+  Proof.
+    intro H.
+    apply ord_le_lt_trans with (succOrd x); auto.
+    apply ord_le_lt_trans with y; [ apply succ_least; auto |].
+    unfold f.
+    apply ord_le_lt_trans with (y + 0); [ apply addOrd_zero_r |].
+    apply addOrd_increasing.
+    apply g_pos. intro Hn. apply Hn.
+    apply ord_le_lt_trans with x; auto. apply zero_least.
+  Qed.
+
+  Lemma enumerates_range_EM :
+    (forall f, (forall x y, x ≤ y -> f x ≤ f y) ->
+               (forall x y, x < y -> f x < f y) ->
+               enumerates f (fun x => exists y, x ≈ f y)) ->
+    excluded_middle.
+  Proof.
+    intro H.
+    (* it suffices to show double-negation elimination *)
+    cut (forall R:Prop, ~~R -> R).
+    { intros DNE P. apply DNE. intro HN. apply HN. right. intro HP. apply HN. left. exact HP. }
+    intros R HR.
+    set (w := classical.truth_ord R).
+    assert (Hlt : f 0 < f w).
+    { apply ord_le_lt_trans with 0.
+      - unfold f.
+        rewrite addOrd_zero_l.
+        unfold g, classical.truth_ord.
+        rewrite ord_le_unfold; simpl; intro Hn.
+        elim Hn. intro H0. apply (ord_lt_irreflexive 0); auto.
+      - apply ord_lt_le_trans with (g w).
+        + apply g_pos. intro Hn. apply HR. intro HR'. apply Hn.
+          unfold w, classical.truth_ord.
+          rewrite ord_lt_unfold. exists HR'. reflexivity.
+        + unfold f. apply addOrd_le2. }
+    assert (Hle : f 1 ≤ f w).
+    { apply (enumerates_least f _ (H f f_monotone f_increasing) 1 (f w)).
+      - exists w. reflexivity.
+      - intros y Hy.
+        apply ord_le_lt_trans with (f 0); auto.
+        apply f_monotone.
+        rewrite ord_lt_unfold in Hy. destruct Hy as [[] Hy]. auto. }
+    assert (H1 : succOrd 1 ≤ succOrd w).
+    { transitivity (f 1).
+      { unfold f. transitivity (1 + 1).
+        - rewrite addOrd_succ, addOrd_zero_r. reflexivity.
+        - apply addOrd_monotone; [ reflexivity |].
+          apply succ_least. apply g_pos.
+          intro Hn. apply Hn. apply succ_lt. }
+      transitivity (f w); auto. }
+    apply succ_cancel_le in H1.
+    assert (H0 : 0 < w).
+    { apply ord_lt_le_trans with 1; auto. apply succ_lt. }
+    unfold w, classical.truth_ord in H0.
+    rewrite ord_lt_unfold in H0. destruct H0 as [HR' _]. exact HR'.
+  Qed.
+End enumerates_range_EM.
+
+Corollary increasing_surjective_enumerates_EM :
+  (forall f (P:Ord -> Prop),
+      (forall x y, x ≤ y -> f x ≤ f y) ->
+      (forall x y, x < y -> f x < f y) ->
+      (forall x, P x -> exists a, f a ≈ x) ->
+      (forall x, P (f x)) ->
+      enumerates f P) ->
+  excluded_middle.
+Proof.
+  intro H. apply enumerates_range_EM.
+  intros f Hmono Hinc. apply H; auto.
+  - intros x [y Hy]. exists y. symmetry. exact Hy.
+  - intro x. exists x. reflexivity.
+Qed.
+
+
 Definition unbounded (P:Ord -> Prop) :=
   forall x, P x -> exists y, x < y /\ P y.
 
-Corollary enumerates_unbounded (EM:excluded_middle) f P :
+(* Unboundedness needs no classical reasoning: f (S x) is above x. *)
+Corollary enumerates_unbounded f P :
   enumerates f P -> unbounded P.
 Proof.
   intros Henum x Hx.
-  destruct (enumerates_surjective EM f P Henum x Hx) as [a Ha].
-  exists (f (succOrd a)).
+  exists (f (succOrd x)).
   split.
-  rewrite <- Ha.
-  apply enumerates_increasing with P; auto.
-  apply succ_lt.
-  apply enumerates_included. auto.
+  - apply ord_le_lt_trans with (f x).
+    + apply increasing_inflationary.
+      apply (enumerates_increasing f P Henum).
+    + apply enumerates_increasing with P; auto.
+      apply succ_lt.
+  - apply enumerates_included. auto.
 Qed.
 
