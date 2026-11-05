@@ -144,6 +144,46 @@ Proof.
     auto.
 Qed.
 
+(** The completeness hypothesis of [expOmega_additively_closed] is used
+    only for the directedness of [c] at the top level, and it cannot be
+    dropped: an exponent with two complete but incomparable children
+    gives weak excluded middle. *)
+Lemma expOmega_additively_closed_WEM :
+  (forall c, additively_closed (expOrd ω c)) ->
+  weak_excluded_middle.
+Proof.
+  intros H P.
+  set (c := ord bool (fun b => if b then classical.truth_ord' P else classical.truth_ord' (~P))).
+  assert (Hbig : forall x, expOrd ω ω ≤ x -> x < expOrd ω 1 * ω -> False).
+  { intros x H1 H2.
+    apply (ord_lt_irreflexive (expOrd ω ω)).
+    apply ord_le_lt_trans with x; auto.
+    apply ord_lt_le_trans with (expOrd ω 1 * ω); auto.
+    rewrite <- (expOrd_succ ω 1 omega_gt0).
+    apply expOrd_monotone.
+    apply succ_least. apply omega_gt1. }
+  generalize (H c _ _ (expOrd_increasing ω omega_gt1 _ _ (index_lt c true))
+                      (expOrd_increasing ω omega_gt1 _ _ (index_lt c false))).
+  intro Hc. rewrite (expOrd_unfold ω c) in Hc.
+  apply lub_lt in Hc. destruct Hc as [Hc|Hc].
+  - exfalso.
+    rewrite ord_lt_unfold in Hc. destruct Hc as [[] Hc]. simpl in Hc.
+    apply (ord_lt_irreflexive 0).
+    apply ord_lt_le_trans with (expOrd ω (classical.truth_ord' (~P))).
+    + apply expOrd_nonzero.
+    + rewrite <- Hc. apply addOrd_le2.
+  - apply sup_lt in Hc. destruct Hc as [[|] Hc]; simpl in Hc.
+    + left. intro HNP.
+      rewrite (classical.truth_ord'_false P HNP) in Hc.
+      rewrite (classical.truth_ord'_true (~P) HNP) in Hc.
+      apply (Hbig _ (addOrd_le2 _ _) Hc).
+    + right. intro HP.
+      assert (HNNP : ~~P) by auto.
+      rewrite (classical.truth_ord'_true P HP) in Hc.
+      rewrite (classical.truth_ord'_false (~P) HNNP) in Hc.
+      apply (Hbig _ (addOrd_le1 _ _) Hc).
+Qed.
+
 Lemma epslion_additively_closed : forall x, complete x -> additively_closed (ε x).
 Proof.
   intros. hnf; intros.
