@@ -25,7 +25,9 @@ Ordinal/SchutteColumnFacts.v
 Ordinal/Countable.v
 
 Ordinal/Notation/CantorNotation.v
+Ordinal/Notation/Interpolants.v
 Ordinal/Notation/CantorDecomposition.v
+Ordinal/Notation/CantorProduct.v
 Ordinal/Notation/VNotation.v
 Ordinal/Notation/VWNotation.v
 Ordinal/Notation/ATowerFinNotation.v

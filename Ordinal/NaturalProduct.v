@@ -46,7 +46,10 @@ Open Scope ord_scope.
     [b ⊕ c] into two strictly increasing pieces;
   - the game machinery: fuel independence ([nmulOrd_fuel]), the
     fuel-free rank [rk], subadditivity ([rk_app_le]) and the chain
-    lemma ([rk_chain]).
+    lemma ([rk_chain]);
+  - on a universe [Q] with a decidable order: superdistributivity
+    ([nmulOrd_distrib_lower_Q]) and subdistributivity given a split at
+    the points of [Q] ([covers_rk_Q]).
 
   Classical (excluded middle as an explicit hypothesis):
   - [nmulOrd_succ_classical]: [a ⊗ (b+1) ≈ a ⊗ b ⊕ a];
@@ -78,6 +81,14 @@ Open Scope ord_scope.
   a column of the top row before seeing the opponent's next move, and
   over a limit no single column is safe.  The upper halves remain
   constructive.
+
+  On ordinals built from a universe with a decidable order the classical
+  proofs go through: superdistributivity and the restricted
+  subdistributivity of section [decidable_universe] are constructive.
+  For notation systems with interpolants, Notation/CantorProduct.v uses
+  them to show constructively that the term-by-term product of Cantor
+  normal forms reflects [nmulOrd]; so on notations [nmulOrd] satisfies
+  all the usual laws.
  *)
 
 Definition region := list (Ord * Ord).
@@ -1899,6 +1910,344 @@ Proof.
 Qed.
 
 End hessenberg.
+
+
+(** * Superdistributivity on a decidable universe
+
+  Superdistributivity, [a ⊗ b ⊕ a ⊗ c ≤ a ⊗ (b ⊕ c)], implies weak
+  excluded middle in general ([distrib_lower_WEM]), but its proof
+  ([rsum_step]) uses excluded middle only to compare corners of
+  rectangles with coordinates of moves.  Those comparisons are
+  decidable when every ordinal in sight lies in a universe [Q] with a
+  decidable order, closed under the operations that build positions:
+  [Q] is closed under [≈], [⊕] and [0], and the trees are hereditarily
+  in [Q] ([QH]).  For a notation system with interpolants, the
+  notations provide such a universe (Notation/CantorProduct.v). *)
+
+Section decidable_universe.
+Variable Q : Ord -> Prop.
+Hypothesis Q_eq : forall x y, x ≈ y -> Q x -> Q y.
+Hypothesis Q_dec : forall x y, Q x -> Q y -> x < y \/ y ≤ x.
+Hypothesis Q_zero : Q 0.
+Hypothesis Q_nadd : forall x y, Q x -> Q y -> Q (x ⊕ y).
+
+(** Hereditary membership: [x] and all its descendants lie in [Q]. *)
+Fixpoint HQ (x:Ord) : Prop :=
+  match x with ord A g => forall a, Q (g a) /\ HQ (g a) end.
+
+Definition QH (x:Ord) := Q x /\ HQ x.
+
+Lemma QH_child x i : QH x -> QH (ordSize x i).
+Proof. destruct x as [A g]. intros [_ H]. apply H. Qed.
+
+Lemma QH_zero : QH 0.
+Proof. split; auto. intros []. Qed.
+
+Lemma Q_glb x y : Q x -> Q y -> Q (x ⊓ y).
+Proof.
+  intros Hx Hy. destruct (Q_dec x y Hx Hy) as [H|H].
+  - apply Q_eq with x; auto. split.
+    + apply glb_greatest; [reflexivity | apply ord_lt_le; auto].
+    + apply glb_le1.
+  - apply Q_eq with y; auto. split.
+    + apply glb_greatest; [auto | reflexivity].
+    + apply glb_le2.
+Qed.
+
+Lemma QH_glb : forall x y, QH x -> QH y -> QH (x ⊓ y).
+Proof.
+  induction x as [A f IH]. intros [B g] Hx Hy.
+  split; [apply Q_glb; [apply Hx | apply Hy]|].
+  rewrite glb_unfold. hnf. intros [a b]. simpl.
+  apply IH; [apply (proj2 Hx a) | apply (proj2 Hy b)].
+Qed.
+
+Lemma HQ_lub x y : HQ x -> HQ y -> HQ (x ⊔ y).
+Proof. destruct x as [A f], y as [B g]. intros Hx Hy. rewrite lub_unfold. hnf. intros [a|b]; [apply Hx | apply Hy]. Qed.
+
+Lemma QH_nadd : forall x y, QH x -> QH y -> QH (x ⊕ y).
+Proof.
+  induction x as [A f IHx]. induction y as [B g IHy]. intros Hx Hy.
+  split; [apply Q_nadd; [apply Hx | apply Hy]|].
+  rewrite naddOrd_unfold. apply HQ_lub; simpl.
+  - intro a. apply IHx; auto. apply (proj2 Hx a).
+  - intro b. apply IHy; auto. apply (proj2 Hy b).
+Qed.
+
+Lemma QH_nrep k x : QH x -> QH (nrep k x).
+Proof. intro Hx. induction k; simpl; [apply QH_zero | apply QH_nadd; auto]. Qed.
+
+(** Regions whose corners are hereditarily in [Q]. *)
+Definition QR (R:region) := forall r, In r R -> QH (fst r) /\ QH (snd r).
+
+Lemma QR_move R (m:mv R) : QR R -> QH (fst (mvpt R m)) /\ QH (snd (mvpt R m)).
+Proof.
+  intro HR. destruct (mv_elim R m) as [r [Hr [c [d Hm]]]]. rewrite Hm. simpl.
+  destruct (HR r Hr). split; apply QH_child; auto.
+Qed.
+
+Lemma QR_cut p R : QH (fst p) -> QH (snd p) -> QR R -> QR (cut p R).
+Proof.
+  intros Hp1 Hp2 HR r Hr. unfold cut in Hr. apply in_flat_map in Hr.
+  destruct Hr as [r1 [Hr1 Hin]]. destruct (HR r1 Hr1) as [H1 H2].
+  destruct Hin as [Hin|[Hin|[]]]; subst r; simpl; split; auto; apply QH_glb; auto.
+Qed.
+
+Lemma QR_rsum R1 R2 : QR R1 -> QR R2 -> QR (rsum R1 R2).
+Proof.
+  intros H1 H2 r Hr. apply in_rsum in Hr.
+  destruct Hr as [r1 [r2 [Hr1 [Hr2 Heq]]]]. subst r. simpl.
+  destruct (H1 r1 Hr1), (H2 r2 Hr2).
+  split; [apply QH_glb | apply QH_nadd]; auto.
+Qed.
+
+Lemma exists_dec (Pr:Ord*Ord -> Prop) : forall l,
+  (forall s, In s l -> Pr s \/ ~Pr s) ->
+  (exists s, In s l /\ Pr s) \/ ~(exists s, In s l /\ Pr s).
+Proof.
+  induction l as [|a l IH]; intros Hd.
+  - right. intros [s [[] _]].
+  - destruct (Hd a (or_introl eq_refl)) as [Ha|Ha].
+    + left. exists a. simpl; auto.
+    + destruct IH as [Hl|Hl]; [intros; apply Hd; simpl; auto | |].
+      * left. destruct Hl as [s [Hs HPs]]. exists s. simpl; auto.
+      * right. intros [s [[Hs|Hs] HPs]]; [subst; contradiction | eauto].
+Qed.
+
+Lemma list_max_Q (Pr:Ord*Ord -> Prop) : forall l,
+  (forall s, In s l -> (Pr s \/ ~Pr s) /\ Q (snd s)) ->
+  (exists s, In s l /\ Pr s) ->
+  exists s, In s l /\ Pr s /\ forall s', In s' l -> Pr s' -> snd s' ≤ snd s.
+Proof.
+  induction l as [|a l IH]; intros Hd Hex.
+  - destruct Hex as [s [[] _]].
+  - destruct (exists_dec Pr l) as [Hl|Hl]; [intros; apply Hd; simpl; auto | |].
+    + destruct (IH (fun s Hs => Hd s (or_intror Hs)) Hl) as [s [Hs [HPs Hmax]]].
+      destruct (Hd a (or_introl eq_refl)) as [[HPa|HPa] HQa].
+      * destruct (Q_dec (snd s) (snd a) (proj2 (Hd s (or_intror Hs))) HQa) as [Hsa|Has].
+        { exists a. split; [simpl; auto|]. split; auto.
+          intros s' [Hs'|Hs'] HPs'; [subst s'; reflexivity|].
+          apply ord_lt_le. apply ord_le_lt_trans with (snd s); auto. }
+        { exists s. split; [simpl; auto|]. split; auto.
+          intros s' [Hs'|Hs'] HPs'; [subst s'; auto | auto]. }
+      * exists s. split; [simpl; auto|]. split; auto.
+        intros s' [Hs'|Hs'] HPs'; [subst s'; contradiction | auto].
+    + destruct Hex as [s [[Hs|Hs] HPs]].
+      * subst s. exists a. split; [simpl; auto|]. split; auto.
+        intros s' [Hs'|Hs'] HPs'; [subst s'; reflexivity|].
+        elim Hl. eauto.
+      * elim Hl. eauto.
+Qed.
+
+Lemma rsum_step_Q W R1 R2 (m:mv R1) :
+  QR R1 -> QR R2 ->
+  wide W R1 -> wide W R2 ->
+  rk (cut (mvpt R1 m) R1) ⊕ rk R2 ≤ rk (rsum (cut (mvpt R1 m) R1) R2) ->
+  rk (cut (mvpt R1 m) R1) ⊕ rk R2 < rk (rsum R1 R2).
+Proof.
+  intros HQ1 HQ2 HW1 HW2 IH.
+  destruct (QR_move R1 m HQ1) as [[Hqx _] _].
+  destruct (mv_elim R1 m) as [r1 [Hr1 [c [d Hm]]]].
+  set (q := mvpt R1 m) in *.
+  assert (Hq1 : fst q < fst r1) by (rewrite Hm; simpl; auto with ord).
+  assert (Hcov : exists s, In s R2 /\ fst q < fst s).
+  { destruct HW2 as [[s [Hs HWs]] _]. exists s. split; auto.
+    apply ord_lt_le_trans with (fst r1); auto.
+    rewrite <- HWs. apply (proj2 HW1); auto. }
+  assert (Hdec : forall s, In s R2 -> ((fst q < fst s) \/ ~(fst q < fst s)) /\ Q (snd s)).
+  { intros s Hs. destruct (HQ2 s Hs) as [[Hs1 _] [Hs2 _]]. split; auto.
+    destruct (Q_dec (fst q) (fst s) Hqx Hs1) as [H|H]; [left; auto | right].
+    intro H'. apply (ord_lt_irreflexive (fst q)). apply ord_lt_le_trans with (fst s); auto. }
+  destruct (list_max_Q (fun s => fst q < fst s) R2 Hdec Hcov) as [s2 [Hs2 [Hqs2 Hmax]]].
+  assert (Hpx : fst q < fst r1 ⊓ fst s2).
+  { apply ord_lt_le_trans with (succOrd (fst q)); [apply succ_lt|].
+    apply glb_greatest; apply succ_least; auto. }
+  rewrite ord_lt_unfold in Hpx. destruct Hpx as [cg Hcg].
+  assert (Hpy : snd q ⊕ snd s2 < snd r1 ⊕ snd s2).
+  { apply naddOrd_increasing1. rewrite Hm; simpl; auto with ord. }
+  rewrite ord_lt_unfold in Hpy. destruct Hpy as [dg Hdg].
+  assert (Hin : In (fst r1 ⊓ fst s2, snd r1 ⊕ snd s2) (rsum R1 R2)).
+  { apply in_rsum. exists r1, s2. auto. }
+  destruct (mv_intro _ _ Hin cg dg) as [m' Hm'].
+  set (p := mvpt (rsum R1 R2) m') in *.
+  simpl in Hm'.
+  assert (Hqp : fst q ≤ fst p) by (rewrite Hm'; auto).
+  assert (Hqp2 : snd q ⊕ snd s2 ≤ snd p) by (rewrite Hm'; auto).
+  apply ord_le_lt_trans with (rk (rsum (cut q R1) R2)); auto.
+  apply ord_le_lt_trans with (rk (cut p (rsum R1 R2))); [|apply rk_move_lt].
+  apply rk_mono.
+  intros r Hr. right. apply in_rsum in Hr.
+  destruct Hr as [r1' [r2 [H1 [H2 Heq]]]]. subst r.
+  unfold cut in H1. apply in_flat_map in H1.
+  destruct H1 as [r0 [Hr0 Hpiece]].
+  simpl in Hpiece. destruct Hpiece as [Hpiece|[Hpiece|[]]]; subst r1'.
+  - exists ((fst r0 ⊓ fst r2) ⊓ fst p, snd r0 ⊕ snd r2). split.
+    + unfold cut. apply in_flat_map. exists (fst r0 ⊓ fst r2, snd r0 ⊕ snd r2).
+      split; [apply in_rsum; exists r0, r2; auto | simpl; auto].
+    + split; simpl; [|reflexivity].
+      apply glb_greatest; [apply glb_greatest|].
+      * rewrite glb_le1. apply glb_le1.
+      * apply glb_le2.
+      * rewrite glb_le1. rewrite glb_le2. auto.
+  - destruct (HQ2 r2 H2) as [[Hr2x _] _].
+    destruct (Q_dec (fst q) (fst r2) Hqx Hr2x) as [Hqr2|Hr2q].
+    + assert (Hh : snd r2 ≤ snd s2) by (apply Hmax; auto).
+      exists (fst r0 ⊓ fst r2, (snd r0 ⊕ snd r2) ⊓ snd p). split.
+      * unfold cut. apply in_flat_map. exists (fst r0 ⊓ fst r2, snd r0 ⊕ snd r2).
+        split; [apply in_rsum; exists r0, r2; auto | simpl; auto].
+      * split; simpl; [reflexivity|].
+        apply glb_greatest.
+        { apply naddOrd_monotone; [apply glb_le1 | reflexivity]. }
+        { rewrite <- Hqp2. apply naddOrd_monotone; [apply glb_le2 | auto]. }
+    + exists ((fst r0 ⊓ fst r2) ⊓ fst p, snd r0 ⊕ snd r2). split.
+      * unfold cut. apply in_flat_map. exists (fst r0 ⊓ fst r2, snd r0 ⊕ snd r2).
+        split; [apply in_rsum; exists r0, r2; auto | simpl; auto].
+      * split; simpl.
+        { apply glb_greatest; [reflexivity|].
+          rewrite glb_le2. rewrite Hr2q. auto. }
+        { apply naddOrd_monotone; [apply glb_le1 | reflexivity]. }
+Qed.
+
+Lemma rsum_lower_Q W : forall R1 R2,
+  QR R1 -> QR R2 -> wide W R1 -> wide W R2 -> rk R1 ⊕ rk R2 ≤ rk (rsum R1 R2).
+Proof.
+  intros R1 R2.
+  generalize (ord_le_refl (rk R1 ⊕ rk R2)).
+  generalize (rk R1 ⊕ rk R2) at 2 as o. intro o. revert R1 R2.
+  induction o as [o IHo] using (well_founded_ind ord_lt_wf).
+  intros R1 R2 Ho HQ1 HQ2 HW1 HW2.
+  apply naddOrd_least3.
+  - intros i Hi.
+    destruct (rk_lt_elim R1 i Hi) as [m Hm].
+    destruct (QR_move R1 m HQ1) as [Hm1 Hm2].
+    apply ord_le_lt_trans with (rk (cut (mvpt R1 m) R1) ⊕ rk R2).
+    { apply naddOrd_monotone; auto. reflexivity. }
+    apply rsum_step_Q with W; auto.
+    apply (IHo (rk (cut (mvpt R1 m) R1) ⊕ rk R2)); auto using wide_cut, QR_cut.
+    + apply ord_lt_le_trans with (rk R1 ⊕ rk R2); auto.
+      apply naddOrd_increasing1. apply rk_move_lt.
+    + reflexivity.
+  - intros j Hj.
+    destruct (rk_lt_elim R2 j Hj) as [m Hm].
+    destruct (QR_move R2 m HQ2) as [Hm1 Hm2].
+    apply ord_le_lt_trans with (rk (cut (mvpt R2 m) R2) ⊕ rk R1).
+    { rewrite naddOrd_comm. apply naddOrd_monotone; auto. reflexivity. }
+    apply ord_lt_le_trans with (rk (rsum R2 R1)); [|apply rk_mono; apply rsum_comm].
+    apply rsum_step_Q with W; auto.
+    rewrite naddOrd_comm.
+    apply ord_le_trans with (rk (rsum R1 (cut (mvpt R2 m) R2)));
+      [| apply rk_mono; apply rsum_comm].
+    apply (IHo (rk R1 ⊕ rk (cut (mvpt R2 m) R2))); auto using wide_cut, QR_cut.
+    + apply ord_lt_le_trans with (rk R1 ⊕ rk R2); auto.
+      apply naddOrd_increasing2. apply rk_move_lt.
+    + reflexivity.
+Qed.
+
+Theorem nmulOrd_distrib_lower_Q a b c :
+  QH a -> QH b -> QH c ->
+  nmulOrd a b ⊕ nmulOrd a c ≤ nmulOrd a (b ⊕ c).
+Proof.
+  intros Ha Hb Hc.
+  set (R1 := [(a,b); (a,0)]). set (R2 := [(a,c); (a,0)]).
+  assert (HW : forall y, wide a [(a,y); (a,0)]).
+  { intro y. split.
+    - exists (a,y). simpl; split; auto. reflexivity.
+    - intros r [Hr|[Hr|[]]]; subst r; reflexivity. }
+  assert (HQR : forall y, QH y -> QR [(a,y); (a,0)]).
+  { intros y Hy r [Hr|[Hr|[]]]; subst r; simpl; auto using QH_zero. }
+  rewrite (nmul_rk a b), (nmul_rk a c), (nmul_rk a (b ⊕ c)).
+  apply ord_le_trans with (rk R1 ⊕ rk R2).
+  { apply naddOrd_monotone; apply rk_mono.
+    - apply rsub_in with (a,b); simpl; auto. split; reflexivity.
+    - apply rsub_in with (a,c); simpl; auto. split; reflexivity. }
+  apply ord_le_trans with (rk (rsum R1 R2)).
+  { exact (rsum_lower_Q a R1 R2 (HQR b Hb) (HQR c Hc) (HW b) (HW c)). }
+  apply rk_mono. intros r Hr. right. apply in_rsum in Hr.
+  destruct Hr as [r1 [r2 [H1 [H2 Heq]]]]. subst r.
+  exists (a, b ⊕ c). split; [simpl; auto|].
+  split; simpl.
+  - rewrite glb_le1. destruct H1 as [H1|[H1|[]]]; subst r1; reflexivity.
+  - apply naddOrd_monotone.
+    + destruct H1 as [H1|[H1|[]]]; subst r1; simpl; [reflexivity | apply zero_least].
+    + destruct H2 as [H2|[H2|[]]]; subst r2; simpl; [reflexivity | apply zero_least].
+Qed.
+
+Lemma nmul_nrep_lower_Q k x y : QH x -> QH y ->
+  nrep k (nmulOrd x y) ≤ nmulOrd (nrep k x) y.
+Proof.
+  intros Hx Hy. induction k; simpl.
+  - apply zero_least.
+  - rewrite IHk.
+    rewrite (nmulOrd_comm (nrep k x)), (nmulOrd_comm x), (nmulOrd_comm _ y).
+    apply nmulOrd_distrib_lower_Q; auto. apply QH_nrep; auto.
+Qed.
+
+(** Subdistributivity on the universe: [covers_rk], with the split
+    needed only at points of the universe. *)
+Section embed_Q.
+Variable T : Ord.
+Variable Sp : Ord -> bool -> Ord -> Prop.
+Hypothesis Sp_total : forall v, Q v -> v < T -> exists s p, Sp v s p.
+Hypothesis Sp_mono : forall v w s p q,
+  Q v -> Q w -> Sp v s p -> Sp w s q -> v < w -> p < q.
+
+Definition covers_Q (D R1 R2:region) :=
+  forall u v, sem D u v -> Q v ->
+    v < T /\ forall s p, Sp v s p -> sem (side s R1 R2) u p.
+
+Lemma covers_rk_Q : forall D R1 R2, QR D -> covers_Q D R1 R2 -> rk D ≤ rk R1 ⊕ rk R2.
+Proof.
+  intro D.
+  generalize (ord_le_refl (rk D)). generalize (rk D) at 2 as o. intro o. revert D.
+  induction o as [o IHo] using (well_founded_ind ord_lt_wf).
+  intros D Ho R1 R2 HQD Hcov.
+  apply ord_le_intro. intros i Hi.
+  destruct (rk_lt_elim D i Hi) as [m Hm].
+  destruct (QR_move D m HQD) as [Hp1 Hp2].
+  set (p := mvpt D m) in *.
+  destruct (Hcov (fst p) (snd p) (sem_move D m) (proj1 Hp2)) as [HT Hside].
+  destruct (Sp_total (snd p) (proj1 Hp2) HT) as [s [π Hπ]].
+  generalize (Hside s π Hπ). intro Hsem.
+  destruct (sem_to_move _ _ _ Hsem) as [m' [Hq1 Hq2]].
+  apply ord_le_lt_trans with (rk (cut p D)); auto.
+  assert (Hrk : rk (cut p D) < o).
+  { apply ord_lt_le_trans with (rk D); auto. apply rk_move_lt. }
+  assert (HQc : QR (cut p D)) by (apply QR_cut; auto).
+  destruct s; simpl in m', Hq1, Hq2.
+  - set (q := mvpt R1 m') in *.
+    apply ord_le_lt_trans with (rk (cut q R1) ⊕ rk R2).
+    + apply (IHo (rk (cut p D))); auto. reflexivity.
+      intros u v Huv HQv.
+      destruct (sem_cut_elim p D u v Huv) as [HD Hor].
+      destruct (Hcov u v HD HQv) as [HTv Hsidev].
+      split; auto. intros s' p' Hs'.
+      generalize (Hsidev s' p' Hs'). intro Hsem'.
+      destruct s'; simpl in *; auto.
+      apply sem_cut_intro; auto.
+      destruct Hor as [Hu|Hv].
+      * left. apply ord_lt_le_trans with (fst p); auto.
+      * right. apply ord_lt_le_trans with π; auto.
+        apply (Sp_mono v (snd p) true p' π); auto. apply Hp2.
+    + apply naddOrd_increasing1. apply rk_move_lt.
+  - set (q := mvpt R2 m') in *.
+    apply ord_le_lt_trans with (rk R1 ⊕ rk (cut q R2)).
+    + apply (IHo (rk (cut p D))); auto. reflexivity.
+      intros u v Huv HQv.
+      destruct (sem_cut_elim p D u v Huv) as [HD Hor].
+      destruct (Hcov u v HD HQv) as [HTv Hsidev].
+      split; auto. intros s' p' Hs'.
+      generalize (Hsidev s' p' Hs'). intro Hsem'.
+      destruct s'; simpl in *; auto.
+      apply sem_cut_intro; auto.
+      destruct Hor as [Hu|Hv].
+      * left. apply ord_lt_le_trans with (fst p); auto.
+      * right. apply ord_lt_le_trans with π; auto.
+        apply (Sp_mono v (snd p) false p' π); auto. apply Hp2.
+    + apply naddOrd_increasing2. apply rk_move_lt.
+Qed.
+End embed_Q.
+
+End decidable_universe.
 
 
 (** * Toward a constructive split

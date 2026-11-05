@@ -24,7 +24,10 @@ From Ordinal Require Import VeblenCon.
 From Ordinal Require Import VeblenFacts.
 From Ordinal Require Import AckermannTower.
 
+From Ordinal Require Import Notation.Interpolants.
 From Ordinal Require Import Notation.CantorDecomposition.
+From Ordinal Require NaturalProduct.
+From Ordinal Require Notation.CantorProduct.
 
 Open Scope ord_scope.
 
@@ -1140,7 +1143,6 @@ Proof.
   - simpl.
     apply veblen_interpolants
       with (f:=VF_denote) (P:=VF_isNormal) (g:=ackermann_tower_fin (addOrd 1) n) (a:=a) (b:=VF_denote b) (vr:=Vnorm n); auto.
-    + apply VF_has_cantor_decomposition.
     + clear Hnorm.
       induction n as [n Hindn] using (size_induction ω).
       destruct n; intros.
@@ -1151,10 +1153,8 @@ Proof.
         destruct (VF_succ_reflects 0 Z); simpl; intuition auto with ord. }
       simpl.
       eapply enum_fix_has_interpolants with (enum_gr := Vnorm (S n) Z); auto with ord.
-      * apply VF_has_cantor_decomposition.
       * intros.
         apply veblen_interpolants_first with (vr:= Vnorm n); auto with ord.
-        ** apply VF_has_cantor_decomposition.
         ** intros. apply Hindn; simpl; auto with ord.
            intros.
            apply Hindx; auto.
@@ -1196,6 +1196,15 @@ Definition VF_nadd := cantor_nadd VF_has_cantor_decomposition.
 Theorem VF_reflects_nadd: reflects VForm VF_denote VF_isNormal (ORD ==> ORD ==> ORD) naddOrd VF_nadd.
 Proof.
   apply cantor_nadd_reflects.
+Qed.
+
+(** The natural product, computed on Cantor normal forms; it reflects the
+    semantic natural product constructively, using interpolants. *)
+Definition VF_nmul := CantorProduct.cantor_nmul _ _ _ VF_has_cantor_decomposition.
+
+Theorem VF_reflects_nmul: reflects VForm VF_denote VF_isNormal (ORD ==> ORD ==> ORD) NaturalProduct.nmulOrd VF_nmul.
+Proof.
+  apply CantorProduct.cantor_nmul_reflects.
   apply VF_has_all_interpolants.
 Qed.
 

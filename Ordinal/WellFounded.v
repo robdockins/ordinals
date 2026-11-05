@@ -2212,20 +2212,24 @@ Proof.
     + induction a1; simpl; auto with ord.
       rewrite <- naddOrd_le2. auto with ord.
   - left. apply (inhabits nil).
-  - (* It's not clear how, or if, this proof can be completed... *)
+  - (* This cannot be completed constructively: see
+       [tree_selection_complete_WEM] below. *)
 Abort.
 
 (** Classicaly, at least, the `tree_selection` function is normal. This means
     it has has fixpoints, as all normal functions do. I suspect it behaves
     in a similar way to the standard `expOrd ω x` function. In particular,
     I suspect that the least fixpoint of both functions coincide, as ε(0).
+    (Indeed, on complete ordinals the two functions agree, constructively:
+    see [tree_selection_eq_powOmega_complete] below.)
 
     I find this result quite surprising, as the natural addition operation
     is not continuous in either of it's arguments.
 
-    However, as it currently stands, this proof requires the excluded middle,
-    as I do not know how, or if, this function can be proved to preserve
-    the completeness of ordinals without it.
+    However, this proof requires the excluded middle: preserving
+    completeness is not constructive ([tree_selection_complete_WEM]
+    below), because natural sums of complete ordinals need not be complete
+    ([nadd_complete_WEM]).
 *)
 Lemma normal_tree_selection (EM:excluded_middle): normal_function tree_selection.
 Proof.
@@ -2262,10 +2266,14 @@ Proof.
     apply naddOrd_monotone; auto with ord.
 Qed.
 
-Lemma tree_selection_le_powOmega (EM:excluded_middle) : forall x,
-    tree_selection x ≤ expOrd ω x.
+(** For complete [x], the bound holds constructively: the only uses of
+    classical logic were to make the children of [x] directed and to add
+    equal powers, and completeness provides both ([nadd_add_same_powers_con]). *)
+Lemma tree_selection_le_powOmega_complete : forall x,
+    complete x -> tree_selection x ≤ expOrd ω x.
 Proof.
   induction x as [x Hindx] using ordinal_induction.
+  intro Hx.
   rewrite tree_selection_unfold. unfold iterated_smash_sum.
   apply limit_least; simpl; intros xs.
   case_eq xs.
@@ -2275,8 +2283,7 @@ Proof.
   rewrite expOrd_unfold.
   rewrite <- lub_le2.
   assert (exists i:x, Forall (fun x => sz x <= sz i) xs).
-  { assert (Hx: complete x) by (apply classical.ord_complete; auto).
-    subst xs.
+  { subst xs.
     induction l; simpl.
     { exists o. constructor; auto with ord. }
     destruct IHl as [i Hi].
@@ -2301,23 +2308,143 @@ Proof.
   induction Hi.
   { simpl. auto with ord. }
   replace (length (x0::l)) with (1+length l)%nat by (simpl; auto with ord).
-  rewrite <- nadd_add_same_powers; auto with ord.
+  rewrite <- nadd_add_same_powers_con; auto with ord.
   simpl.
   rewrite IHHi.
   rewrite Hindx; auto with ord.
   rewrite mulOrd_one_r.
   apply naddOrd_monotone; auto with ord.
-  apply classical.ord_complete. auto.
+Qed.
+
+Lemma tree_selection_le_powOmega (EM:excluded_middle) : forall x,
+    tree_selection x ≤ expOrd ω x.
+Proof.
+  intro x. apply tree_selection_le_powOmega_complete.
+  apply classical.ord_complete; auto.
+Qed.
+
+Theorem tree_selection_eq_powOmega_complete :
+  forall x, complete x -> tree_selection x ≈ expOrd ω x.
+Proof.
+  intros; split.
+  apply tree_selection_le_powOmega_complete; auto.
+  apply powOmega_le_tree_selection.
 Qed.
 
 Theorem tree_selection_eq_powOmega (EM:excluded_middle) :
   forall x, tree_selection x ≈ expOrd ω x.
 Proof.
-  intros; split.
-  apply tree_selection_le_powOmega; auto.
-  apply powOmega_le_tree_selection.
+  intros; apply tree_selection_eq_powOmega_complete.
+  apply classical.ord_complete; auto.
 Qed.
 
+(** [tree_selection] does not preserve completeness either.  Let [a] be
+    the ordinal [u] above ([1], or [2] if [P]), and let [x] have the
+    children [a] and [2]; [x] is complete.  The child [ts a ⊕ (ts 2 ⊕ 0)]
+    of [ts x] is a natural sum of [ω^a] and [ω^2], and an upper bound for
+    its children [0 ⊕ ω^2] and [ts a ⊕ ω] is either [n ⊕ ω^2] for a child
+    [n] of [ts a] (one that is finite refutes [P]; the others need [P]),
+    or [ts a ⊕ y] for some [y < ω^2], which refutes [~P]. *)
+
+Lemma tree_selection_finite_or (P:Prop) (f:option P -> Ord) :
+  f None ≈ 0 ->
+  forall l : list (option P),
+    P \/ List.fold_right (fun o y => tree_selection (f o) ⊕ y) 0 l < ω.
+Proof.
+  intros Hf. induction l as [|[p|] l IH]; simpl.
+  - right. auto with ord.
+  - left. exact p.
+  - destruct IH as [p|IH]; [left; exact p|right].
+    assert (H0 : tree_selection (f None) < ω).
+    { rewrite (tree_selection_monotone _ _ (proj1 Hf)).
+      rewrite tree_selection_eq_powOmega_complete; auto with ord.
+      rewrite expOrd_zero. auto with ord. }
+    apply ord_lt_le_trans with (expOrd ω 1); [|rewrite expOrd_one'; auto with ord].
+    apply nadd_closed_con; auto with ord;
+      rewrite expOrd_one'; auto with ord.
+Qed.
+
+Theorem tree_selection_complete_WEM :
+  (forall x, complete x -> complete (tree_selection x)) ->
+  weak_excluded_middle.
+Proof.
+  intros H P.
+  pose (a := ord (option P) (fun o => match o with None => 0 | Some _ => 1 end)).
+  pose (two := succOrd 1).
+  pose (x := ord bool (fun b => if b then a else two)).
+  assert (Ha : complete a).
+  { unfold a. simpl. split; [|split].
+    - intros [p|] [q|].
+      + exists (Some p). split; reflexivity.
+      + exists (Some p). simpl. split; [reflexivity | apply zero_least].
+      + exists (Some q). simpl. split; [apply zero_least | reflexivity].
+      + exists None. split; reflexivity.
+    - left. exact (inhabits None).
+    - intros [p|]; auto with ord. }
+  assert (Ha2 : a ≤ two).
+  { unfold a, two. rewrite ord_le_unfold. intros [p|]; simpl.
+    - apply succ_lt.
+    - apply succ_trans. apply zero_least. }
+  assert (Hx : complete x).
+  { unfold x. simpl. split; [|split].
+    - intros b1 b2. exists false.
+      destruct b1, b2; simpl; split; auto with ord.
+    - left. exact (inhabits true).
+    - intros []; unfold two; auto with ord. }
+  set (A := tree_selection a). set (B := tree_selection two).
+  assert (HA : A ≈ expOrd ω a) by (apply tree_selection_eq_powOmega_complete; auto).
+  assert (HB : B ≈ expOrd ω two) by (apply tree_selection_eq_powOmega_complete; unfold two; auto with ord).
+  assert (Hw2 : ω < expOrd ω two).
+  { apply ord_le_lt_trans with (expOrd ω 1).
+    - rewrite expOrd_one'; auto with ord.
+    - apply expOrd_increasing; auto with ord. }
+  assert (HcB : forall y, y < B -> ω ⊕ y < B).
+  { intros y Hy. rewrite HB in *. apply nadd_closed_con; unfold two; auto with ord. }
+  (* the child of ts x for the list [a; 2] *)
+  assert (Hc : complete (A ⊕ (B ⊕ 0))).
+  { generalize (complete_subord _ (H x Hx) (true :: false :: nil)). simpl. auto. }
+  (* a child of B ⊕ 0 equivalent to ω *)
+  set (j := (inl (tt :: nil) : ordCarrier (B ⊕ 0))).
+  assert (Hj : ω ≤ ordSize (B ⊕ 0) j).
+  { change (ω ≤ (tree_selection 1 ⊕ 0) ⊕ 0).
+    rewrite naddOrd_zero_r, naddOrd_zero_r.
+    rewrite tree_selection_eq_powOmega_complete; auto with ord.
+    rewrite expOrd_one'; auto with ord. }
+  destruct (nadd_complete_directed A (B ⊕ 0) Hc nil j) as [[l [_ H2]]|[m [H1 _]]].
+  - (* an upper bound n ⊕ ω^2 with n a child of ts a *)
+    change (A ⊕ ordSize (B ⊕ 0) j ≤
+            List.fold_right (fun o y => tree_selection (match o with None => 0 | Some _ => 1 end) ⊕ y) 0 l
+              ⊕ (B ⊕ 0)) in H2.
+    destruct (tree_selection_finite_or P (fun o => match o with None => 0 | Some _ => 1 end)
+                (ord_eq_refl _) l) as [p|Hl].
+    + left. intro np. exact (np p).
+    + right. intro p.
+      (* under P: ω^2 ⊕ ω ≤ A ⊕ ω ≤ n ⊕ ω^2 < ω ⊕ ω^2 *)
+      apply (ord_lt_irreflexive (ω ⊕ B)).
+      apply ord_le_lt_trans with (B ⊕ ω).
+      { rewrite naddOrd_comm. reflexivity. }
+      apply ord_le_lt_trans with (A ⊕ ordSize (B ⊕ 0) j).
+      { apply naddOrd_monotone; auto.
+        rewrite HA, HB. apply expOrd_monotone. unfold two. apply succ_least.
+        apply (index_lt a (Some p)). }
+      rewrite H2. rewrite naddOrd_zero_r.
+      apply naddOrd_increasing1; auto.
+  - (* an upper bound ts a ⊕ y with y < ω^2 *)
+    change (0 ⊕ (B ⊕ 0) ≤ A ⊕ ordSize (B ⊕ 0) m) in H1.
+    left. intro np.
+    assert (Hy : ordSize (B ⊕ 0) m < B).
+    { rewrite <- (naddOrd_zero_r B) at 2. apply index_lt. }
+    set (y := ordSize (B ⊕ 0) m) in *. clearbody y.
+    apply (ord_lt_irreflexive B).
+    apply ord_le_lt_trans with (ω ⊕ y); [|apply HcB; auto].
+    rewrite <- (naddOrd_zero_r B) at 1. rewrite <- naddOrd_zero_l.
+    rewrite H1. apply naddOrd_monotone; [|reflexivity].
+    rewrite HA. rewrite <- (expOrd_one' ω) at 2; auto with ord.
+    apply expOrd_monotone.
+    unfold a. rewrite ord_le_unfold. intros [p|]; simpl.
+    + elim (np p).
+    + apply succ_lt.
+Qed.
 Section list_ext.
   Variable A:Type.
   Variable R:A -> A -> Prop.

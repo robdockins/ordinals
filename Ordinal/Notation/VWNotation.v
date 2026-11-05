@@ -22,7 +22,10 @@ From Ordinal Require Import VeblenDefs.
 From Ordinal Require Import VeblenCon.
 From Ordinal Require Import VeblenFacts.
 
+From Ordinal Require Import Notation.Interpolants.
 From Ordinal Require Import Notation.CantorDecomposition.
+From Ordinal Require NaturalProduct.
+From Ordinal Require Notation.CantorProduct.
 
 Open Scope ord_scope.
 
@@ -1185,7 +1188,6 @@ Proof.
   intros b Hb1 Hb2.
   assert (has_interpolants VF_denote VF_isNormal (veblen (addOrd 1) b 0)).
   { apply veblen_interpolants_first with (vr := Vnorm); auto.
-    + apply VF_has_cantor_decomposition.
     + intros.
       intros. apply onePlus_interpolants with (zr:=Z) (pr:=VF_add VF_one); auto.
       apply VF_reflects_zero.
@@ -1210,7 +1212,6 @@ Lemma ε_interpolants:
 Proof.
   intros. unfold ε.
   apply enum_fix_has_interpolants with (enum_gr := fun x => Wnorm Z x); auto with ord.
-  - apply VF_has_cantor_decomposition.
   - intros. apply expOrd_interpolants; auto.
   - intros. apply normal_inflationary; auto with ord.
   - hnf; simpl; intuition.
@@ -1230,7 +1231,6 @@ Proof.
   - hnf; simpl; intros i Hi. rewrite ord_lt_unfold in Hi. destruct Hi as [[] _].
   - apply veblen_interpolants
       with (f:=VF_denote) (P:=VF_isNormal) (g:=addOrd 1) (a:=a) (b:=VF_denote b) (vr:=Vnorm); auto.
-    + apply VF_has_cantor_decomposition.
     + intros. apply onePlus_interpolants with (zr:=Z) (pr:=VF_add VF_one); auto.
       apply VF_reflects_zero.
       hnf; intros; auto.
@@ -1251,7 +1251,6 @@ Proof.
 
   - apply veblen_interpolants
       with (f:=VF_denote) (P:=VF_isNormal) (g:=ε) (a:=a) (b:=VF_denote b) (vr:=Wnorm); auto with ord.
-    + apply VF_has_cantor_decomposition.
     + intros; apply ε_interpolants; auto.
     + hnf; simpl; intuition.
       rewrite Wnorm_equal; simpl; auto.
@@ -1273,6 +1272,15 @@ Definition VF_nadd := cantor_nadd VF_has_cantor_decomposition.
 Theorem VF_reflects_nadd: reflects VForm VF_denote VF_isNormal (ORD ==> ORD ==> ORD) naddOrd VF_nadd.
 Proof.
   apply cantor_nadd_reflects.
+Qed.
+
+(** The natural product, computed on Cantor normal forms; it reflects the
+    semantic natural product constructively, using interpolants. *)
+Definition VF_nmul := CantorProduct.cantor_nmul _ _ _ VF_has_cantor_decomposition.
+
+Theorem VF_reflects_nmul: reflects VForm VF_denote VF_isNormal (ORD ==> ORD ==> ORD) NaturalProduct.nmulOrd VF_nmul.
+Proof.
+  apply CantorProduct.cantor_nmul_reflects.
   apply VF_has_all_interpolants.
 Qed.
 

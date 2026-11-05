@@ -1203,28 +1203,179 @@ Proof.
   induction xs; simpl; intuition eauto.
 Qed.
 
+(** ** Natural sums of Cantor sequences, constructively
+
+  [cantor_denote_nadd_eq] above needs excluded middle only to compare
+  adjacent exponents.  When each exponent is known to be either below or
+  equal to its predecessor, closure under natural sum ([nadd_closed_con])
+  suffices: group the leading run of equal exponents as [ω^y · k], bound
+  the rest below [ω^y], and apply [same_powers_le].  Without such
+  decisions the identity is not constructive, even for complete
+  exponents ([cantor_denote_nadd_eq_WEM] below). *)
+
+Fixpoint cantor_sequence_dec (x:Ord) (ls:list Ord) : Prop :=
+  match ls with
+  | nil => True
+  | y::ys => (y < x \/ y ≈ x) /\ cantor_sequence_dec y ys
+  end.
+
+Lemma cantor_sequence_dec_weaken : forall ls x,
+  cantor_sequence_dec x ls -> cantor_sequence x ls.
+Proof.
+  induction ls as [|y ys IH]; simpl; intuition auto with ord.
+  apply H.
+Qed.
+
+Lemma cantor_sequence_dec_EM (EM:excluded_middle) : forall ls x,
+  cantor_sequence x ls -> cantor_sequence_dec x ls.
+Proof.
+  induction ls as [|y ys IH]; simpl; intuition.
+  destruct (classical.order_trichotomy EM y x) as [H|[H|H]]; auto.
+  elim (ord_lt_irreflexive x). apply ord_lt_le_trans with y; auto.
+Qed.
+
+Lemma mul_nat_below_power c z k :
+  complete c -> z < c -> expOrd ω z * natOrdSize k < expOrd ω c.
+Proof.
+  intros Hc Hz. induction k; simpl.
+  - rewrite mulOrd_zero_r. apply expOrd_nonzero.
+  - rewrite mulOrd_succ. rewrite add_nadd_le.
+    apply nadd_closed_con; auto.
+    apply expOrd_increasing; auto with ord.
+Qed.
+
+(** A Cantor sequence below [y] splits as [ω^y · k + r] with [r < ω^y]. *)
+Lemma cantor_dec_split : forall xs y,
+  complete y -> each complete xs -> cantor_sequence_dec y xs ->
+  exists k r, r < expOrd ω y /\ cantor_denote xs ≈ expOrd ω y * natOrdSize k + r.
+Proof.
+  induction xs as [|z zs IH]; intros y Hy Hxs Hd.
+  - exists 0%nat, 0. split; [apply expOrd_nonzero|].
+    simpl. rewrite mulOrd_zero_r, addOrd_zero_r. reflexivity.
+  - simpl in Hxs, Hd. destruct Hxs as [Hz Hzs]. destruct Hd as [Hzy Hd].
+    destruct (IH z Hz Hzs Hd) as [k [r [Hr Heq]]].
+    destruct Hzy as [Hlt|Heqz].
+    + exists 0%nat, (cantor_denote (z::zs)). split.
+      * assert (Hzy : expOrd ω z < expOrd ω y) by (apply expOrd_increasing; auto with ord).
+        simpl. rewrite Heq.
+        rewrite add_nadd_le, add_nadd_le.
+        apply nadd_closed_con; auto.
+        apply nadd_closed_con; auto.
+        -- apply mul_nat_below_power; auto.
+        -- apply ord_lt_trans with (expOrd ω z); auto.
+      * rewrite mulOrd_zero_r, addOrd_zero_l. reflexivity.
+    + exists (S k), r. split.
+      * rewrite <- Heqz. auto.
+      * simpl cantor_denote. rewrite Heq. rewrite Heqz.
+        replace (S k) with (k+1)%nat by lia.
+        rewrite natOrdSize_add, ordDistrib_left, mulOrd_one_r.
+        apply addOrd_assoc.
+Qed.
+
+Lemma nadd_power_cantor y xs :
+  complete y -> each complete xs -> cantor_sequence_dec y xs ->
+  expOrd ω y ⊕ cantor_denote xs ≤ expOrd ω y + cantor_denote xs.
+Proof.
+  intros Hy Hxs Hd.
+  destruct (cantor_dec_split xs y Hy Hxs Hd) as [k [r [Hr Heq]]].
+  rewrite Heq.
+  apply ord_le_trans with
+      ((expOrd ω y * natOrdSize 1 + 0) ⊕ (expOrd ω y * natOrdSize k + r)).
+  { apply naddOrd_monotone; [|reflexivity].
+    rewrite addOrd_zero_r, mulOrd_one_r. reflexivity. }
+  rewrite (same_powers_le y (fun a b => nadd_closed_con y a b Hy) _ 1 0 k r (ord_le_refl _));
+    auto; [|apply expOrd_nonzero].
+  rewrite naddOrd_zero_l.
+  replace (1+k)%nat with (k+1)%nat by lia.
+  rewrite natOrdSize_add, ordDistrib_left, mulOrd_one_r.
+  rewrite addOrd_assoc. reflexivity.
+Qed.
+
+Theorem cantor_denote_nadd_eq_dec : forall xs x,
+  each complete xs ->
+  cantor_sequence_dec x xs ->
+  cantor_denote xs ≈ cantor_denote_nadd xs.
+Proof.
+  induction xs as [|y ys IH]; intros x Hxs Hd; simpl; [reflexivity|].
+  simpl in Hxs, Hd. destruct Hxs as [Hy Hys]. destruct Hd as [_ Hd].
+  rewrite <- (IH y); auto.
+  split; [apply add_nadd_le | apply nadd_power_cantor; auto].
+Qed.
+
 Theorem cantor_denote_nadd_eq (EM:excluded_middle) :
   forall xs x,
     each complete xs ->
     cantor_sequence x xs ->
     cantor_denote xs ≈ cantor_denote_nadd xs.
 Proof.
-  induction xs as [|x xs IHxs] using List.rev_ind; simpl; auto with ord.
-  intros b Hxs Hb.
-  apply each_app in Hxs.
-  rewrite cantor_denote_app.
-  rewrite cantor_denote_nadd_app.
-  simpl.
-  rewrite addOrd_zero_r.
-  rewrite naddOrd_zero_r.
-  rewrite <- IHxs with b.
-  split.
-  apply add_nadd_le.
-  apply cantor_denote_nadd_add with x; intuition auto with ord.
-  eapply cantor_sequence_le; eauto.
-  simpl; auto.
-  intuition.
-  apply cantor_sequence_app1 in Hb. auto.
+  intros xs x Hxs Hx.
+  apply cantor_denote_nadd_eq_dec with x; auto.
+  apply cantor_sequence_dec_EM; auto.
+Qed.
+
+(** The decisions cannot be dropped.  Let [x] have the children [0] and,
+    if [P], [1]; it is complete, and [x] is [1], or [2] if [P].  In
+    [ω^2 ⊕ ω^x ≤ ω^2 + ω^x], the child [ω ⊕ ω^x] of the left side must lie
+    below [ω^2], which refutes [P], or below [ω^2 + j] for some [j < ω^x].
+    Such a [j] lies below [ω^(x i) · ω] for a child [i] of [x]: the child
+    [1] proves [P]; the child [0] makes [j] finite, which refutes [P]. *)
+Theorem cantor_denote_nadd_eq_WEM :
+  (forall xs x, each complete xs -> cantor_sequence x xs ->
+     cantor_denote xs ≈ cantor_denote_nadd xs) ->
+  weak_excluded_middle.
+Proof.
+  intros H P.
+  pose (x := ord (option P) (fun o => match o with None => 0 | Some _ => 1 end)).
+  set (two := succOrd 1).
+  assert (Hx2 : x ≤ two).
+  { unfold x, two. rewrite ord_le_unfold. intros [p|]; simpl.
+    - apply succ_lt.
+    - apply succ_trans. apply zero_least. }
+  assert (Hxc : complete x).
+  { unfold x. simpl. split; [|split].
+    - intros [p|] [q|].
+      + exists (Some p). split; reflexivity.
+      + exists (Some p). simpl. split; [reflexivity | apply zero_least].
+      + exists (Some q). simpl. split; [apply zero_least | reflexivity].
+      + exists None. split; reflexivity.
+    - left. exact (inhabits None).
+    - intros [p|]; auto with ord. }
+  assert (HA : expOrd ω two ⊕ expOrd ω x ≤ expOrd ω two + expOrd ω x).
+  { destruct (H (two :: x :: nil) two) as [_ H2].
+    - cbn [each]. split; [unfold two; auto with ord | split; [exact Hxc | exact I]].
+    - cbn [cantor_sequence]. split; [reflexivity | split; [exact Hx2 | exact I]].
+    - simpl in H2. rewrite naddOrd_zero_r, addOrd_zero_r in H2. exact H2. }
+  assert (HP2 : P -> expOrd ω two ≤ expOrd ω x).
+  { intro p. apply expOrd_monotone. unfold two. apply succ_least.
+    apply (index_lt x (Some p)). }
+  assert (Hw2 : ω < expOrd ω two).
+  { apply ord_le_lt_trans with (expOrd ω 1).
+    - rewrite expOrd_one'; auto with ord.
+    - apply expOrd_increasing; auto with ord. }
+  (* under P, a finite j cannot pad ω^2 up to ω ⊕ ω^x *)
+  assert (Hfin : forall j, j < ω -> ω ⊕ expOrd ω x ≤ expOrd ω two + j -> ~P).
+  { intros j Hj Hle p. apply (ord_lt_irreflexive ω).
+    apply ord_le_lt_trans with j; auto.
+    apply addOrd_cancel_le with (expOrd ω two) (expOrd ω two); [|reflexivity].
+    rewrite <- Hle. rewrite add_nadd_le. rewrite naddOrd_comm.
+    apply naddOrd_monotone; auto with ord. }
+  assert (Hlt : ω ⊕ expOrd ω x < expOrd ω two + expOrd ω x).
+  { eapply ord_lt_le_trans; [|exact HA]. apply naddOrd_increasing1; auto. }
+  destruct (add_lt _ _ _ Hlt) as [H1|[r Hr]].
+  - right. intro p. apply (ord_lt_irreflexive (expOrd ω two)).
+    eapply ord_le_lt_trans; [|exact H1].
+    rewrite (HP2 p). apply naddOrd_le2.
+  - set (j := ordSize (expOrd ω x) r) in Hr.
+    assert (Hj : j < expOrd ω x) by apply index_lt.
+    rewrite (expOrd_unfold ω x) in Hj. apply lub_lt in Hj.
+    destruct Hj as [Hj|Hj].
+    + right. apply (Hfin j); auto.
+      apply ord_lt_trans with 1; auto with ord.
+    + apply sup_lt in Hj. destruct Hj as [[p|] Hj].
+      * left. intro np. exact (np p).
+      * right. apply (Hfin j); auto.
+        eapply ord_lt_le_trans; [exact Hj|]. simpl.
+        rewrite expOrd_zero, mulOrd_one_l. reflexivity.
 Qed.
 
 Inductive merge_lists {A:Type} : list A -> list A -> list A -> Prop :=
@@ -1273,6 +1424,100 @@ Proof.
   clear -EM. induction zs; simpl; intuition. apply classical.ord_complete; auto.
   clear -EM. induction ys; simpl; intuition. apply classical.ord_complete; auto.
   clear -EM. induction xs; simpl; intuition. apply classical.ord_complete; auto.
+Qed.
+
+(** ** The natural sum does not preserve completeness
+
+  The children of [u ⊕ v] are [u i ⊕ v] and [u ⊕ v j].  A directed upper
+  bound for one of each kind must be of one of these two kinds, which
+  compares the gap below [u] with the gap below [v].  Let [u] have the
+  children [0] and, if [P], [1] (so [u] is [1], or [2] if [P]), and let [v]
+  have the children [1] and, if [P], [ω] (so [v] is [2], or [ω+1] if [P]).
+  Both are complete.  An upper bound for [0 ⊕ v] and [u ⊕ 1] is a child
+  indexed by a proof of [P], or [0 ⊕ v] (which needs a child of [v] above
+  [u]: [1] refutes [P], [ω] needs [P]), or [u ⊕ 1] (which refutes [P]). *)
+
+Lemma nadd_complete_directed u v :
+  complete (u ⊕ v) ->
+  forall i j,
+    (exists i', u i ⊕ v ≤ u i' ⊕ v /\ u ⊕ v j ≤ u i' ⊕ v) \/
+    (exists j', u i ⊕ v ≤ u ⊕ v j' /\ u ⊕ v j ≤ u ⊕ v j').
+Proof.
+  destruct u as [A f], v as [B g]. intros H i j.
+  destruct (complete_directed _ H (inl i) (inr j)) as [[i'|j'] [H1 H2]].
+  - left. exists i'. split; auto.
+  - right. exists j'. split; auto.
+Qed.
+
+Theorem nadd_complete_WEM :
+  (forall u v, complete u -> complete v -> complete (u ⊕ v)) ->
+  weak_excluded_middle.
+Proof.
+  intros H P.
+  pose (u := ord (option P) (fun o => match o with None => 0 | Some _ => 1 end)).
+  pose (v := ord (option P) (fun o => match o with None => 1 | Some _ => ω end)).
+  assert (Hu : complete u).
+  { unfold u. simpl. split; [|split].
+    - intros [p|] [q|].
+      + exists (Some p). split; reflexivity.
+      + exists (Some p). simpl. split; [reflexivity | apply zero_least].
+      + exists (Some q). simpl. split; [apply zero_least | reflexivity].
+      + exists None. split; reflexivity.
+    - left. exact (inhabits None).
+    - intros [p|]; auto with ord. }
+  assert (Hv : complete v).
+  { unfold v. simpl. split; [|split].
+    - intros [p|] [q|].
+      + exists (Some p). split; reflexivity.
+      + exists (Some p). simpl. split; [reflexivity | apply ord_lt_le, omega_gt1].
+      + exists (Some q). simpl. split; [apply ord_lt_le, omega_gt1 | reflexivity].
+      + exists None. split; reflexivity.
+    - left. exact (inhabits None).
+    - intros [p|]; auto with ord. }
+  assert (Hu3 : u < ω).
+  { apply ord_le_lt_trans with (natOrdSize 2); [|apply (index_lt ω 2%nat)].
+    unfold u. rewrite ord_le_unfold. intros [p|]; simpl.
+    - apply succ_lt.
+    - apply succ_trans. apply zero_least. }
+  destruct (nadd_complete_directed u v (H u v Hu Hv) None None)
+    as [[[p|] [_ H2]]|[[p|] [H1 _]]].
+  - left. intro np. exact (np p).
+  - (* u ⊕ 1 ≤ 0 ⊕ v, so u < v *)
+    change (u ⊕ 1 ≤ 0 ⊕ v) in H2.
+    rewrite naddOrd_zero_l in H2.
+    assert (Huv : u < v).
+    { eapply ord_lt_le_trans; [|exact H2].
+      apply ord_le_lt_trans with (u ⊕ 0); [rewrite naddOrd_zero_r; reflexivity|].
+      apply naddOrd_increasing2. apply succ_lt. }
+    rewrite ord_lt_unfold in Huv. destruct Huv as [[p|] Hp].
+    + left. intro np. exact (np p).
+    + right. intro p. apply (ord_lt_irreflexive 1).
+      apply ord_lt_le_trans with u; [apply (index_lt u (Some p)) | exact Hp].
+  - left. intro np. exact (np p).
+  - (* 0 ⊕ v ≤ u ⊕ 1, finite: refutes P *)
+    change (0 ⊕ v ≤ u ⊕ 1) in H1.
+    right. intro p. apply (ord_lt_irreflexive ω).
+    apply ord_lt_le_trans with v; [apply (index_lt v (Some p))|].
+    rewrite <- naddOrd_zero_l. rewrite H1.
+    apply ord_lt_le.
+    apply ord_lt_le_trans with (expOrd ω 1); [|rewrite expOrd_one'; auto with ord].
+    apply nadd_closed_con; auto with ord; rewrite expOrd_one'; auto with ord.
+Qed.
+
+Theorem nadd_cantor_sequences_dec:
+  forall xs ys zs,
+    merge_lists xs ys zs ->
+    forall a b c,
+      each complete xs -> each complete ys -> each complete zs ->
+      cantor_sequence_dec a xs ->
+      cantor_sequence_dec b ys ->
+      cantor_sequence_dec c zs ->
+      cantor_denote xs ⊕ cantor_denote ys ≈ cantor_denote zs.
+Proof.
+  intros xs ys zs Hmerge a b c Hxs Hys Hzs Ha Hb Hc.
+  rewrite (cantor_denote_nadd_eq_dec xs a), (cantor_denote_nadd_eq_dec ys b),
+    (cantor_denote_nadd_eq_dec zs c); auto.
+  apply cantor_denote_nadd_merge; auto.
 Qed.
 
 
