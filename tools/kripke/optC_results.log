@@ -1,0 +1,31 @@
+== run started Thu Nov  5 20:06:58 PST 2026 (exact comparison rules; KRIPKE_OPP=left, 10 min cap)
+  [sens 4] exit 124 (timeout or error) Thu Nov  5 20:16:58 PST 2026
+  [sens 5] exit 124 (timeout or error) Thu Nov  5 20:26:58 PST 2026
+  [sens 6] exit 124 (timeout or error) Thu Nov  5 20:36:59 PST 2026
+  [sens 7] exit 124 (timeout or error) Thu Nov  5 20:47:00 PST 2026
+  [sens 9] exit 124 (timeout or error) Thu Nov  5 20:57:00 PST 2026
+== default opponent
+  [sens 3] exit 124 (timeout or error) Thu Nov  5 21:07:00 PST 2026
+  [sens 4] exit 138 (timeout or error) Thu Nov  5 21:07:06 PST 2026
+  [sens 5] exit 138 (timeout or error) Thu Nov  5 21:07:18 PST 2026
+  [sens 6] exit 124 (timeout or error) Thu Nov  5 21:17:19 PST 2026
+  [sens 7] exit 124 (timeout or error) Thu Nov  5 21:27:19 PST 2026
+  [sens 8] exit 124 (timeout or error) Thu Nov  5 21:37:19 PST 2026
+  [sens 9] exit 124 (timeout or error) Thu Nov  5 21:47:19 PST 2026
+== run finished Thu Nov  5 21:47:19 PST 2026
+== run started Thu Nov  5 21:59:14 PST 2026 (lazy trees, run-length sums; KRIPKE_OPP=left KRIPKE_RESP=small, 5 min cap)
+  [sens 4] exit 124 (timeout or error) Thu Nov  5 22:04:14 PST 2026
+  [sens 5] exit 124 (timeout or error) Thu Nov  5 22:09:14 PST 2026
+  [sens 6] exit 124 (timeout or error) Thu Nov  5 22:14:14 PST 2026
+  [sens 7] exit 124 (timeout or error) Thu Nov  5 22:19:14 PST 2026
+  [sens 8] exit 138 (timeout or error) Thu Nov  5 22:19:23 PST 2026
+  [sens 9] exit 138 (timeout or error) Thu Nov  5 22:19:31 PST 2026
+  [2] ω^γ ⊕ ω^γ ≤ ω^γ·2: NOT forced  (83.6s)
+== run finished Thu Nov  5 22:20:57 PST 2026
+== run started Thu Nov  5 22:23:53 PST 2026 (zero-summand fix; KRIPKE_OPP=left, default responder, 5 min cap)
+  [sens 4] exit 124 (timeout or error) Thu Nov  5 22:28:53 PST 2026
+  [sens 5] exit 124 (timeout or error) Thu Nov  5 22:33:53 PST 2026
+  [sens 6] exit 124 (timeout or error) Thu Nov  5 22:38:53 PST 2026
+  [sens 7] exit 124 (timeout or error) Thu Nov  5 22:43:53 PST 2026
+  [sens 9] exit 124 (timeout or error) Thu Nov  5 22:48:53 PST 2026
+== run finished Thu Nov  5 22:48:53 PST 2026

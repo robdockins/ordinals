@@ -30,14 +30,15 @@ NCHECK = 5
 
 class Seq:
     """an increasing sequence of Kripke ordinals, identified by a key"""
-    __slots__ = ("key", "fn", "_cache")
+    __slots__ = ("key", "fn", "_cache", "_h", "id")
     registry = {}
 
     def __new__(cls, key, fn):
         if key in Seq.registry:
             return Seq.registry[key]
         s = object.__new__(cls)
-        s.key, s.fn, s._cache = key, fn, {}
+        s.key, s.fn, s._cache, s._h = key, fn, {}, hash(key)
+        s.id = len(Seq.registry)
         Seq.registry[key] = s
         return s
 
@@ -47,7 +48,7 @@ class Seq:
         return self._cache[n]
 
     def __hash__(self):
-        return hash(self.key)
+        return self._h
 
     def __eq__(self, o):
         return self is o
@@ -57,15 +58,23 @@ class Seq:
 
 
 class K:
-    __slots__ = ("fams", "T", "_h")
+    """Hash-consed: equal trees are the same object, and the serial id
+    gives a cheap canonical order (printing trees to sort them is
+    exponential in their depth)."""
+    __slots__ = ("fams", "T", "_h", "id")
+    registry = {}
 
-    def __init__(self, fams, T):
-        self.fams = fams      # tuple of ("one", K) or ("seq", Seq)
-        self.T = T
-        self._h = hash((fams, T))
+    def __new__(cls, fams, T):
+        key = (fams, T)   # fams: tuple of ("one", K) or ("seq", Seq)
+        k = K.registry.get(key)
+        if k is None:
+            k = object.__new__(cls)
+            k.fams, k.T, k._h, k.id = fams, T, hash(key), len(K.registry)
+            K.registry[key] = k
+        return k
 
     def __eq__(self, o):
-        return isinstance(o, K) and self.T == o.T and self.fams == o.fams
+        return self is o
 
     def __hash__(self):
         return self._h
@@ -74,8 +83,20 @@ class K:
         return fmt(self)
 
 
+def fam_key(f):
+    return (0 if f[0] == "one" else 1, f[1].id)
+
+
+def rect_key(r):
+    return (r[0].id, r[1].id)
+
+
+def region_key(region):
+    return tuple(rect_key(r) for r in region)
+
+
 def mk(fams, T):
-    return K(tuple(sorted(set(fams), key=repr)), T)
+    return K(tuple(sorted(set(fams), key=fam_key)), T)
 
 
 @lru_cache(maxsize=None)
@@ -84,7 +105,9 @@ def std(a):
     if not a:
         return K((), ZERO)
     if is_succ(a):
-        return K((("one", std(pred(a))),), a)
+        # the predecessor as a constant family, built lazily: an eager
+        # child would build the whole chain below a large finite part
+        return K((("seq", Seq(("succ", a), lambda n, a=a: std(pred(a)))),), a)
     return K((("seq", Seq(("std", a), lambda n, a=a: std(fund(a, n)))),), a)
 
 
@@ -135,23 +158,21 @@ def size_of(regions):
 
 @lru_cache(maxsize=None)
 def kle(x, y):
-    """x ≤ y forced at w0 (approximate on sequences)"""
+    """x ≤ y forced at w0 (approximate on sequences).
+
+    Sequences are increasing, so "for all n < NCHECK" on the left only
+    needs the last index, and "some m < reach" on the right only needs
+    the last one: c ≤ g(m) gives c ≤ g(reach - 1).  Checking every index
+    multiplies the cost at each level of nesting."""
     if not le(x.T, y.T):
         return False
     for f in x.fams:
-        idxs = [None] if f[0] == "one" else range(NCHECK)
-        for n in idxs:
-            c = f[1] if f[0] == "one" else f[1].at(n)
-            ok = False
-            for g in y.fams:
-                # a sequence index needed to dominate c grows with c's coefficients
-                reach = max(n or 0, coef(c)) + KR + 1
-                cands = [g[1]] if g[0] == "one" else [g[1].at(m) for m in range(0, reach)]
-                if any(kle(c, d) for d in cands):
-                    ok = True
-                    break
-            if not ok:
-                return False
+        n = None if f[0] == "one" else NCHECK - 1
+        c = f[1] if f[0] == "one" else f[1].at(n)
+        # a sequence index needed to dominate c grows with c's coefficients
+        reach = max(n or 0, coef(c)) + KR + 1
+        if not any(kle(c, g[1] if g[0] == "one" else g[1].at(reach - 1)) for g in y.fams):
+            return False
     return True
 
 
@@ -200,9 +221,9 @@ def normalize(rects):
     rs = list(set(r for r in rects if r[0].T and r[1].T))
     out = [r for r in rs
            if not any(s != r and kle(r[0], s[0]) and kle(r[1], s[1])
-                      and not (kle(s[0], r[0]) and kle(s[1], r[1]) and repr(s) > repr(r))
+                      and not (kle(s[0], r[0]) and kle(s[1], r[1]) and rect_key(s) > rect_key(r))
                       for s in rs)]
-    return tuple(sorted(out, key=repr))
+    return tuple(sorted(out, key=rect_key))
 
 
 def rect(x, y):
@@ -242,7 +263,7 @@ def moves(region, role, S):
 
 
 def canon(regions):
-    return tuple(sorted((r for r in regions if r), key=repr))
+    return tuple(sorted((r for r in regions if r), key=region_key))
 
 
 def rank1_sum(regions):
