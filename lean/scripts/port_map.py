@@ -41,6 +41,7 @@ MODULES = {
     "Fixpoints": "Fixpoints.lean",
     "Cantor": "Cantor.lean",
     "NaturalArith": "NaturalArith.lean",
+    "NaturalProduct": "NaturalProduct.lean",
     "Classical": "Classical.lean",
     "Reflection": "Reflection.lean",
     "WellFounded": "WellFounded.lean",
