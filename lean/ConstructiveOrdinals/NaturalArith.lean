@@ -1,4 +1,5 @@
 import ConstructiveOrdinals.Cantor
+import ConstructiveOrdinals.Veblen.Constructive
 import ConstructiveOrdinals.Prelude.List
 
 /-!
@@ -482,6 +483,198 @@ theorem nadd_add_same_powers (em : ExcludedMiddle) (a : Ordinal.{u}) (m n : (ω 
     rw [hnat]
     exact nadd_add_same_powers_step em a ha (fun a' _ x y hc => nadd_closed em a' x y hc) m n
 
+/-! ## Constructive closure of ω-powers under natural sum
+
+`nadd_closed` and `nadd_add_same_powers` above assume the excluded middle,
+which enters only through `nadd_closed_technical1`: it compares `ω ^ a` with
+an arbitrary `q` and splits off a leading Cantor term. Keeping every quantity
+in the explicit form `ω ^ c * m + u` with `u < ω ^ c` avoids the comparison:
+a child of `ω ^ c * m + u` is either `ω ^ c * m + u'` for a child `u'` of `u`,
+or lies below `ω ^ c * (m - 1) + w` for some `w < ω ^ c`. The completeness
+hypothesis on the exponent is still needed (it is what makes the children of
+`ω ^ a` directed); without it, closure fails constructively.
+
+In Rocq these results live in a section with `Let E := expOrd ω c`; here
+`E` is written out as `ω ^ c`.
+-/
+
+section same_powers
+
+variable (c : Ordinal.{u}) (hc : ∀ x y, x < ω ^ c → y < ω ^ c → x ♯ y < ω ^ c)
+
+/-- `ω ^ c * (k + 1)` as `ω ^ c * k + ω ^ c`, with the successor on the right.
+Rocq: `NaturalArith.mul_succ_strict`; Rocq's `NaturalArith.E` is `ω ^ c`. -/
+theorem mul_succ_strict (k : Nat) {w : Ordinal.{u}} (hw : w < ω ^ c) :
+    ω ^ c * ofNat k + w < ω ^ c * ofNat (k + 1) :=
+  lt_of_lt_of_le (add_lt_add_left _ hw) (mul_succ _ _).ge
+
+/-- A child of `ω ^ c * (m + 1)` lies below `ω ^ c * m + w` for some `w < ω ^ c`. -/
+private theorem below_mul_succ {i : Ordinal.{u}} (m : Nat) (h : i < ω ^ c * ofNat (m + 1)) :
+    ∃ w, w < ω ^ c ∧ i ≤ ω ^ c * ofNat m + w :=
+  match add_lt (lt_of_lt_of_le h (mul_succ _ _).le) with
+  | .inl h₁ => ⟨0, pow_pos ω c, le_trans (le_of_lt h₁) (add_zero _).ge⟩
+  | .inr ⟨w, hw⟩ => ⟨(ω ^ c) w, index_lt _ w, hw⟩
+
+include hc in
+/-- Rocq: `NaturalArith.same_powers_le`. -/
+theorem same_powers_le (o : Ordinal.{u}) : ∀ (m : Nat) (u : Ordinal.{u}) (n : Nat) (v : Ordinal.{u}),
+    (ω ^ c * ofNat m + u) ♯ (ω ^ c * ofNat n + v) ≤ o → u < ω ^ c → v < ω ^ c →
+    (ω ^ c * ofNat m + u) ♯ (ω ^ c * ofNat n + v) ≤ ω ^ c * ofNat (m + n) + (u ♯ v) := by
+  induction o using ltRec with
+  | ind o ih =>
+    intro m u n v ho hu hv
+    refine nadd_least3 (fun i hi => ?_) (fun j hj => ?_)
+    · match add_lt hi with
+      | .inl hi' =>
+        match m, hi', hu, ho with
+        | 0, hi', _, _ => exact (zero_lt i (lt_of_lt_of_le hi' (mul_zero _).le)).elim
+        | m' + 1, hi', hu, ho =>
+          obtain ⟨w, hw, hiw⟩ := below_mul_succ c m' hi'
+          have hlt : (ω ^ c * ofNat m' + w) ♯ (ω ^ c * ofNat n + v) <
+              (ω ^ c * ofNat (m' + 1) + u) ♯ (ω ^ c * ofNat n + v) :=
+            nadd_increasing1 _ (lt_of_lt_of_le (mul_succ_strict c m' hw) (le_add_right _ _))
+          refine lt_of_le_of_lt (nadd_le_nadd hiw (le_refl _))
+            (lt_of_le_of_lt (ih _ (lt_of_lt_of_le hlt ho) m' w n v (le_refl _) hw hv) ?_)
+          rw [Nat.add_right_comm m' 1 n]
+          exact lt_of_lt_of_le (mul_succ_strict c (m' + n) (hc w v hw hv)) (le_add_right _ _)
+      | .inr ⟨k, hk⟩ =>
+        have hlt : (ω ^ c * ofNat m + u k) ♯ (ω ^ c * ofNat n + v) <
+            (ω ^ c * ofNat m + u) ♯ (ω ^ c * ofNat n + v) :=
+          nadd_increasing1 _ (add_lt_add_left _ (index_lt u k))
+        exact lt_of_le_of_lt (nadd_le_nadd hk (le_refl _))
+          (lt_of_le_of_lt (ih _ (lt_of_lt_of_le hlt ho) m (u k) n v (le_refl _)
+            (lt_trans (index_lt u k) hu) hv)
+            (add_lt_add_left _ (nadd_increasing1 v (index_lt u k))))
+    · match add_lt hj with
+      | .inl hj' =>
+        match n, hj', hv, ho with
+        | 0, hj', _, _ => exact (zero_lt j (lt_of_lt_of_le hj' (mul_zero _).le)).elim
+        | n' + 1, hj', hv, ho =>
+          obtain ⟨w, hw, hjw⟩ := below_mul_succ c n' hj'
+          have hlt : (ω ^ c * ofNat m + u) ♯ (ω ^ c * ofNat n' + w) <
+              (ω ^ c * ofNat m + u) ♯ (ω ^ c * ofNat (n' + 1) + v) :=
+            nadd_increasing2 _ (lt_of_lt_of_le (mul_succ_strict c n' hw) (le_add_right _ _))
+          exact lt_of_le_of_lt (nadd_le_nadd (le_refl _) hjw)
+            (lt_of_le_of_lt (ih _ (lt_of_lt_of_le hlt ho) m u n' w (le_refl _) hu hw)
+              (lt_of_lt_of_le (mul_succ_strict c (m + n') (hc u w hu hw)) (le_add_right _ _)))
+      | .inr ⟨k, hk⟩ =>
+        have hlt : (ω ^ c * ofNat m + u) ♯ (ω ^ c * ofNat n + v k) <
+            (ω ^ c * ofNat m + u) ♯ (ω ^ c * ofNat n + v) :=
+          nadd_increasing2 _ (add_lt_add_left _ (index_lt v k))
+        exact lt_of_le_of_lt (nadd_le_nadd (le_refl _) hk)
+          (lt_of_le_of_lt (ih _ (lt_of_lt_of_le hlt ho) m u n (v k) (le_refl _) hu
+            (lt_trans (index_lt v k) hv))
+            (add_lt_add_left _ (nadd_increasing2 u (index_lt v k))))
+
+include hc in
+/-- Rocq: `NaturalArith.same_powers_lt`. -/
+theorem same_powers_lt (m n : Nat) :
+    ω ^ c * ofNat m ♯ ω ^ c * ofNat n < ω ^ c * ofNat (m + n + 1) :=
+  lt_of_le_of_lt (nadd_le_nadd (add_zero _).ge (add_zero _).ge)
+    (lt_of_le_of_lt (same_powers_le c hc _ m 0 n 0 (le_refl _) (pow_pos ω c) (pow_pos ω c))
+      (mul_succ_strict c (m + n) (hc 0 0 (pow_pos ω c) (pow_pos ω c))))
+
+end same_powers
+
+/-- Powers of ω with complete exponents are closed under natural sums,
+constructively. Rocq: `NaturalArith.nadd_closed_con`. -/
+theorem nadd_closed_con (a : Ordinal.{u}) :
+    ∀ x y : Ordinal.{u}, Complete a → x < ω ^ a → y < ω ^ a → x ♯ y < ω ^ a := by
+  induction a using ltRec with
+  | ind a ih =>
+    intro x y ha hx hy
+    have hx' := hx
+    have hy' := hy
+    rw [pow_unfold] at hx' hy'
+    match lub_lt hx' with
+    | .inl hx₁ =>
+      obtain ⟨_, hx₀⟩ := lt_elim hx₁
+      exact lt_of_le_of_lt (le_trans (nadd_le_nadd hx₀ (le_refl y)) (nadd_zero_l y).le) hy
+    | .inr hxs =>
+      match lub_lt hy' with
+      | .inl hy₁ =>
+        obtain ⟨_, hy₀⟩ := lt_elim hy₁
+        exact lt_of_le_of_lt (le_trans (nadd_le_nadd (le_refl x) hy₀) (nadd_zero_r x).le) hx
+      | .inr hys =>
+        obtain ⟨i, hxi⟩ := sup_lt hxs
+        obtain ⟨j, hyj⟩ := sup_lt hys
+        obtain ⟨k, hk₁, hk₂⟩ := complete_directed ha i j
+        rw [mul_unfold] at hxi hyj
+        obtain ⟨⟨m⟩, hxm⟩ := sup_lt hxi
+        obtain ⟨⟨n⟩, hyn⟩ := sup_lt hyj
+        have hbound : ∀ (c : a.Carrier) (z : Ordinal.{u}) (p : Nat), a c ≤ a k →
+            z < ω ^ a c * ofNat p + ω ^ a c → z ≤ ω ^ a k * ofNat (p + 1) :=
+          fun c z p hc hz => le_trans (le_of_lt hz) (le_trans (mul_succ _ _).ge
+            (mul_le_mul_right _ (pow_le_pow_right ω hc)))
+        calc x ♯ y ≤ ω ^ a k * ofNat (m + 1) ♯ ω ^ a k * ofNat (n + 1) :=
+              nadd_le_nadd (hbound i x m hk₁ hxm) (hbound j y n hk₂ hyn)
+          _ < ω ^ a k * ofNat (m + 1 + (n + 1) + 1) :=
+              same_powers_lt (a k) (fun x y => ih (a k) (index_lt a k) x y (complete_subord ha k))
+                (m + 1) (n + 1)
+          _ < ω ^ a k * ω := mul_lt_mul_left (pow_pos ω _) (index_lt ω ⟨m + 1 + (n + 1) + 1⟩)
+          _ ≤ ω ^ a := pow_index_mul_omega_le a k
+
+/-- Rocq: `NaturalArith.nadd_add_same_powers_con`. -/
+theorem nadd_add_same_powers_con (a : Ordinal.{u}) (m n : Nat) (ha : Complete a) :
+    ω ^ a * ofNat m ♯ ω ^ a * ofNat n ≤ ω ^ a * ofNat (m + n) :=
+  le_trans (nadd_le_nadd (add_zero _).ge (add_zero _).ge)
+    (le_trans (same_powers_le a (fun x y => nadd_closed_con a x y ha) _ m 0 n 0 (le_refl _)
+      (pow_pos ω a) (pow_pos ω a))
+      (le_trans (add_le_add (le_refl _) (nadd_zero_r 0).le) (add_zero _).le))
+
+/-- The completeness hypothesis cannot be dropped: closure of every `ω ^ a`
+under natural sum implies the weak excluded middle. Take `a` with exactly two
+children `c₁` (`0`, or `ω + 1` if `P`) and `c₂ = succ e` (`1`, or `2` if `P`).
+Then `ω ^ c₁ ♯ ω ^ c₂ < ω ^ a` must name a child of `ω ^ a`: below
+`ω ^ c₁ * (n + 1)`, refuted by `¬P` (it is then finite, while `ω ^ c₂ ≥ ω`), or
+below `ω ^ c₂ * (n + 1)`, refuted by `P` (it is then below `ω ^ 3 ≤ ω ^ c₁`).
+Rocq: `NaturalArith.nadd_closed_needs_complete`. -/
+theorem nadd_closed_needs_complete
+    (h : ∀ a x y : Ordinal.{u}, x < ω ^ a → y < ω ^ a → x ♯ y < ω ^ a) :
+    WeakExcludedMiddle := fun P => by
+  let c₁ : Ordinal.{u} := mk (ULift (PLift P)) fun _ => ω
+  let e : Ordinal.{u} := mk (ULift (PLift P)) fun _ => 0
+  let c₂ : Ordinal.{u} := succ e
+  let a : Ordinal.{u} := mk (ULift Bool) fun b => cond b.down c₁ c₂
+  have hx : ω ^ c₁ < ω ^ a := pow_lt_pow_right omega_gt1 (index_lt a ⟨true⟩)
+  have hy : ω ^ c₂ < ω ^ a := pow_lt_pow_right omega_gt1 (index_lt a ⟨false⟩)
+  have he1 : e ≤ 1 := le_intro fun _ => succ_lt 0
+  have hyω : ω ≤ ω ^ c₂ :=
+    le_trans (pow_one' omega_gt0).ge (pow_le_pow_right ω (succ_monotone (zero_least e)))
+  have hxy := h a _ _ hx hy
+  rw [pow_unfold ω a] at hxy
+  match lub_lt hxy with
+  | .inl h₁ =>
+    obtain ⟨_, h₁⟩ := lt_elim h₁
+    exact (lt_irrefl 0 (lt_of_lt_of_le (pow_pos ω c₂) (le_trans (nadd_le2 _ _) h₁))).elim
+  | .inr h₁ =>
+    obtain ⟨⟨i⟩, h₁⟩ := sup_lt h₁
+    rw [mul_unfold] at h₁
+    obtain ⟨⟨n⟩, h₁⟩ := sup_lt h₁
+    cases i
+    · -- the child `c₂`: refuted by `P`
+      refine .inr fun p => ?_
+      have hc₁ω : ω ≤ c₁ := le_of_lt (lt_intro (show c₁.Carrier from ⟨⟨p⟩⟩) (le_refl _))
+      have he : ω ^ c₂ ≤ ω ^ (2 : Ordinal.{u}) := pow_le_pow_right ω (succ_monotone he1)
+      refine lt_irrefl (ω ^ c₁) (lt_of_le_of_lt (nadd_le1 _ _) (lt_of_lt_of_le h₁ ?_))
+      calc ω ^ c₂ * ofNat n + ω ^ c₂ ≤ ω ^ (2 : Ordinal.{u}) * ofNat n + ω ^ (2 : Ordinal.{u}) :=
+            add_le_add (mul_le_mul_right _ he) he
+        _ ≤ ω ^ (2 : Ordinal.{u}) * ofNat (n + 1) := (mul_succ _ _).ge
+        _ ≤ ω ^ (2 : Ordinal.{u}) * ω :=
+            le_of_lt (mul_lt_mul_left (pow_pos ω _) (index_lt ω ⟨n + 1⟩))
+        _ ≤ ω ^ succ (2 : Ordinal.{u}) := (pow_succ 2 omega_gt0).ge
+        _ ≤ ω ^ c₁ := pow_le_pow_right ω (le_trans (le_of_lt (index_lt ω ⟨3⟩)) hc₁ω)
+    · -- the child `c₁`: refuted by `¬P`
+      refine .inl fun np => ?_
+      have hc₁z : c₁ ≤ 0 := le_intro fun ⟨⟨p⟩⟩ => (np p).elim
+      have he : ω ^ c₁ ≤ 1 := le_trans (pow_le_pow_right ω hc₁z) (pow_zero ω).le
+      have hfin : ω ^ c₁ * ofNat n + ω ^ c₁ < ω :=
+        lt_of_le_of_lt (le_trans (add_le_add (mul_le_mul_right _ he) he)
+          (le_trans (add_le_add (one_mul _).le (le_refl 1))
+            (le_trans (add_succ _ 0).le (succ_monotone (add_zero _).le))))
+          (index_lt ω ⟨n + 1⟩)
+      exact lt_irrefl ω (lt_of_le_of_lt (le_trans hyω (nadd_le2 _ _)) (lt_trans h₁ hfin))
+
 /-! ## Natural sums and Cantor normal forms -/
 
 /-- Rocq: `NaturalArith.cantor_denote_app`. -/
@@ -552,6 +745,99 @@ theorem cantor_sequence_app1 : ∀ (xs : List Ordinal.{u}) (x : Ordinal.{u}) (ys
   | [], _, _, _ => trivial
   | _ :: xs, _, ys, ⟨hy, h⟩ => ⟨hy, cantor_sequence_app1 xs _ ys h⟩
 
+/-! ### Natural sums of Cantor sequences, constructively
+
+`cantor_denote_nadd_eq` below needs the excluded middle only to compare
+adjacent exponents. When each exponent is known to be either below or equal to
+its predecessor, closure under natural sum (`nadd_closed_con`) suffices: group
+the leading run of equal exponents as `ω ^ y * k`, bound the rest below `ω ^ y`,
+and apply `same_powers_le`. Without such decisions the identity is not
+constructive, even for complete exponents (`cantor_denote_nadd_eq_WEM`). -/
+
+/-- A Cantor sequence whose exponents are each known to be below or equal to
+their predecessor. Rocq: `NaturalArith.cantor_sequence_dec`. -/
+def CantorSequenceDec (x : Ordinal.{u}) : List Ordinal.{u} → Prop
+  | [] => True
+  | y :: ys => (y < x ∨ y ≈ x) ∧ CantorSequenceDec y ys
+
+/-- Rocq: `NaturalArith.cantor_sequence_dec_weaken`. -/
+theorem cantor_sequence_dec_weaken : ∀ (ls : List Ordinal.{u}) (x : Ordinal.{u}),
+    CantorSequenceDec x ls → CantorSequence x ls
+  | [], _, _ => trivial
+  | _ :: ys, _, ⟨h, hd⟩ => ⟨h.elim le_of_lt Equiv.le, cantor_sequence_dec_weaken ys _ hd⟩
+
+/-- Rocq: `NaturalArith.cantor_sequence_dec_EM`. -/
+theorem cantor_sequence_dec_EM (em : ExcludedMiddle) : ∀ (ls : List Ordinal.{u}) (x : Ordinal.{u}),
+    CantorSequence x ls → CantorSequenceDec x ls
+  | [], _, _ => trivial
+  | y :: ys, x, ⟨h, hs⟩ =>
+    ⟨match order_trichotomy em y x with
+      | .inl hlt => .inl hlt
+      | .inr (.inl heq) => .inr heq
+      | .inr (.inr hgt) => (lt_irrefl x (lt_of_lt_of_le hgt h)).elim,
+     cantor_sequence_dec_EM em ys y hs⟩
+
+/-- Rocq: `NaturalArith.mul_nat_below_power`. -/
+theorem mul_nat_below_power {c z : Ordinal.{u}} (hc : Complete c) (hz : z < c) :
+    ∀ k : Nat, ω ^ z * ofNat k < ω ^ c
+  | 0 => lt_of_le_of_lt (mul_zero _).le (pow_pos ω c)
+  | k + 1 => lt_of_le_of_lt (mul_succ _ _).le (lt_of_le_of_lt (add_nadd_le _ _)
+      (nadd_closed_con c _ _ hc (mul_nat_below_power hc hz k) (pow_lt_pow_right omega_gt1 hz)))
+
+/-- A Cantor sequence below `y` splits as `ω ^ y * k + r` with `r < ω ^ y`.
+Rocq: `NaturalArith.cantor_dec_split`. -/
+theorem cantor_dec_split : ∀ (xs : List Ordinal.{u}) (y : Ordinal.{u}),
+    Complete y → Each Complete xs → CantorSequenceDec y xs →
+    ∃ (k : Nat) (r : Ordinal.{u}), r < ω ^ y ∧ cantorDenote xs ≈ ω ^ y * ofNat k + r
+  | [], y, _, _, _ =>
+    ⟨0, 0, pow_pos ω y, equiv_symm (equiv_trans (add_zero _) (mul_zero _))⟩
+  | z :: zs, y, hy, ⟨hz, hzs⟩, ⟨hzy, hd⟩ => by
+    obtain ⟨k, r, hr, heq⟩ := cantor_dec_split zs z hz hzs hd
+    match hzy with
+    | .inl hlt =>
+      have hzy' : ω ^ z < ω ^ y := pow_lt_pow_right omega_gt1 hlt
+      refine ⟨0, cantorDenote (z :: zs), ?_,
+        equiv_symm (equiv_trans (add_congr (mul_zero _) (equiv_refl _)) (zero_add _))⟩
+      calc ω ^ z + cantorDenote zs ≤ ω ^ z ♯ cantorDenote zs := add_nadd_le _ _
+        _ ≤ ω ^ z ♯ (ω ^ z * ofNat k ♯ r) :=
+            nadd_le_nadd (le_refl _) (le_trans heq.le (add_nadd_le _ _))
+        _ < ω ^ y := nadd_closed_con y _ _ hy hzy' (nadd_closed_con y _ _ hy
+            (mul_nat_below_power hy hlt k) (lt_trans hr hzy'))
+    | .inr heqz =>
+      refine ⟨k + 1, r, lt_of_lt_of_le hr (pow_le_pow_right ω heqz.le), ?_⟩
+      calc ω ^ z + cantorDenote zs ≈ ω ^ y + (ω ^ y * ofNat k + r) :=
+            add_congr (pow_congr (equiv_refl ω) heqz) (equiv_trans heq
+              (add_congr (mul_congr (pow_congr (equiv_refl ω) heqz) (equiv_refl _)) (equiv_refl r)))
+        _ ≈ ω ^ y + ω ^ y * ofNat k + r := add_assoc _ _ _
+        _ ≈ ω ^ y * ofNat (k + 1) + r := add_congr (equiv_symm (equiv_trans
+            (mul_congr (equiv_refl _) (ofNat_add k 1))
+            (equiv_trans (mul_add _ _ _) (add_congr (mul_one _) (equiv_refl _))))) (equiv_refl r)
+
+/-- Rocq: `NaturalArith.nadd_power_cantor`. -/
+theorem nadd_power_cantor {y : Ordinal.{u}} {xs : List Ordinal.{u}} (hy : Complete y)
+    (hxs : Each Complete xs) (hd : CantorSequenceDec y xs) :
+    ω ^ y ♯ cantorDenote xs ≤ ω ^ y + cantorDenote xs := by
+  obtain ⟨k, r, hr, heq⟩ := cantor_dec_split xs y hy hxs hd
+  refine le_trans (nadd_le_nadd (le_trans (mul_one _).ge (add_zero _).ge) heq.le)
+    (le_trans (same_powers_le y (fun a b => nadd_closed_con y a b hy) _ 1 0 k r (le_refl _)
+      (pow_pos ω y) hr) ?_)
+  rw [Nat.add_comm 1 k]
+  calc ω ^ y * ofNat (k + 1) + (0 ♯ r) ≤ ω ^ y * ofNat (k + 1) + r :=
+        add_le_add (le_refl _) (nadd_zero_l r).le
+    _ ≤ ω ^ y * 1 + ω ^ y * ofNat k + r :=
+        add_le_add (le_trans (mul_le_mul_left _ (ofNat_add k 1).le) (mul_add _ _ _).le) (le_refl r)
+    _ ≤ ω ^ y + ω ^ y * ofNat k + r := add_le_add (add_le_add (mul_one _).le (le_refl _)) (le_refl r)
+    _ ≤ ω ^ y + (ω ^ y * ofNat k + r) := (add_assoc _ _ _).ge
+    _ ≤ ω ^ y + cantorDenote xs := add_le_add (le_refl _) heq.ge
+
+/-- Rocq: `NaturalArith.cantor_denote_nadd_eq_dec`. -/
+theorem cantor_denote_nadd_eq_dec : ∀ (xs : List Ordinal.{u}) (x : Ordinal.{u}),
+    Each Complete xs → CantorSequenceDec x xs → cantorDenote xs ≈ cantorDenoteNadd xs
+  | [], _, _, _ => equiv_refl _
+  | y :: ys, _, ⟨hy, hys⟩, ⟨_, hd⟩ =>
+    equiv_trans (equiv_intro (add_nadd_le _ _) (nadd_power_cantor hy hys hd))
+      (nadd_congr (equiv_refl _) (cantor_denote_nadd_eq_dec ys y hys hd))
+
 /-- For Cantor normal forms, ordinary and natural sums agree.
 Rocq: `NaturalArith.cantor_denote_nadd_eq`. -/
 theorem cantor_denote_nadd_eq (em : ExcludedMiddle) (xs : List Ordinal.{u}) :
@@ -570,6 +856,78 @@ theorem cantor_denote_nadd_eq (em : ExcludedMiddle) (xs : List Ordinal.{u}) :
           nadd_congr (ih x hys (cantor_sequence_app1 ys x [z] hseq)) (equiv_refl _)
       _ ≈ cantorDenoteNadd ys ♯ (ω ^ z ♯ 0) := nadd_congr (equiv_refl _) (equiv_symm (nadd_zero_r _))
       _ ≈ cantorDenoteNadd (ys ++ [z]) := equiv_symm (cantor_denote_nadd_app ys [z])
+
+/-- The ordinal with a child `a` and, if `P`, a child `b`. -/
+private def optOrd (P : Prop) (a b : Ordinal.{u}) : Ordinal.{u} :=
+  mk (ULift.{u} (Option (PLift P))) fun o => match o.down with
+    | none => a
+    | some _ => b
+
+private theorem optOrd_complete {P : Prop} {a b : Ordinal.{u}} (hab : a ≤ b) (ha : Complete a)
+    (hb : Complete b) : Complete (optOrd P a b) := by
+  refine Complete.intro ?_ (.inl ⟨⟨none⟩⟩) ?_
+  · rintro ⟨o₁⟩ ⟨o₂⟩
+    cases o₁ with
+    | none =>
+      cases o₂ with
+      | none => exact ⟨⟨none⟩, le_refl _, le_refl _⟩
+      | some q => exact ⟨⟨some q⟩, hab, le_refl _⟩
+    | some p =>
+      cases o₂ with
+      | none => exact ⟨⟨some p⟩, le_refl _, hab⟩
+      | some _ => exact ⟨⟨some p⟩, le_refl _, le_refl _⟩
+  · rintro ⟨o⟩
+    cases o with
+    | none => exact ha
+    | some _ => exact hb
+
+/-- The decisions cannot be dropped. Let `x` have the children `0` and, if
+`P`, `1`; it is complete, and `x` is `1`, or `2` if `P`. In
+`ω ^ 2 ♯ ω ^ x ≤ ω ^ 2 + ω ^ x`, the child `ω ♯ ω ^ x` of the left side must lie
+below `ω ^ 2`, which refutes `P`, or below `ω ^ 2 + j` for some `j < ω ^ x`.
+Such a `j` lies below `ω ^ (x i) * ω` for a child `i` of `x`: the child `1`
+proves `P`; the child `0` makes `j` finite, which refutes `P`.
+Rocq: `NaturalArith.cantor_denote_nadd_eq_WEM`. -/
+theorem cantor_denote_nadd_eq_WEM
+    (h : ∀ (xs : List Ordinal.{u}) (x : Ordinal.{u}), Each Complete xs → CantorSequence x xs →
+      cantorDenote xs ≈ cantorDenoteNadd xs) : WeakExcludedMiddle := fun P => by
+  let x : Ordinal.{u} := optOrd P 0 1
+  let two : Ordinal.{u} := succ 1
+  have hx2 : x ≤ two := le_intro fun ⟨o⟩ => by
+    cases o with
+    | none => exact succ_trans (zero_least _)
+    | some _ => exact succ_lt _
+  have hxc : Complete x := optOrd_complete (zero_least _) zero_complete (succ_complete zero_complete)
+  have hA : ω ^ two ♯ ω ^ x ≤ ω ^ two + ω ^ x :=
+    le_trans (nadd_le_nadd (le_refl _) (nadd_zero_r _).ge)
+      (le_trans (h [two, x] two ⟨succ_complete (succ_complete zero_complete), hxc, trivial⟩
+          ⟨le_refl two, hx2, trivial⟩).ge
+        (add_le_add (le_refl _) (add_zero _).le))
+  have hP2 : P → ω ^ two ≤ ω ^ x := fun p =>
+    pow_le_pow_right ω (succ_least (index_lt x ⟨some ⟨p⟩⟩))
+  have hw2 : ω < ω ^ two :=
+    lt_of_le_of_lt (pow_one' omega_gt0).ge (pow_lt_pow_right omega_gt1 (succ_lt 1))
+  -- under `P`, a finite `j` cannot pad `ω ^ 2` up to `ω ♯ ω ^ x`
+  have hfin : ∀ j, j < ω → ω ♯ ω ^ x ≤ ω ^ two + j → ¬P := fun j hj hle p =>
+    lt_irrefl ω (lt_of_le_of_lt (add_cancel_le (ω ^ two) (ω ^ two) ω j
+      (le_trans (add_nadd_le _ _) (le_trans (nadd_comm _ _).le
+        (le_trans (nadd_le_nadd (le_refl _) (hP2 p)) hle))) (le_refl _)) hj)
+  have hlt : ω ♯ ω ^ x < ω ^ two + ω ^ x := lt_of_lt_of_le (nadd_increasing1 _ hw2) hA
+  match add_lt hlt with
+  | .inl h₁ =>
+    exact .inr fun p => lt_irrefl (ω ^ two) (lt_of_le_of_lt (le_trans (hP2 p) (nadd_le2 _ _)) h₁)
+  | .inr ⟨r, hr⟩ =>
+    have hu : ω ^ x ≤ 1 ⊔ sup fun i : x => ω ^ x i * ω := by
+      rw [← pow_unfold]
+    match lub_lt (lt_of_lt_of_le (index_lt (ω ^ x) r) hu) with
+    | .inl hj => exact .inr (hfin _ (lt_trans hj omega_gt1) hr)
+    | .inr hs =>
+      obtain ⟨⟨o⟩, hs⟩ := sup_lt hs
+      cases o with
+      | some p => exact .inl fun np => np p.down
+      | none =>
+        exact .inr (hfin _ (lt_of_lt_of_le hs (le_trans (mul_le_mul_right ω (pow_zero ω).le)
+          (one_mul ω).le)) hr)
 
 /-- `zs` is an interleaving of `xs` and `ys`. Rocq: `NaturalArith.merge_lists`. -/
 inductive MergeLists {A : Type u} : List A → List A → List A → Prop
@@ -603,6 +961,70 @@ theorem nadd_cantor_sequences (em : ExcludedMiddle) {xs ys zs : List Ordinal.{u}
       (cantor_denote_nadd_eq em ys b (each_complete em ys) hys))
     (equiv_trans (cantor_denote_nadd_merge hm)
       (equiv_symm (cantor_denote_nadd_eq em zs c (each_complete em zs) hzs)))
+
+/-! ### The natural sum does not preserve completeness
+
+The children of `u ♯ v` are `u i ♯ v` and `u ♯ v j`. A directed upper bound for
+one of each kind must be of one of these two kinds, which compares the gap below
+`u` with the gap below `v`. Let `u` have the children `0` and, if `P`, `1`, and
+let `v` have the children `1` and, if `P`, `ω`. Both are complete. An upper
+bound for `0 ♯ v` and `u ♯ 1` is a child indexed by a proof of `P`, or `0 ♯ v`
+(which needs a child of `v` above `u`: `1` refutes `P`, `ω` needs `P`), or
+`u ♯ 1` (which refutes `P`). -/
+
+/-- Rocq: `NaturalArith.nadd_complete_directed`. -/
+theorem nadd_complete_directed (u v : Ordinal.{u}) (h : Complete (u ♯ v)) (i : u) (j : v) :
+    (∃ i', u i ♯ v ≤ u i' ♯ v ∧ u ♯ v j ≤ u i' ♯ v) ∨
+    (∃ j', u i ♯ v ≤ u ♯ v j' ∧ u ♯ v j ≤ u ♯ v j') := by
+  rw [nadd_unfold] at h
+  match complete_directed h (Sum.inl i) (Sum.inr j) with
+  | ⟨Sum.inl i', h₁, h₂⟩ => exact .inl ⟨i', h₁, h₂⟩
+  | ⟨Sum.inr j', h₁, h₂⟩ => exact .inr ⟨j', h₁, h₂⟩
+
+/-- The natural sum of complete ordinals need not be complete.
+Rocq: `NaturalArith.nadd_complete_WEM`. -/
+theorem nadd_complete_WEM
+    (h : ∀ u v : Ordinal.{u}, Complete u → Complete v → Complete (u ♯ v)) :
+    WeakExcludedMiddle := fun P => by
+  let u : Ordinal.{u} := optOrd P 0 1
+  let v : Ordinal.{u} := optOrd P 1 ω
+  have hone : Complete (1 : Ordinal.{u}) := succ_complete zero_complete
+  have hu : Complete u := optOrd_complete (zero_least _) zero_complete hone
+  have hv : Complete v := optOrd_complete (le_of_lt omega_gt1) hone omega_complete
+  have hu3 : u < ω := lt_of_le_of_lt (le_intro fun ⟨o⟩ => by
+      cases o with
+      | none => exact succ_trans (zero_least _)
+      | some _ => exact succ_lt _) (index_lt ω ⟨2⟩)
+  match nadd_complete_directed u v (h u v hu hv) ⟨none⟩ ⟨none⟩ with
+  | .inl ⟨⟨some p⟩, _, _⟩ => exact .inl fun np => np p.down
+  | .inl ⟨⟨none⟩, _, h₂⟩ =>
+    -- `u ♯ 1 ≤ 0 ♯ v`, so `u < v`
+    have huv : u < v := lt_of_lt_of_le
+      (lt_of_le_of_lt (nadd_zero_r u).ge (nadd_increasing2 u (succ_lt 0)))
+      (le_trans h₂ (nadd_zero_l v).le)
+    obtain ⟨⟨o⟩, hp⟩ := lt_elim huv
+    cases o with
+    | some p => exact .inl fun np => np p.down
+    | none =>
+      exact .inr fun p => lt_irrefl 1 (lt_of_lt_of_le (index_lt u ⟨some ⟨p⟩⟩) hp)
+  | .inr ⟨⟨some p⟩, _, _⟩ => exact .inl fun np => np p.down
+  | .inr ⟨⟨none⟩, h₁, _⟩ =>
+    -- `0 ♯ v ≤ u ♯ 1`, which is finite: refutes `P`
+    exact .inr fun p => lt_irrefl ω (lt_of_lt_of_le (index_lt v ⟨some ⟨p⟩⟩)
+      (le_trans (nadd_zero_l v).ge (le_trans h₁ (le_of_lt (lt_of_lt_of_le
+        (nadd_closed_con 1 u 1 hone (lt_of_lt_of_le hu3 (pow_one' omega_gt0).ge)
+          (lt_of_lt_of_le omega_gt1 (pow_one' omega_gt0).ge))
+        (pow_one' omega_gt0).le)))))
+
+/-- Natural sums of Cantor normal forms merge their exponents, given decisions
+between adjacent exponents. Rocq: `NaturalArith.nadd_cantor_sequences_dec`. -/
+theorem nadd_cantor_sequences_dec {xs ys zs : List Ordinal.{u}} (hm : MergeLists xs ys zs)
+    (a b c : Ordinal.{u}) (hxs : Each Complete xs) (hys : Each Complete ys)
+    (hzs : Each Complete zs) (ha : CantorSequenceDec a xs) (hb : CantorSequenceDec b ys)
+    (hc : CantorSequenceDec c zs) : cantorDenote xs ♯ cantorDenote ys ≈ cantorDenote zs :=
+  equiv_trans (nadd_congr (cantor_denote_nadd_eq_dec xs a hxs ha)
+      (cantor_denote_nadd_eq_dec ys b hys hb))
+    (equiv_trans (cantor_denote_nadd_merge hm) (equiv_symm (cantor_denote_nadd_eq_dec zs c hzs hc)))
 
 /-! ## An incorrect natural multiplication
 
@@ -1009,6 +1431,263 @@ theorem iteratedSmashSum_eq (x : Ordinal.{u}) :
       refine limit_least fun ⟨a, q⟩ => ?_
       obtain ⟨xs, hxs⟩ := lt_elim (lt_of_lt_of_le (index_lt _ q) ih)
       exact lt_intro (show (iteratedSmashSum x).Carrier from a :: xs) (nadd_le_nadd (le_refl _) hxs)
+
+/-! ## Tree selection -/
+
+/-- Rocq: `NaturalArith.tree_selection`. -/
+def treeSelection : Ordinal.{u} → Ordinal.{u}
+  | mk A f => iteratedSmashSum (mk A fun a => treeSelection (f a))
+
+/-- Rocq: `NaturalArith.tree_selection_unfold`. -/
+theorem tree_selection_unfold (x : Ordinal.{u}) :
+    treeSelection x = iteratedSmashSum (lim fun a : x => treeSelection (x a)) := by
+  cases x; rfl
+
+/-- Rocq: `NaturalArith.tree_selection_nonzero`. -/
+theorem tree_selection_nonzero (x : Ordinal.{u}) : 0 < treeSelection x := by
+  rw [tree_selection_unfold]; exact iteratedSmashSum_nonzero _
+
+/-- Rocq: `NaturalArith.tree_selection_monotone`. -/
+theorem tree_selection_monotone : ∀ x y : Ordinal.{u}, x ≤ y → treeSelection x ≤ treeSelection y
+  | mk _ f, mk B g, h => iteratedSmashSum_monotone (le_intro fun a =>
+    let ⟨b, hb⟩ := le_subord h a
+    lt_intro (show (mk B fun b => treeSelection (g b)).Carrier from b)
+      (tree_selection_monotone (f a) (g b) hb))
+
+/-- Rocq: `NaturalArith.tree_selection_increasing`. -/
+theorem tree_selection_increasing {x y : Ordinal.{u}} (h : x < y) : treeSelection x < treeSelection y := by
+  obtain ⟨b, hb⟩ := lt_elim h
+  rw [tree_selection_unfold y]
+  exact lt_of_le_of_lt (tree_selection_monotone _ _ hb)
+    (lt_intro (show (iteratedSmashSum (lim fun a : y => treeSelection (y a))).Carrier from [b])
+      (nadd_zero_r _).ge)
+
+/-- Rocq: `NaturalArith.tree_selection_scott_continuous`. -/
+theorem tree_selection_scott_continuous : ScottContinuous (treeSelection : Ordinal.{u} → Ordinal.{u}) :=
+  fun A f a₀ hd _ => by
+    rw [tree_selection_unfold]
+    refine limit_least fun xs => ?_
+    have hbound : ∃ i, ∀ p, p ∈ xs → f p.1 ≤ f i := by
+      induction xs with
+      | nil => exact ⟨a₀, fun _ h => nomatch h⟩
+      | cons p xs ih =>
+        obtain ⟨i, hi⟩ := ih
+        obtain ⟨k, hk₁, hk₂⟩ := hd i p.1
+        exact ⟨k, fun q hq => match q, hq with
+          | _, .head _ => hk₂
+          | q, .tail _ hq => le_trans (hi q hq) hk₁⟩
+    obtain ⟨i, hi⟩ := hbound
+    have hqs : ∃ qs : List (f i).Carrier,
+        smashList (lim fun a : sup f => treeSelection (sup f a)) xs ≤
+          smashList (lim fun a : f i => treeSelection (f i a)) qs := by
+      clear hd
+      induction xs with
+      | nil => exact ⟨[], le_refl _⟩
+      | cons p xs ih =>
+        obtain ⟨qs, hqs⟩ := ih fun q hq => hi q (.tail _ hq)
+        obtain ⟨q, hq⟩ := lt_elim (lt_of_lt_of_le (index_lt (f p.1) p.2) (hi p (.head _)))
+        exact ⟨q :: qs, nadd_le_nadd (tree_selection_monotone _ _ hq) hqs⟩
+    obtain ⟨qs, hqs⟩ := hqs
+    refine lt_of_lt_of_le ?_ (sup_le (fun i => treeSelection (f i)) i)
+    rw [tree_selection_unfold (f i)]
+    exact lt_intro (show (iteratedSmashSum (lim fun a : f i => treeSelection (f i a))).Carrier from qs) hqs
+
+/-- Classically, tree selection is a normal function.
+Rocq: `NaturalArith.normal_tree_selection`. -/
+theorem normal_tree_selection (em : ExcludedMiddle) : NormalFunction (treeSelection : Ordinal.{u} → Ordinal.{u}) where
+  monotone := tree_selection_monotone
+  increasing _ _ _ h := tree_selection_increasing h
+  continuous := tree_selection_scott_continuous
+  complete _ _ := ord_complete em _
+  nonzero := tree_selection_nonzero
+
+/-- Rocq: `NaturalArith.powOmega_le_tree_selection`. -/
+theorem powOmega_le_tree_selection (x : Ordinal.{u}) : ω ^ x ≤ treeSelection x := by
+  induction x using ltRec with
+  | ind x ih =>
+    rw [pow_unfold]
+    refine lub_least (succ_least (tree_selection_nonzero x)) (sup_least fun q => ?_)
+    rw [mul_unfold]
+    refine sup_least fun ⟨i⟩ => le_of_lt ?_
+    have hrep : ∀ n : Nat, ω ^ x q * ofNat n ≤
+        smashList (lim fun a : x => treeSelection (x a)) (List.replicate n q) := by
+      intro n
+      induction n with
+      | zero => exact le_trans (mul_zero _).le (zero_least _)
+      | succ n ihn =>
+        calc ω ^ x q * ofNat (n + 1) ≤ ω ^ x q * ofNat n + ω ^ x q := (mul_succ _ _).le
+          _ ≤ ω ^ x q * ofNat n ♯ ω ^ x q := add_nadd_le _ _
+          _ ≤ smashList (lim fun a : x => treeSelection (x a)) (List.replicate n q) ♯ treeSelection (x q) :=
+              nadd_le_nadd ihn (ih (x q) (index_lt x q))
+          _ ≤ treeSelection (x q) ♯ smashList (lim fun a : x => treeSelection (x a)) (List.replicate n q) :=
+              nadd_comm_le _ _
+    rw [tree_selection_unfold]
+    exact lt_of_le_of_lt (le_trans (mul_succ _ _).ge (hrep (i + 1)))
+      (limit_lt (smashList (lim fun a : x => treeSelection (x a))) (List.replicate (i + 1) q))
+
+/-- For complete `x`, the bound holds constructively: the only uses of
+classical logic were to make the children of `x` directed and to add equal
+powers, and completeness provides both (`nadd_add_same_powers_con`).
+Rocq: `NaturalArith.tree_selection_le_powOmega_complete`. -/
+theorem tree_selection_le_powOmega_complete (x : Ordinal.{u}) :
+    Complete x → treeSelection x ≤ ω ^ x := by
+  induction x using ltRec with
+  | ind x ih =>
+    intro hx
+    rw [tree_selection_unfold]
+    refine limit_least fun xs => ?_
+    match xs with
+    | [] => exact pow_pos ω x
+    | o :: l =>
+      have hbound : ∃ i, ∀ p, p ∈ o :: l → x p ≤ x i := by
+        induction l with
+        | nil => exact ⟨o, fun p hp => match hp with | .head _ => le_refl _ | .tail _ h => nomatch h⟩
+        | cons a l ih' =>
+          obtain ⟨i, hi⟩ := ih'
+          obtain ⟨k, hk₁, hk₂⟩ := complete_directed hx i a
+          exact ⟨k, fun p hp => match p, hp with
+            | _, .head _ => le_trans (hi o (.head _)) hk₁
+            | _, .tail _ (.head _) => hk₂
+            | p, .tail _ (.tail _ h) => le_trans (hi p (.tail _ h)) hk₁⟩
+      obtain ⟨i, hi⟩ := hbound
+      have hsum : ∀ ys : List x.Carrier, (∀ p, p ∈ ys → x p ≤ x i) →
+          smashList (lim fun a : x => treeSelection (x a)) ys ≤ ω ^ x i * ofNat ys.length := by
+        intro ys
+        induction ys with
+        | nil => intro _; exact zero_least _
+        | cons p ys ihys =>
+          intro hys
+          calc treeSelection (x p) ♯ smashList (lim fun a : x => treeSelection (x a)) ys
+              ≤ ω ^ x i * (ω : Ordinal.{u}) ⟨1⟩ ♯ ω ^ x i * (ω : Ordinal.{u}) ⟨ys.length⟩ :=
+                nadd_le_nadd (le_trans (ih (x p) (index_lt x p) (complete_subord hx p))
+                  (le_trans (pow_le_pow_right ω (hys p (.head _))) (mul_one _).ge))
+                  (ihys fun q hq => hys q (.tail _ hq))
+            _ ≤ ω ^ x i * ofNat (1 + ys.length) :=
+                nadd_add_same_powers_con (x i) 1 ys.length (complete_subord hx i)
+            _ = ω ^ x i * ofNat (ys.length + 1) := by rw [Nat.add_comm]
+      calc smashList _ (o :: l) ≤ ω ^ x i * ofNat (l.length + 1) := hsum (o :: l) hi
+        _ < ω ^ x i * ω := mul_lt_mul_left (pow_pos ω _) (index_lt ω ⟨l.length + 1⟩)
+        _ ≤ ω ^ x := pow_index_mul_omega_le x i
+
+/-- Rocq: `NaturalArith.tree_selection_le_powOmega`. -/
+theorem tree_selection_le_powOmega (em : ExcludedMiddle) (x : Ordinal.{u}) :
+    treeSelection x ≤ ω ^ x :=
+  tree_selection_le_powOmega_complete x (ord_complete em x)
+
+/-- Rocq: `NaturalArith.tree_selection_eq_powOmega_complete`. -/
+theorem tree_selection_eq_powOmega_complete (x : Ordinal.{u}) (hx : Complete x) :
+    treeSelection x ≈ ω ^ x :=
+  equiv_intro (tree_selection_le_powOmega_complete x hx) (powOmega_le_tree_selection x)
+
+/-- Classically, tree selection is `x ↦ ω ^ x`.
+Rocq: `NaturalArith.tree_selection_eq_powOmega`. -/
+theorem tree_selection_eq_powOmega (em : ExcludedMiddle) (x : Ordinal.{u}) :
+    treeSelection x ≈ ω ^ x :=
+  tree_selection_eq_powOmega_complete x (ord_complete em x)
+
+/-! `treeSelection` does not preserve completeness either. Let `a` have the
+children `0` and, if `P`, `1` (so `a` is `1`, or `2` if `P`), and let `x` have
+the children `a` and `2`; `x` is complete. The child `ts a ♯ (ts 2 ♯ 0)` of
+`ts x` is a natural sum of `ω ^ a` and `ω ^ 2`, and an upper bound for its
+children `0 ♯ ω ^ 2` and `ts a ♯ ω` is either `n ♯ ω ^ 2` for a child `n` of
+`ts a` (one that is finite refutes `P`; the others need `P`), or `ts a ♯ y` for
+some `y < ω ^ 2`, which refutes `¬P`. -/
+
+/-- Rocq: `NaturalArith.tree_selection_finite_or`. -/
+theorem tree_selection_finite_or {P : Prop} (f : ULift.{u} (Option (PLift P)) → Ordinal.{u})
+    (hf : f ⟨none⟩ ≈ 0) :
+    ∀ l : List (ULift.{u} (Option (PLift P))), P ∨ l.foldr (fun o y => treeSelection (f o) ♯ y) 0 < ω
+  | [] => .inr omega_gt0
+  | ⟨some p⟩ :: _ => .inl p.down
+  | ⟨none⟩ :: l =>
+    match tree_selection_finite_or f hf l with
+    | .inl p => .inl p
+    | .inr hl =>
+      have h0 : treeSelection (f ⟨none⟩) < ω :=
+        lt_of_le_of_lt (tree_selection_monotone _ _ hf.le)
+          (lt_of_le_of_lt (le_trans (tree_selection_le_powOmega_complete 0 zero_complete)
+            (pow_zero ω).le) omega_gt1)
+      .inr (lt_of_lt_of_le (nadd_closed_con 1 _ _ (succ_complete zero_complete)
+          (lt_of_lt_of_le h0 (pow_one' omega_gt0).ge) (lt_of_lt_of_le hl (pow_one' omega_gt0).ge))
+        (pow_one' omega_gt0).le)
+
+/-- Rocq: `NaturalArith.tree_selection_complete_WEM`. -/
+theorem tree_selection_complete_WEM
+    (h : ∀ x : Ordinal.{u}, Complete x → Complete (treeSelection x)) :
+    WeakExcludedMiddle := fun P => by
+  let a : Ordinal.{u} := optOrd P 0 1
+  let two : Ordinal.{u} := succ 1
+  let x : Ordinal.{u} := mk (ULift Bool) fun b => cond b.down a two
+  have hone : Complete (1 : Ordinal.{u}) := succ_complete zero_complete
+  have htwo : Complete two := succ_complete hone
+  have ha : Complete a := optOrd_complete (zero_least _) zero_complete hone
+  have ha2 : a ≤ two := le_intro fun ⟨o⟩ => by
+    cases o with
+    | none => exact succ_trans (zero_least _)
+    | some _ => exact succ_lt _
+  have hx : Complete x := by
+    refine Complete.intro ?_ (.inl ⟨⟨true⟩⟩) ?_
+    · rintro ⟨b₁⟩ ⟨b₂⟩
+      refine ⟨⟨false⟩, ?_, ?_⟩
+      · cases b₁ with
+        | false => exact le_refl _
+        | true => exact ha2
+      · cases b₂ with
+        | false => exact le_refl _
+        | true => exact ha2
+    · rintro ⟨b⟩
+      cases b with
+      | false => exact htwo
+      | true => exact ha
+  let A : Ordinal.{u} := treeSelection a
+  let B : Ordinal.{u} := treeSelection two
+  have hA : A ≈ ω ^ a := tree_selection_eq_powOmega_complete a ha
+  have hB : B ≈ ω ^ two := tree_selection_eq_powOmega_complete two htwo
+  have hw2 : ω < ω ^ two :=
+    lt_of_le_of_lt (pow_one' omega_gt0).ge (pow_lt_pow_right omega_gt1 (succ_lt 1))
+  have hcB : ∀ y, y < B → ω ♯ y < B := fun y hy =>
+    lt_of_lt_of_le (nadd_closed_con two _ _ htwo hw2 (lt_of_lt_of_le hy hB.le)) hB.ge
+  -- the child of `ts x` for the list `[a, 2]`
+  have hc : Complete (A ♯ (B ♯ 0)) :=
+    complete_subord (h x hx) (show (treeSelection x).Carrier from [⟨true⟩, ⟨false⟩])
+  -- a child of `B ♯ 0` at least `ω`
+  obtain ⟨j, hj⟩ := lt_elim (lt_of_lt_of_le hw2 (le_trans hB.ge (nadd_zero_r B).ge))
+  match nadd_complete_directed A (B ♯ 0) hc (show (treeSelection a).Carrier from []) j with
+  | .inl ⟨l, _, h₂⟩ =>
+    -- an upper bound `n ♯ ω ^ 2` with `n` a child of `ts a`
+    match tree_selection_finite_or (fun o => a o) (equiv_refl _) l with
+    | .inl p => exact .inl fun np => np p
+    | .inr hl =>
+      exact .inr fun p => lt_irrefl (ω ♯ B) (calc
+        ω ♯ B ≤ B ♯ ω := (nadd_comm _ _).le
+        _ ≤ A ♯ (B ♯ 0) j := nadd_le_nadd (le_trans hB.le (le_trans
+            (pow_le_pow_right ω (succ_least (index_lt a ⟨some ⟨p⟩⟩))) hA.ge)) hj
+        _ ≤ A l ♯ (B ♯ 0) := h₂
+        _ ≤ A l ♯ B := nadd_le_nadd (le_refl _) (nadd_zero_r B).le
+        _ < ω ♯ B := nadd_increasing1 B hl)
+  | .inr ⟨m, h₁, _⟩ =>
+    -- an upper bound `ts a ♯ y` with `y < ω ^ 2`
+    refine .inl fun np => ?_
+    have hy : (B ♯ 0) m < B := lt_of_lt_of_le (index_lt (B ♯ 0) m) (nadd_zero_r B).le
+    have ha1 : a ≤ 1 := le_intro fun ⟨o⟩ => by
+      cases o with
+      | none => exact succ_lt 0
+      | some p => exact (np p.down).elim
+    exact lt_irrefl B (lt_of_le_of_lt (calc
+      B ≤ 0 ♯ (B ♯ 0) := le_trans (nadd_zero_r B).ge (nadd_zero_l _).ge
+      _ ≤ A ♯ (B ♯ 0) m := h₁
+      _ ≤ ω ♯ (B ♯ 0) m := nadd_le_nadd (le_trans hA.le
+          (le_trans (pow_le_pow_right ω ha1) (pow_one' omega_gt0).le)) (le_refl _))
+      (hcB _ hy))
+
+/-- Consequently completeness is not invariant under `≈`: for complete `x`,
+`treeSelection x` and `ω ^ x` are equivalent, and the second is complete.
+(`complete_intensional_EM` gives the stronger conclusion from a simpler
+witness.) Rocq: `NaturalArith.complete_intensional_WEM`. -/
+theorem complete_intensional_WEM
+    (h : ∀ x y : Ordinal.{u}, x ≈ y → Complete x → Complete y) : WeakExcludedMiddle :=
+  tree_selection_complete_WEM fun x hx =>
+    h _ _ (equiv_symm (tree_selection_eq_powOmega_complete x hx)) (pow_complete omega_gt0 omega_complete hx)
 
 end Ordinal
 
