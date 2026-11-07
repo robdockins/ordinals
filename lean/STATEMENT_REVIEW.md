@@ -67,7 +67,7 @@ are presentational:
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
 
-256 statements.
+331 statements.
 
 ## Defs
 
@@ -193,6 +193,37 @@ enumerates_surjective : ExcludedMiddle →
   ∀ {f : Ordinal → Ordinal} {P : Ordinal → Prop}, Enumerates f P → ∀ (x : Ordinal), P x → ∃ a, f a ≈ x
 ```
 
+### `addOrd_left_subtraction_EM`
+
+Rocq:
+```
+Enumerate.addOrd_left_subtraction_EM
+     : (forall c z : Defs.Ord,
+        Defs.ord_le c z -> exists a : Defs.Ord, Defs.ord_eq (Arith.addOrd c a) z) ->
+       ClassicalFacts.excluded_middle
+```
+Lean:
+```
+left_subtraction_EM : (∀ (c z : Ordinal), c ≤ z → ∃ a, c + a ≈ z) → ExcludedMiddle
+```
+
+### `enumerates_surjective_EM`
+
+Rocq:
+```
+Enumerate.enumerates_surjective_EM
+     : (forall (f : Defs.Ord -> Defs.Ord) (P : Defs.Ord -> Prop),
+        Enumerate.enumerates f P ->
+        forall x : Defs.Ord, P x -> exists a : Defs.Ord, Defs.ord_eq (f a) x) ->
+       ClassicalFacts.excluded_middle
+```
+Lean:
+```
+enumerates_surjective_EM : (∀ (f : Ordinal → Ordinal) (P : Ordinal → Prop),
+    Enumerates f P → ∀ (x : Ordinal), P x → ∃ a, f a ≈ x) →
+  ExcludedMiddle
+```
+
 ### `increasing_surjective_enumerates`
 
 Rocq:
@@ -212,6 +243,46 @@ increasing_surjective_enumerates : ExcludedMiddle →
     (∀ (x y : Ordinal), x ≤ y → f x ≤ f y) →
       (∀ (x y : Ordinal), x < y → f x < f y) →
         (∀ (x : Ordinal), P x → ∃ a, f a ≈ x) → (∀ (x : Ordinal), P (f x)) → Enumerates f P
+```
+
+### `enumerates_range_EM`
+
+Rocq:
+```
+Enumerate.enumerates_range_EM
+     : (forall f : Defs.Ord -> Defs.Ord,
+        (forall x y : Defs.Ord, Defs.ord_le x y -> Defs.ord_le (f x) (f y)) ->
+        (forall x y : Defs.Ord, Defs.ord_lt x y -> Defs.ord_lt (f x) (f y)) ->
+        Enumerate.enumerates f (fun x : Defs.Ord => exists y : Defs.Ord, Defs.ord_eq x (f y))) ->
+       ClassicalFacts.excluded_middle
+```
+Lean:
+```
+enumerates_range_EM : (∀ (f : Ordinal → Ordinal),
+    (∀ (x y : Ordinal), x ≤ y → f x ≤ f y) →
+      (∀ (x y : Ordinal), x < y → f x < f y) → Enumerates f fun x => ∃ y, x ≈ f y) →
+  ExcludedMiddle
+```
+
+### `increasing_surjective_enumerates_EM`
+
+Rocq:
+```
+Enumerate.increasing_surjective_enumerates_EM
+     : (forall (f : Defs.Ord -> Defs.Ord) (P : Defs.Ord -> Prop),
+        (forall x y : Defs.Ord, Defs.ord_le x y -> Defs.ord_le (f x) (f y)) ->
+        (forall x y : Defs.Ord, Defs.ord_lt x y -> Defs.ord_lt (f x) (f y)) ->
+        (forall x : Defs.Ord, P x -> exists a : Defs.Ord, Defs.ord_eq (f a) x) ->
+        (forall x : Defs.Ord, P (f x)) -> Enumerate.enumerates f P) ->
+       ClassicalFacts.excluded_middle
+```
+Lean:
+```
+increasing_surjective_enumerates_EM : (∀ (f : Ordinal → Ordinal) (P : Ordinal → Prop),
+    (∀ (x y : Ordinal), x ≤ y → f x ≤ f y) →
+      (∀ (x y : Ordinal), x < y → f x < f y) →
+        (∀ (x : Ordinal), P x → ∃ a, f a ≈ x) → (∀ (x : Ordinal), P (f x)) → Enumerates f P) →
+  ExcludedMiddle
 ```
 
 ## Fixpoints
@@ -285,6 +356,19 @@ knuthUp_epsilon : knuthUp 2 ω ω ≈ ε 0
 ```
 
 ## Cantor
+
+### `expOmega_additively_closed_WEM`
+
+Rocq:
+```
+Cantor.expOmega_additively_closed_WEM
+     : (forall c : Defs.Ord, Cantor.additively_closed (Arith.expOrd Operators.ω c)) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+powOmega_additively_closed_WEM : (∀ (c : Ordinal), (ω ^ c).AdditivelyClosed) → WeakExcludedMiddle
+```
 
 ### `additively_closed_enumerate`
 
@@ -385,6 +469,69 @@ cantor_decomposition_is_classical_for_complete_ordinals : (∀ (x : Ordinal),
 
 ## NaturalArith
 
+### `nadd_closed_con`
+
+Rocq:
+```
+NaturalArith.nadd_closed_con
+     : forall a x y : Defs.Ord,
+       Operators.complete a ->
+       Defs.ord_lt x (Arith.expOrd Operators.ω a) ->
+       Defs.ord_lt y (Arith.expOrd Operators.ω a) ->
+       Defs.ord_lt (NaturalArith.naddOrd x y) (Arith.expOrd Operators.ω a)
+```
+Lean:
+```
+nadd_closed_con : ∀ (a x y : Ordinal), a.Complete → x < ω ^ a → y < ω ^ a → x ♯ y < ω ^ a
+```
+
+### `nadd_closed_needs_complete`
+
+Rocq:
+```
+NaturalArith.nadd_closed_needs_complete
+     : (forall a x y : Defs.Ord,
+        Defs.ord_lt x (Arith.expOrd Operators.ω a) ->
+        Defs.ord_lt y (Arith.expOrd Operators.ω a) ->
+        Defs.ord_lt (NaturalArith.naddOrd x y) (Arith.expOrd Operators.ω a)) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+nadd_closed_needs_complete : (∀ (a x y : Ordinal), x < ω ^ a → y < ω ^ a → x ♯ y < ω ^ a) → WeakExcludedMiddle
+```
+
+### `cantor_sequence_dec_EM`
+
+Rocq:
+```
+NaturalArith.cantor_sequence_dec_EM
+     : ClassicalFacts.excluded_middle ->
+       forall (ls : list Defs.Ord) (x : Defs.Ord),
+       Cantor.cantor_sequence x ls -> NaturalArith.cantor_sequence_dec x ls
+```
+Lean:
+```
+cantor_sequence_dec_EM : ExcludedMiddle →
+  ∀ (ls : List Ordinal) (x : Ordinal), x.CantorSequence ls → x.CantorSequenceDec ls
+```
+
+### `cantor_denote_nadd_eq_dec`
+
+Rocq:
+```
+NaturalArith.cantor_denote_nadd_eq_dec
+     : forall (xs : list Defs.Ord) (x : Defs.Ord),
+       Defs.each Operators.complete xs ->
+       NaturalArith.cantor_sequence_dec x xs ->
+       Defs.ord_eq (Cantor.cantor_denote xs) (NaturalArith.cantor_denote_nadd xs)
+```
+Lean:
+```
+cantor_denote_nadd_eq_dec : ∀ (xs : List Ordinal) (x : Ordinal),
+  Each Complete xs → x.CantorSequenceDec xs → cantorDenote xs ≈ cantorDenoteNadd xs
+```
+
 ### `cantor_denote_nadd_eq`
 
 Rocq:
@@ -400,6 +547,24 @@ Lean:
 ```
 cantor_denote_nadd_eq : ExcludedMiddle →
   ∀ (xs : List Ordinal) (x : Ordinal), Each Complete xs → x.CantorSequence xs → cantorDenote xs ≈ cantorDenoteNadd xs
+```
+
+### `cantor_denote_nadd_eq_WEM`
+
+Rocq:
+```
+NaturalArith.cantor_denote_nadd_eq_WEM
+     : (forall (xs : list Defs.Ord) (x : Defs.Ord),
+        Defs.each Operators.complete xs ->
+        Cantor.cantor_sequence x xs ->
+        Defs.ord_eq (Cantor.cantor_denote xs) (NaturalArith.cantor_denote_nadd xs)) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+cantor_denote_nadd_eq_WEM : (∀ (xs : List Ordinal) (x : Ordinal),
+    Each Complete xs → x.CantorSequence xs → cantorDenote xs ≈ cantorDenoteNadd xs) →
+  WeakExcludedMiddle
 ```
 
 ### `nadd_cantor_sequences`
@@ -425,6 +590,50 @@ nadd_cantor_sequences : ExcludedMiddle →
       ∀ (a b c : Ordinal),
         a.CantorSequence xs →
           b.CantorSequence ys → c.CantorSequence zs → cantorDenote xs ♯ cantorDenote ys ≈ cantorDenote zs
+```
+
+### `nadd_complete_WEM`
+
+Rocq:
+```
+NaturalArith.nadd_complete_WEM
+     : (forall u v : Defs.Ord,
+        Operators.complete u ->
+        Operators.complete v -> Operators.complete (NaturalArith.naddOrd u v)) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+nadd_complete_WEM : (∀ (u v : Ordinal), u.Complete → v.Complete → (u ♯ v).Complete) → WeakExcludedMiddle
+```
+
+### `nadd_cantor_sequences_dec`
+
+Rocq:
+```
+NaturalArith.nadd_cantor_sequences_dec
+     : forall xs ys zs : list Defs.Ord,
+       NaturalArith.merge_lists xs ys zs ->
+       forall a b c : Defs.Ord,
+       Defs.each Operators.complete xs ->
+       Defs.each Operators.complete ys ->
+       Defs.each Operators.complete zs ->
+       NaturalArith.cantor_sequence_dec a xs ->
+       NaturalArith.cantor_sequence_dec b ys ->
+       NaturalArith.cantor_sequence_dec c zs ->
+       Defs.ord_eq (NaturalArith.naddOrd (Cantor.cantor_denote xs) (Cantor.cantor_denote ys))
+         (Cantor.cantor_denote zs)
+```
+Lean:
+```
+@nadd_cantor_sequences_dec : ∀ {xs ys zs : List Ordinal},
+  MergeLists xs ys zs →
+    ∀ (a b c : Ordinal),
+      Each Complete xs →
+        Each Complete ys →
+          Each Complete zs →
+            a.CantorSequenceDec xs →
+              b.CantorSequenceDec ys → c.CantorSequenceDec zs → cantorDenote xs ♯ cantorDenote ys ≈ cantorDenote zs
 ```
 
 ### `nmul_not_distributive`
@@ -460,6 +669,563 @@ Lean:
 iteratedSmashSum_eq : ∀ (x : Ordinal), x.iteratedSmashSum ≈ sup fun i => Nat.repeat x.smashSum i.down 1
 ```
 
+### `tree_selection_eq_powOmega_complete`
+
+Rocq:
+```
+NaturalArith.tree_selection_eq_powOmega_complete
+     : forall x : Defs.Ord,
+       Operators.complete x ->
+       Defs.ord_eq (NaturalArith.tree_selection x) (Arith.expOrd Operators.ω x)
+```
+Lean:
+```
+tree_selection_eq_powOmega_complete : ∀ (x : Ordinal), x.Complete → x.treeSelection ≈ ω ^ x
+```
+
+### `tree_selection_eq_powOmega`
+
+Rocq:
+```
+NaturalArith.tree_selection_eq_powOmega
+     : ClassicalFacts.excluded_middle ->
+       forall x : Defs.Ord,
+       Defs.ord_eq (NaturalArith.tree_selection x) (Arith.expOrd Operators.ω x)
+```
+Lean:
+```
+tree_selection_eq_powOmega : ExcludedMiddle → ∀ (x : Ordinal), x.treeSelection ≈ ω ^ x
+```
+
+### `tree_selection_complete_WEM`
+
+Rocq:
+```
+NaturalArith.tree_selection_complete_WEM
+     : (forall x : Defs.Ord,
+        Operators.complete x -> Operators.complete (NaturalArith.tree_selection x)) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+tree_selection_complete_WEM : (∀ (x : Ordinal), x.Complete → x.treeSelection.Complete) → WeakExcludedMiddle
+```
+
+### `complete_intensional_WEM`
+
+Rocq:
+```
+NaturalArith.complete_intensional_WEM
+     : (forall x y : Defs.Ord, Defs.ord_eq x y -> Operators.complete x -> Operators.complete y) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+complete_intensional_WEM : (∀ (x y : Ordinal), x ≈ y → x.Complete → y.Complete) → WeakExcludedMiddle
+```
+
+## NaturalProduct
+
+### `nmulOrd_fuel`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_fuel
+     : forall a b β : Defs.Ord,
+       Defs.ord_lt (NaturalProduct.gbound a b) β ->
+       Defs.ord_eq (NaturalProduct.nmulOrd a b) (NaturalProduct.grank β ((a, b) :: nil)%list)
+```
+Lean:
+```
+NaturalProduct.nmul_fuel : ∀ (a b β : Ordinal),
+  NaturalProduct.gbound a b < β → NaturalProduct.nmul a b ≈ NaturalProduct.grank β [(a, b)]
+```
+
+### `nmulOrd_comm`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_comm
+     : forall a b : Defs.Ord, Defs.ord_eq (NaturalProduct.nmulOrd a b) (NaturalProduct.nmulOrd b a)
+```
+Lean:
+```
+NaturalProduct.nmul_comm : ∀ (a b : Ordinal), NaturalProduct.nmul a b ≈ NaturalProduct.nmul b a
+```
+
+### `nmulOrd_monotone`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_monotone
+     : forall a b a' b' : Defs.Ord,
+       Defs.ord_le a a' ->
+       Defs.ord_le b b' -> Defs.ord_le (NaturalProduct.nmulOrd a b) (NaturalProduct.nmulOrd a' b')
+```
+Lean:
+```
+@NaturalProduct.nmul_monotone : ∀ {a b a' b' : Ordinal},
+  a ≤ a' → b ≤ b' → NaturalProduct.nmul a b ≤ NaturalProduct.nmul a' b'
+```
+
+### `nmulOrd_increasing1`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_increasing1
+     : forall a a' b : Defs.Ord,
+       Defs.ord_lt a a' ->
+       Defs.ord_lt Operators.zeroOrd b ->
+       Defs.ord_lt (NaturalProduct.nmulOrd a b) (NaturalProduct.nmulOrd a' b)
+```
+Lean:
+```
+@NaturalProduct.nmul_increasing1 : ∀ {a a' b : Ordinal},
+  a < a' → 0 < b → NaturalProduct.nmul a b < NaturalProduct.nmul a' b
+```
+
+### `nmulOrd_increasing2`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_increasing2
+     : forall a b b' : Defs.Ord,
+       Defs.ord_lt b b' ->
+       Defs.ord_lt Operators.zeroOrd a ->
+       Defs.ord_lt (NaturalProduct.nmulOrd a b) (NaturalProduct.nmulOrd a b')
+```
+Lean:
+```
+@NaturalProduct.nmul_increasing2 : ∀ {a b b' : Ordinal},
+  b < b' → 0 < a → NaturalProduct.nmul a b < NaturalProduct.nmul a b'
+```
+
+### `nmulOrd_zero`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_zero
+     : forall a : Defs.Ord,
+       Defs.ord_eq (NaturalProduct.nmulOrd a Operators.zeroOrd) Operators.zeroOrd
+```
+Lean:
+```
+NaturalProduct.nmul_zero : ∀ (a : Ordinal), NaturalProduct.nmul a 0 ≈ 0
+```
+
+### `nmulOrd_one`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_one
+     : forall a : Defs.Ord,
+       Defs.ord_eq (NaturalProduct.nmulOrd a (Operators.succOrd Operators.zeroOrd)) a
+```
+Lean:
+```
+NaturalProduct.nmul_one : ∀ (a : Ordinal), NaturalProduct.nmul a 1 ≈ a
+```
+
+### `nmulOrd_succ_upper`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_succ_upper
+     : forall a b : Defs.Ord,
+       Defs.ord_le (NaturalProduct.nmulOrd a (Operators.succOrd b))
+         (NaturalArith.naddOrd (NaturalProduct.nmulOrd a b) a)
+```
+Lean:
+```
+NaturalProduct.nmul_succ_upper : ∀ (a b : Ordinal), NaturalProduct.nmul a b.succ ≤ NaturalProduct.nmul a b ♯ a
+```
+
+### `nmulOrd_succ_lower`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_succ_lower
+     : ClassicalFacts.excluded_middle ->
+       NaturalProduct.absorb_prop ->
+       forall a b : Defs.Ord,
+       Defs.ord_le (NaturalArith.naddOrd (NaturalProduct.nmulOrd a b) a)
+         (NaturalProduct.nmulOrd a (Operators.succOrd b))
+```
+Lean:
+```
+NaturalProduct.nmul_succ_lower : ExcludedMiddle →
+  NaturalProduct.AbsorbProp → ∀ (a b : Ordinal), NaturalProduct.nmul a b ♯ a ≤ NaturalProduct.nmul a b.succ
+```
+
+### `nmulOrd_succ`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_succ
+     : ClassicalFacts.excluded_middle ->
+       NaturalProduct.absorb_prop ->
+       forall a b : Defs.Ord,
+       Defs.ord_eq (NaturalProduct.nmulOrd a (Operators.succOrd b))
+         (NaturalArith.naddOrd (NaturalProduct.nmulOrd a b) a)
+```
+Lean:
+```
+NaturalProduct.nmul_succ : ExcludedMiddle →
+  NaturalProduct.AbsorbProp → ∀ (a b : Ordinal), NaturalProduct.nmul a b.succ ≈ NaturalProduct.nmul a b ♯ a
+```
+
+### `absorb`
+
+Rocq:
+```
+NaturalProduct.absorb
+     : ClassicalFacts.excluded_middle -> NaturalProduct.absorb_prop
+```
+Lean:
+```
+NaturalProduct.absorb : ExcludedMiddle → NaturalProduct.AbsorbProp
+```
+
+### `nmulOrd_succ_classical`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_succ_classical
+     : ClassicalFacts.excluded_middle ->
+       forall a b : Defs.Ord,
+       Defs.ord_eq (NaturalProduct.nmulOrd a (Operators.succOrd b))
+         (NaturalArith.naddOrd (NaturalProduct.nmulOrd a b) a)
+```
+Lean:
+```
+NaturalProduct.nmul_succ_classical : ExcludedMiddle →
+  ∀ (a b : Ordinal), NaturalProduct.nmul a b.succ ≈ NaturalProduct.nmul a b ♯ a
+```
+
+### `nmulOrd_distrib_lower`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_distrib_lower
+     : ClassicalFacts.excluded_middle ->
+       forall a b c : Defs.Ord,
+       Defs.ord_le (NaturalArith.naddOrd (NaturalProduct.nmulOrd a b) (NaturalProduct.nmulOrd a c))
+         (NaturalProduct.nmulOrd a (NaturalArith.naddOrd b c))
+```
+Lean:
+```
+NaturalProduct.nmul_distrib_lower : ExcludedMiddle →
+  ∀ (a b c : Ordinal), NaturalProduct.nmul a b ♯ NaturalProduct.nmul a c ≤ NaturalProduct.nmul a (b ♯ c)
+```
+
+### `nadd_split`
+
+Rocq:
+```
+NaturalProduct.nadd_split
+     : ClassicalFacts.excluded_middle ->
+       forall b c : Defs.Ord,
+       exists Sp : Defs.Ord -> bool -> Defs.Ord -> Prop,
+         (forall v : Defs.Ord,
+          Defs.ord_lt v (NaturalArith.naddOrd b c) -> exists (s : bool) (p : Defs.Ord), Sp v s p) /\
+         (forall v p : Defs.Ord, Sp v true p -> Defs.ord_lt p b) /\
+         (forall v p : Defs.Ord, Sp v false p -> Defs.ord_lt p c) /\
+         (forall (v w : Defs.Ord) (s : bool) (p q : Defs.Ord),
+          Sp v s p -> Sp w s q -> Defs.ord_lt v w -> Defs.ord_lt p q)
+```
+Lean:
+```
+NaturalProduct.nadd_split : ExcludedMiddle →
+  ∀ (b c : Ordinal),
+    ∃ Sp,
+      (∀ (v : Ordinal), v < b ♯ c → ∃ s p, Sp v s p) ∧
+        (∀ (v p : Ordinal), Sp v true p → p < b) ∧
+          (∀ (v p : Ordinal), Sp v false p → p < c) ∧
+            ∀ (v w : Ordinal) (s : Bool) (p q : Ordinal), Sp v s p → Sp w s q → v < w → p < q
+```
+
+### `nmulOrd_distrib_upper`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_distrib_upper
+     : ClassicalFacts.excluded_middle ->
+       forall a b c : Defs.Ord,
+       Defs.ord_le (NaturalProduct.nmulOrd a (NaturalArith.naddOrd b c))
+         (NaturalArith.naddOrd (NaturalProduct.nmulOrd a b) (NaturalProduct.nmulOrd a c))
+```
+Lean:
+```
+NaturalProduct.nmul_distrib_upper : ExcludedMiddle →
+  ∀ (a b c : Ordinal), NaturalProduct.nmul a (b ♯ c) ≤ NaturalProduct.nmul a b ♯ NaturalProduct.nmul a c
+```
+
+### `nmulOrd_distrib`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_distrib
+     : ClassicalFacts.excluded_middle ->
+       forall a b c : Defs.Ord,
+       Defs.ord_eq (NaturalProduct.nmulOrd a (NaturalArith.naddOrd b c))
+         (NaturalArith.naddOrd (NaturalProduct.nmulOrd a b) (NaturalProduct.nmulOrd a c))
+```
+Lean:
+```
+NaturalProduct.nmul_distrib : ExcludedMiddle →
+  ∀ (a b c : Ordinal), NaturalProduct.nmul a (b ♯ c) ≈ NaturalProduct.nmul a b ♯ NaturalProduct.nmul a c
+```
+
+### `nmulOrd_exp_upper`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_exp_upper
+     : ClassicalFacts.excluded_middle ->
+       forall α β : Defs.Ord,
+       Defs.ord_le
+         (NaturalProduct.nmulOrd (Arith.expOrd Operators.ω α) (Arith.expOrd Operators.ω β))
+         (Arith.expOrd Operators.ω (NaturalArith.naddOrd α β))
+```
+Lean:
+```
+NaturalProduct.nmul_exp_upper : ExcludedMiddle → ∀ (α β : Ordinal), NaturalProduct.nmul (ω ^ α) (ω ^ β) ≤ ω ^ (α ♯ β)
+```
+
+### `nmulOrd_exp_lower`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_exp_lower
+     : ClassicalFacts.excluded_middle ->
+       forall α β : Defs.Ord,
+       Defs.ord_le (Arith.expOrd Operators.ω (NaturalArith.naddOrd α β))
+         (NaturalProduct.nmulOrd (Arith.expOrd Operators.ω α) (Arith.expOrd Operators.ω β))
+```
+Lean:
+```
+NaturalProduct.nmul_exp_lower : ExcludedMiddle → ∀ (α β : Ordinal), ω ^ (α ♯ β) ≤ NaturalProduct.nmul (ω ^ α) (ω ^ β)
+```
+
+### `nmulOrd_exp`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_exp
+     : ClassicalFacts.excluded_middle ->
+       forall α β : Defs.Ord,
+       Defs.ord_eq
+         (NaturalProduct.nmulOrd (Arith.expOrd Operators.ω α) (Arith.expOrd Operators.ω β))
+         (Arith.expOrd Operators.ω (NaturalArith.naddOrd α β))
+```
+Lean:
+```
+NaturalProduct.nmul_exp : ExcludedMiddle → ∀ (α β : Ordinal), NaturalProduct.nmul (ω ^ α) (ω ^ β) ≈ ω ^ (α ♯ β)
+```
+
+### `nmulOrd_nadd_powers`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_nadd_powers
+     : ClassicalFacts.excluded_middle ->
+       forall xs ys : list Defs.Ord,
+       Defs.ord_eq
+         (NaturalProduct.nmulOrd (NaturalArith.cantor_denote_nadd xs)
+            (NaturalArith.cantor_denote_nadd ys))
+         (NaturalArith.cantor_denote_nadd (NaturalProduct.cnf_prod xs ys))
+```
+Lean:
+```
+NaturalProduct.nmul_nadd_powers : ExcludedMiddle →
+  ∀ (xs ys : List Ordinal),
+    NaturalProduct.nmul (cantorDenoteNadd xs) (cantorDenoteNadd ys) ≈ cantorDenoteNadd (NaturalProduct.cnfProd xs ys)
+```
+
+### `nmulOrd_cantor`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_cantor
+     : ClassicalFacts.excluded_middle ->
+       forall (xs ys : list Defs.Ord) (x y : Defs.Ord),
+       Cantor.cantor_sequence x xs ->
+       Cantor.cantor_sequence y ys ->
+       Defs.ord_eq (NaturalProduct.nmulOrd (Cantor.cantor_denote xs) (Cantor.cantor_denote ys))
+         (NaturalArith.cantor_denote_nadd (NaturalProduct.cnf_prod xs ys))
+```
+Lean:
+```
+NaturalProduct.nmul_cantor : ExcludedMiddle →
+  ∀ (xs ys : List Ordinal) (x y : Ordinal),
+    x.CantorSequence xs →
+      y.CantorSequence ys →
+        NaturalProduct.nmul (cantorDenote xs) (cantorDenote ys) ≈ cantorDenoteNadd (NaturalProduct.cnfProd xs ys)
+```
+
+### `nmulOrd_is_hessenberg`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_is_hessenberg
+     : ClassicalFacts.excluded_middle ->
+       forall a b : Defs.Ord,
+       exists xs ys : list Defs.Ord,
+         Cantor.cantor_sequence a xs /\
+         Defs.ord_eq (Cantor.cantor_denote xs) a /\
+         Cantor.cantor_sequence b ys /\
+         Defs.ord_eq (Cantor.cantor_denote ys) b /\
+         Defs.ord_eq (NaturalProduct.nmulOrd a b)
+           (NaturalArith.cantor_denote_nadd (NaturalProduct.cnf_prod xs ys))
+```
+Lean:
+```
+NaturalProduct.nmul_is_hessenberg : ExcludedMiddle →
+  ∀ (a b : Ordinal),
+    ∃ xs ys,
+      a.CantorSequence xs ∧
+        cantorDenote xs ≈ a ∧
+          b.CantorSequence ys ∧
+            cantorDenote ys ≈ b ∧ NaturalProduct.nmul a b ≈ cantorDenoteNadd (NaturalProduct.cnfProd xs ys)
+```
+
+### `nmulOrd_distrib_lower_Q`
+
+Rocq:
+```
+NaturalProduct.nmulOrd_distrib_lower_Q
+     : forall Q : Defs.Ord -> Prop,
+       (forall x y : Defs.Ord, Defs.ord_eq x y -> Q x -> Q y) ->
+       (forall x y : Defs.Ord, Q x -> Q y -> Defs.ord_lt x y \/ Defs.ord_le y x) ->
+       Q Operators.zeroOrd ->
+       forall a b c : Defs.Ord,
+       NaturalProduct.QH Q a ->
+       NaturalProduct.QH Q b ->
+       NaturalProduct.QH Q c ->
+       Defs.ord_le (NaturalArith.naddOrd (NaturalProduct.nmulOrd a b) (NaturalProduct.nmulOrd a c))
+         (NaturalProduct.nmulOrd a (NaturalArith.naddOrd b c))
+```
+Lean:
+```
+NaturalProduct.nmul_distrib_lower_Q : ∀ (Q : Ordinal → Prop),
+  (∀ (x y : Ordinal), x ≈ y → Q x → Q y) →
+    (∀ (x y : Ordinal), Q x → Q y → x < y ∨ y ≤ x) →
+      Q 0 →
+        ∀ (a b c : Ordinal),
+          NaturalProduct.QH Q a →
+            NaturalProduct.QH Q b →
+              NaturalProduct.QH Q c → NaturalProduct.nmul a b ♯ NaturalProduct.nmul a c ≤ NaturalProduct.nmul a (b ♯ c)
+```
+
+### `split_WEM`
+
+Rocq:
+```
+NaturalProduct.split_WEM
+     : (forall b c : Defs.Ord,
+        exists Sp : Defs.Ord -> bool -> Defs.Ord -> Prop, NaturalProduct.split_spec b c Sp) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+NaturalProduct.split_WEM : (∀ (b c : Ordinal), ∃ Sp, NaturalProduct.SplitSpec b c Sp) → WeakExcludedMiddle
+```
+
+### `row_lower_EM`
+
+Rocq:
+```
+NaturalProduct.row_lower_EM
+     : (forall (w : Defs.Ord) (D : NaturalProduct.region) (b : Defs.Ord),
+        NaturalProduct.rsub ((w, b) :: nil)%list D ->
+        (forall r : Defs.Ord * Defs.Ord, List.In r D -> Defs.ord_le (snd r) b) ->
+        Defs.ord_le (NaturalArith.naddOrd (NaturalProduct.rk D) w)
+          (NaturalProduct.rk ((w, Operators.succOrd b) :: D)%list)) ->
+       ClassicalFacts.excluded_middle
+```
+Lean:
+```
+NaturalProduct.row_lower_EM : (∀ (w : Ordinal) (D : NaturalProduct.Region) (b : Ordinal),
+    NaturalProduct.Rsub [(w, b)] D →
+      (∀ (r : Ordinal × Ordinal), r ∈ D → r.snd ≤ b) → NaturalProduct.rk D ♯ w ≤ NaturalProduct.rk ((w, b.succ) :: D)) →
+  ExcludedMiddle
+```
+
+### `succ_lower_WEM`
+
+Rocq:
+```
+NaturalProduct.succ_lower_WEM
+     : (forall a b : Defs.Ord,
+        Defs.ord_le (NaturalArith.naddOrd (NaturalProduct.nmulOrd a b) a)
+          (NaturalProduct.nmulOrd a (Operators.succOrd b))) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+NaturalProduct.succ_lower_WEM : (∀ (a b : Ordinal), NaturalProduct.nmul a b ♯ a ≤ NaturalProduct.nmul a b.succ) →
+  WeakExcludedMiddle
+```
+
+### `succ_lower_complete_WEM`
+
+Rocq:
+```
+NaturalProduct.succ_lower_complete_WEM
+     : (forall a b : Defs.Ord,
+        Operators.complete a ->
+        Operators.complete b ->
+        Defs.ord_le (NaturalArith.naddOrd (NaturalProduct.nmulOrd a b) a)
+          (NaturalProduct.nmulOrd a (Operators.succOrd b))) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+NaturalProduct.succ_lower_complete_WEM : (∀ (a b : Ordinal),
+    a.Complete → b.Complete → NaturalProduct.nmul a b ♯ a ≤ NaturalProduct.nmul a b.succ) →
+  WeakExcludedMiddle
+```
+
+### `distrib_lower_WEM`
+
+Rocq:
+```
+NaturalProduct.distrib_lower_WEM
+     : (forall a b c : Defs.Ord,
+        Defs.ord_le
+          (NaturalArith.naddOrd (NaturalProduct.nmulOrd a b) (NaturalProduct.nmulOrd a c))
+          (NaturalProduct.nmulOrd a (NaturalArith.naddOrd b c))) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+NaturalProduct.distrib_lower_WEM : (∀ (a b c : Ordinal),
+    NaturalProduct.nmul a b ♯ NaturalProduct.nmul a c ≤ NaturalProduct.nmul a (b ♯ c)) →
+  WeakExcludedMiddle
+```
+
+### `distrib_lower_complete_WEM`
+
+Rocq:
+```
+NaturalProduct.distrib_lower_complete_WEM
+     : (forall a b c : Defs.Ord,
+        Operators.complete a ->
+        Operators.complete b ->
+        Operators.complete c ->
+        Defs.ord_le
+          (NaturalArith.naddOrd (NaturalProduct.nmulOrd a b) (NaturalProduct.nmulOrd a c))
+          (NaturalProduct.nmulOrd a (NaturalArith.naddOrd b c))) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+NaturalProduct.distrib_lower_complete_WEM : (∀ (a b c : Ordinal),
+    a.Complete →
+      b.Complete → c.Complete → NaturalProduct.nmul a b ♯ NaturalProduct.nmul a c ≤ NaturalProduct.nmul a (b ♯ c)) →
+  WeakExcludedMiddle
+```
+
 ## Classical
 
 ### `order_total`
@@ -485,6 +1251,19 @@ Classical.classical.order_trichotomy
 Lean:
 ```
 order_trichotomy : ExcludedMiddle → ∀ (x y : Ordinal), x < y ∨ x ≈ y ∨ y < x
+```
+
+### `order_splits`
+
+Rocq:
+```
+Classical.classical.order_splits
+     : ClassicalFacts.excluded_middle ->
+       forall x y : Defs.Ord, Defs.ord_le x y <-> Defs.ord_lt x y \/ Defs.ord_eq x y
+```
+Lean:
+```
+order_splits : ExcludedMiddle → ∀ (x y : Ordinal), x ≤ y ↔ x < y ∨ x ≈ y
 ```
 
 ### `ordinal_discriminate`
@@ -567,6 +1346,32 @@ Classical.classical.order_total_EM
 Lean:
 ```
 order_total_EM : (∀ (x y : Ordinal), x ≤ y ∨ y < x) → ExcludedMiddle
+```
+
+### `order_splits_EM`
+
+Rocq:
+```
+Classical.classical.order_splits_EM
+     : (forall x y : Defs.Ord, Defs.ord_le x y <-> Defs.ord_lt x y \/ Defs.ord_eq x y) ->
+       ClassicalFacts.excluded_middle
+```
+Lean:
+```
+order_splits_EM : (∀ (x y : Ordinal), x ≤ y ↔ x < y ∨ x ≈ y) → ExcludedMiddle
+```
+
+### `complete_intensional_EM`
+
+Rocq:
+```
+Classical.classical.complete_intensional_EM
+     : (forall x y : Defs.Ord, Defs.ord_eq x y -> Operators.complete x -> Operators.complete y) ->
+       ClassicalFacts.excluded_middle
+```
+Lean:
+```
+complete_intensional_EM : (∀ (x y : Ordinal), x ≈ y → x.Complete → y.Complete) → ExcludedMiddle
 ```
 
 ### `complete_EM`
@@ -999,19 +1804,6 @@ Lean:
   (∀ (x y z : A), R x y → R y z → R x z) → wfOrd (lexExp R) ⋯ ≈ ω ^ wfOrd R HwfR
 ```
 
-### `tree_selection_eq_powOmega`
-
-Rocq:
-```
-WellFounded.tree_selection_eq_powOmega
-     : ClassicalFacts.excluded_middle ->
-       forall x : Defs.Ord, Defs.ord_eq (WellFounded.tree_selection x) (Arith.expOrd Operators.ω x)
-```
-Lean:
-```
-tree_selection_eq_powOmega : ExcludedMiddle → ∀ (x : Ordinal), x.treeSelection ≈ ω ^ x
-```
-
 ### `list_ext_is_tree_selection`
 
 Rocq:
@@ -1020,7 +1812,7 @@ WellFounded.list_ext_is_tree_selection
      : forall (A : Type) (R : A -> A -> Prop) (HwfR : well_founded R),
        Defs.ord_eq
          (WellFounded.wf_ord (List_Extension.list_ext A R) (List_Extension.wf_list_ext A R HwfR))
-         (WellFounded.tree_selection (WellFounded.wf_ord R HwfR))
+         (NaturalArith.tree_selection (WellFounded.wf_ord R HwfR))
 ```
 Lean:
 ```
@@ -1149,6 +1941,53 @@ Lean:
 ```
 @strongly_critical_fixpoint : ∀ {f : Ordinal → Ordinal},
   NormalFunction f → ∀ (β : Ordinal), β.Complete → (StronglyCriticalOrdinal f β ↔ veblen f β 0 ≈ β)
+```
+
+### `veblen_increasing_EM`
+
+Rocq:
+```
+VeblenCon.veblen_increasing_EM
+     : (forall β x y : Defs.Ord,
+        Operators.complete y ->
+        Defs.ord_lt x y ->
+        Defs.ord_lt (VeblenDefs.veblen Arith.powOmega β x) (VeblenDefs.veblen Arith.powOmega β y)) ->
+       ClassicalFacts.excluded_middle
+```
+Lean:
+```
+veblen_increasing_EM : (∀ (β x y : Ordinal), y.Complete → x < y → veblen powOmega β x < veblen powOmega β y) →
+  ExcludedMiddle
+```
+
+### `veblen_fixpoints_WEM`
+
+Rocq:
+```
+VeblenCon.veblen_fixpoints_WEM
+     : (forall (α : Defs.Ord) (B : Type) (g : B -> Defs.Ord) (x : Defs.Ord),
+        inhabited B ->
+        (forall b : B, Operators.complete (g b)) ->
+        Operators.complete α ->
+        Operators.complete x ->
+        Defs.ord_lt α {| Defs.ordCarrier := B; Defs.ordSize := g |} ->
+        Defs.ord_le
+          (VeblenDefs.veblen Arith.powOmega α
+             (VeblenDefs.veblen Arith.powOmega {| Defs.ordCarrier := B; Defs.ordSize := g |} x))
+          (VeblenDefs.veblen Arith.powOmega {| Defs.ordCarrier := B; Defs.ordSize := g |} x)) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+veblen_fixpoints_WEM : (∀ (α : Ordinal) (B : Type u_1) (g : B → Ordinal) (x : Ordinal),
+    Nonempty B →
+      (∀ (b : B), (g b).Complete) →
+        α.Complete →
+          x.Complete →
+            α < { Carrier := B, size := g } →
+              veblen powOmega α (veblen powOmega { Carrier := B, size := g } x) ≤
+                veblen powOmega { Carrier := B, size := g } x) →
+  WeakExcludedMiddle
 ```
 
 ### `enum_fixpoints_enumerates`
@@ -1825,6 +2664,501 @@ CantorNotation.CantorNormalForm.has_enough_notations_is_classical_for_complete_o
   ExcludedMiddle
 ```
 
+## Notation.Interpolants
+
+### `has_enough_notations`
+
+Rocq:
+```
+Interpolants.has_enough_notations
+     : forall A : Type, (A -> Defs.Ord) -> (A -> Prop) -> Prop
+```
+Lean:
+```
+@Interpolants.HasEnoughNotations : {A : Type} → (A → Ordinal) → (A → Prop) → Prop
+```
+
+### `has_enough_notations_has_all_interpolants`
+
+Rocq:
+```
+Interpolants.has_enough_notations_has_all_interpolants
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop),
+       Interpolants.has_enough_notations f P -> Interpolants.has_all_interpolants f P
+```
+Lean:
+```
+@Interpolants.has_enough_notations_has_all_interpolants : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop},
+  Interpolants.HasEnoughNotations f P → Interpolants.HasAllInterpolants f P
+```
+
+### `has_interpolants_has_enough_notations`
+
+Rocq:
+```
+Interpolants.has_interpolants_has_enough_notations
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop),
+       ClassicalFacts.excluded_middle ->
+       Interpolants.has_all_interpolants f P -> Interpolants.has_enough_notations f P
+```
+Lean:
+```
+@Interpolants.has_interpolants_has_enough_notations : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop},
+  ExcludedMiddle → Interpolants.HasAllInterpolants f P → Interpolants.HasEnoughNotations f P
+```
+
+## Notation.CantorProduct
+
+### `cantor_nadd_unique`
+
+Rocq:
+```
+CantorProduct.cantor_nadd_unique
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop),
+       CantorDecomposition.has_cantor_decomposition f P ->
+       forall xs ys : list A,
+       Defs.each P xs ->
+       Defs.each P ys ->
+       CantorDecomposition.cantor_ordered f xs ->
+       CantorDecomposition.cantor_ordered f ys ->
+       Defs.ord_eq (NaturalArith.cantor_denote_nadd (ListDef.map f xs))
+         (NaturalArith.cantor_denote_nadd (ListDef.map f ys)) ->
+       List.Forall2 Defs.ord_eq (ListDef.map f xs) (ListDef.map f ys)
+```
+Lean:
+```
+@CantorProduct.cantor_nadd_unique : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P) (xs ys : List A),
+  Each P xs →
+    Each P ys →
+      CantorDecomposition.CantorOrdered f xs →
+        CantorDecomposition.CantorOrdered f ys →
+          CantorProduct.V (List.map f xs) ≈ CantorProduct.V (List.map f ys) →
+            Forall₂ (fun x1 x2 => x1 ≈ x2) (List.map f xs) (List.map f ys)
+```
+
+### `cantor_nmul_correct`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_correct
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P) (x y : A),
+       P x ->
+       P y ->
+       P (CantorProduct.cantor_nmul A f P X x y) /\
+       Defs.ord_eq (f (CantorProduct.cantor_nmul A f P X x y))
+         (NaturalArith.cantor_denote_nadd
+            (NaturalProduct.cnf_prod (ListDef.map f (CantorDecomposition.cantor_decompose X x))
+               (ListDef.map f (CantorDecomposition.cantor_decompose X y))))
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_correct : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P) (x y : A),
+  P x →
+    P y →
+      P (CantorProduct.cantorNmul X x y) ∧
+        f (CantorProduct.cantorNmul X x y) ≈
+          CantorProduct.V (NaturalProduct.cnfProd (List.map f (X.decompose x)) (List.map f (X.decompose y)))
+```
+
+### `cantor_nmul_proper`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_proper
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P) (x x' y y' : A),
+       P x ->
+       P x' ->
+       P y ->
+       P y' ->
+       Defs.ord_eq (f x) (f x') ->
+       Defs.ord_eq (f y) (f y') ->
+       Defs.ord_eq (f (CantorProduct.cantor_nmul A f P X x y))
+         (f (CantorProduct.cantor_nmul A f P X x' y'))
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_proper : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P) (x x' y y' : A),
+  P x →
+    P x' →
+      P y → P y' → f x ≈ f x' → f y ≈ f y' → f (CantorProduct.cantorNmul X x y) ≈ f (CantorProduct.cantorNmul X x' y')
+```
+
+### `cantor_nmul_comm`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_comm
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P) (x y : A),
+       P x ->
+       P y ->
+       Defs.ord_eq (f (CantorProduct.cantor_nmul A f P X x y))
+         (f (CantorProduct.cantor_nmul A f P X y x))
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_comm : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P) (x y : A),
+  P x → P y → f (CantorProduct.cantorNmul X x y) ≈ f (CantorProduct.cantorNmul X y x)
+```
+
+### `cantor_nmul_assoc`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_assoc
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P) (x y z : A),
+       P x ->
+       P y ->
+       P z ->
+       Defs.ord_eq
+         (f (CantorProduct.cantor_nmul A f P X (CantorProduct.cantor_nmul A f P X x y) z))
+         (f (CantorProduct.cantor_nmul A f P X x (CantorProduct.cantor_nmul A f P X y z)))
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_assoc : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P) (x y z : A),
+  P x →
+    P y →
+      P z →
+        f (CantorProduct.cantorNmul X (CantorProduct.cantorNmul X x y) z) ≈
+          f (CantorProduct.cantorNmul X x (CantorProduct.cantorNmul X y z))
+```
+
+### `cantor_nmul_nadd_r`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_nadd_r
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P) (x y z : A),
+       P x ->
+       P y ->
+       P z ->
+       Defs.ord_eq
+         (f (CantorProduct.cantor_nmul A f P X x (CantorDecomposition.cantor_nadd X y z)))
+         (f
+            (CantorDecomposition.cantor_nadd X (CantorProduct.cantor_nmul A f P X x y)
+               (CantorProduct.cantor_nmul A f P X x z)))
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_nadd_r : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P) (x y z : A),
+  P x →
+    P y →
+      P z →
+        f (CantorProduct.cantorNmul X x (CantorDecomposition.cantorNadd X y z)) ≈
+          f (CantorDecomposition.cantorNadd X (CantorProduct.cantorNmul X x y) (CantorProduct.cantorNmul X x z))
+```
+
+### `cantor_nmul_nadd_l`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_nadd_l
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P) (x y z : A),
+       P x ->
+       P y ->
+       P z ->
+       Defs.ord_eq
+         (f (CantorProduct.cantor_nmul A f P X (CantorDecomposition.cantor_nadd X x y) z))
+         (f
+            (CantorDecomposition.cantor_nadd X (CantorProduct.cantor_nmul A f P X x z)
+               (CantorProduct.cantor_nmul A f P X y z)))
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_nadd_l : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P) (x y z : A),
+  P x →
+    P y →
+      P z →
+        f (CantorProduct.cantorNmul X (CantorDecomposition.cantorNadd X x y) z) ≈
+          f (CantorDecomposition.cantorNadd X (CantorProduct.cantorNmul X x z) (CantorProduct.cantorNmul X y z))
+```
+
+### `cantor_nmul_zero`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_zero
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P) (x : A),
+       P x ->
+       Defs.ord_eq (f (CantorProduct.cantor_nmul A f P X x (CantorDecomposition.cantor_zero X)))
+         Operators.zeroOrd
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_zero : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P) (x : A),
+  P x → f (CantorProduct.cantorNmul X x (CantorDecomposition.cantorZero X)) ≈ 0
+```
+
+### `cantor_nmul_one`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_one
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P) (x : A),
+       P x ->
+       Defs.ord_eq (f (CantorProduct.cantor_nmul A f P X x (CantorDecomposition.cantor_nat X 1)))
+         (f x)
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_one : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P) (x : A),
+  P x → f (CantorProduct.cantorNmul X x (CantorDecomposition.cantorNat X 1)) ≈ f x
+```
+
+### `cantor_nmul_exp`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_exp
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P) (a b : A),
+       P a ->
+       P b ->
+       Defs.ord_eq
+         (f
+            (CantorProduct.cantor_nmul A f P X (CantorDecomposition.cantor_recompose X (a :: nil))
+               (CantorDecomposition.cantor_recompose X (b :: nil))))
+         (f (CantorDecomposition.cantor_recompose X (CantorDecomposition.cantor_nadd X a b :: nil)))
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_exp : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P) (a b : A),
+  P a →
+    P b →
+      f (CantorProduct.cantorNmul X (X.recompose [a]) (X.recompose [b])) ≈
+        f (X.recompose [CantorDecomposition.cantorNadd X a b])
+```
+
+### `cantor_nmul_succ`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_succ
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P) (x y : A),
+       P x ->
+       P y ->
+       Defs.ord_eq (f (CantorProduct.cantor_nmul A f P X x (CantorDecomposition.cantor_succ X y)))
+         (f (CantorDecomposition.cantor_nadd X (CantorProduct.cantor_nmul A f P X x y) x))
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_succ : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P) (x y : A),
+  P x →
+    P y →
+      f (CantorProduct.cantorNmul X x (CantorDecomposition.cantorSucc X y)) ≈
+        f (CantorDecomposition.cantorNadd X (CantorProduct.cantorNmul X x y) x)
+```
+
+### `cantor_nmul_reflects_EM`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_reflects_EM
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P),
+       ClassicalFacts.excluded_middle ->
+       Reflection.reflects A f P
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalProduct.nmulOrd (CantorProduct.cantor_nmul A f P X)
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_reflects_EM : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P),
+  ExcludedMiddle →
+    Reflects A f P (Shape.ord ==> Shape.ord ==> Shape.ord) NaturalProduct.nmul (CantorProduct.cantorNmul X)
+```
+
+### `exp_lower_n`
+
+Rocq:
+```
+CantorProduct.exp_lower_n
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P),
+       Interpolants.has_all_interpolants f P ->
+       forall a b : A,
+       P a ->
+       P b ->
+       Defs.ord_le (Arith.expOrd Operators.ω (NaturalArith.naddOrd (f a) (f b)))
+         (NaturalProduct.nmulOrd (CantorProduct.En A f P X a) (CantorProduct.En A f P X b))
+```
+Lean:
+```
+@CantorProduct.exp_lower_n : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P),
+  Interpolants.HasAllInterpolants f P →
+    ∀ (a₀ b₀ : A), P a₀ → P b₀ → ω ^ (f a₀ ♯ f b₀) ≤ NaturalProduct.nmul (CantorProduct.En X a₀) (CantorProduct.En X b₀)
+```
+
+### `cantor_nmul_lower`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_lower
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P),
+       Interpolants.has_all_interpolants f P ->
+       forall x y : A,
+       P x ->
+       P y ->
+       Defs.ord_le (f (CantorProduct.cantor_nmul A f P X x y)) (NaturalProduct.nmulOrd (f x) (f y))
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_lower : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P),
+  Interpolants.HasAllInterpolants f P →
+    ∀ (x y : A), P x → P y → f (CantorProduct.cantorNmul X x y) ≤ NaturalProduct.nmul (f x) (f y)
+```
+
+### `exp_upper_n`
+
+Rocq:
+```
+CantorProduct.exp_upper_n
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P),
+       Interpolants.has_all_interpolants f P ->
+       forall a b : A,
+       P a ->
+       P b ->
+       Defs.ord_le
+         (NaturalProduct.nmulOrd (CantorProduct.En A f P X a) (CantorProduct.En A f P X b))
+         (Arith.expOrd Operators.ω (NaturalArith.naddOrd (f a) (f b)))
+```
+Lean:
+```
+@CantorProduct.exp_upper_n : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P),
+  Interpolants.HasAllInterpolants f P →
+    ∀ (a₀ b₀ : A), P a₀ → P b₀ → NaturalProduct.nmul (CantorProduct.En X a₀) (CantorProduct.En X b₀) ≤ ω ^ (f a₀ ♯ f b₀)
+```
+
+### `cantor_nmul_upper`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_upper
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P),
+       Interpolants.has_all_interpolants f P ->
+       forall x y : A,
+       P x ->
+       P y ->
+       Defs.ord_le (NaturalProduct.nmulOrd (f x) (f y)) (f (CantorProduct.cantor_nmul A f P X x y))
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_upper : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P),
+  Interpolants.HasAllInterpolants f P →
+    ∀ (x y : A), P x → P y → NaturalProduct.nmul (f x) (f y) ≤ f (CantorProduct.cantorNmul X x y)
+```
+
+### `cantor_nmul_reflects`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_reflects
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P),
+       Interpolants.has_all_interpolants f P ->
+       Reflection.reflects A f P
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalProduct.nmulOrd (CantorProduct.cantor_nmul A f P X)
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_reflects : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P),
+  Interpolants.HasAllInterpolants f P →
+    Reflects A f P (Shape.ord ==> Shape.ord ==> Shape.ord) NaturalProduct.nmul (CantorProduct.cantorNmul X)
+```
+
+### `interpolants_from_epsilons`
+
+Rocq:
+```
+CantorProduct.interpolants_from_epsilons
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop),
+       CantorDecomposition.has_cantor_decomposition f P ->
+       (forall x : A,
+        P x ->
+        Defs.ord_eq (f x) (Arith.expOrd Operators.ω (f x)) ->
+        Interpolants.has_interpolants f P (f x)) ->
+       Interpolants.has_all_interpolants f P
+```
+Lean:
+```
+@CantorProduct.interpolants_from_epsilons : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P),
+  (∀ (x : A), P x → f x ≈ ω ^ f x → Interpolants.HasInterpolants f P (f x)) → Interpolants.HasAllInterpolants f P
+```
+
+### `cantor_nmul_reflects_epsilons`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_reflects_epsilons
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P),
+       (forall x : A,
+        P x ->
+        Defs.ord_eq (f x) (Arith.expOrd Operators.ω (f x)) ->
+        Interpolants.has_interpolants f P (f x)) ->
+       Reflection.reflects A f P
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalProduct.nmulOrd (CantorProduct.cantor_nmul A f P X)
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_reflects_epsilons : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P),
+  (∀ (x : A), P x → f x ≈ ω ^ f x → Interpolants.HasInterpolants f P (f x)) →
+    Reflects A f P (Shape.ord ==> Shape.ord ==> Shape.ord) NaturalProduct.nmul (CantorProduct.cantorNmul X)
+```
+
+### `cantor_nmul_reflects_no_epsilons`
+
+Rocq:
+```
+CantorProduct.cantor_nmul_reflects_no_epsilons
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
+         (X : CantorDecomposition.has_cantor_decomposition f P),
+       (forall x : A, P x -> ~ Defs.ord_eq (f x) (Arith.expOrd Operators.ω (f x))) ->
+       Reflection.reflects A f P
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalProduct.nmulOrd (CantorProduct.cantor_nmul A f P X)
+```
+Lean:
+```
+@CantorProduct.cantor_nmul_reflects_no_epsilons : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P),
+  (∀ (x : A), P x → ¬f x ≈ ω ^ f x) →
+    Reflects A f P (Shape.ord ==> Shape.ord ==> Shape.ord) NaturalProduct.nmul (CantorProduct.cantorNmul X)
+```
+
 ## Notation.CantorDecomposition
 
 ### `cantor_zero_reflects`
@@ -1931,32 +3265,6 @@ Lean:
   Reflects A f P (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 ^ x2) (CantorDecomposition.cantorExp X)
 ```
 
-### `has_enough_notations`
-
-Rocq:
-```
-CantorDecomposition.has_enough_notations
-     : forall A : Type, (A -> Defs.Ord) -> (A -> Prop) -> Prop
-```
-Lean:
-```
-@CantorDecomposition.HasEnoughNotations : {A : Type} → (A → Ordinal) → (A → Prop) → Prop
-```
-
-### `has_enough_notations_has_all_interpolants`
-
-Rocq:
-```
-CantorDecomposition.has_enough_notations_has_all_interpolants
-     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop),
-       CantorDecomposition.has_enough_notations f P -> CantorDecomposition.has_all_interpolants f P
-```
-Lean:
-```
-@CantorDecomposition.has_enough_notations_has_all_interpolants : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop},
-  CantorDecomposition.HasEnoughNotations f P → CantorDecomposition.HasAllInterpolants f P
-```
-
 ### `has_enough_notations_EM`
 
 Rocq:
@@ -1964,27 +3272,12 @@ Rocq:
 CantorDecomposition.has_enough_notations_EM
      : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop),
        CantorDecomposition.has_cantor_decomposition f P ->
-       CantorDecomposition.has_enough_notations f P -> ClassicalFacts.excluded_middle
+       Interpolants.has_enough_notations f P -> ClassicalFacts.excluded_middle
 ```
 Lean:
 ```
 @CantorDecomposition.has_enough_notations_EM : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
-  (X : CantorDecomposition.HasCantorDecomposition f P), CantorDecomposition.HasEnoughNotations f P → ExcludedMiddle
-```
-
-### `has_interpolants_has_enough_notations`
-
-Rocq:
-```
-CantorDecomposition.has_interpolants_has_enough_notations
-     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop),
-       ClassicalFacts.excluded_middle ->
-       CantorDecomposition.has_all_interpolants f P -> CantorDecomposition.has_enough_notations f P
-```
-Lean:
-```
-@CantorDecomposition.has_interpolants_has_enough_notations : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop},
-  ExcludedMiddle → CantorDecomposition.HasAllInterpolants f P → CantorDecomposition.HasEnoughNotations f P
+  (X : CantorDecomposition.HasCantorDecomposition f P), Interpolants.HasEnoughNotations f P → ExcludedMiddle
 ```
 
 ### `has_all_interpolants_EM_iff_has_enough_notations`
@@ -1994,14 +3287,14 @@ Rocq:
 CantorDecomposition.has_all_interpolants_EM_iff_has_enough_notations
      : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop),
        CantorDecomposition.has_cantor_decomposition f P ->
-       CantorDecomposition.has_all_interpolants f P /\ ClassicalFacts.excluded_middle <->
-       CantorDecomposition.has_enough_notations f P
+       Interpolants.has_all_interpolants f P /\ ClassicalFacts.excluded_middle <->
+       Interpolants.has_enough_notations f P
 ```
 Lean:
 ```
 @CantorDecomposition.has_all_interpolants_EM_iff_has_enough_notations : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
   (X : CantorDecomposition.HasCantorDecomposition f P),
-  CantorDecomposition.HasAllInterpolants f P ∧ ExcludedMiddle ↔ CantorDecomposition.HasEnoughNotations f P
+  Interpolants.HasAllInterpolants f P ∧ ExcludedMiddle ↔ Interpolants.HasEnoughNotations f P
 ```
 
 ### `cantor_denote_nadd_eq`
@@ -2011,7 +3304,6 @@ Rocq:
 CantorDecomposition.cantor_denote_nadd_eq
      : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop),
        CantorDecomposition.has_cantor_decomposition f P ->
-       CantorDecomposition.has_all_interpolants f P ->
        forall xs : list A,
        Defs.each P xs ->
        CantorDecomposition.cantor_ordered f xs ->
@@ -2021,12 +3313,10 @@ CantorDecomposition.cantor_denote_nadd_eq
 Lean:
 ```
 @CantorDecomposition.cantor_denote_nadd_eq : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
-  (X : CantorDecomposition.HasCantorDecomposition f P),
-  CantorDecomposition.HasAllInterpolants f P →
-    ∀ (xs : List A),
-      Each P xs →
-        CantorDecomposition.CantorOrdered f xs →
-          CantorDecomposition.cantorDenote f xs ≈ CantorDecomposition.cantorDenoteNadd f xs
+  (X : CantorDecomposition.HasCantorDecomposition f P) (xs : List A),
+  Each P xs →
+    CantorDecomposition.CantorOrdered f xs →
+      CantorDecomposition.cantorDenote f xs ≈ CantorDecomposition.cantorDenoteNadd f xs
 ```
 
 ### `cantor_nadd_reflects`
@@ -2036,7 +3326,6 @@ Rocq:
 CantorDecomposition.cantor_nadd_reflects
      : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop)
          (X : CantorDecomposition.has_cantor_decomposition f P),
-       CantorDecomposition.has_all_interpolants f P ->
        Reflection.reflects A f P
          (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
          NaturalArith.naddOrd (CantorDecomposition.cantor_nadd X)
@@ -2045,8 +3334,7 @@ Lean:
 ```
 @CantorDecomposition.cantor_nadd_reflects : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
   (X : CantorDecomposition.HasCantorDecomposition f P),
-  CantorDecomposition.HasAllInterpolants f P →
-    Reflects A f P (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 ♯ x2) (CantorDecomposition.cantorNadd X)
+  Reflects A f P (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 ♯ x2) (CantorDecomposition.cantorNadd X)
 ```
 
 ## Notation.VNotation
@@ -2247,12 +3535,11 @@ VNotation.VF_ε₀ : VNotation.VF ≈ ε 0
 Rocq:
 ```
 VNotation.VF_has_all_interpolants
-     : CantorDecomposition.has_all_interpolants VNotation.VF_denote VNotation.VF_normal
+     : Interpolants.has_all_interpolants VNotation.VF_denote VNotation.VF_normal
 ```
 Lean:
 ```
-VNotation.VForm.has_all_interpolants : CantorDecomposition.HasAllInterpolants VNotation.VForm.denote
-  VNotation.VForm.IsNormal
+VNotation.VForm.has_all_interpolants : Interpolants.HasAllInterpolants VNotation.VForm.denote VNotation.VForm.IsNormal
 ```
 
 ### `VF_reflects_nadd`
@@ -2268,6 +3555,21 @@ Lean:
 ```
 VNotation.VForm.reflects_nadd : Reflects VNotation.VForm VNotation.VForm.denote VNotation.VForm.IsNormal
   (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 ♯ x2) VNotation.VForm.nadd
+```
+
+### `VF_reflects_nmul`
+
+Rocq:
+```
+VNotation.VF_reflects_nmul
+     : Reflection.reflects VNotation.VForm VNotation.VF_denote VNotation.VF_normal
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalProduct.nmulOrd VNotation.VF_nmul
+```
+Lean:
+```
+VNotation.VForm.reflects_nmul : Reflects VNotation.VForm VNotation.VForm.denote VNotation.VForm.IsNormal
+  (Shape.ord ==> Shape.ord ==> Shape.ord) NaturalProduct.nmul VNotation.VForm.nmul
 ```
 
 ### `VF_has_enough_notations`
@@ -2549,11 +3851,11 @@ VWNotation.VForm.VF_Γ₀ : VWNotation.VF ≈ Γ 0
 Rocq:
 ```
 VWNotation.VF_has_all_interpolants
-     : CantorDecomposition.has_all_interpolants VWNotation.VF_denote VWNotation.VF_isNormal
+     : Interpolants.has_all_interpolants VWNotation.VF_denote VWNotation.VF_isNormal
 ```
 Lean:
 ```
-VWNotation.VForm.has_all_interpolants : CantorDecomposition.HasAllInterpolants VWNotation.VForm.denote
+VWNotation.VForm.has_all_interpolants : Interpolants.HasAllInterpolants VWNotation.VForm.denote
   VWNotation.VForm.IsNormal
 ```
 
@@ -2570,6 +3872,21 @@ Lean:
 ```
 VWNotation.VForm.reflects_nadd : Reflects VWNotation.VForm VWNotation.VForm.denote VWNotation.VForm.IsNormal
   (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 ♯ x2) VWNotation.VForm.nadd
+```
+
+### `VF_reflects_nmul`
+
+Rocq:
+```
+VWNotation.VF_reflects_nmul
+     : Reflection.reflects VWNotation.VForm VWNotation.VF_denote VWNotation.VF_isNormal
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalProduct.nmulOrd VWNotation.VF_nmul
+```
+Lean:
+```
+VWNotation.VForm.reflects_nmul : Reflects VWNotation.VForm VWNotation.VForm.denote VWNotation.VForm.IsNormal
+  (Shape.ord ==> Shape.ord ==> Shape.ord) NaturalProduct.nmul VWNotation.VForm.nmul
 ```
 
 ### `VW_has_enough_notations`
@@ -2883,12 +4200,11 @@ ATowerFinNotation.VForm.ackermann_reflects : ∀ (n : Nat),
 Rocq:
 ```
 ATowerFinNotation.VF_has_all_interpolants
-     : CantorDecomposition.has_all_interpolants ATowerFinNotation.VF_denote
-         ATowerFinNotation.VF_isNormal
+     : Interpolants.has_all_interpolants ATowerFinNotation.VF_denote ATowerFinNotation.VF_isNormal
 ```
 Lean:
 ```
-ATowerFinNotation.VForm.has_all_interpolants : CantorDecomposition.HasAllInterpolants ATowerFinNotation.VForm.denote
+ATowerFinNotation.VForm.has_all_interpolants : Interpolants.HasAllInterpolants ATowerFinNotation.VForm.denote
   ATowerFinNotation.VForm.IsNormal
 ```
 
@@ -2907,6 +4223,23 @@ Lean:
 ATowerFinNotation.VForm.reflects_nadd : Reflects ATowerFinNotation.VForm ATowerFinNotation.VForm.denote
   ATowerFinNotation.VForm.IsNormal (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 ♯ x2)
   ATowerFinNotation.VForm.nadd
+```
+
+### `VF_reflects_nmul`
+
+Rocq:
+```
+ATowerFinNotation.VF_reflects_nmul
+     : Reflection.reflects ATowerFinNotation.VForm ATowerFinNotation.VF_denote
+         ATowerFinNotation.VF_isNormal
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalProduct.nmulOrd ATowerFinNotation.VF_nmul
+```
+Lean:
+```
+ATowerFinNotation.VForm.reflects_nmul : Reflects ATowerFinNotation.VForm ATowerFinNotation.VForm.denote
+  ATowerFinNotation.VForm.IsNormal (Shape.ord ==> Shape.ord ==> Shape.ord) NaturalProduct.nmul
+  ATowerFinNotation.VForm.nmul
 ```
 
 ### `VF_below_SAO`
@@ -3208,11 +4541,11 @@ ATowerNotation.VForm.ackermann_reflects : Reflects ATowerNotation.VForm ATowerNo
 Rocq:
 ```
 ATowerNotation.VF_has_all_interpolants
-     : CantorDecomposition.has_all_interpolants ATowerNotation.VF_denote ATowerNotation.VF_isNormal
+     : Interpolants.has_all_interpolants ATowerNotation.VF_denote ATowerNotation.VF_isNormal
 ```
 Lean:
 ```
-ATowerNotation.VForm.has_all_interpolants : CantorDecomposition.HasAllInterpolants ATowerNotation.VForm.denote
+ATowerNotation.VForm.has_all_interpolants : Interpolants.HasAllInterpolants ATowerNotation.VForm.denote
   ATowerNotation.VForm.IsNormal
 ```
 
@@ -3229,6 +4562,21 @@ Lean:
 ```
 ATowerNotation.VForm.reflects_nadd : Reflects ATowerNotation.VForm ATowerNotation.VForm.denote
   ATowerNotation.VForm.IsNormal (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 ♯ x2) ATowerNotation.VForm.nadd
+```
+
+### `VF_reflects_nmul`
+
+Rocq:
+```
+ATowerNotation.VF_reflects_nmul
+     : Reflection.reflects ATowerNotation.VForm ATowerNotation.VF_denote ATowerNotation.VF_isNormal
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalProduct.nmulOrd ATowerNotation.VF_nmul
+```
+Lean:
+```
+ATowerNotation.VForm.reflects_nmul : Reflects ATowerNotation.VForm ATowerNotation.VForm.denote
+  ATowerNotation.VForm.IsNormal (Shape.ord ==> Shape.ord ==> Shape.ord) NaturalProduct.nmul ATowerNotation.VForm.nmul
 ```
 
 ### `VF_below_LAO`
@@ -3647,11 +4995,11 @@ SchutteStackNotation.VForm.LargeAckermannOrdinal_reflects : Reflects SchutteStac
 Rocq:
 ```
 SchutteStack.schutte_stack_has_all_interpolants
-     : CantorDecomposition.has_all_interpolants SchutteStack.VF_denote SchutteStack.VF_normal
+     : Interpolants.has_all_interpolants SchutteStack.VF_denote SchutteStack.VF_normal
 ```
 Lean:
 ```
-SchutteStackNotation.VForm.schutte_stack_has_all_interpolants : CantorDecomposition.HasAllInterpolants
+SchutteStackNotation.VForm.schutte_stack_has_all_interpolants : Interpolants.HasAllInterpolants
   SchutteStackNotation.VForm.denote SchutteStackNotation.VForm.IsNormal
 ```
 
@@ -3669,6 +5017,22 @@ Lean:
 SchutteStackNotation.VForm.reflects_nadd : Reflects SchutteStackNotation.VForm SchutteStackNotation.VForm.denote
   SchutteStackNotation.VForm.IsNormal (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 ♯ x2)
   SchutteStackNotation.VForm.nadd
+```
+
+### `VF_reflects_nmul`
+
+Rocq:
+```
+SchutteStack.VF_reflects_nmul
+     : Reflection.reflects SchutteStack.VForm SchutteStack.VF_denote SchutteStack.VF_normal
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalProduct.nmulOrd SchutteStack.VF_nmul
+```
+Lean:
+```
+SchutteStackNotation.VForm.reflects_nmul : Reflects SchutteStackNotation.VForm SchutteStackNotation.VForm.denote
+  SchutteStackNotation.VForm.IsNormal (Shape.ord ==> Shape.ord ==> Shape.ord) NaturalProduct.nmul
+  SchutteStackNotation.VForm.nmul
 ```
 
 ### `VF_has_enough_notations`
@@ -4004,11 +5368,11 @@ SchutteMatrixNotation.VForm.SmallVeblenOrdinal_reflects : Reflects SchutteMatrix
 Rocq:
 ```
 SchutteMatrix.schutte_matrix_has_all_interpolants
-     : CantorDecomposition.has_all_interpolants SchutteMatrix.VF_denote SchutteMatrix.VF_normal
+     : Interpolants.has_all_interpolants SchutteMatrix.VF_denote SchutteMatrix.VF_normal
 ```
 Lean:
 ```
-SchutteMatrixNotation.VForm.schutte_matrix_has_all_interpolants : CantorDecomposition.HasAllInterpolants
+SchutteMatrixNotation.VForm.schutte_matrix_has_all_interpolants : Interpolants.HasAllInterpolants
   SchutteMatrixNotation.VForm.denote SchutteMatrixNotation.VForm.IsNormal
 ```
 
@@ -4026,6 +5390,22 @@ Lean:
 SchutteMatrixNotation.VForm.reflects_nadd : Reflects SchutteMatrixNotation.VForm SchutteMatrixNotation.VForm.denote
   SchutteMatrixNotation.VForm.IsNormal (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 ♯ x2)
   SchutteMatrixNotation.VForm.nadd
+```
+
+### `VF_reflects_nmul`
+
+Rocq:
+```
+SchutteMatrix.VF_reflects_nmul
+     : Reflection.reflects SchutteMatrix.VForm SchutteMatrix.VF_denote SchutteMatrix.VF_normal
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalProduct.nmulOrd SchutteMatrix.VF_nmul
+```
+Lean:
+```
+SchutteMatrixNotation.VForm.reflects_nmul : Reflects SchutteMatrixNotation.VForm SchutteMatrixNotation.VForm.denote
+  SchutteMatrixNotation.VForm.IsNormal (Shape.ord ==> Shape.ord ==> Shape.ord) NaturalProduct.nmul
+  SchutteMatrixNotation.VForm.nmul
 ```
 
 ### `VF_has_enough_notations`

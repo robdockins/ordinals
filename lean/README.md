@@ -73,6 +73,7 @@ repository root) and `coqc` on the path. CI
 | `VeblenFacts.v` | `Veblen/Facts.lean` | done |
 | `VeblenClassical.v` | `Veblen/Classical.lean` | done |
 | `NaturalArith.v` | `NaturalArith.lean` | done |
+| `NaturalProduct.v` | `NaturalProduct.lean` | done |
 | `WellFounded.v` | `WellFounded.lean` | done |
 | `Examples.v` | `Examples.lean` | done |
 | `GoodsteinSequences.v` | `GoodsteinSequences.lean` | done |
@@ -80,7 +81,9 @@ repository root) and `coqc` on the path. CI
 | `SchutteColumn.v` | `Schutte/Column.lean` | done |
 | `SchutteColumnFacts.v` | `Schutte/ColumnFacts.lean` | done |
 | `Notation/CantorNotation.v` | `Notation/Cantor.lean` | done |
+| `Notation/Interpolants.v` | `Notation/Interpolants.lean` | done |
 | `Notation/CantorDecomposition.v` | `Notation/CantorDecomposition.lean` | done |
+| `Notation/CantorProduct.v` | `Notation/CantorProduct.lean` | done |
 | `Notation/VNotation.v` | `Notation/V.lean` | done |
 | `Notation/VWNotation.v` | `Notation/VW.lean` | done |
 | `Notation/ATowerFinNotation.v` | `Notation/ATowerFin.lean` | done |
@@ -88,9 +91,9 @@ repository root) and `coqc` on the path. CI
 | `Notation/SchutteStack.v` | `Notation/SchutteStack.lean` | done |
 | `Notation/SchutteMatrix.v` | `Notation/SchutteMatrix.lean` | done |
 
-The port is complete. Of the 1,839 Rocq declarations outside `Countable.v`:
-- 1,827 are ported;
-- 11 are merged into an equivalent declaration (mostly the binary-number
+The port is complete. Of the 2,163 Rocq declarations outside `Countable.v`:
+- 2,150 are ported;
+- 12 are merged into an equivalent declaration (mostly the binary-number
   embeddings, which coincide with `ofNat`);
 - one, `tree_selection_complete`, is dropped because its Rocq proof is
   aborted.
@@ -98,7 +101,7 @@ The port is complete. Of the 1,839 Rocq declarations outside `Countable.v`:
 `scripts/port_overrides.csv` gives a reason for each merge and drop. No
 declaration depends on any axiom, and the build has no warnings.
 
-`STATEMENT_REVIEW.md` sets the statements of 256 headline results beside their
+`STATEMENT_REVIEW.md` sets the statements of 331 headline results beside their
 Rocq originals: every Rocq `Theorem`, plus the reflection, notation and
 order-type theorems. Both sides are printed by the provers themselves. The
 review found no mathematical discrepancies, and its introduction lists the
@@ -134,6 +137,12 @@ Deliberate differences from Rocq (statements are otherwise transliterated):
   (`decide +kernel`). Their unfolding equations are proved separately.
   Rocq's `nth_error` is `ConstructiveOrdinals.List.nthError`, because core's
   `l[i]?` depends on `propext` through its `GetElem?` instance.
+- In `NaturalProduct` and `Notation/CantorProduct`, Rocq's `flat_map`s
+  (`cut`, `cnf_prod`, `cantor_pairs`) are the same lists built by direct
+  recursion, so that their membership lemmas are axiom-free. The natural
+  product is `NaturalProduct.nmul`; it has no infix notation, to avoid
+  confusion with the incorrect product `⨳` of `NaturalArith`. The canonical
+  tree of notations `CantorProduct.Trec` recurses on an accessibility proof.
 - `ackermannTower` and `schutteColumn` use the same pattern as `veblen`. The
   nested Rocq `fix`es become separate inner functions, parameterised by the
   outer recursive calls; `schutteColumn` needs two (`schutteColumnα`,
