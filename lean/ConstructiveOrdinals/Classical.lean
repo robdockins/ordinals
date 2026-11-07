@@ -58,6 +58,15 @@ theorem order_trichotomy (em : ExcludedMiddle) (x y : Ordinal.{u}) :
     | .inl hyx => .inr (.inl (equiv_intro hxy hyx))
     | .inr h => .inl h
 
+/-- Classically, `x ≤ y` splits as `x < y` or `x ≈ y`.
+Rocq: `Classical.order_splits`. -/
+theorem order_splits (em : ExcludedMiddle) (x y : Ordinal.{u}) :
+    x ≤ y ↔ (x < y ∨ x ≈ y) :=
+  ⟨fun h => match order_total em y x with
+    | .inl hyx => .inr (equiv_intro h hyx)
+    | .inr hlt => .inl hlt,
+   fun h => h.elim le_of_lt Equiv.le⟩
+
 /-- Rocq: `Classical.max_or_ascending`. -/
 theorem max_or_ascending (em : ExcludedMiddle) (A : Type u) (f : A → Ordinal.{u}) :
     HasMaxElement A f ∨ AscendingSet A f :=
@@ -181,6 +190,39 @@ theorem zero_dec_EM (h : ∀ x : Ordinal.{u}, x ≤ 1 → x ≤ 0 ∨ 0 < x) : E
 Rocq: `Classical.order_total_EM`. -/
 theorem order_total_EM (h : ∀ x y : Ordinal.{u}, x ≤ y ∨ y < x) : ExcludedMiddle :=
   zero_dec_EM fun x _ => h x 0
+
+/-- Splitting `x ≤ y` as `x < y` or `x ≈ y` implies the excluded middle.
+Rocq: `Classical.order_splits_EM`. -/
+theorem order_splits_EM (h : ∀ x y : Ordinal.{u}, x ≤ y ↔ (x < y ∨ x ≈ y)) :
+    ExcludedMiddle := fun P =>
+  match (h (truthOrd P) 1).mp (le_intro fun _ => succ_lt 0) with
+  | .inl hlt =>
+    .inr fun hp => (lt_elim hlt).elim fun _ hle =>
+      (le_subord (show truthOrd.{u} P ≤ 0 from hle) ⟨⟨hp⟩⟩).elim fun b _ => PEmpty.elim b
+  | .inr heq => .inl ((lt_elim (le_elim heq.ge PUnit.unit)).elim fun ⟨⟨hp⟩⟩ _ => hp)
+
+/-- Completeness is intensional: it is not invariant under `≈`. The ordinal
+with children `n ⊔ truthOrd P` is equivalent to `ω`, which is complete, but
+completeness of its child `0 ⊔ truthOrd P` decides `P`.
+Rocq: `Classical.complete_intensional_EM`. -/
+theorem complete_intensional_EM
+    (h : ∀ x y : Ordinal.{u}, x ≈ y → Complete x → Complete y) : ExcludedMiddle := fun P => by
+  let y : Ordinal.{u} := mk (ULift Nat) fun n => ofNat n.down ⊔ truthOrd P
+  have hy : ω ≈ y := equiv_intro
+    (le_intro fun n => lt_intro (show y.Carrier from n) (lub_le1 _ _))
+    (le_intro fun n => lt_intro (show (ω : Ordinal.{u}).Carrier from ⟨n.down + 1⟩)
+      (lub_least (le_of_lt (succ_lt _))
+        (le_intro fun _ => lt_of_le_of_lt (zero_least _) (succ_lt _))))
+  have hc : Complete (ofNat.{u} 0 ⊔ truthOrd P) :=
+    complete_subord (h _ _ hy omega_complete) (show y.Carrier from ⟨0⟩)
+  match complete_zeroDec hc with
+  | .inl hz =>
+    exact .inr fun hp => lt_irrefl 0 (lt_of_lt_of_le (lt_of_lt_of_le
+      (lt_intro (show (truthOrd.{u} P).Carrier from ⟨⟨hp⟩⟩) (le_refl _)) (lub_le2 _ _)) hz)
+  | .inr hpos =>
+    match lub_lt hpos with
+    | .inl h0 => exact ((lt_elim h0).elim fun b _ => PEmpty.elim b)
+    | .inr ht => exact .inl ((lt_elim ht).elim fun ⟨⟨hp⟩⟩ _ => hp)
 
 /-- If every ordinal is complete, the excluded middle holds.
 Rocq: `Classical.complete_EM`. -/

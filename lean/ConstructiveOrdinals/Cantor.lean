@@ -113,6 +113,34 @@ theorem powOmega_additively_closed {c : Ordinal.{u}} (hc : Complete c) :
           (lt_of_lt_of_le hb (mul_le_mul_right ω (pow_le_pow_right ω h₂))))
         (pow_index_mul_omega_le c c')
 
+/-- The completeness hypothesis of `powOmega_additively_closed` is used only
+for the directedness of `c` at the top level, and it cannot be dropped: an
+exponent with two complete but incomparable children gives the weak excluded
+middle. Rocq: `Cantor.expOmega_additively_closed_WEM`. -/
+theorem powOmega_additively_closed_WEM (h : ∀ c : Ordinal.{u}, AdditivelyClosed (ω ^ c)) :
+    WeakExcludedMiddle := fun P => by
+  let c : Ordinal.{u} := mk (ULift Bool) fun b => cond b.down (truthOrd' P) (truthOrd' (¬P))
+  have hbig : ∀ x : Ordinal.{u}, ω ^ ω ≤ x → x < ω ^ (1 : Ordinal.{u}) * ω → False :=
+    fun x h₁ h₂ => lt_irrefl (ω ^ ω) (lt_of_le_of_lt h₁ (lt_of_lt_of_le h₂
+      (le_trans (pow_succ 1 omega_gt0).ge (pow_le_pow_right ω (succ_least omega_gt1)))))
+  have hc := h c _ _ (pow_lt_pow_right omega_gt1 (index_lt c ⟨true⟩))
+    (pow_lt_pow_right omega_gt1 (index_lt c ⟨false⟩))
+  rw [pow_unfold ω c] at hc
+  match lub_lt hc with
+  | .inl h0 =>
+    obtain ⟨_, h0⟩ := lt_elim h0
+    exact (lt_irrefl 0 (lt_of_lt_of_le (pow_pos ω (truthOrd' (¬P)))
+      (le_trans (le_add_left _ _) h0))).elim
+  | .inr hs =>
+    obtain ⟨⟨b⟩, hs⟩ := sup_lt hs
+    cases b
+    · refine .inr fun hp => hbig _ (le_trans (pow_le_pow_right ω (truthOrd'_true hp).ge)
+        (le_add_right _ _)) (lt_of_lt_of_le hs (mul_le_mul_right ω
+          (pow_le_pow_right ω (truthOrd'_false (fun hnp => hnp hp)).le)))
+    · refine .inl fun hnp => hbig _ (le_trans (pow_le_pow_right ω (truthOrd'_true hnp).ge)
+        (le_add_left _ _)) (lt_of_lt_of_le hs (mul_le_mul_right ω
+          (pow_le_pow_right ω (truthOrd'_false hnp).le)))
+
 /-- Rocq: `Cantor.epslion_additively_closed` (sic). -/
 theorem epsilon_additively_closed {x : Ordinal.{u}} (hx : Complete x) :
     AdditivelyClosed (ε x) := fun a b ha hb =>

@@ -689,6 +689,99 @@ theorem strongly_critical_fixpoint (β : Ordinal.{u}) (hc : Complete β) :
 
 end veblen
 
+/-- `veblen_increasing` uses the completeness of `β` only to decide whether
+`β` is zero, and this cannot be avoided: for `β = truthOrd P` (directed, with
+complete children), strict monotonicity of `veblen powOmega β` gives the
+excluded middle. Rocq: `VeblenCon.veblen_increasing_EM`. -/
+theorem veblen_increasing_EM
+    (h : ∀ β x y : Ordinal.{u}, Complete y → x < y →
+      veblen powOmega β x < veblen powOmega β y) : ExcludedMiddle := fun P => by
+  have hlt := h (truthOrd P) 0 1 (succ_complete zero_complete) (succ_lt 0)
+  rw [veblen_unroll powOmega (truthOrd P) 1] at hlt
+  match lub_lt hlt with
+  | .inl hl =>
+    refine .inr fun hp => ?_
+    let z : Ordinal.{u} := veblen powOmega 1 0
+    have hz : powOmega z ≈ z := equiv_trans (equiv_symm (veblen_zero powOmega z))
+      (veblen_fixpoints powOmega_normal 0 1 0 zero_complete (succ_complete zero_complete)
+        zero_complete (succ_lt 0))
+    refine lt_irrefl z (lt_of_le_of_lt ?_ (lt_of_lt_of_le hl
+      (le_trans (powOmega_normal.monotone _ _
+        (succ_least (veblen_nonzero powOmega_normal 1 0))) hz.le)))
+    exact veblen_monotone_first powOmega_normal.monotone (truthOrd P) 1 0
+      (le_intro fun _ => lt_intro (show (truthOrd.{u} P).Carrier from ⟨⟨hp⟩⟩) (le_refl _))
+  | .inr hs => exact .inl ((sup_lt hs).elim fun ⟨⟨hp⟩⟩ _ => hp)
+
+/-- `veblen_fixpoints` needs `β` to be directed: when `veblen f β x` is
+unrolled, an element lies in the fixpoint branch of one child of `β`, while
+`α < β` is witnessed by another, and the proof uses a child above both. Two
+complete, incomparable children (`1` or `ω`, depending on `P`) give the weak
+excluded middle. Rocq: `VeblenCon.veblen_fixpoints_WEM`. -/
+theorem veblen_fixpoints_WEM
+    (h : ∀ (α : Ordinal.{u}) (B : Type u) (g : B → Ordinal.{u}) (x : Ordinal.{u}),
+      Nonempty B → (∀ b, Complete (g b)) → Complete α → Complete x → α < mk B g →
+      veblen powOmega α (veblen powOmega (mk B g) x) ≤ veblen powOmega (mk B g) x) :
+    WeakExcludedMiddle := fun P => by
+  let b₁ : Ordinal.{u} := truthOrd' P
+  let b₂ : Ordinal.{u} := truthOrd' (¬P)
+  let g : ULift.{u} Bool → Ordinal.{u} := fun b => cond b.down b₁ b₂
+  let Z : Ordinal.{u} := veblen powOmega (mk _ g) 0
+  have hc₁ : Complete b₁ := truthOrd'_complete P
+  have hc₂ : Complete b₂ := truthOrd'_complete (¬P)
+  have hpos : ∀ Q : Prop, 0 < truthOrd'.{u} Q := fun Q =>
+    lt_of_lt_of_le (succ_lt 0) (le_trans (lub_le1 1 _) (sup_le (fun n : ULift.{u} Nat =>
+      1 ⊔ mk (ULift.{u} (PLift Q)) fun _ => ofNat n.down) ⟨0⟩))
+  -- iterating the smaller child stays below the first value of the larger
+  have hstay : ∀ b b' : Ordinal.{u}, Complete b → Complete b' → b < b' →
+      ∀ z, z ≤ veblen powOmega b' 0 → ∀ n, iterF (veblen powOmega b) z n ≤ veblen powOmega b' 0 := by
+    intro b b' hb hb' hbb' z hz n
+    induction n with
+    | zero => exact hz
+    | succ n ih =>
+      exact le_trans (veblen_monotone powOmega_normal.monotone b _ _ ih)
+        (veblen_fixpoints powOmega_normal b b' 0 hb hb' zero_complete hbb').le
+  have hbase : ∀ y : Ordinal.{u},
+      lim (fun i : (0 : Ordinal.{u}).Carrier => veblen powOmega (mk _ g) ((0 : Ordinal.{u}) i)) ≤ y :=
+    fun _ => le_intro fun i => PEmpty.elim i
+  let w : Ordinal.{u} := veblen powOmega b₂ 0
+  have hwc : Complete w :=
+    veblen_complete powOmega_normal powOmega_normal.complete b₂ hc₂ 0 zero_complete
+  have hw : w < Z := by
+    show w < veblen powOmega (mk _ g) 0
+    rw [veblen_unroll powOmega (mk _ g) 0]
+    refine lt_of_lt_of_le ?_ (le_trans (sup_le _ (show (mk _ g).Carrier from ⟨false⟩))
+      (lub_le2 _ _))
+    refine lt_of_lt_of_le ?_ (sup_le _ ⟨2⟩)
+    exact lt_of_lt_of_le (veblen_increasing_nonzero powOmega_normal b₂ (hpos _) 0 w
+        (veblen_nonzero powOmega_normal b₂ 0))
+      (veblen_monotone powOmega_normal.monotone b₂ _ _
+        (veblen_monotone powOmega_normal.monotone b₂ _ _ (zero_least _)))
+  have hE : veblen powOmega b₁ w < Z :=
+    lt_of_lt_of_le (veblen_increasing_nonzero powOmega_normal b₁ (hpos P) w Z hw)
+      (h b₁ (ULift Bool) g 0 ⟨⟨true⟩⟩ (fun ⟨b⟩ => by cases b <;> assumption) hc₁ zero_complete
+        (lt_intro (show (mk _ g).Carrier from ⟨true⟩) (le_refl _)))
+  have hE' := hE
+  rw [show Z = veblen powOmega (mk _ g) 0 from rfl, veblen_unroll powOmega (mk _ g) 0] at hE'
+  match lub_lt hE' with
+  | .inl h0 =>
+    obtain ⟨_, h0⟩ := lt_elim (lt_of_lt_of_le h0 (pow_zero ω).le)
+    exact (lt_irrefl 0 (lt_of_lt_of_le (veblen_nonzero powOmega_normal b₁ w) h0)).elim
+  | .inr hs =>
+    obtain ⟨⟨b⟩, hs⟩ := sup_lt hs
+    obtain ⟨⟨n⟩, hs⟩ := sup_lt hs
+    cases b
+    · refine .inr fun hp => ?_
+      have hlt : b₂ < b₁ := lt_of_le_of_lt (truthOrd'_false fun hnp => hnp hp).le
+        (lt_of_lt_of_le omega_gt1 (truthOrd'_true hp).ge)
+      exact lt_irrefl (veblen powOmega b₁ 0) (lt_of_le_of_lt
+        (veblen_monotone powOmega_normal.monotone b₁ _ _ (zero_least w))
+        (lt_of_lt_of_le hs (hstay b₂ b₁ hc₂ hc₁ hlt _ (hbase _) n)))
+    · refine .inl fun hnp => ?_
+      have hlt : b₁ < b₂ := lt_of_le_of_lt (truthOrd'_false hnp).le
+        (lt_of_lt_of_le omega_gt1 (truthOrd'_true hnp).ge)
+      exact lt_irrefl w (lt_of_le_of_lt (veblen_inflationary powOmega_normal b₁ w hwc)
+        (lt_of_lt_of_le hs (hstay b₁ b₂ hc₁ hc₂ hlt _ (hbase _) n)))
+
 /-- Rocq: `VeblenCon.enumerates_equiv_pred`. -/
 theorem Con.enumerates_equiv_pred {P P' : Ordinal.{u} → Prop} (hn : NormalFunction f)
     (hp : ∀ x, Complete x → (P x ↔ P' x)) (hf : Con.Enumerates f P) : Con.Enumerates f P' where
