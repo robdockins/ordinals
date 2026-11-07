@@ -57,6 +57,7 @@ MODULES = {
     "SchutteColumnFacts": "Schutte/ColumnFacts.lean",
     "Notation.CantorNotation": "Notation/Cantor.lean",
     "Notation.Interpolants": "Notation/Interpolants.lean",
+    "Notation.CantorProduct": "Notation/CantorProduct.lean",
     "Notation.CantorDecomposition": "Notation/CantorDecomposition.lean",
     "Notation.VNotation": "Notation/V.lean",
     "Notation.VWNotation": "Notation/VW.lean",

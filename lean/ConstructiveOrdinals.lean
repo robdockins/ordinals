@@ -27,6 +27,7 @@ import ConstructiveOrdinals.Schutte.ColumnFacts
 import ConstructiveOrdinals.Notation.Cantor
 import ConstructiveOrdinals.Notation.Interpolants
 import ConstructiveOrdinals.Notation.CantorDecomposition
+import ConstructiveOrdinals.Notation.CantorProduct
 import ConstructiveOrdinals.Notation.V
 import ConstructiveOrdinals.Notation.VW
 import ConstructiveOrdinals.Notation.ATowerFin
