@@ -692,7 +692,7 @@ private theorem exp_single_spec : ∀ x e : List A, Each P x → Each P e →
         refine equiv_trans (pow_mul ω _ _) (equiv_intro ?_ ?_)
         · exact pow_le_pow_left (le_add_right _ _) _
         · refine expToOmega_collapse_tower _ _ ⟨xs.length⟩ ?_ (dominates xs hx.1 hx.2) _
-            (cantor_denote_complete X _) denote_pos
+            denote_pos
           calc ofNat xs.length + 1 ≈ ofNat (1 + xs.length) := equiv_symm (ofNat_add 1 xs.length)
             _ ≤ ω := le_of_lt (index_lt ω ⟨1 + xs.length⟩)
             _ ≤ ω ^ 1 := (pow_one' omega_gt0).ge

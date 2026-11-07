@@ -860,12 +860,6 @@ Section cantor_arithmetic.
           destruct x; auto.
           eauto with ord.
           auto. }
-        apply addOrd_complete; auto with ord.
-        apply expOrd_complete.
-        apply omega_gt0.
-        apply omega_complete.
-        apply (cantor_decomp_complete X).
-        apply cantor_denote_complete.
         rewrite <- addOrd_le1.
         apply expOrd_nonzero.
   Qed.

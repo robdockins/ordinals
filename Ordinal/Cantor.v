@@ -393,28 +393,77 @@ Proof.
   apply expNatToOmegaPow; auto.
 Qed.
 
-(* TODO, I think we can simplify these two theorems by
-   proving expOrd (a + b) e <= expOrd a e assuming
-   that e is a limit *)
-Lemma expToOmega_collapse a b (n:ω) :
+(** [2 * x ≤ x] holds for the limits [ω] and [ω^c] with [c > 0]. It is a
+    constructive stand-in for "[x] is a limit" in [expOrd_collapse] below. *)
+Lemma mulOrd_two_omega : 2 * ω ≤ ω.
+Proof.
+  rewrite mulOrd_unfold.
+  apply sup_least; intro i.
+  transitivity (natOrdSize (2 + i*2)%nat).
+  - rewrite natOrdSize_add. rewrite natOrdSize_mul. reflexivity.
+  - apply (index_le ω).
+Qed.
+
+Lemma mulOrd_two_expOmega_le c : 2 * expOrd ω c ≤ 2 ⊔ expOrd ω c.
+Proof.
+  induction c as [C h IH].
+  rewrite (expOrd_unfold ω (ord C h)) at 1.
+  rewrite mulOrd_lub.
+  apply lub_least.
+  { rewrite mulOrd_one_r. apply lub_le1. }
+  rewrite <- lub_le2.
+  rewrite mulOrd_unfold.
+  apply sup_least; intros [i q].
+  simpl ordSize.
+  rewrite (expOrd_unfold ω (ord C h)).
+  rewrite <- lub_le2.
+  rewrite <- (sup_le _ _ i).
+  transitivity (2 * (expOrd ω (h i) * ω)).
+  { rewrite (mulOrd_unfold 2 (expOrd ω (h i) * ω)).
+    rewrite <- (sup_le _ _ q).
+    reflexivity. }
+  rewrite mulOrd_assoc.
+  transitivity (expOrd ω (h i) * 2 * ω).
+  { apply mulOrd_monotone1.
+    rewrite IH.
+    apply lub_least.
+    - transitivity (1 * 2).
+      { rewrite mulOrd_one_l. reflexivity. }
+      apply mulOrd_monotone1. apply succ_least. apply expOrd_nonzero.
+    - transitivity (expOrd ω (h i) * 1).
+      { rewrite mulOrd_one_r. reflexivity. }
+      apply mulOrd_monotone2. apply succ_monotone. auto with ord. }
+  rewrite <- mulOrd_assoc.
+  apply mulOrd_monotone2.
+  apply mulOrd_two_omega.
+Qed.
+
+Lemma mulOrd_two_expOmega c : c > 0 -> 2 * expOrd ω c ≤ expOrd ω c.
+Proof.
+  intro Hc.
+  rewrite mulOrd_two_expOmega_le.
+  apply lub_least; [ | reflexivity ].
+  transitivity ω.
+  { apply (index_le ω 2%nat). }
+  transitivity (expOrd ω 1).
+  { rewrite expOrd_one'; auto with ord. }
+  apply expOrd_monotone.
+  apply succ_least. auto.
+Qed.
+
+(** If [a + b ≤ a * a], then [(a + b)^e ≤ a^(2 * e)], which collapses to
+    [a^e] when [2 * e ≤ e]. *)
+Lemma expOrd_collapse a b (n:ω) e :
   a ≥ n+1 ->
   a*n ≥ b ->
-  expOrd (a + b) ω ≤ expOrd a ω.
+  2 * e ≤ e ->
+  expOrd (a + b) e ≤ expOrd a e.
 Proof.
-  intros.
-  rewrite expOrd_unfold.
-  apply lub_least. apply succ_least; apply expOrd_nonzero.
-  apply sup_least; intro i.
-  rewrite (expOrd_unfold a ω).
-  rewrite <- lub_le2.
-  rewrite <- (sup_le _ _ (1 + i*2)%nat).
-  change (expOrd (a+b) (natOrdSize i) * (a+b) ≤ expOrd a (natOrdSize (S (i*2)%nat)) * a).
+  intros H H0 He.
   assert (Ha0 : 0 < a).
   { rewrite <- H.
     rewrite addOrd_succ.
     auto with ord. }
-  assert (Hab0 : 0 < a + b).
-  { apply ord_lt_le_trans with a; auto. apply addOrd_le1. }
   assert (Hab_aa : a+b <= a*a).
   { transitivity (a * natOrdSize (1+n)%nat).
     - rewrite H0; clear.
@@ -437,79 +486,34 @@ Proof.
       rewrite addOrd_succ.
       rewrite addOrd_zero_r.
       reflexivity. }
+  transitivity (expOrd (a*a) e).
+  { apply expOrd_monotone_base; auto. }
+  transitivity (expOrd a (2 * e)).
+  { rewrite expOrd_mul.
+    apply expOrd_monotone_base.
+    rewrite (expOrd_succ a 1); auto.
+    rewrite expOrd_one'; auto.
+    reflexivity. }
+  apply expOrd_monotone; auto.
+Qed.
 
-  simpl natOrdSize.
-  rewrite expOrd_succ; auto.
-  rewrite <- mulOrd_assoc.
-  apply mulOrd_le_mor; auto.
-  induction i; simpl natOrdSize.
-  + do 2 rewrite expOrd_zero. reflexivity.
-  + rewrite expOrd_succ; auto.
-    rewrite expOrd_succ; auto.
-    rewrite expOrd_succ; auto.
-    rewrite <- mulOrd_assoc.
-    apply mulOrd_le_mor; auto.
+Lemma expToOmega_collapse a b (n:ω) :
+  a ≥ n+1 ->
+  a*n ≥ b ->
+  expOrd (a + b) ω ≤ expOrd a ω.
+Proof.
+  intros. apply expOrd_collapse with n; auto.
+  apply mulOrd_two_omega.
 Qed.
 
 Lemma expToOmega_collapse_tower a b (n:ω) c :
   a ≥ n+1 ->
   a*n ≥ b ->
-  complete c ->
   c > 0 ->
   expOrd (a + b) (expOrd ω c) ≤ expOrd a (expOrd ω c).
 Proof.
-  intros Ha Hb.
-  induction c as [C h]; intros.
-  rewrite (expOrd_unfold ω).
-  do 2 rewrite expOrd_lub.
-  rewrite ord_lt_unfold in H1. destruct H1 as [c _].
-  apply lub_least.
-  - rewrite <- lub_le2.
-    rewrite expOrd_unfold.
-    apply lub_least.
-    + apply succ_least. apply expOrd_nonzero.
-    + apply sup_least; intros [].
-      rewrite expOrd_zero.
-      rewrite mulOrd_one_l.
-      transitivity (expOrd (a+b) ω).
-      { transitivity (expOrd (a+b) 1).
-        rewrite expOrd_unfold.
-        rewrite <- lub_le2.
-        rewrite <- (sup_le _ _ tt).
-        rewrite expOrd_zero.
-        rewrite mulOrd_one_l. reflexivity.
-        apply expOrd_monotone.
-        apply (index_le ω 1%nat). }
-      transitivity (expOrd a ω).
-      { apply expToOmega_collapse with n; auto. }
-      apply expOrd_monotone.
-      rewrite <- (sup_le _ _ c).
-      transitivity (1 * ω).
-      { rewrite mulOrd_one_l. reflexivity. }
-      apply mulOrd_monotone1.
-      apply succ_least. apply expOrd_nonzero.
-  - etransitivity; [ apply expOrd_continuous; auto |].
-    apply sup_least; intro ci.
-    rewrite <- lub_le2.
-    simpl ordSize.
-    destruct (complete_zeroDec (h ci)); [ apply H0 | |].
-    + rewrite H1.
-      rewrite expOrd_zero.
-      rewrite mulOrd_one_l.
-      transitivity (expOrd a ω).
-      { apply expToOmega_collapse with n; auto. }
-      apply expOrd_monotone.
-      rewrite <- (sup_le _ _ ci).
-      transitivity (1 * ω).
-      { rewrite mulOrd_one_l. reflexivity. }
-      apply mulOrd_monotone1.
-      apply succ_least. apply expOrd_nonzero.
-    + rewrite expOrd_mul.
-      rewrite H; [ | apply H0 | assumption ].
-      rewrite <- expOrd_mul.
-      apply expOrd_monotone.
-      rewrite <- (sup_le _ _ ci).
-      reflexivity.
+  intros. apply expOrd_collapse with n; auto.
+  apply mulOrd_two_expOmega; auto.
 Qed.
 
 Lemma expOrd_truth_ord_complete P :

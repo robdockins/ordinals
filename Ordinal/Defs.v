@@ -2,6 +2,7 @@ From Stdlib Require Import Setoid.
 From Stdlib Require Import Morphisms.
 From Stdlib Require Import Program.Basics.
 From Stdlib Require Import Program.Wf.
+From Stdlib Require Import Arith.
 
 Unset Printing Records.
 
@@ -541,4 +542,61 @@ Lemma pairwise_eq_refl xs : pairwise ord_eq xs xs.
 Proof.
   induction xs; constructor; auto with ord.
   reflexivity.
+Qed.
+
+(** Comparison results, used by the decision procedures of the notation
+    systems. *)
+Inductive ordering := LT | EQ | GT.
+
+Definition ordering_swap (o:ordering) : ordering :=
+  match o with
+  | LT => GT
+  | EQ => EQ
+  | GT => LT
+  end.
+
+(* Compute the lexicographic ordering given two sub-orderings. *)
+Definition lexCompare (o1:ordering) (o2:ordering) : ordering :=
+  match o1 with
+  | LT => LT
+  | EQ => o2
+  | GT => GT
+  end.
+
+Definition ordering_correct o a b :=
+  match o with
+  | LT => a < b
+  | EQ => a ≈ b
+  | GT => a > b
+  end.
+
+Fixpoint nat_compare (x y:nat) : ordering :=
+  match x, y with
+  | O, O       => EQ
+  | S _, O     => GT
+  | O , S _    => LT
+  | S x', S y' => nat_compare x' y'
+  end.
+
+Lemma nat_compare_correct :
+  forall x y,
+    match nat_compare x y with
+    | LT => (x < y)%nat
+    | EQ => x = y
+    | GT => (x > y)%nat
+    end.
+Proof.
+  induction x; destruct y; simpl; auto with arith.
+  generalize (IHx y).
+  destruct (nat_compare x y); intuition auto with arith.
+Qed.
+
+Add Parametric Morphism o : (ordering_correct o)
+  with signature ord_eq ==> ord_eq ==> impl as ordering_correct_eq_mor.
+Proof.
+  repeat intro.
+  destruct o; simpl in *.
+  rewrite <- H. rewrite <- H0. auto.
+  rewrite <- H. rewrite <- H0. auto.
+  rewrite <- H. rewrite <- H0. auto.
 Qed.

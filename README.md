@@ -77,7 +77,7 @@ Files are listed roughly in dependency order. All paths are relative to
 
 | File | Contents |
 |------|----------|
-| `Defs.v` | The `Ord` type, `<`, `≤` and `≈`, and the game-theoretic reading of the order. Proves basic order facts, well-foundedness of `<`, ordinal and size induction, and setoid/morphism instances. |
+| `Defs.v` | The `Ord` type, `<`, `≤` and `≈`, and the game-theoretic reading of the order. Proves basic order facts, well-foundedness of `<`, ordinal and size induction, and setoid/morphism instances. Also a small `ordering`/comparison library used by the notation systems. |
 | `Operators.v` | Basic constructions: zero, successor, limits (`limOrd`), binary and arbitrary suprema (`⊔`, `supOrd`), binary and infinitary infima (`glbOrd`, `infOrd`), predecessor, `boundedSup`, and ω. Defines *directed* and *complete* ordinals and *strongly continuous* functions. Characterizes zero, successor and limit ordinals. |
 | `Arith.v` | Transfinite primitive recursion (`foldOrd`), and ordinal addition, multiplication and exponentiation with their algebraic laws. Also `powOmega` (ω^x), Knuth up-arrow functions on ordinals (including that `KnuthUp 2` produces ε-numbers), and embeddings of `nat`, `positive` and `N`. |
 | `Enumerate.v` | `enumerates f P`, meaning `f` is the increasing enumeration of a class `P`. Includes uniqueness, zero and successor behaviour, and, under EM, surjectivity. Shows that surjectivity, left subtraction (`c ≤ z → ∃ a, c + a ≈ z`) and the converse "increasing and surjective implies enumerating" each imply EM. |
@@ -86,7 +86,7 @@ Files are listed roughly in dependency order. All paths are relative to
 | `NaturalArith.v` | Hessenberg natural (commutative) sum `naddOrd` and its relation to Cantor normal forms. Proves constructively that ω-powers of complete ordinals are closed under natural sums, and that natural and ordinary sums of a Cantor sequence agree when its steps are decided, with reverse results showing these hypotheses are needed; the natural sum does not preserve completeness. Also the `tree_selection` operator, which equals ω^x on complete ordinals and witnesses that completeness is intensional. Includes a failed natural multiplication with a counterexample to distributivity (`nmul_not_distributive`), Jacobsthal multiplication, and "smash sums". |
 | `NaturalProduct.v` | The natural (Hessenberg) product `nmulOrd`, defined as the rank of a game on finite unions of rectangles. Commutativity, monotonicity, zero and unit hold constructively; distributivity, the successor law and the exponent law ω^α ⊗ ω^β ≈ ω^(α ⊕ β) hold under EM, and `nmulOrd` agrees with Hessenberg's formula on Cantor normal forms. The lower halves of the successor law and of distributivity imply weak EM, even for complete ordinals. On a universe of ordinals with a decidable order, superdistributivity holds constructively, and subdistributivity given a split of the natural sum (`decidable_universe`). |
 | `Classical.v` | Consequences of excluded middle: totality and trichotomy, every ordinal is complete and directed, the classical well-ordering principle, and (with choice) that `infOrd` is attained. Also gives reverse results built on the "truth ordinal" of a proposition, showing that zero-testing, totality, order splitting, completeness, directedness and the successor/limit decision each imply (weak) excluded middle, and that if completeness is preserved by `≈` then EM holds (`complete_intensional_EM`). |
-| `Reflection.v` | The `reflects` predicate, which says that an operation on a syntactic type faithfully implements an operation on `Ord` (via a denotation and an invariant). Also a small `ordering`/comparison library. The notation systems use both. |
+| `Reflection.v` | The `reflects` predicate, which says that an operation on a syntactic type faithfully implements an operation on `Ord` (via a denotation and an invariant). The notation systems use it throughout. |
 
 ### Well-founded relations
 
@@ -144,7 +144,7 @@ notation is itself denoted by some notation.
 `lean/` contains a complete port of the development (except `Countable.v`) to
 Lean 4, using only Lean core and no axioms: no declaration depends on
 `propext`, `Quot.sound` or `Classical.choice`, and the excluded middle
-appears only as an explicit hypothesis, as in Rocq. All 2,161 Rocq
+appears only as an explicit hypothesis, as in Rocq. All 2,165 Rocq
 declarations outside `Countable.v` are accounted for, and a generated
 statement review sets 331 headline statements beside their Rocq originals.
 See `lean/README.md` for how to build and check it, and for the differences

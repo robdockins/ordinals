@@ -4664,7 +4664,7 @@ Rocq:
 ```
 SchutteStack.VF_compare_correct
      : forall x y : SchutteStack.VForm,
-       Reflection.ordering_correct (SchutteStack.VF_compare x y) (SchutteStack.VF_denote x)
+       Defs.ordering_correct (SchutteStack.VF_compare x y) (SchutteStack.VF_denote x)
          (SchutteStack.VF_denote y)
 ```
 Lean:
@@ -5101,7 +5101,7 @@ SchutteMatrix.VF_compare_correct
      : forall x y : SchutteMatrix.VForm,
        SchutteMatrix.VF_proper x ->
        SchutteMatrix.VF_proper y ->
-       Reflection.ordering_correct (SchutteMatrix.VF_compare x y) (SchutteMatrix.VF_denote x)
+       Defs.ordering_correct (SchutteMatrix.VF_compare x y) (SchutteMatrix.VF_denote x)
          (SchutteMatrix.VF_denote y)
 ```
 Lean:

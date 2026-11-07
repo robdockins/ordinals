@@ -214,8 +214,8 @@ Proof.
     apply ord_le_lt_trans with (CF_denote c); auto.
 Qed.
 
-(* TODO, not sure what to call this... *)
-Lemma add_lemma : forall a b,
+(** A strict version of [addOrd_le2]. *)
+Lemma addOrd_lt2 : forall a b,
     complete a ->
     a <= b ->
     b > 0 ->
@@ -1260,7 +1260,6 @@ Proof.
         ** change (CF_denote (CantorSum xs) ≤
                        expOrd ω (CF_denote (CantorSum (l::ls))) * sz (length xs)).
            apply cantorFirstTerm_dominates; auto.
-        ** apply (CantorForm_complete (CantorSum es)).
       * simpl in *; intuition.
       * simpl; intuition.
 Qed.

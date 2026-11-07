@@ -232,57 +232,66 @@ theorem expNatToOmegaInf (n : (ω : Ordinal.{u}).Carrier) (e : Ordinal.{u}) (hn 
     (he : e ≈ 1 + e) : ω n ^ (ω ^ e) ≈ ω ^ (ω ^ e) :=
   equiv_trans (pow_congr (equiv_refl _) (pow_congr (equiv_refl _) he)) (expNatToOmegaPow n e hn)
 
-/-- Rocq: `Cantor.expToOmega_collapse`. -/
-theorem expToOmega_collapse (a b : Ordinal.{u}) (n : (ω : Ordinal.{u}).Carrier)
-    (ha : ω n + 1 ≤ a) (hb : b ≤ a * ω n) : (a + b) ^ (ω : Ordinal.{u}) ≤ a ^ (ω : Ordinal.{u}) := by
+/-- `2 * ω ≤ ω`. Together with `two_mul_pow_omega_le` it supplies the hypothesis
+`2 * e ≤ e` of `pow_collapse`, a constructive stand-in for "`e` is a limit".
+Rocq: `Cantor.mulOrd_two_omega`. -/
+theorem two_mul_omega_le : (2 : Ordinal.{u}) * ω ≤ ω := by
+  rw [mul_unfold]
+  exact sup_least fun ⟨i⟩ =>
+    le_trans (le_trans (add_le_add (ofNat_mul i 2).ge (le_refl _)) (ofNat_add 2 (i * 2)).ge)
+      (index_le ω ⟨2 + i * 2⟩)
+
+/-- Rocq: `Cantor.mulOrd_two_expOmega_le`. -/
+theorem two_mul_pow_omega_le_lub : ∀ c : Ordinal.{u}, 2 * ω ^ c ≤ 2 ⊔ ω ^ c
+  | mk C h => by
+    have step : ∀ i : C, 2 * (ω ^ h i * ω) ≤ ω ^ mk C h := fun i =>
+      calc 2 * (ω ^ h i * ω) ≤ 2 * ω ^ h i * ω := (mul_assoc _ _ _).le
+        _ ≤ ω ^ h i * 2 * ω := mul_le_mul_right ω (le_trans (two_mul_pow_omega_le_lub (h i))
+            (lub_least (le_trans (one_mul 2).ge (mul_le_mul_right 2 (succ_least (pow_pos ω _))))
+              (le_trans (mul_one _).ge (mul_le_mul_left _ (succ_monotone (zero_least 1))))))
+        _ ≤ ω ^ h i * (2 * ω) := (mul_assoc _ _ _).ge
+        _ ≤ ω ^ h i * ω := mul_le_mul_left _ two_mul_omega_le
+        _ ≤ ω ^ mk C h := pow_index_mul_omega_le (mk C h) i
+    have hsup : 2 * (sup fun i : C => ω ^ h i * ω) ≤ ω ^ mk C h := by
+      rw [mul_unfold]
+      exact sup_least fun ⟨i, q⟩ => le_trans
+        (by rw [mul_unfold 2 (ω ^ h i * ω)]; exact sup_le (fun q => 2 * (ω ^ h i * ω) q + 2) q)
+        (step i)
+    calc 2 * ω ^ mk C h = 2 * (1 ⊔ sup fun i : C => ω ^ h i * ω) := by rw [pow_unfold ω (mk C h)]
+      _ ≤ 2 * 1 ⊔ 2 * (sup fun i : C => ω ^ h i * ω) := (mul_lub _ _ _).le
+      _ ≤ 2 ⊔ ω ^ mk C h := lub_least (le_trans (mul_one 2).le (lub_le1 _ _)) (le_trans hsup (lub_le2 _ _))
+
+/-- Rocq: `Cantor.mulOrd_two_expOmega`. -/
+theorem two_mul_pow_omega_le {c : Ordinal.{u}} (hc : 0 < c) : 2 * ω ^ c ≤ ω ^ c :=
+  le_trans (two_mul_pow_omega_le_lub c)
+    (lub_least (le_trans (index_le ω ⟨2⟩) (omega_le_pow_omega hc)) (le_refl _))
+
+/-- If `a + b ≤ a * a`, then `(a + b) ^ e ≤ a ^ (2 * e)`, which collapses to `a ^ e`
+when `2 * e ≤ e`. Rocq: `Cantor.expOrd_collapse`. -/
+theorem pow_collapse (a b : Ordinal.{u}) (n : (ω : Ordinal.{u}).Carrier) (e : Ordinal.{u})
+    (ha : ω n + 1 ≤ a) (hb : b ≤ a * ω n) (he : 2 * e ≤ e) : (a + b) ^ e ≤ a ^ e := by
   have hn1 : ofNat (n.down + 1) ≤ a := le_trans (succ_le_add_one _) ha
   have ha₀ : 0 < a := lt_of_lt_of_le (lt_of_le_of_lt (zero_least _) (succ_lt (ofNat n.down))) hn1
   have hab₀ : 0 < a + b := lt_of_lt_of_le ha₀ (le_add_right a b)
   have hab : a + b ≤ a * a :=
     le_trans (le_trans (add_le_add (le_refl a) hb) (add_mul_ofNat_le a n.down))
       (mul_le_mul_left a hn1)
-  have claim : ∀ i : Nat, (a + b) ^ ofNat.{u} i ≤ a ^ ofNat.{u} (2 * i) := by
-    intro i
-    induction i with
-    | zero => exact le_trans (pow_zero _).le (pow_zero _).ge
-    | succ i ih =>
-      calc (a + b) ^ ofNat.{u} (i + 1) ≤ (a + b) ^ ofNat.{u} i * (a + b) := (pow_succ _ hab₀).le
-        _ ≤ a ^ ofNat.{u} (2 * i) * (a * a) := mul_le_mul ih hab
-        _ ≤ a ^ ofNat.{u} (2 * i) * a * a := (mul_assoc _ _ _).le
-        _ ≤ a ^ ofNat.{u} (2 * i + 1) * a := mul_le_mul_right a (pow_succ _ ha₀).ge
-        _ ≤ a ^ ofNat.{u} (2 * (i + 1)) := (pow_succ _ ha₀).ge
-  rw [pow_unfold (a + b) ω]
-  refine lub_least (succ_least (pow_pos _ _)) (sup_least fun ⟨i⟩ => ?_)
-  exact le_trans (pow_succ (ofNat i) hab₀).ge
-    (le_trans (claim (i + 1)) (pow_le_pow_right a (index_le ω ⟨2 * (i + 1)⟩)))
+  calc (a + b) ^ e ≤ (a * a) ^ e := pow_le_pow_left hab e
+    _ ≤ (a ^ (2 : Ordinal.{u})) ^ e :=
+        pow_le_pow_left (le_trans (mul_le_mul_right a (pow_one' ha₀).ge) (pow_succ 1 ha₀).ge) e
+    _ ≤ a ^ (2 * e) := (pow_mul a 2 e).ge
+    _ ≤ a ^ e := pow_le_pow_right a he
+
+/-- Rocq: `Cantor.expToOmega_collapse`. -/
+theorem expToOmega_collapse (a b : Ordinal.{u}) (n : (ω : Ordinal.{u}).Carrier)
+    (ha : ω n + 1 ≤ a) (hb : b ≤ a * ω n) : (a + b) ^ (ω : Ordinal.{u}) ≤ a ^ (ω : Ordinal.{u}) :=
+  pow_collapse a b n ω ha hb two_mul_omega_le
 
 /-- Rocq: `Cantor.expToOmega_collapse_tower`. -/
 theorem expToOmega_collapse_tower (a b : Ordinal.{u}) (n : (ω : Ordinal.{u}).Carrier)
-    (ha : ω n + 1 ≤ a) (hb : b ≤ a * ω n) :
-    ∀ c : Ordinal.{u}, Complete c → 0 < c → (a + b) ^ (ω ^ c) ≤ a ^ (ω ^ c)
-  | c, hc, h₀ => by
-    have hω : (a + b) ^ (ω : Ordinal.{u}) ≤ a ^ (ω ^ c) :=
-      le_trans (expToOmega_collapse a b n ha hb) (pow_le_pow_right a (omega_le_pow_omega h₀))
-    obtain ⟨c₀, _⟩ := lt_elim h₀
-    rw [pow_unfold ω c]
-    refine le_trans (pow_lub _ _ _).le (lub_least ?_ ?_)
-    · exact le_trans (pow_le_pow_right _ (le_of_lt omega_gt1)) (by rw [← pow_unfold ω c]; exact hω)
-    · refine le_trans (pow_continuous (a + b) _ (fun i : c => ω ^ c i * ω) c₀)
-        (sup_least fun i => ?_)
-      rw [← pow_unfold ω c]
-      match complete_zeroDec (complete_subord hc i) with
-      | .inl hz =>
-        refine le_trans (pow_le_pow_right _ ?_) hω
-        exact le_trans (mul_le_mul_right ω (le_trans (pow_le_pow_right ω hz) (pow_zero ω).le))
-          (one_mul ω).le
-      | .inr hp =>
-        calc (a + b) ^ (ω ^ c i * ω) ≤ ((a + b) ^ (ω ^ c i)) ^ (ω : Ordinal.{u}) := (pow_mul _ _ _).le
-          _ ≤ (a ^ (ω ^ c i)) ^ (ω : Ordinal.{u}) :=
-              pow_le_pow_left (expToOmega_collapse_tower a b n ha hb (c i) (complete_subord hc i) hp) _
-          _ ≤ a ^ (ω ^ c i * ω) := (pow_mul _ _ _).ge
-          _ ≤ a ^ (ω ^ c) := pow_le_pow_right a (pow_index_mul_omega_le c i)
-termination_by c => c
-decreasing_by exact index_lt c i
+    (ha : ω n + 1 ≤ a) (hb : b ≤ a * ω n) (c : Ordinal.{u}) (h₀ : 0 < c) :
+    (a + b) ^ (ω ^ c) ≤ a ^ (ω ^ c) :=
+  pow_collapse a b n _ ha hb (two_mul_pow_omega_le h₀)
 
 /-! ## Truth ordinals and `ω`-exponentiation -/
 
