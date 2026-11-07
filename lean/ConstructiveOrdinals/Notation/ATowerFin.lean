@@ -1,4 +1,5 @@
 import ConstructiveOrdinals.Notation.CantorDecomposition
+import ConstructiveOrdinals.Notation.CantorProduct
 import ConstructiveOrdinals.AckermannTower
 import ConstructiveOrdinals.Prelude.Relations
 
@@ -1175,6 +1176,15 @@ def nadd : VForm → VForm → VForm := cantorNadd hasCantorDecomposition
 /-- Rocq: `Notation.ATowerFinNotation.VF_reflects_nadd`. -/
 theorem reflects_nadd : Reflects VForm denote IsNormal (.ord ==> .ord ==> .ord) (· ♯ ·) nadd :=
   cantor_nadd_reflects hasCantorDecomposition
+
+/-- The natural product, computed on Cantor normal forms.
+Rocq: `Notation.ATowerFinNotation.VF_nmul`. -/
+def nmul : VForm → VForm → VForm := CantorProduct.cantorNmul hasCantorDecomposition
+
+/-- Constructively, using interpolants. Rocq: `Notation.ATowerFinNotation.VF_reflects_nmul`. -/
+theorem reflects_nmul :
+    Reflects VForm denote IsNormal (.ord ==> .ord ==> .ord) NaturalProduct.nmul nmul :=
+  CantorProduct.cantor_nmul_reflects hasCantorDecomposition has_all_interpolants
 
 /-! ## Order type -/
 

@@ -1,6 +1,7 @@
 import ConstructiveOrdinals.NaturalProduct
 import ConstructiveOrdinals.Notation.Interpolants
 import ConstructiveOrdinals.Notation.CantorDecomposition
+import ConstructiveOrdinals.Prelude.Relations
 
 /-!
 # The natural product on Cantor normal forms
@@ -36,8 +37,8 @@ to such trees.
 We write `V xs` for the natural sum of the ω-powers of a list of exponents.
 
 Lean notes:
-- Rocq's `Permutation` is core `List.Perm`; the few facts needed about it are
-  proved here, to keep them axiom-free.
+- Rocq's `Permutation` is `ConstructiveOrdinals.Permutation`
+  (`Prelude/Relations.lean`); `perm_middle` and `perm_map` are proved here.
 - Rocq's local abbreviations `V` and `prod_equiv` are the abbreviations `V`
   and `ProdEquiv`.
 - `V_cnf_assoc` is proved on values rather than through `Forall2`, with the
@@ -58,20 +59,16 @@ abbrev V (xs : List Ordinal.{u}) : Ordinal.{u} := Ordinal.cantorDenoteNadd xs
 
 /-! ## Permutations -/
 
-private theorem perm_refl {α : Type u} : ∀ l : List α, l.Perm l
-  | [] => .nil
-  | x :: l => .cons x (perm_refl l)
-
 private theorem perm_middle {α : Type u} (a : α) : ∀ l₁ l₂ : List α,
-    (a :: (l₁ ++ l₂)).Perm (l₁ ++ a :: l₂)
-  | [], _ => perm_refl _
-  | b :: l₁, l₂ => .trans (.swap b a _) (.cons b (perm_middle a l₁ l₂))
+    Permutation (a :: (l₁ ++ l₂)) (l₁ ++ a :: l₂)
+  | [], _ => Permutation.refl _
+  | b :: l₁, l₂ => .trans (.swap b a _) (.skip b (perm_middle a l₁ l₂))
 
-private theorem perm_map {α : Type u} {β : Type v} (g : α → β) {l₁ l₂ : List α} (h : l₁.Perm l₂) :
-    (l₁.map g).Perm (l₂.map g) := by
+private theorem perm_map {α : Type u} {β : Type v} (g : α → β) {l₁ l₂ : List α}
+    (h : Permutation l₁ l₂) : Permutation (l₁.map g) (l₂.map g) := by
   induction h with
   | nil => exact .nil
-  | cons x _ ih => exact .cons _ ih
+  | skip x _ ih => exact .skip _ ih
   | swap x y l => exact .swap _ _ _
   | trans _ _ ih₁ ih₂ => exact .trans ih₁ ih₂
 
@@ -87,10 +84,10 @@ theorem V_app (xs ys : List Ordinal.{u}) : V (xs ++ ys) ≈ V xs ♯ V ys :=
   cantor_denote_nadd_app xs ys
 
 /-- Rocq: `Notation.CantorProduct.V_perm`. -/
-theorem V_perm (xs ys : List Ordinal.{u}) (h : xs.Perm ys) : V xs ≈ V ys := by
+theorem V_perm (xs ys : List Ordinal.{u}) (h : Permutation xs ys) : V xs ≈ V ys := by
   induction h with
   | nil => exact equiv_refl _
-  | cons x _ ih => exact nadd_congr (equiv_refl _) ih
+  | skip x _ ih => exact nadd_congr (equiv_refl _) ih
   | swap x y l => exact nadd_left_comm _ _ _
   | trans _ _ ih₁ ih₂ => exact equiv_trans ih₁ ih₂
 
@@ -177,10 +174,10 @@ theorem prod_equiv_eq2 (L₁ L₂ : List Ordinal.{u}) (h : Forall₂ (· ≈ ·)
         (ih ws)) (equiv_symm (V_cnf_cons_r ws y ys)))
 
 /-- Rocq: `Notation.CantorProduct.prod_equiv_perm`. -/
-theorem prod_equiv_perm (L₁ L₂ : List Ordinal.{u}) (h : L₁.Perm L₂) : ProdEquiv L₁ L₂ := by
+theorem prod_equiv_perm (L₁ L₂ : List Ordinal.{u}) (h : Permutation L₁ L₂) : ProdEquiv L₁ L₂ := by
   induction h with
   | nil => exact fun _ => equiv_refl _
-  | @cons x l₁ l₂ _ ih =>
+  | @skip x l₁ l₂ _ ih =>
     exact fun ws => equiv_trans (V_cnf_cons_r ws x l₁)
       (equiv_trans (nadd_congr (equiv_refl _) (ih ws)) (equiv_symm (V_cnf_cons_r ws x l₂)))
   | swap x y l =>
@@ -323,24 +320,25 @@ theorem dec_equiv (x : A) (L : List A) (hx : P x) (hL : Each P L) (hoL : CantorO
   prod_equiv_eq2 _ _ (cantor_nadd_unique X _ _ h₁ hL h₂ hoL (equiv_trans (equiv_symm (dec_value X x hx)) H))
 
 private theorem naddInner_perm (x : A) (xs : List A)
-    (ih : ∀ ys, (cantorNaddList X xs ys).Perm (xs ++ ys)) :
-    ∀ ys, (cantorNaddInner X x xs (cantorNaddList X xs) ys).Perm (x :: xs ++ ys)
+    (ih : ∀ ys, Permutation (cantorNaddList X xs ys) (xs ++ ys)) :
+    ∀ ys, Permutation (cantorNaddInner X x xs (cantorNaddList X xs) ys) (x :: xs ++ ys)
   | [] => by
-    show (x :: xs).Perm (x :: (xs ++ []))
+    show Permutation (x :: xs) (x :: (xs ++ []))
     rw [List.append_nil]
+    exact Permutation.refl _
   | y :: ys => by
-    show (match X.compare x y with
+    show Permutation (match X.compare x y with
       | .lt => y :: cantorNaddInner X x xs (cantorNaddList X xs) ys
       | .eq => x :: cantorNaddList X xs (y :: ys)
-      | .gt => x :: cantorNaddList X xs (y :: ys)).Perm (x :: xs ++ y :: ys)
+      | .gt => x :: cantorNaddList X xs (y :: ys)) (x :: xs ++ y :: ys)
     cases X.compare x y with
-    | lt => exact .trans (.cons y (naddInner_perm x xs ih ys)) (perm_middle y (x :: xs) ys)
-    | eq => exact .cons x (ih (y :: ys))
-    | gt => exact .cons x (ih (y :: ys))
+    | lt => exact .trans (.skip y (naddInner_perm x xs ih ys)) (perm_middle y (x :: xs) ys)
+    | eq => exact .skip x (ih (y :: ys))
+    | gt => exact .skip x (ih (y :: ys))
 
 /-- Rocq: `Notation.CantorProduct.nadd_list_perm`. -/
-theorem nadd_list_perm : ∀ xs ys : List A, (cantorNaddList X xs ys).Perm (xs ++ ys)
-  | [], ys => perm_refl ys
+theorem nadd_list_perm : ∀ xs ys : List A, Permutation (cantorNaddList X xs ys) (xs ++ ys)
+  | [], ys => Permutation.refl ys
   | x :: xs, ys => naddInner_perm X x xs (nadd_list_perm xs) ys
 
 /-- Insertion sort by repeated merging. Rocq: `Notation.CantorProduct.cantor_sort`. -/
@@ -349,13 +347,13 @@ def cantorSort (l : List A) : List A :=
 
 /-- Rocq: `Notation.CantorProduct.cantor_sort_correct`. -/
 theorem cantor_sort_correct : ∀ l : List A, Each P l →
-    Each P (cantorSort X l) ∧ CantorOrdered f (cantorSort X l) ∧ (cantorSort X l).Perm l
+    Each P (cantorSort X l) ∧ CantorOrdered f (cantorSort X l) ∧ Permutation (cantorSort X l) l
   | [], _ => ⟨trivial, trivial, .nil⟩
   | e :: l, ⟨he, hl⟩ =>
     let ⟨h₁, h₂, h₃⟩ := cantor_sort_correct l hl
     let ⟨h₄, h₅, _⟩ := cantor_nadd_list_correct X [e] (cantorSort X l) ⟨he, trivial⟩ h₁
       ⟨trivial, trivial⟩ h₂
-    ⟨h₄, h₅, .trans (nadd_list_perm X [e] _) (.cons e h₃)⟩
+    ⟨h₄, h₅, .trans (nadd_list_perm X [e] _) (.skip e h₃)⟩
 
 /-- All pairwise natural sums. Rocq: `Notation.CantorProduct.cantor_pairs` (a
 `flat_map`; here the same list by recursion). -/
