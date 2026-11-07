@@ -1021,7 +1021,7 @@ theorem veblen_tower_epsilon (n : Nat) (x y : Ordinal.{0}) (hx : Complete x) (hy
 
 /-! ## Cantor decomposition and arithmetic -/
 
-open CantorDecomposition
+open CantorDecomposition Interpolants
 
 /-- Rocq: `Notation.ATowerFinNotation.VF_decompose`. -/
 def decompose : VForm → List VForm
@@ -1144,9 +1144,9 @@ private theorem tower_interpolants : ∀ (n : Nat) (b : Ordinal.{0}), Complete b
       (fun x a h => add_reflects 1 (succ Z) (succ_reflects 0 Z ⟨equiv_refl _, trivial⟩) x a h)
       b hb
   | n + 1, b, hb₁, hb₂ =>
-    enum_fix_has_interpolants hasCantorDecomposition (fun x => veblen (T n) x 0)
+    enum_fix_has_interpolants hasCantorDecomposition.complete (fun x => veblen (T n) x 0)
       (veblen_first_normal (T_normal n)).complete
-      (fun b hb₁ hb₂ => veblen_interpolants_first hasCantorDecomposition (T n) (T_normal n)
+      (fun b hb₁ hb₂ => veblen_interpolants_first hasCantorDecomposition.complete (T n) (T_normal n)
         (tower_interpolants n) (vnorm n) (ackermann_reflects n) b hb₁ hb₂)
       (veblen_first_normal (T_normal n)).monotone
       (normal_inflationary (veblen_first_normal (T_normal n))) (vnorm (n + 1) Z)
@@ -1165,7 +1165,7 @@ theorem has_all_interpolants : HasAllInterpolants denote IsNormal := by
     exact fun _ => (has_interpolants_unfold _).2 fun i hi =>
       (lt_irrefl i (lt_of_lt_of_le hi (zero_least i))).elim
   | V n a b iha ihb =>
-    exact fun h => veblen_interpolants hasCantorDecomposition (T n) (T_normal n)
+    exact fun h => veblen_interpolants hasCantorDecomposition.complete (T n) (T_normal n)
       (tower_interpolants n) (vnorm n) (ackermann_reflects n) a (denote b) h.1 (iha h.1)
       (complete b) (ihb h.2.1)
 
@@ -1174,7 +1174,7 @@ def nadd : VForm → VForm → VForm := cantorNadd hasCantorDecomposition
 
 /-- Rocq: `Notation.ATowerFinNotation.VF_reflects_nadd`. -/
 theorem reflects_nadd : Reflects VForm denote IsNormal (.ord ==> .ord ==> .ord) (· ♯ ·) nadd :=
-  cantor_nadd_reflects hasCantorDecomposition has_all_interpolants
+  cantor_nadd_reflects hasCantorDecomposition
 
 /-! ## Order type -/
 
@@ -1223,7 +1223,7 @@ theorem VF_SAO : VF ≈ SmallAckermannOrdinal :=
 
 namespace VForm
 
-open CantorDecomposition
+open CantorDecomposition Interpolants
 
 /-- With the excluded middle, every ordinal below the small Ackermann ordinal
 has a normal form. Rocq: `Notation.ATowerFinNotation.VF_has_enough_notations`. -/

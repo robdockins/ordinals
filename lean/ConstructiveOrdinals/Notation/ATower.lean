@@ -1060,7 +1060,7 @@ theorem veblen_tower_epsilon (n x y : Ordinal.{0}) (hn : Complete n) (hx : Compl
 
 /-! ## Cantor decomposition and arithmetic -/
 
-open CantorDecomposition
+open CantorDecomposition Interpolants
 
 /-- Rocq: `Notation.ATowerNotation.VF_decompose`. -/
 def decompose : VForm → List VForm
@@ -1246,7 +1246,7 @@ theorem ackermann_tower_has_interpolants : ∀ (n : VForm) (b : Ordinal.{0}), Is
     have hTq := TV_normal q
     have hfix := fix_has_interpolants (fun d => veblen (T (denote q)) d 0)
       (veblen_first_normal hTq).complete
-      (fun d hd₁ hd₂ => veblen_interpolants_first hasCantorDecomposition (T (denote q)) hTq
+      (fun d hd₁ hd₂ => veblen_interpolants_first hasCantorDecomposition.complete (T (denote q)) hTq
         (fun b' hb'₁ hb'₂ => ihn (denote q) (lt_of_lt_of_le hq₃ hno) q (le_refl _) b' hq₁ hq₄
           hb'₁ hb'₂)
         (vnorm q) (ackermann_reflects' hq₁) d hd₁ hd₂) _ hb'c hb'
@@ -1274,7 +1274,7 @@ theorem has_all_interpolants : HasAllInterpolants denote IsNormal := by
     exact fun _ => (has_interpolants_unfold _).2 fun i hi =>
       (lt_irrefl i (lt_of_lt_of_le hi (zero_least i))).elim
   | V n a b ihn iha ihb =>
-    exact fun h => veblen_interpolants hasCantorDecomposition (T (denote n)) (TV_normal n)
+    exact fun h => veblen_interpolants hasCantorDecomposition.complete (T (denote n)) (TV_normal n)
       (fun c hc₁ hc₂ => ackermann_tower_has_interpolants n c h.1 (ihn h.1) hc₁ hc₂) (vnorm n)
       (ackermann_reflects' h.1) a (denote b) h.2.1 (iha h.2.1) (complete b) (ihb h.2.2.1)
 
@@ -1283,7 +1283,7 @@ def nadd : VForm → VForm → VForm := cantorNadd hasCantorDecomposition
 
 /-- Rocq: `Notation.ATowerNotation.VF_reflects_nadd`. -/
 theorem reflects_nadd : Reflects VForm denote IsNormal (.ord ==> .ord ==> .ord) (· ♯ ·) nadd :=
-  cantor_nadd_reflects hasCantorDecomposition has_all_interpolants
+  cantor_nadd_reflects hasCantorDecomposition
 
 /-! ## Order type -/
 
@@ -1336,7 +1336,7 @@ theorem VF_LAO : VF ≈ LargeAckermannOrdinal := by
 
 namespace VForm
 
-open CantorDecomposition
+open CantorDecomposition Interpolants
 
 /-- With the excluded middle, every ordinal below the large Ackermann ordinal
 has a normal form. Rocq: `Notation.ATowerNotation.VF_has_enough_notations`. -/

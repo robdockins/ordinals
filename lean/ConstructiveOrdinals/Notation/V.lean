@@ -504,7 +504,7 @@ theorem normalizes_iff (x y : VForm) :
 
 /-! ## Cantor decomposition and arithmetic -/
 
-open CantorDecomposition
+open CantorDecomposition Interpolants
 
 /-- Rocq: `Notation.VNotation.VF_decompose`. -/
 def decompose : VForm → List VForm
@@ -615,7 +615,7 @@ theorem VF_ε₀ : VF ≈ ε 0 :=
 
 namespace VForm
 
-open CantorDecomposition
+open CantorDecomposition Interpolants
 
 /-- Rocq: `Notation.VNotation.VF_has_all_interpolants`. -/
 theorem has_all_interpolants : HasAllInterpolants denote IsNormal := by
@@ -631,7 +631,7 @@ theorem has_all_interpolants : HasAllInterpolants denote IsNormal := by
     exact fun _ => (has_interpolants_unfold _).2 fun i hi =>
       (lt_irrefl i (lt_of_lt_of_le hi (zero_least i))).elim
   | V a b iha ihb =>
-    exact fun h => veblen_interpolants hasCantorDecomposition (fun y => 1 + y) onePlus_normal hg₂
+    exact fun h => veblen_interpolants hasCantorDecomposition.complete (fun y => 1 + y) onePlus_normal hg₂
       vnorm hvr a (denote b) h.1 (iha h.1) (complete b) (ihb h.2.1)
 
 /-- Rocq: `Notation.VNotation.VF_nadd`. -/
@@ -639,7 +639,7 @@ def nadd : VForm → VForm → VForm := cantorNadd hasCantorDecomposition
 
 /-- Rocq: `Notation.VNotation.VF_reflects_nadd`. -/
 theorem reflects_nadd : Reflects VForm denote IsNormal (.ord ==> .ord ==> .ord) (· ♯ ·) nadd :=
-  cantor_nadd_reflects hasCantorDecomposition has_all_interpolants
+  cantor_nadd_reflects hasCantorDecomposition
 
 /-- With the excluded middle, every ordinal below `ε 0` has a Veblen form.
 Rocq: `Notation.VNotation.VF_has_enough_notations`. -/

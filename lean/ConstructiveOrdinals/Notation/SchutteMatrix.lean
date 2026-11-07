@@ -1462,7 +1462,7 @@ private theorem le_zero_of_lt_one {x : Ordinal.{0}} (h : x < 1) : x ≤ 0 :=
 private theorem not_lt_zero' {x : Ordinal.{0}} (h : x < 0) : False :=
   lt_irrefl _ (lt_of_lt_of_le h (zero_least _))
 
-open CantorDecomposition in
+open CantorDecomposition Interpolants in
 /-- Rocq: `Notation.SchutteMatrix.VF_decompose_correct`. -/
 theorem decompose_correct : ∀ x : VForm, IsNormal x →
     Each IsNormal (decompose x) ∧ CantorOrdered denote (decompose x) ∧
@@ -1561,7 +1561,7 @@ private theorem lt_powOmega_wrap (x : VForm) (hx : IsNormal x) (hlt : denote x <
       ⟨lt_of_lt_of_le hlt (expOmega_denote x).le, trivial⟩⟩,
     equiv_trans (add_zero _) (expOmega_denote x)⟩
 
-open CantorDecomposition in
+open CantorDecomposition Interpolants in
 /-- Rocq: `Notation.SchutteMatrix.VF_recompose_correct`. -/
 theorem recompose_correct : ∀ xs : List VForm, Each IsNormal xs → CantorOrdered denote xs →
     IsNormal (recompose xs) ∧ cantorDenote denote xs ≈ denote (recompose xs)
@@ -1633,7 +1633,7 @@ theorem recompose_correct : ∀ xs : List VForm, Each IsNormal xs → CantorOrde
       · exact lt_of_lt_of_le (lt_of_le_of_lt ih.2.ge (lt_of_lt_of_le
           (cantor_tail_lt (N l) (x' :: xs') hord) (add_le_add (le_refl _) ih.2.le))) h2.ge
 
-open CantorDecomposition
+open CantorDecomposition Interpolants
 
 /-- Rocq: `Notation.SchutteMatrix.VF_has_cantor_decomposition`. -/
 def hasCantorDecomposition : HasCantorDecomposition denote IsNormal where
@@ -2050,7 +2050,7 @@ def nadd : VForm → VForm → VForm := cantorNadd hasCantorDecomposition
 
 /-- Rocq: `Notation.SchutteMatrix.VF_reflects_nadd`. -/
 theorem reflects_nadd : Reflects VForm denote IsNormal (.ord ==> .ord ==> .ord) (· ♯ ·) nadd :=
-  cantor_nadd_reflects hasCantorDecomposition schutte_matrix_has_all_interpolants
+  cantor_nadd_reflects hasCantorDecomposition
 
 /-- With the excluded middle, every ordinal below the large Veblen ordinal has
 a unique normal form. Rocq's `exists!` is spelled out.

@@ -1412,7 +1412,7 @@ def recompose : List VForm → VForm
   | Z :: x' :: xs' => N [recompose (x' :: xs')]
   | N l :: x' :: xs' => N [N l, recompose (x' :: xs')]
 
-open CantorDecomposition in
+open CantorDecomposition Interpolants in
 /-- Rocq: `Notation.SchutteStack.VF_decompose_correct`. -/
 theorem decompose_correct : ∀ x : VForm, IsNormal x →
     Each IsNormal (decompose x) ∧ CantorOrdered denote (decompose x) ∧
@@ -1526,7 +1526,7 @@ private theorem lt_powOmega_small : ∀ x : VForm, IsNormal x → Small x → de
       (lt_of_lt_of_le h'.2.2.2.1 (normal_inflationary powOmega_normal _ (complete _))))
   | N (_ :: _ :: _ :: _), _, h => h.elim
 
-open CantorDecomposition in
+open CantorDecomposition Interpolants in
 /-- Rocq: `Notation.SchutteStack.VF_recompose_correct`. -/
 theorem recompose_correct : ∀ xs : List VForm, Each IsNormal xs → CantorOrdered denote xs →
     IsNormal (recompose xs) ∧ cantorDenote denote xs ≈ denote (recompose xs)
@@ -1574,7 +1574,7 @@ theorem recompose_correct : ∀ xs : List VForm, Each IsNormal xs → CantorOrde
       · exact lt_of_lt_of_le (lt_of_le_of_lt ih.2.ge (lt_of_lt_of_le
           (cantor_tail_lt (N l) (x' :: xs') hord) (add_le_add (le_refl _) ih.2.le))) h2.ge
 
-open CantorDecomposition
+open CantorDecomposition Interpolants
 
 /-- Rocq: `Notation.SchutteStack.VF_has_cantor_decomposition`. -/
 def hasCantorDecomposition : HasCantorDecomposition denote IsNormal where
@@ -2165,7 +2165,7 @@ def nadd : VForm → VForm → VForm := cantorNadd hasCantorDecomposition
 
 /-- Rocq: `Notation.SchutteStack.VF_reflects_nadd`. -/
 theorem reflects_nadd : Reflects VForm denote IsNormal (.ord ==> .ord ==> .ord) (· ♯ ·) nadd :=
-  cantor_nadd_reflects hasCantorDecomposition schutte_stack_has_all_interpolants
+  cantor_nadd_reflects hasCantorDecomposition
 
 /-- With the excluded middle, every ordinal below the small Veblen ordinal has
 a unique normal form. Rocq's `exists!` is spelled out.
