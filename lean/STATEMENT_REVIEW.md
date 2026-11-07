@@ -67,7 +67,7 @@ are presentational:
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
 
-331 statements.
+337 statements.
 
 ## Defs
 
@@ -722,6 +722,92 @@ NaturalArith.complete_intensional_WEM
 Lean:
 ```
 complete_intensional_WEM : (∀ (x y : Ordinal), x ≈ y → x.Complete → y.Complete) → WeakExcludedMiddle
+```
+
+### `tree_selection_fix_complete`
+
+Rocq:
+```
+NaturalArith.tree_selection_fix_complete
+     : forall x : Defs.Ord,
+       Operators.complete x ->
+       Defs.ord_eq (Fixpoints.fixOrd NaturalArith.tree_selection x)
+         (Fixpoints.fixOrd Arith.powOmega x)
+```
+Lean:
+```
+tree_selection_fix_complete : ∀ (x : Ordinal), x.Complete → fixOrd treeSelection x ≈ fixOrd powOmega x
+```
+
+### `tree_selection_fix`
+
+Rocq:
+```
+NaturalArith.tree_selection_fix
+     : ClassicalFacts.excluded_middle ->
+       forall x : Defs.Ord,
+       Defs.ord_eq (Fixpoints.fixOrd NaturalArith.tree_selection x)
+         (Fixpoints.fixOrd Arith.powOmega x)
+```
+Lean:
+```
+tree_selection_fix : ExcludedMiddle → ∀ (x : Ordinal), fixOrd treeSelection x ≈ fixOrd powOmega x
+```
+
+### `tree_selection_ε0`
+
+Rocq:
+```
+NaturalArith.tree_selection_ε0
+     : Defs.ord_eq (NaturalArith.tree_selection (Fixpoints.ε Operators.zeroOrd))
+         (Fixpoints.ε Operators.zeroOrd)
+```
+Lean:
+```
+tree_selection_ε0 : (ε 0).treeSelection ≈ ε 0
+```
+
+### `tree_selection_ε0_least`
+
+Rocq:
+```
+NaturalArith.tree_selection_ε0_least
+     : forall z : Defs.Ord,
+       Defs.ord_le (NaturalArith.tree_selection z) z ->
+       Defs.ord_le (Fixpoints.ε Operators.zeroOrd) z
+```
+Lean:
+```
+tree_selection_ε0_least : ∀ (z : Ordinal), z.treeSelection ≤ z → ε 0 ≤ z
+```
+
+### `tree_selection_epsilon_WEM`
+
+Rocq:
+```
+NaturalArith.tree_selection_epsilon_WEM
+     : (forall z : Defs.Ord,
+        Defs.ord_le (Arith.expOrd Operators.ω z) z -> Defs.ord_le (NaturalArith.tree_selection z) z) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+tree_selection_epsilon_WEM : (∀ (z : Ordinal), ω ^ z ≤ z → z.treeSelection ≤ z) → WeakExcludedMiddle
+```
+
+### `tree_selection_fix_WEM`
+
+Rocq:
+```
+NaturalArith.tree_selection_fix_WEM
+     : (forall x : Defs.Ord,
+        Defs.ord_le (Fixpoints.fixOrd NaturalArith.tree_selection x)
+          (Fixpoints.fixOrd Arith.powOmega x)) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+tree_selection_fix_WEM : (∀ (x : Ordinal), fixOrd treeSelection x ≤ fixOrd powOmega x) → WeakExcludedMiddle
 ```
 
 ## NaturalProduct

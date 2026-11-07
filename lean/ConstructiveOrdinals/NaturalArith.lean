@@ -1689,6 +1689,101 @@ theorem complete_intensional_WEM
   tree_selection_complete_WEM fun x hx =>
     h _ _ (equiv_symm (tree_selection_eq_powOmega_complete x hx)) (pow_complete omega_gt0 omega_complete hx)
 
+/-! ## Fixpoints of `treeSelection`
+
+The least fixpoints of `treeSelection` and `x ↦ ω ^ x` coincide, as `ε 0`,
+constructively. The iterates of `ω ^ ·` from `0` are complete, where the two
+functions agree, and every prefixpoint of `treeSelection` is one of `ω ^ ·`,
+because `ω ^ x ≤ treeSelection x` for all `x`; so no completeness hypothesis on
+the competing prefixpoint is needed. More generally the least fixpoints above
+any complete `x` coincide. -/
+
+/-- Rocq: `NaturalArith.tree_selection_fix_complete`. -/
+theorem tree_selection_fix_complete (x : Ordinal.{u}) (hx : Complete x) :
+    fixOrd treeSelection x ≈ fixOrd powOmega x := by
+  have hn : ∀ n : Nat,
+      iterF treeSelection x n ≈ iterF powOmega x n ∧ Complete (iterF powOmega x n) := by
+    intro n
+    induction n with
+    | zero => exact ⟨equiv_refl x, hx⟩
+    | succ n ih =>
+      exact ⟨equiv_trans (equiv_intro (tree_selection_monotone _ _ ih.1.le)
+          (tree_selection_monotone _ _ ih.1.ge)) (tree_selection_eq_powOmega_complete _ ih.2),
+        pow_complete omega_gt0 omega_complete ih.2⟩
+  exact equiv_intro
+    (sup_least fun ⟨n⟩ =>
+      le_trans (hn n).1.le (sup_le (fun n : ULift.{u} Nat => iterF powOmega x n.down) ⟨n⟩))
+    (sup_least fun ⟨n⟩ =>
+      le_trans (hn n).1.ge (sup_le (fun n : ULift.{u} Nat => iterF treeSelection x n.down) ⟨n⟩))
+
+/-- Rocq: `NaturalArith.tree_selection_fix`. -/
+theorem tree_selection_fix (em : ExcludedMiddle) (x : Ordinal.{u}) :
+    fixOrd treeSelection x ≈ fixOrd powOmega x :=
+  tree_selection_fix_complete x (ord_complete em x)
+
+/-- Rocq: `NaturalArith.tree_selection_ε0`. -/
+theorem tree_selection_ε0 : treeSelection (ε 0 : Ordinal.{u}) ≈ ε 0 :=
+  equiv_trans (tree_selection_eq_powOmega_complete _ (ε_complete zero_complete))
+    (equiv_symm (ε_fixpoint 0))
+
+/-- Rocq: `NaturalArith.tree_selection_ε0_least`. -/
+theorem tree_selection_ε0_least (z : Ordinal.{u}) (hz : treeSelection z ≤ z) : ε 0 ≤ z :=
+  ε0_least_expOmega_closed z (le_trans (powOmega_le_tree_selection z) hz)
+
+/-! Without completeness the fixpoints differ. The prefixpoints of
+`treeSelection` are closed under natural sum, but an ε-number need not be,
+constructively. Take `B = ε 1`, `u` with the single child `B` if `P` (and none
+otherwise), `A` the least ε-number above `u + 1`, and the ε-number `Z = A ⊔ B`.
+Then `u ♯ ε 0 < Z` names a side: below `B`, refuted by `P` (then `u > B`), or
+below `A`, refuted by `¬P` (then `u ≈ 0` and `A ≤ ε 0`). -/
+
+/-- Rocq: `NaturalArith.tree_selection_prefixpoint_nadd_closed`. -/
+theorem tree_selection_prefixpoint_nadd_closed (z : Ordinal.{u}) (hz : treeSelection z ≤ z)
+    {x y : Ordinal.{u}} (hx : x < z) (hy : y < z) : x ♯ y < z := by
+  obtain ⟨i, hi⟩ := lt_elim hx
+  obtain ⟨j, hj⟩ := lt_elim hy
+  have hinf : ∀ w : Ordinal.{u}, w ≤ treeSelection w :=
+    increasing_inflationary fun _ _ h => tree_selection_increasing h
+  refine lt_of_lt_of_le ?_ hz
+  rw [tree_selection_unfold z]
+  exact lt_intro (show (iteratedSmashSum (lim fun a : z => treeSelection (z a))).Carrier from [i, j])
+    (nadd_monotone _ _ _ _ (le_trans hi (hinf _))
+      (le_trans (le_trans hj (hinf _)) (nadd_zero_r _).ge))
+
+/-- Rocq: `NaturalArith.tree_selection_epsilon_WEM`. -/
+theorem tree_selection_epsilon_WEM
+    (h : ∀ z : Ordinal.{u}, ω ^ z ≤ z → treeSelection z ≤ z) : WeakExcludedMiddle := fun P => by
+  let B : Ordinal.{u} := ε 1
+  let u : Ordinal.{u} := mk (ULift.{u} (PLift P)) fun _ => B
+  let A : Ordinal.{u} := fixOrd powOmega (succ u)
+  have hA : ω ^ A ≤ A := fixOrd_prefixpoint (f := powOmega) (pow_continuous ω) (succ u)
+  have hB : ω ^ B ≤ B := (ε_fixpoint 1).ge
+  have hZ : treeSelection (A ⊔ B) ≤ A ⊔ B :=
+    h _ (le_trans (pow_lub ω A B).le
+      (lub_least (le_trans hA (lub_le1 A B)) (le_trans hB (lub_le2 A B))))
+  have hu : u < A ⊔ B :=
+    lt_of_lt_of_le (lt_of_lt_of_le (succ_lt u) (fixOrd_above powOmega (succ u))) (lub_le1 A B)
+  have hε : ε 0 < A ⊔ B := lt_of_lt_of_le (ε_increasing (succ_lt 0)) (lub_le2 A B)
+  match lub_lt (tree_selection_prefixpoint_nadd_closed _ hZ hu hε) with
+  | .inl hs =>
+    -- below `A`: refuted by `¬P`
+    refine .inl fun np => lt_irrefl A (lt_of_le_of_lt ?_ hs)
+    refine le_trans (fixOrd_least powOmega_monotone' (succ u) (ε 0) (succ_least ?_)
+      (ε_fixpoint 0).ge) (nadd_le2 u (ε 0))
+    exact lt_of_le_of_lt (le_intro fun p => (np p.down.down).elim)
+      (lt_of_lt_of_le (pow_pos ω _) (ε_fixpoint 0).ge)
+  | .inr hs =>
+    -- below `B`: refuted by `P`
+    exact .inr fun p => lt_irrefl B (lt_of_lt_of_le (index_lt u ⟨⟨p⟩⟩)
+      (le_trans (nadd_le1 u (ε 0)) (le_of_lt hs)))
+
+/-- Rocq: `NaturalArith.tree_selection_fix_WEM`. -/
+theorem tree_selection_fix_WEM
+    (h : ∀ x : Ordinal.{u}, fixOrd treeSelection x ≤ fixOrd powOmega x) : WeakExcludedMiddle :=
+  tree_selection_epsilon_WEM fun z hz =>
+    le_trans (sup_le (fun n : ULift.{u} Nat => iterF treeSelection z n.down) ⟨1⟩)
+      (le_trans (h z) (fixOrd_least powOmega_monotone' z z (le_refl z) hz))
+
 end Ordinal
 
 end ConstructiveOrdinals

@@ -2305,11 +2305,13 @@ Proof.
 Abort.
 
 (** Classicaly, at least, the `tree_selection` function is normal. This means
-    it has has fixpoints, as all normal functions do. I suspect it behaves
-    in a similar way to the standard `expOrd ω x` function. In particular,
-    I suspect that the least fixpoint of both functions coincide, as ε(0).
-    (Indeed, on complete ordinals the two functions agree, constructively:
-    see [tree_selection_eq_powOmega_complete] below.)
+    it has has fixpoints, as all normal functions do. It behaves like the
+    standard `expOrd ω x` function: on complete ordinals the two agree,
+    constructively ([tree_selection_eq_powOmega_complete] below), and their
+    least fixpoints coincide, as ε(0), also constructively
+    ([tree_selection_ε0] and [tree_selection_ε0_least]).  Their fixpoints
+    do not coincide in general without some classical logic
+    ([tree_selection_epsilon_WEM]).
 
     I find this result quite surprising, as the natural addition operation
     is not continuous in either of it's arguments.
@@ -2546,4 +2548,137 @@ Proof.
   intros x Hx. apply H with (expOrd ω x).
   - symmetry. apply tree_selection_eq_powOmega_complete; auto.
   - apply expOrd_complete; auto with ord.
+Qed.
+
+(** ** Fixpoints of [tree_selection]
+
+    The least fixpoints of [tree_selection] and [ω^x] coincide, as [ε 0],
+    constructively.  The iterates of [ω^x] from [0] are complete, where the
+    two functions agree, and every prefixpoint of [tree_selection] is one of
+    [ω^x], because [ω^x ≤ tree_selection x] for all [x]; so no completeness
+    hypothesis on the competing prefixpoint is needed.  More generally the
+    least fixpoints above any complete [x] coincide. *)
+
+Theorem tree_selection_fix_complete x :
+  complete x -> fixOrd tree_selection x ≈ fixOrd powOmega x.
+Proof.
+  intro Hx.
+  assert (Hn : forall n, iter_f tree_selection x n ≈ iter_f powOmega x n /\
+                         complete (iter_f powOmega x n)).
+  { induction n; simpl.
+    - split; [reflexivity | auto].
+    - destruct IHn as [[H1 H2] H3]. split.
+      + transitivity (tree_selection (iter_f powOmega x n)).
+        * split; apply tree_selection_monotone; auto.
+        * apply tree_selection_eq_powOmega_complete; auto.
+      + unfold powOmega. apply expOrd_complete; auto with ord. }
+  unfold fixOrd. split; apply sup_least; intro n; rewrite <- (sup_le _ _ n);
+    destruct (Hn n) as [[H1 H2] _]; auto.
+Qed.
+
+Theorem tree_selection_fix (EM:excluded_middle) x :
+  fixOrd tree_selection x ≈ fixOrd powOmega x.
+Proof.
+  apply tree_selection_fix_complete.
+  apply classical.ord_complete; auto.
+Qed.
+
+Theorem tree_selection_ε0 : tree_selection (ε 0) ≈ ε 0.
+Proof.
+  transitivity (expOrd ω (ε 0)).
+  - apply tree_selection_eq_powOmega_complete.
+    apply ε_complete. apply zero_complete.
+  - symmetry. apply ε_fixpoint.
+Qed.
+
+Theorem tree_selection_ε0_least z : tree_selection z ≤ z -> ε 0 ≤ z.
+Proof.
+  intro Hz. apply ε0_least_expOmega_closed.
+  transitivity (tree_selection z); auto.
+  apply powOmega_le_tree_selection.
+Qed.
+
+(** Without completeness the fixpoints differ.  The prefixpoints of
+    [tree_selection] are closed under natural sum, but an ε-number need not
+    be, constructively.  Take [B = ε 1], [u] with the single child [B] if
+    [P] (and none otherwise), [A] the least ε-number above [u+1], and the
+    ε-number [Z = A ⊔ B].  Then [u ⊕ ε 0 < Z] names a side: below [B],
+    refuted by [P] (then [u > B]), or below [A], refuted by [~P] (then
+    [u ≈ 0] and [A ≤ ε 0]). *)
+
+Lemma tree_selection_prefixpoint_nadd_closed z :
+  tree_selection z ≤ z ->
+  forall x y, x < z -> y < z -> x ⊕ y < z.
+Proof.
+  intros Hz x y Hx Hy.
+  apply ord_lt_le_trans with (tree_selection z); auto.
+  rewrite ord_lt_unfold in Hx. destruct Hx as [i Hi].
+  rewrite ord_lt_unfold in Hy. destruct Hy as [j Hj].
+  rewrite tree_selection_unfold. unfold iterated_smash_sum.
+  rewrite ord_lt_unfold. exists [i; j]. simpl.
+  rewrite naddOrd_zero_r.
+  apply naddOrd_monotone.
+  - transitivity (z i); auto.
+    apply increasing_inflationary. apply tree_selection_increasing.
+  - transitivity (z j); auto.
+    apply increasing_inflationary. apply tree_selection_increasing.
+Qed.
+
+Theorem tree_selection_epsilon_WEM :
+  (forall z, expOrd ω z ≤ z -> tree_selection z ≤ z) ->
+  weak_excluded_middle.
+Proof.
+  intros H P.
+  pose (B := ε 1).
+  pose (u := ord P (fun _ => B)).
+  pose (A := fixOrd powOmega (succOrd u)).
+  assert (HA : expOrd ω A ≤ A).
+  { apply (fixOrd_prefixpoint powOmega (expOrd_continuous ω)). }
+  assert (HB : expOrd ω B ≤ B).
+  { destruct (ε_fixpoint 1); auto. }
+  pose (Z := A ⊔ B).
+  assert (HZ : tree_selection Z ≤ Z).
+  { apply H. unfold Z. rewrite expOrd_lub.
+    apply lub_least.
+    - transitivity A; auto. apply lub_le1.
+    - transitivity B; auto. apply lub_le2. }
+  assert (Hu : u < Z).
+  { unfold Z. apply ord_lt_le_trans with A; [| apply lub_le1].
+    apply ord_lt_le_trans with (succOrd u); [apply succ_lt |].
+    apply (fixOrd_above powOmega). }
+  assert (Hε : ε 0 < Z).
+  { unfold Z. apply ord_lt_le_trans with B; [| apply lub_le2].
+    apply ε_increasing. apply succ_lt. }
+  generalize (tree_selection_prefixpoint_nadd_closed Z HZ u (ε 0) Hu Hε).
+  intro Hsum. unfold Z in Hsum. apply lub_lt in Hsum.
+  destruct Hsum as [Hsum|Hsum].
+  - (* below A: refuted by ~P *)
+    left. intro np.
+    apply (ord_lt_irreflexive A).
+    apply ord_le_lt_trans with (u ⊕ ε 0); auto.
+    rewrite <- naddOrd_le2.
+    unfold A. apply fixOrd_least.
+    + apply powOmega_monotone.
+    + apply succ_least.
+      apply ord_le_lt_trans with 0.
+      * rewrite ord_le_unfold. intro p. elim (np p).
+      * rewrite (ε_fixpoint 0). apply expOrd_nonzero.
+    + destruct (ε_fixpoint 0); auto.
+  - (* below B: refuted by P *)
+    right. intro p.
+    apply (ord_lt_irreflexive B).
+    apply ord_lt_le_trans with u; [apply (index_lt u p) |].
+    apply ord_le_trans with (u ⊕ ε 0); [apply naddOrd_le1 | apply ord_lt_le; auto].
+Qed.
+
+Corollary tree_selection_fix_WEM :
+  (forall x, fixOrd tree_selection x ≤ fixOrd powOmega x) ->
+  weak_excluded_middle.
+Proof.
+  intro H. apply tree_selection_epsilon_WEM.
+  intros z Hz.
+  transitivity (fixOrd tree_selection z).
+  { unfold fixOrd. apply (sup_le _ (iter_f tree_selection z) 1%nat). }
+  rewrite H.
+  apply fixOrd_least; auto with ord.
 Qed.
