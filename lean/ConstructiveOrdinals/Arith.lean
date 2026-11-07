@@ -249,6 +249,12 @@ theorem add_cancel_le (a b : Ordinal.{u}) : ∀ x y : Ordinal.{u}, a + x ≤ b +
       obtain ⟨_, hi'⟩ := lt_elim hi
       exact lt_intro i (add_cancel_le a b (f x) (y i) hi' h₂)
 
+/-- Rocq: `Arith.addOrd_cancel_lt`. -/
+theorem add_cancel_lt (x y z : Ordinal.{u}) (h : x + y < x + z) : y < z :=
+  match add_lt h with
+  | .inl h₁ => (lt_irrefl x (lt_of_le_of_lt (le_add_right x y) h₁)).elim
+  | .inr ⟨j, hj⟩ => lt_of_le_of_lt (add_cancel_le x x y (z j) hj (le_refl x)) (index_lt z j)
+
 /-- Rocq: `Arith.addOrd_cancel`. -/
 theorem add_cancel {a b x y : Ordinal.{u}} (h : a + x ≈ b + y) (hab : a ≈ b) : x ≈ y :=
   equiv_intro (add_cancel_le a b x y h.le hab.ge) (add_cancel_le b a y x h.ge hab.le)

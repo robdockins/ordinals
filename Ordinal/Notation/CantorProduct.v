@@ -56,12 +56,6 @@ Open Scope ord_scope.
 
 Local Abbreviation V := NaturalArith.cantor_denote_nadd.
 
-Add Parametric Morphism : nmulOrd with signature
-    ord_eq ==> ord_eq ==> ord_eq as nmulOrd_eq_mor.
-Proof.
-  intros a a' Ha b b' Hb. split; apply nmulOrd_monotone; apply Ha || apply Hb.
-Qed.
-
 (** ** The algebra of pairwise products of exponent lists *)
 
 Lemma nadd_middle_swap p q r s : (p ⊕ q) ⊕ (r ⊕ s) ≈ (p ⊕ r) ⊕ (q ⊕ s).
@@ -767,14 +761,6 @@ Section cantor_product_lower.
     system is needed.  The exponent law's upper bound then follows by
     subadditivity and closure, by induction. *)
 
-  Lemma add_cancel_lt_con x y z : x + y < x + z -> y < z.
-  Proof.
-    intro H. destruct (add_lt _ _ _ H) as [H1|[j Hj]].
-    - elim (ord_lt_irreflexive x). eapply ord_le_lt_trans; [apply addOrd_le1 | exact H1].
-    - apply ord_le_lt_trans with (ordSize z j); [|apply index_lt].
-      apply addOrd_cancel_le with x x; auto. reflexivity.
-  Qed.
-
   Lemma ordered_tail l x : cantor_ordered f (x::l) -> cantor_ordered f l.
   Proof. destruct l; simpl; intuition. Qed.
 
@@ -813,7 +799,7 @@ Section cantor_product_lower.
       + destruct (rec_value ds Hds (ordered_tail ds d Hw2)) as [H1 H2].
         exists (cantor_recompose X ds). split; auto. symmetry; auto.
       + rewrite Hw3. simpl. rewrite Hc. reflexivity.
-      + apply add_cancel_lt_con with (expOrd ω (f e)).
+      + apply addOrd_cancel_lt with (expOrd ω (f e)).
         eapply ord_le_lt_trans; [|exact Hlt].
         rewrite Hw3. simpl. rewrite Hc. reflexivity.
     - elim (ord_lt_irreflexive (f w)). eapply ord_lt_le_trans; [exact Hlt|].
@@ -857,7 +843,7 @@ Section cantor_product_lower.
         * exists false, p. simpl. split; auto. rewrite Hvw. auto.
     - intros v w [|] p q _ _; simpl; intros [H1 H2] [H3 H4] Hvw.
       + rewrite H2, H4. auto.
-      + apply add_cancel_lt_con with E. rewrite <- H2, <- H4. auto.
+      + apply addOrd_cancel_lt with E. rewrite <- H2, <- H4. auto.
     - intros r [Hr0|[]]; subst r; simpl. split; auto.
       unfold T0. apply Tn_QH; auto.
     - intros u v [r [[Hr0|[]] [Hu Hv]]] _. subst r. simpl in Hu, Hv.
@@ -866,7 +852,7 @@ Section cantor_product_lower.
       + exists (a, En e). simpl. split; auto. split; auto.
         rewrite H2, HEe'. auto.
       + exists (a, Tn (f (cantor_recompose X rest))). simpl. split; auto. split; auto.
-        rewrite HTr. apply add_cancel_lt_con with E. rewrite <- H2, <- HT0. auto.
+        rewrite HTr. apply addOrd_cancel_lt with E. rewrite <- H2, <- HT0. auto.
   Qed.
 
   Fixpoint VS (a:Ord) (l:list A) : Ord :=

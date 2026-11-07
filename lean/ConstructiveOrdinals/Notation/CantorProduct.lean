@@ -821,12 +821,6 @@ off the normal form of `v` is where the notation system is needed. The
 exponent law's upper bound then follows by subadditivity and closure, by
 induction. -/
 
-/-- Rocq: `Notation.CantorProduct.add_cancel_lt_con`. -/
-theorem add_cancel_lt_con (x y z : Ordinal.{u}) (h : x + y < x + z) : y < z :=
-  match add_lt h with
-  | .inl h₁ => (lt_irrefl x (lt_of_le_of_lt (le_add_right x y) h₁)).elim
-  | .inr ⟨j, hj⟩ => lt_of_le_of_lt (add_cancel_le x x y (z j) hj (le_refl x)) (index_lt z j)
-
 /-- Rocq: `Notation.CantorProduct.ordered_tail`. -/
 theorem ordered_tail {A : Type} {f : A → Ordinal.{0}} (l : List A) (x : A)
     (h : CantorOrdered f (x :: l)) : CantorOrdered f l :=
@@ -875,7 +869,7 @@ theorem head_sub (e : A) (rest : List A) (w : A) (he : P e) (hrest : Each P rest
       have hfw : f w ≈ ω ^ f e + CantorDecomposition.cantorDenote f ds :=
         equiv_trans hw₃ (add_congr (pow_congr (equiv_refl ω) hc) (equiv_refl _))
       exact ⟨_, ⟨X.recompose ds, h₁, equiv_symm h₂⟩, hfw,
-        add_cancel_lt_con _ _ _ (lt_of_le_of_lt hfw.ge hlt)⟩
+        add_cancel_lt _ _ _ (lt_of_le_of_lt hfw.ge hlt)⟩
     | gt =>
       intro hc
       exact (lt_irrefl (f w) (lt_trans hlt (lt_of_le_of_lt (denote_V X (e :: rest) ⟨he, hrest⟩ hord).le
@@ -912,7 +906,7 @@ theorem head_split_upper (a : Ordinal.{0}) (e : A) (rest : List A) (ha : QHn f P
     intro v w s p q _ _ h₁ h₂ hvw
     cases s with
     | true => exact lt_of_le_of_lt h₁.2.le (lt_of_lt_of_le hvw h₂.2.ge)
-    | false => exact add_cancel_lt_con E p q (lt_of_le_of_lt h₁.2.ge (lt_of_lt_of_le hvw h₂.2.le))
+    | false => exact add_cancel_lt E p q (lt_of_le_of_lt h₁.2.ge (lt_of_lt_of_le hvw h₂.2.le))
   have hQD : QR (Qn f P) [(a, T0)] := fun r hr => by
     cases hr with
     | head => exact ⟨ha, Tn_QH Hinterp _ HPl⟩
@@ -928,7 +922,7 @@ theorem head_split_upper (a : Ordinal.{0}) (e : A) (rest : List A) (ha : QHn f P
       | true => exact ⟨(a, En X e), .head _, hu, lt_of_le_of_lt hsp.2.le (lt_of_lt_of_le hsp.1 HEe'.ge)⟩
       | false =>
         exact ⟨(a, Tn f P (f (X.recompose rest))), .head _, hu, lt_of_lt_of_le
-          (add_cancel_lt_con E _ _ (lt_of_le_of_lt hsp.2.ge (lt_of_lt_of_le hv HT0.le))) HTr.ge⟩
+          (add_cancel_lt E _ _ (lt_of_le_of_lt hsp.2.ge (lt_of_lt_of_le hv HT0.le))) HTr.ge⟩
   exact le_trans (nmul_rk a T0).le
     (le_trans (covers_rk_Q (Qn f P) Qn_eq (Qn_dec X) T0 Sp Sp_total Sp_mono _ _ _ hQD hcov)
       (nadd_le_nadd (nmul_rk _ _).ge (nmul_rk _ _).ge))

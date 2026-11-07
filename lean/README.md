@@ -91,9 +91,9 @@ repository root) and `coqc` on the path. CI
 | `Notation/SchutteStack.v` | `Notation/SchutteStack.lean` | done |
 | `Notation/SchutteMatrix.v` | `Notation/SchutteMatrix.lean` | done |
 
-The port is complete. Of the 2,163 Rocq declarations outside `Countable.v`:
-- 2,150 are ported;
-- 12 are merged into an equivalent declaration (mostly the binary-number
+The port is complete. Of the 2,161 Rocq declarations outside `Countable.v`:
+- 2,149 are ported;
+- 11 are merged into an equivalent declaration (mostly the binary-number
   embeddings, which coincide with `ofNat`);
 - one, `tree_selection_complete`, is dropped because its Rocq proof is
   aborted.

@@ -1350,14 +1350,6 @@ Proof.
     apply ord_lt_le_trans with e; auto with ord.
 Qed.
 
-Lemma add_cancel_lt x y z : x + y < x + z -> y < z.
-Proof.
-  intro H. destruct (classical.order_total EM z y) as [Hzy|Hyz]; auto.
-  elim (ord_lt_irreflexive (x + y)).
-  apply ord_lt_le_trans with (x + z); auto.
-  apply addOrd_monotone; auto. reflexivity.
-Qed.
-
 Definition tden (tl:list (bool*Ord)) : Ord := cantor_denote (map snd tl).
 Definition sden (s:bool) (tl:list (bool*Ord)) : Ord :=
   cantor_denote (map snd (filter (fun e => Bool.eqb (fst e) s) tl)).
@@ -1378,7 +1370,7 @@ Proof.
   - destruct (classical.order_total EM (expOrd ω z) v) as [Hzv|Hvz].
     + destruct (left_subtract _ _ Hzv) as [v' Hv'].
       assert (Hv'' : v' < tden tl).
-      { apply add_cancel_lt with (expOrd ω z). rewrite <- Hv'. auto. }
+      { apply addOrd_cancel_lt with (expOrd ω z). rewrite <- Hv'. auto. }
       destruct (IH v' Hv'') as [s [p' Hsp]].
       exists s, (if Bool.eqb s t then expOrd ω z + p' else p').
       right. split; auto. exists v', p'. split; auto. split; auto. reflexivity.
@@ -1413,7 +1405,7 @@ Proof.
       apply ord_lt_le_trans with (expOrd ω z); auto.
       apply ord_lt_trans with w; auto.
     + assert (Hvw' : v' < w').
-      { apply add_cancel_lt with (expOrd ω z). rewrite <- Hv', <- Hw'. auto. }
+      { apply addOrd_cancel_lt with (expOrd ω z). rewrite <- Hv', <- Hw'. auto. }
       generalize (IH v' w' s p' q' Hsp Hsq Hvw'). intro Hpq.
       rewrite Hp, Hq. destruct (Bool.eqb s t); auto.
       apply addOrd_increasing; auto.

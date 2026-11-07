@@ -1126,12 +1126,6 @@ theorem left_subtract (em : ExcludedMiddle) {x v : Ordinal.{u}} (h : x ≤ v) : 
     | .inl h₁ => exact (lt_irrefl x (lt_of_le_of_lt h h₁)).elim
     | .inr ⟨i, hi⟩ => exact (lt_irrefl (e i) (lt_of_lt_of_le (index_lt e i) (hleast (e i) hi))).elim
 
-/-- Rocq: `NaturalProduct.add_cancel_lt`. -/
-theorem add_cancel_lt (em : ExcludedMiddle) {x y z : Ordinal.{u}} (h : x + y < x + z) : y < z :=
-  match order_total em z y with
-  | .inl hzy => (lt_irrefl _ (lt_of_lt_of_le h (add_le_add (le_refl x) hzy))).elim
-  | .inr hyz => hyz
-
 /-- Rocq: `NaturalProduct.tden`. -/
 def tden (tl : List (Bool × Ordinal.{u})) : Ordinal.{u} := cantorDenote (tl.map Prod.snd)
 
@@ -1155,7 +1149,7 @@ theorem splitR_total (em : ExcludedMiddle) :
     match order_total em (ω ^ z) v with
     | .inl hzv =>
       let ⟨v', hv'⟩ := left_subtract em hzv
-      let ⟨s, p', hsp⟩ := splitR_total em tl v' (add_cancel_lt em (lt_of_le_of_lt hv'.ge hv))
+      let ⟨s, p', hsp⟩ := splitR_total em tl v' (add_cancel_lt _ _ _ (lt_of_le_of_lt hv'.ge hv))
       ⟨s, cond (s == t) (ω ^ z + p') p', .inr ⟨hzv, v', p', hv', hsp, equiv_refl _⟩⟩
     | .inr hvz => ⟨t, v, .inl ⟨hvz, rfl, equiv_refl _⟩⟩
 
@@ -1192,7 +1186,7 @@ theorem splitR_mono (em : ExcludedMiddle) :
     (lt_irrefl v (lt_of_lt_of_le (lt_trans hvw hwz) hzv)).elim
   | (t, z) :: tl, _, _, s, _, _, .inr ⟨_, v', p', hv', hsp, hp⟩, .inr ⟨_, w', q', hw', hsq, hq⟩, hvw => by
     have hpq := splitR_mono em tl v' w' s p' q' hsp hsq
-      (add_cancel_lt em (lt_of_le_of_lt hv'.ge (lt_of_lt_of_le hvw hw'.le)))
+      (add_cancel_lt _ _ _ (lt_of_le_of_lt hv'.ge (lt_of_lt_of_le hvw hw'.le)))
     cases t <;> cases s
     · exact lt_of_le_of_lt hp.le (lt_of_lt_of_le (add_lt_add_left _ hpq) hq.ge)
     · exact lt_of_le_of_lt hp.le (lt_of_lt_of_le hpq hq.ge)
