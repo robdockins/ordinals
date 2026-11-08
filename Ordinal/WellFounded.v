@@ -973,6 +973,237 @@ Proof.
       apply wf_ord_Acc_irrelevant.
 Qed.
 
+(** * The extensional collapse of the transitive closure
+
+    Read as an Aczel set, an ordinal tree has its own extensional equality
+    [ext_eq] (hereditary bisimulation), which is finer than [≈]: [≈]
+    identifies trees of equal rank.  The round trip [wf_ord (ord_R x)] is
+    the Mostowski collapse of the transitive closure of [x].  Classically
+    it is the von Neumann ordinal of [x], so it maps [≈]-equivalent trees
+    to extensionally equal sets ([vn_collapse_ext_classical]); its
+    extensional class determines [x] up to [≈] constructively
+    ([vn_collapse_ext_reflects]).  But the collapse respects [≈] only if
+    excluded middle holds ([vn_collapse_ext_EM]): the tree with children
+    [1] and [s], where [s] has a child [0] for each proof of [P], is
+    [≈ 2], and its collapse contains the truth-value set [{0 | P}]
+    (Taylor's [{∅ : P}]), which is extensionally [0] or [1] only if [P] is
+    decided.  So the canonical quotient of ordinals is classical; the
+    trees are predicative names for Taylor's plump ordinals instead. *)
+
+Fixpoint ext_eq (x y:Ord) : Prop :=
+  match x, y with
+  | ord A f, ord B g =>
+      (forall a:A, exists b:B, ext_eq (f a) (g b)) /\
+      (forall b:B, exists a:A, ext_eq (f a) (g b))
+  end.
+
+Lemma ext_eq_ord_eq : forall x y, ext_eq x y -> x ≈ y.
+Proof.
+  induction x as [A f Hx]. intros [B g] [H1 H2]. split.
+  - rewrite ord_le_unfold; intro a. simpl.
+    destruct (H1 a) as [b Hb].
+    rewrite ord_lt_unfold. exists b.
+    destruct (Hx a (g b) Hb); auto.
+  - rewrite ord_le_unfold; intro b. simpl.
+    destruct (H2 b) as [a Ha].
+    rewrite ord_lt_unfold. exists a.
+    destruct (Hx a (g b) Ha); auto.
+Qed.
+
+Definition vn_collapse (x:Ord) : Ord := wf_ord (ord_R x) (ord_R_well_founded x).
+
+Lemma ord_R_elt_eq x a :
+  wf_ord_elt _ (ord_R x) (ord_R_well_founded x) a ≈ ord_transitive_closure_ord x a.
+Proof.
+  unfold wf_ord_elt.
+  generalize (ord_R_well_founded x a).
+  induction a as [a Hinda] using (size_induction (ord_transitive_closure x)).
+  intros [Hacc]; split.
+  - simpl. rewrite ord_le_unfold; simpl.
+    intros [q Hq]; simpl.
+    unfold ord_R in Hq.
+    apply ord_le_lt_trans with (ord_transitive_closure_ord x q); auto.
+    apply Hinda; auto.
+  - rewrite ord_le_unfold; intro q.
+    destruct (ord_transitive_closure_transitive x a q) as [k Hk].
+    simpl. rewrite ord_lt_unfold; simpl.
+    assert (Hka : ord_R x k a).
+    { unfold ord_R. rewrite Hk. apply (index_lt (ord_transitive_closure_ord x a)). }
+    exists (exist _ k Hka); simpl.
+    rewrite <- Hk.
+    apply Hinda.
+    exact Hka.
+Qed.
+
+Lemma vn_collapse_ext_reflects x y :
+  ext_eq (vn_collapse x) (vn_collapse y) -> x ≈ y.
+Proof.
+  intro H. apply ext_eq_ord_eq in H. unfold vn_collapse in H.
+  rewrite (ord_R_round_trip x), (ord_R_round_trip y) in H. exact H.
+Qed.
+
+Theorem vn_collapse_ext_EM :
+  (forall x y, x ≈ y -> ext_eq (vn_collapse x) (vn_collapse y)) ->
+  excluded_middle.
+Proof.
+  intros H P.
+  pose (s := ord P (fun _ => zeroOrd)).
+  pose (y := ord bool (fun b => if b then 1 else s)).
+  assert (Hy : y ≈ 2).
+  { split.
+    - rewrite ord_le_unfold; intros [|]; simpl.
+      + apply succ_lt.
+      + apply ord_le_lt_trans with 1; [| apply succ_lt].
+        rewrite ord_le_unfold; intro p; simpl. apply succ_lt.
+    - rewrite ord_le_unfold; intros []. simpl.
+      rewrite ord_lt_unfold. exists true. simpl. reflexivity. }
+  generalize (H y 2 Hy). unfold vn_collapse, wf_ord, limOrd. simpl ext_eq.
+  intros [H1 _].
+  destruct (H1 (inl false)) as [b Hb].
+  apply ext_eq_ord_eq in Hb.
+  assert (Hb' : s ≈ ord_transitive_closure_ord 2 b).
+  { transitivity (wf_ord_elt _ (ord_R y) (ord_R_well_founded y) (inl false)).
+    - symmetry. exact (ord_R_elt_eq y (inl false)).
+    - transitivity (wf_ord_elt _ (ord_R 2) (ord_R_well_founded 2) b).
+      + exact Hb.
+      + apply ord_R_elt_eq. }
+  clear Hb.
+  assert (Hcases : ord_transitive_closure_ord 2 b ≈ 0 \/ ord_transitive_closure_ord 2 b ≈ 1).
+  { simpl in b.
+    destruct b as [u|[u q]].
+    - right. simpl. reflexivity.
+    - simpl in q. destruct q as [u'|[u' r]].
+      + left. simpl. reflexivity.
+      + simpl in r. destruct r as [[]|[[] _]]. }
+  destruct Hcases as [H0|H1'].
+  - right. intro p.
+    apply (ord_lt_irreflexive 0).
+    apply ord_lt_le_trans with s.
+    + rewrite ord_lt_unfold. exists p. simpl. reflexivity.
+    + rewrite Hb'. apply H0.
+  - left.
+    assert (Hs : 0 < s).
+    { apply ord_lt_le_trans with 1; [apply succ_lt|].
+      rewrite Hb'. apply H1'. }
+    rewrite ord_lt_unfold in Hs. destruct Hs as [p _]. exact p.
+Qed.
+
+Section vn_collapse_classical.
+  Hypothesis EM : excluded_middle.
+
+  (** Classically, every ordinal below a node of the transitive closure is
+      realized, up to [≈], by another node. *)
+  Lemma tc_realizes_below x :
+    forall (a:ord_transitive_closure_type x) z,
+      z < ord_transitive_closure_ord x a ->
+      exists k, ord_transitive_closure_ord x k ≈ z.
+  Proof.
+    induction a as [a Hinda] using (size_induction (ord_transitive_closure x)).
+    intros z Hz.
+    rewrite ord_lt_unfold in Hz. destruct Hz as [q Hq].
+    destruct (ord_transitive_closure_transitive x a q) as [k Hk].
+    destruct (classical.order_total EM (ord_transitive_closure_ord x k) z) as [Hkz|Hzk].
+    - exists k. split; auto. rewrite Hk. exact Hq.
+    - apply (Hinda k); auto.
+      simpl. rewrite Hk. apply (index_lt (ord_transitive_closure_ord x a)).
+  Qed.
+
+  Lemma tc_realizes x z :
+    z < x -> exists k, ord_transitive_closure_ord x k ≈ z.
+  Proof.
+    intro Hz.
+    rewrite <- (ord_transitive_closure_eq x) in Hz.
+    rewrite ord_lt_unfold in Hz. destruct Hz as [j Hj].
+    destruct (classical.order_total EM (ord_transitive_closure_ord x j) z) as [Hjz|Hzj].
+    - exists j. split; auto.
+    - apply (tc_realizes_below x j); auto.
+  Qed.
+
+  Lemma mk_wf_ord_ord_R_ext x y :
+    forall a b Ha Hb,
+      ord_transitive_closure_ord x a ≈ ord_transitive_closure_ord y b ->
+      ext_eq (mk_wf_ord _ (ord_R x) a Ha) (mk_wf_ord _ (ord_R y) b Hb).
+  Proof.
+    intro a.
+    induction a as [a Hinda] using (well_founded_induction (ord_R_well_founded x)).
+    intros b [Ha] [Hb] Hab. simpl. split.
+    - intros [a' Ha']. unfold ord_R in Ha'.
+      destruct (tc_realizes_below y b (ord_transitive_closure_ord x a')) as [k Hk].
+      { rewrite <- Hab. exact Ha'. }
+      assert (Hkb : ord_R y k b).
+      { unfold ord_R. rewrite Hk, <- Hab. exact Ha'. }
+      exists (exist _ k Hkb). simpl.
+      apply Hinda; auto. symmetry. exact Hk.
+    - intros [b' Hb']. unfold ord_R in Hb'.
+      destruct (tc_realizes_below x a (ord_transitive_closure_ord y b')) as [k Hk].
+      { rewrite Hab. exact Hb'. }
+      assert (Hka : ord_R x k a).
+      { unfold ord_R. rewrite Hk, Hab. exact Hb'. }
+      exists (exist _ k Hka). simpl.
+      apply Hinda; auto.
+  Qed.
+
+  Theorem vn_collapse_ext_classical x y :
+    x ≈ y -> ext_eq (vn_collapse x) (vn_collapse y).
+  Proof.
+    intro Hxy. unfold vn_collapse, wf_ord, limOrd. simpl ext_eq. split.
+    - intro a.
+      destruct (tc_realizes y (ord_transitive_closure_ord x a)) as [k Hk].
+      { apply ord_lt_le_trans with x; [| apply Hxy].
+        apply ord_lt_le_trans with (ord_transitive_closure x);
+          [apply (index_lt (ord_transitive_closure x)) | apply ord_transitive_closure_le2]. }
+      exists k. unfold wf_ord_elt.
+      apply mk_wf_ord_ord_R_ext. symmetry. exact Hk.
+    - intro b.
+      destruct (tc_realizes x (ord_transitive_closure_ord y b)) as [k Hk].
+      { apply ord_lt_le_trans with y; [| apply Hxy].
+        apply ord_lt_le_trans with (ord_transitive_closure y);
+          [apply (index_lt (ord_transitive_closure y)) | apply ord_transitive_closure_le2]. }
+      exists k. unfold wf_ord_elt.
+      apply mk_wf_ord_ord_R_ext. exact Hk.
+  Qed.
+End vn_collapse_classical.
+
+(** Taylor (1996, Remark 8.10a) observes that the transitive closure does not
+    preserve hereditary directedness for extensional relations.  For trees,
+    where directedness is up to [≤] rather than membership, it does. *)
+Lemma tc_below_child (x:Ord) :
+  forall a:ord_transitive_closure_type x,
+  exists i:x, ord_transitive_closure_ord x a ≤ x i.
+Proof.
+  destruct x as [A f]. intros [i|[i q]]; simpl.
+  - exists i. reflexivity.
+  - exists i. apply ord_lt_le.
+    rewrite <- (ord_transitive_closure_eq (f i)) at 2.
+    apply (index_lt (ord_transitive_closure (f i))).
+Qed.
+
+Lemma tc_complete_elts (x:Ord) :
+  complete x -> forall a, complete (ord_transitive_closure_ord x a).
+Proof.
+  induction x as [A f Hind]. intros Hx [i|[i q]]; simpl.
+  - apply (complete_subord (ord A f) Hx i).
+  - apply Hind. apply (complete_subord (ord A f) Hx i).
+Qed.
+
+Theorem ord_transitive_closure_complete (x:Ord) :
+  complete x -> complete (ord_transitive_closure x).
+Proof.
+  intro Hx. destruct x as [A f]. destruct Hx as [Hdir [Hinh Hsub]].
+  simpl. split; [| split].
+  - intros a1 a2.
+    destruct (tc_below_child (ord A f) a1) as [i1 H1].
+    destruct (tc_below_child (ord A f) a2) as [i2 H2].
+    destruct (Hdir i1 i2) as [i [Hi1 Hi2]].
+    exists (inl i). simpl. split.
+    + rewrite H1. exact Hi1.
+    + rewrite H2. exact Hi2.
+  - destruct Hinh as [[i]|Hn].
+    + left. exact (inhabits (inl i)).
+    + right. intros [[i|[i _]]]; apply Hn; exact (inhabits i).
+  - apply (tc_complete_elts (ord A f)). simpl. auto.
+Qed.
+
 Section inverse_image.
   Variables A B : Type.
   Variable R : B -> B -> Prop.

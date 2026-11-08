@@ -92,7 +92,7 @@ Files are listed roughly in dependency order. All paths are relative to
 
 | File | Contents |
 |------|----------|
-| `WellFounded.v` | The ordinal of a well-founded relation (`wf_ord`), which depends only on the relation and not on the accessibility proof. Includes simulations and dominations between relations, and the transitive-closure construction that turns any ordinal back into a well-founded relation (`ord_R`). Computes the ordinals of standard constructions: inverse image, inclusion, transitive closure, the empty relation (0), successor, disjoint union (addition), symmetric product (smash sum / natural sum), lexicographic product (multiplication; `nat × nat` gives ω²), and lexicographic order on lists (exponentiation). Proves that the list-extension relation has the ordinal of the `tree_selection` operator (`NaturalArith.v`), hence ω^x classically. |
+| `WellFounded.v` | The ordinal of a well-founded relation (`wf_ord`), which depends only on the relation and not on the accessibility proof. Includes simulations and dominations between relations, and the transitive-closure construction that turns any ordinal back into a well-founded relation (`ord_R`). Computes the ordinals of standard constructions: inverse image, inclusion, transitive closure, the empty relation (0), successor, disjoint union (addition), symmetric product (smash sum / natural sum), lexicographic product (multiplication; `nat × nat` gives ω²), and lexicographic order on lists (exponentiation). Proves that the list-extension relation has the ordinal of the `tree_selection` operator (`NaturalArith.v`), hence ω^x classically. Read as an Aczel set, the round trip through `ord_R` is the Mostowski collapse of the transitive closure: classically it maps `≈`-equivalent trees to extensionally equal sets (the von Neumann ordinal), but that invariance implies EM (`vn_collapse_ext_EM`). The transitive closure preserves completeness (`ord_transitive_closure_complete`). |
 
 ### The Veblen hierarchy and beyond
 
@@ -144,9 +144,9 @@ notation is itself denoted by some notation.
 `lean/` contains a complete port of the development (except `Countable.v`) to
 Lean 4, using only Lean core and no axioms: no declaration depends on
 `propext`, `Quot.sound` or `Classical.choice`, and the excluded middle
-appears only as an explicit hypothesis, as in Rocq. All 2,172 Rocq
+appears only as an explicit hypothesis, as in Rocq. All 2,185 Rocq
 declarations outside `Countable.v` are accounted for, and a generated
-statement review sets 337 headline statements beside their Rocq originals.
+statement review sets 341 headline statements beside their Rocq originals.
 See `lean/README.md` for how to build and check it, and for the differences
 from Rocq.
 

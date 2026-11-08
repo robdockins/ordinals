@@ -67,7 +67,7 @@ are presentational:
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
 
-337 statements.
+341 statements.
 
 ## Defs
 
@@ -1668,6 +1668,63 @@ WellFounded.simulates_round_trip2
 Lean:
 ```
 simulates_round_trip2 : ∀ (A : Type u_1) (R : A → A → Prop) (HR : WellFounded R), Simulates (wfOrd R HR).ordR R
+```
+
+### `vn_collapse_ext_reflects`
+
+Rocq:
+```
+WellFounded.vn_collapse_ext_reflects
+     : forall x y : Defs.Ord,
+       WellFounded.ext_eq (WellFounded.vn_collapse x) (WellFounded.vn_collapse y) ->
+       Defs.ord_eq x y
+```
+Lean:
+```
+@vn_collapse_ext_reflects : ∀ {x y : Ordinal}, x.vnCollapse.ExtEq y.vnCollapse → x ≈ y
+```
+
+### `vn_collapse_ext_EM`
+
+Rocq:
+```
+WellFounded.vn_collapse_ext_EM
+     : (forall x y : Defs.Ord,
+        Defs.ord_eq x y ->
+        WellFounded.ext_eq (WellFounded.vn_collapse x) (WellFounded.vn_collapse y)) ->
+       ClassicalFacts.excluded_middle
+```
+Lean:
+```
+vn_collapse_ext_EM : (∀ (x y : Ordinal), x ≈ y → x.vnCollapse.ExtEq y.vnCollapse) → ExcludedMiddle
+```
+
+### `vn_collapse_ext_classical`
+
+Rocq:
+```
+WellFounded.vn_collapse_ext_classical
+     : ClassicalFacts.excluded_middle ->
+       forall x y : Defs.Ord,
+       Defs.ord_eq x y ->
+       WellFounded.ext_eq (WellFounded.vn_collapse x) (WellFounded.vn_collapse y)
+```
+Lean:
+```
+vn_collapse_ext_classical : ExcludedMiddle → ∀ {x y : Ordinal}, x ≈ y → x.vnCollapse.ExtEq y.vnCollapse
+```
+
+### `ord_transitive_closure_complete`
+
+Rocq:
+```
+WellFounded.ord_transitive_closure_complete
+     : forall x : Defs.Ord,
+       Operators.complete x -> Operators.complete (WellFounded.ord_transitive_closure x)
+```
+Lean:
+```
+ord_transitive_closure_complete : ∀ (x : Ordinal), x.Complete → x.ordTransitiveClosure.Complete
 ```
 
 ### `inverse_image_ord`
