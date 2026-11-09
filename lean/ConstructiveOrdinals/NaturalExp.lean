@@ -21,20 +21,29 @@ leading exponent of the Cantor normal form. We prove the stronger statement
 that (1)–(5) alone are inconsistent (`natural_exp_impossible`); the degree law
 (6) is not needed.
 
-The proof, with excluded middle as an explicit hypothesis:
-- (1) and (4) force `e(n,k) = n^k` for finite `n, k ≥ 1`; with (5) and the
-  commutativity of `⊗`, `e(n^k, ω) = e(n,ω)^⊗k`;
-- let `D(n)` be the leading exponent of `e(n,ω)`; then `D(n^k)` is the `k`-fold
-  natural sum of `D(n)`, `D` is weakly increasing by (3), and `D(2) > 0` by (2);
-- `D(2)` and `D(3)` have the same leading exponent; let `c₂`, `c₃` be their
-  leading coefficients. Monotonicity turns `2^a ≤ 3^k` into `a·c₂ ≤ k·c₃`, and
-  `3^k ≤ 2^a` into `k·c₃ ≤ a·c₂`;
-- since `3^c₂ ≠ 2^c₃` (parity), one of the two powers dominates, and a
+The proof splits into a constructive reduction and a classical lemma about
+ordinals that does not mention `e`:
+- constructively (`laws_log23_ratio`): (1) and (4) force `e(n,k) = n^k` for
+  finite `n, k ≥ 1`; with (5) and the commutativity of `⊗`,
+  `e(n^k, ω) = e(n,ω)^⊗k`. So `X = e(2,ω)` and `Y = e(3,ω)` satisfy `X ≥ ω`
+  and, by (3), `X^⊗a ≤ Y^⊗k` whenever `2^a ≤ 3^k` and conversely
+  (`Log23Ratio`): their ⊗-logarithms are in the ratio `log₂ 3`;
+- classically (`no_log23_ratio`), no ordinals are in that ratio: the leading
+  exponents `D₂`, `D₃` of `X`, `Y` satisfy `a·D₂ ≤ k·D₃` (natural multiples)
+  whenever `2^a ≤ 3^k`, and conversely, with `D₂ > 0`. So `D₂` and `D₃` have
+  the same leading exponent; with `c₂`, `c₃` their leading coefficients,
+  `2^a ≤ 3^k` gives `a·c₂ ≤ k·c₃`, and `3^k ≤ 2^a` gives `k·c₃ ≤ a·c₂`. Since
+  `3^c₂ ≠ 2^c₃` (parity), one of the two powers dominates, and a
   Bernoulli-type bound gives exponents for which these inequalities fail
   (`nat_no_ratio`).
 
+The finite products in the reduction are constructive because the finite
+ordinals form a universe with a decidable order (`nmul_nat_nat`, via
+`nmul_distrib_lower_Q`).
+
 Since the conclusion is a negation, double-negated excluded middle suffices
-(`natural_exp_impossible_nn`).
+(`natural_exp_impossible_nn`). Whether the theorem holds outright reduces to
+whether `no_log23_ratio` does.
 
 Lean notes:
 - The natural-number arithmetic is done by hand, with local axiom-free
@@ -221,19 +230,70 @@ theorem nrep_count_le (a b : Nat) (x : Ordinal.{u}) (h : a ≤ b) : nrep a x ≤
   | step _ ih =>
     exact le_trans ih (le_trans (nadd_zero_r _).ge (nadd_le_nadd (le_refl _) (zero_least x)))
 
-/-- Rocq: `NaturalExp.nmul_nat_r`. -/
-theorem nmul_nat_r (em : ExcludedMiddle) (x : Ordinal.{u}) : ∀ k, nmul x (ofNat k) ≈ nrep k x
-  | 0 => nmul_zero x
-  | k + 1 => equiv_trans (nmul_succ_classical em x _) (nadd_congr (nmul_nat_r em x k) (equiv_refl x))
+/-! ## Finite products, constructively
+
+On the universe of finite ordinals, which has a decidable order and is closed
+under natural sums, the lower half of distributivity holds constructively
+(`nmul_distrib_lower_Q`); with the constructive upper half of the successor
+law, this gives `m ⊗ k ≈ m·k`. -/
+
+/-- Rocq: `NaturalExp.QN`. -/
+def QN (x : Ordinal.{u}) : Prop := ∃ n, x ≈ ofNat n
+
+/-- Rocq: `NaturalExp.QN_eq`. -/
+theorem QN_eq (x y : Ordinal.{u}) (h : x ≈ y) (hx : QN x) : QN y :=
+  let ⟨n, hn⟩ := hx
+  ⟨n, equiv_trans (equiv_symm h) hn⟩
+
+/-- Rocq: `NaturalExp.QN_dec`. -/
+theorem QN_dec (x y : Ordinal.{u}) (hx : QN x) (hy : QN y) : x < y ∨ y ≤ x :=
+  let ⟨m, hm⟩ := hx
+  let ⟨n, hn⟩ := hy
+  match Nat.lt_or_ge m n with
+  | .inl h => .inl (lt_of_le_of_lt hm.le (lt_of_lt_of_le (ofNat_increasing h) hn.ge))
+  | .inr h => .inr (le_trans hn.le (le_trans (ofNat_monotone h) hm.ge))
+
+/-- Rocq: `NaturalExp.QN_zero`. -/
+theorem QN_zero : QN (0 : Ordinal.{u}) := ⟨0, equiv_refl _⟩
+
+/-- Rocq: `NaturalExp.QN_nadd`. -/
+theorem QN_nadd (x y : Ordinal.{u}) (hx : QN x) (hy : QN y) : QN (x ♯ y) :=
+  let ⟨m, hm⟩ := hx
+  let ⟨n, hn⟩ := hy
+  ⟨m + n, equiv_trans (nadd_congr hm hn) (nadd_nat m n)⟩
+
+/-- Rocq: `NaturalExp.QH_nat`. -/
+theorem QH_nat : ∀ n : Nat, QH QN (ofNat.{u} n)
+  | 0 => ⟨QN_zero, fun a => PEmpty.elim a⟩
+  | n + 1 => ⟨⟨n + 1, equiv_refl _⟩, fun _ => QH_nat n⟩
+
+/-- Rocq: `NaturalExp.nmul_succ_nat`. -/
+theorem nmul_succ_nat (m k : Nat) :
+    nmul (ofNat.{u} m) (succ (ofNat k)) ≈ nmul (ofNat m) (ofNat k) ♯ ofNat m :=
+  equiv_intro (nmul_succ_upper _ _)
+    (le_trans (nadd_le_nadd (le_refl _) (nmul_one _).ge)
+      (le_trans (nmul_distrib_lower_Q QN QN_eq QN_dec QN_zero _ _ 1 (QH_nat m) (QH_nat k)
+          (QH_nat 1))
+        (nmul_monotone (le_refl _)
+          (le_trans (nadd_succ2 (ofNat k) 0).le (succ_monotone (nadd_zero_r _).le)))))
+
+/-- Rocq: `NaturalExp.nmul_nat_nat`. -/
+theorem nmul_nat_nat (m : Nat) : ∀ k, nmul (ofNat.{u} m) (ofNat k) ≈ nrep k (ofNat m)
+  | 0 => nmul_zero _
+  | k + 1 => equiv_trans (nmul_succ_nat m k) (nadd_congr (nmul_nat_nat m k) (equiv_refl _))
 
 /-- Rocq: `NaturalExp.npow_nat`. -/
-theorem npow_nat (em : ExcludedMiddle) (m : Nat) : ∀ k, npow k (ofNat.{u} m) ≈ ofNat (m ^ k)
+theorem npow_nat (m : Nat) : ∀ k, npow k (ofNat.{u} m) ≈ ofNat (m ^ k)
   | 0 => equiv_refl _
   | k + 1 => by
     show nmul (npow k (ofNat m)) (ofNat m) ≈ ofNat (m ^ k * m)
     rw [Nat.mul_comm (m ^ k) m]
-    exact equiv_trans (nmul_congr (npow_nat em m k) (equiv_refl _))
-      (equiv_trans (nmul_nat_r em _ m) (nrep_nat m (m ^ k)))
+    exact equiv_trans (nmul_congr (npow_nat m k) (equiv_refl _))
+      (equiv_trans (nmul_nat_nat _ m) (nrep_nat m (m ^ k)))
+
+/-- Rocq: `NaturalExp.npow_one`. -/
+theorem npow_one (x : Ordinal.{u}) : npow 1 x ≈ x :=
+  equiv_trans (nmul_comm 1 x) (nmul_one x)
 
 /-! ## The laws -/
 
@@ -244,6 +304,14 @@ def NaturalExpLaws (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}) : Prop :=
   (∀ a a' b, 0 < b → a ≤ a' → e a b ≤ e a' b) ∧
   (∀ a b c, e a (b ♯ c) ≈ nmul (e a b) (e a c)) ∧
   (∀ a b c, e a (nmul b c) ≈ e (e a b) c)
+
+/-- `X` and `Y` behave as if `Y = X^(log₂ 3)` for the natural product:
+`X^⊗a ≤ Y^⊗k` whenever `2^a ≤ 3^k`, and conversely.
+Rocq: `NaturalExp.log23_ratio`. -/
+def Log23Ratio (X Y : Ordinal.{u}) : Prop :=
+  ω ≤ X ∧
+  (∀ a k : Nat, 2 ^ (a + 1) ≤ 3 ^ (k + 1) → npow (a + 1) X ≤ npow (k + 1) Y) ∧
+  (∀ a k : Nat, 3 ^ (k + 1) ≤ 2 ^ (a + 1) → npow (k + 1) Y ≤ npow (a + 1) X)
 
 private theorem two_le_of_one_lt (n : Nat) (hn : 1 < ofNat.{u} n) : 2 ≤ n := by
   rcases Nat.lt_or_ge n 2 with h | h
@@ -296,25 +364,36 @@ theorem e_nat (a : Ordinal.{u}) (k : Nat) (ha : 1 < a) :
   exact equiv_trans (e_eq2 e he a _ _ ha hk)
     (equiv_trans (e_nrep e he a k 1 ha) (npow_congr _ (he.1 a)))
 
-/-- Rocq: `NaturalExp.e_pow_omega`. -/
-theorem e_pow_omega (em : ExcludedMiddle) (n k : Nat) (hn : 1 < ofNat.{u} n) :
-    e (ofNat (n ^ (k + 1))) ω ≈ npow (k + 1) (e (ofNat n) ω) := by
-  have h1 : e (ofNat n) (ofNat (k + 1)) ≈ ofNat (n ^ (k + 1)) :=
-    equiv_trans (e_nat e he _ k hn) (npow_nat em n (k + 1))
-  refine equiv_trans (e_eq1 e he _ _ ω omega_gt0 (equiv_symm h1)) ?_
-  refine equiv_trans (equiv_symm (he.2.2.2.2 _ _ ω)) ?_
-  refine equiv_trans (e_eq2 e he _ _ (nrep (k + 1) ω) hn
-    (equiv_trans (nmul_comm _ _) (nmul_nat_r em ω (k + 1)))) ?_
-  exact e_nrep e he _ k ω hn
-
 /-- Rocq: `NaturalExp.e_omega_ge`. -/
-theorem e_omega_ge (em : ExcludedMiddle) (n : Nat) (hn : 1 < ofNat.{u} n) : ω ≤ e (ofNat n) ω :=
+theorem e_omega_ge (n : Nat) (hn : 1 < ofNat.{u} n) : ω ≤ e (ofNat n) ω :=
   le_intro fun ⟨k⟩ => by
     have h1 : e (ofNat n) (ofNat (k + 1)) ≈ ofNat (n ^ (k + 1)) :=
-      equiv_trans (e_nat e he _ k hn) (npow_nat em n (k + 1))
+      equiv_trans (e_nat e he _ k hn) (npow_nat n (k + 1))
     exact lt_of_lt_of_le
       (lt_of_lt_of_le (ofNat_increasing (lt_pow_succ n (two_le_of_one_lt n hn) k)) h1.ge)
       (he.2.1 _ _ _ hn (le_of_lt (index_lt ω ⟨k + 1⟩)))
+
+/-- Rocq: `NaturalExp.e_pow_omega`. -/
+theorem e_pow_omega (n k : Nat) (hn : 1 < ofNat.{u} n) :
+    e (ofNat (n ^ (k + 1))) ω ≈ npow (k + 1) (e (ofNat n) ω) := by
+  have hX : 1 < e (ofNat n) ω := lt_of_lt_of_le omega_gt1 (e_omega_ge e he n hn)
+  have h1 : e (ofNat n) (ofNat (k + 1)) ≈ ofNat (n ^ (k + 1)) :=
+    equiv_trans (e_nat e he _ k hn) (npow_nat n (k + 1))
+  refine equiv_trans (e_eq1 e he _ _ ω omega_gt0 (equiv_symm h1)) ?_
+  refine equiv_trans (equiv_symm (he.2.2.2.2 _ _ ω)) ?_
+  refine equiv_trans (e_eq2 e he _ _ (nmul ω (ofNat (k + 1))) hn (nmul_comm _ _)) ?_
+  exact equiv_trans (he.2.2.2.2 _ ω _) (e_nat e he _ k hX)
+
+/-- Constructively, the laws put `e(2,ω)` and `e(3,ω)` in the ratio `log₂ 3`.
+Rocq: `NaturalExp.laws_log23_ratio`. -/
+theorem laws_log23_ratio : Log23Ratio (e (ofNat 2) ω) (e (ofNat 3) ω) := by
+  have H12 : (1 : Ordinal.{u}) < ofNat 2 := succ_lt 1
+  have H13 : (1 : Ordinal.{u}) < ofNat 3 := lt_of_lt_of_le H12 (ofNat_monotone (Nat.le_succ 2))
+  refine ⟨e_omega_ge e he 2 H12, fun a k h => ?_, fun a k h => ?_⟩
+  · exact le_trans (e_pow_omega e he 2 a H12).ge
+      (le_trans (he.2.2.1 _ _ _ omega_gt0 (ofNat_monotone h)) (e_pow_omega e he 3 k H13).le)
+  · exact le_trans (e_pow_omega e he 3 k H13).ge
+      (le_trans (he.2.2.1 _ _ _ omega_gt0 (ofNat_monotone h)) (e_pow_omega e he 2 a H12).le)
 
 end laws
 
@@ -500,28 +579,21 @@ theorem lead_le (γ : Ordinal.{u}) (c : Nat) (d γ' : Ordinal.{u}) (c' : Nat) (d
 
 /-! ## The theorem -/
 
-/-- Rocq: `NaturalExp.natural_exp_impossible`. -/
-theorem natural_exp_impossible (em : ExcludedMiddle) :
-    ¬ ∃ e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}, NaturalExpLaws e := by
-  intro ⟨e, he⟩
-  have H3 := he.2.2.1
-  have H12 : (1 : Ordinal.{u}) < ofNat 2 := succ_lt 1
-  have H13 : (1 : Ordinal.{u}) < ofNat 3 := lt_of_lt_of_le H12 (ofNat_monotone (Nat.le_succ 2))
-  -- The leading exponent of `e(n^k, ω)` is `k` times that of `e(n, ω)`.
-  have Hdeg : ∀ (n : Nat) (δ : Ordinal.{u}), 1 < ofNat.{u} n → HasDeg δ (e (ofNat n) ω) →
-      ∀ k, HasDeg (nrep (k + 1) δ) (e (ofNat (n ^ (k + 1))) ω) := fun n δ hn hδ k =>
-    has_deg_eq _ _ _ (equiv_symm (e_pow_omega e he em n k hn)) (has_deg_npow em (k + 1) δ _ hδ)
-  have HX2 : ω ≤ e (ofNat 2) ω := e_omega_ge e he em 2 H12
-  have HX23 : e (ofNat 2) ω ≤ e (ofNat 3) ω := H3 _ _ _ omega_gt0 (ofNat_monotone (Nat.le_succ 2))
-  obtain ⟨δ2, hδ2⟩ := has_deg_exists em _ (lt_of_lt_of_le omega_gt0 HX2)
-  obtain ⟨δ3, hδ3⟩ := has_deg_exists em _ (lt_of_lt_of_le omega_gt0 (le_trans HX2 HX23))
+/-- Classically, no ordinals are in the ratio `log₂ 3`.
+Rocq: `NaturalExp.no_log23_ratio`. -/
+theorem no_log23_ratio (em : ExcludedMiddle) (X Y : Ordinal.{u}) : ¬ Log23Ratio X Y := by
+  intro ⟨HX, Hup, Hdown⟩
+  have HXY : X ≤ Y :=
+    le_trans (npow_one X).ge (le_trans (Hup 0 0 (Nat.le_succ 2)) (npow_one Y).le)
+  obtain ⟨δ2, hδ2⟩ := has_deg_exists em X (lt_of_lt_of_le omega_gt0 HX)
+  obtain ⟨δ3, hδ3⟩ := has_deg_exists em Y (lt_of_lt_of_le omega_gt0 (le_trans HX HXY))
   have Hmono : ∀ a k : Nat, 2 ^ (a + 1) ≤ 3 ^ (k + 1) → nrep (a + 1) δ2 ≤ nrep (k + 1) δ3 :=
-    fun a k h => has_deg_le em _ _ _ _ (Hdeg 2 δ2 H12 hδ2 a) (Hdeg 3 δ3 H13 hδ3 k)
-      (H3 _ _ _ omega_gt0 (ofNat_monotone h))
+    fun a k h => has_deg_le em _ _ _ _ (has_deg_npow em (a + 1) δ2 X hδ2)
+      (has_deg_npow em (k + 1) δ3 Y hδ3) (Hup a k h)
   have Hmono' : ∀ a k : Nat, 3 ^ (k + 1) ≤ 2 ^ (a + 1) → nrep (k + 1) δ3 ≤ nrep (a + 1) δ2 :=
-    fun a k h => has_deg_le em _ _ _ _ (Hdeg 3 δ3 H13 hδ3 k) (Hdeg 2 δ2 H12 hδ2 a)
-      (H3 _ _ _ omega_gt0 (ofNat_monotone h))
-  -- `δ2 > 0`, since `e(2, ω) ≥ ω`.
+    fun a k h => has_deg_le em _ _ _ _ (has_deg_npow em (k + 1) δ3 Y hδ3)
+      (has_deg_npow em (a + 1) δ2 X hδ2) (Hdown a k h)
+  -- `δ2 > 0`, since `X ≥ ω`.
   have Hδ2pos : 0 < δ2 := by
     rcases zero_lt_cases em δ2 with hp | hz
     · exact hp
@@ -530,10 +602,10 @@ theorem natural_exp_impossible (em : ExcludedMiddle) :
         have h := nrep_nat.{u} n 1
         rw [Nat.mul_one] at h
         exact h
-      exact absurd (lt_of_le_of_lt HX2 (lt_of_lt_of_le hn (le_trans
+      exact absurd (lt_of_le_of_lt HX (lt_of_lt_of_le hn (le_trans
         (nrep_mono n (le_trans (pow_le_pow_right ω hz) (pow_zero ω).le))
         (le_trans hn1.le (le_of_lt (index_lt ω ⟨n⟩)))))) (lt_irrefl _)
-  have Hδ23 : δ2 ≤ δ3 := has_deg_le em _ _ _ _ hδ2 hδ3 HX23
+  have Hδ23 : δ2 ≤ δ3 := has_deg_le em _ _ _ _ hδ2 hδ3 HXY
   obtain ⟨γ2, c2, hl2⟩ := lead_exists em δ2 Hδ2pos
   obtain ⟨γ3, c3, hl3⟩ := lead_exists em δ3 (lt_of_lt_of_le Hδ2pos Hδ23)
   -- `δ2` and `δ3` have the same leading exponent.
@@ -554,11 +626,18 @@ theorem natural_exp_impossible (em : ExcludedMiddle) :
       exact lead_le _ _ _ _ _ _ (lead_nrep em _ _ _ k hl3) (lead_nrep em _ _ _ a hl2)
         (Hmono' a k h) Hγ23
 
+/-- Rocq: `NaturalExp.natural_exp_impossible`. -/
+theorem natural_exp_impossible (em : ExcludedMiddle) :
+    ¬ ∃ e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}, NaturalExpLaws e :=
+  fun ⟨e, he⟩ => no_log23_ratio em _ _ (laws_log23_ratio e he)
+
 /-- Since the conclusion is a negation, double-negated excluded middle
 suffices. `¬¬ExcludedMiddle` is not provable, but it holds in every finite
 Kripke model, whose maximal worlds are classical. So the theorem cannot imply
 weak excluded middle, or any other principle that some finite Kripke model
-refutes. Whether it holds outright is open; a countermodel would have to refute
+refutes. Whether it holds outright is open. Since `laws_log23_ratio` is
+constructive, it would follow from a constructive proof of `no_log23_ratio`, a
+statement about ordinals alone; a countermodel would have to refute
 `¬¬ExcludedMiddle`, so it would be infinitary.
 Rocq: `NaturalExp.natural_exp_impossible_nn`. -/
 theorem natural_exp_impossible_nn (hem : ¬¬ExcludedMiddle) :

@@ -67,7 +67,7 @@ are presentational:
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
 
-351 statements.
+353 statements.
 
 ## Defs
 
@@ -1313,6 +1313,34 @@ NaturalProduct.distrib_lower_complete_WEM : (∀ (a b c : Ordinal),
 ```
 
 ## NaturalExp
+
+### `laws_log23_ratio`
+
+Rocq:
+```
+NaturalExp.laws_log23_ratio
+     : forall e : Defs.Ord -> Defs.Ord -> Defs.Ord,
+       NaturalExp.natural_exp_laws e ->
+       NaturalExp.log23_ratio (e (Operators.natOrdSize 2) Operators.ω)
+         (e (Operators.natOrdSize 3) Operators.ω)
+```
+Lean:
+```
+NaturalExp.laws_log23_ratio : ∀ (e : Ordinal → Ordinal → Ordinal),
+  NaturalExp.NaturalExpLaws e → NaturalExp.Log23Ratio (e (ofNat 2) ω) (e (ofNat 3) ω)
+```
+
+### `no_log23_ratio`
+
+Rocq:
+```
+NaturalExp.no_log23_ratio
+     : ClassicalFacts.excluded_middle -> forall X Y : Defs.Ord, ~ NaturalExp.log23_ratio X Y
+```
+Lean:
+```
+NaturalExp.no_log23_ratio : ExcludedMiddle → ∀ (X Y : Ordinal), ¬NaturalExp.Log23Ratio X Y
+```
 
 ### `natural_exp_impossible`
 

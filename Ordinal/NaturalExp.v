@@ -37,25 +37,35 @@ Open Scope ord_scope.
   stronger statement that (1)-(5) alone are inconsistent
   ([natural_exp_impossible]); the degree law (6) is not needed.
 
-  The proof, with excluded middle as an explicit hypothesis:
-  - (1) and (4) force [e(n,k) = n^k] for finite [n, k ≥ 1]; with (5)
-    and the commutativity of [⊗], [e(n^k, ω) = e(n,ω)^⊗k];
-  - let [D(n)] be the leading exponent of [e(n,ω)]; then
-    [D(n^k) = D(n) ⊕ ... ⊕ D(n)] ([k] times), [D] is weakly increasing
-    by (3), and [D(2) > 0] by (2);
-  - [D(2)] and [D(3)] have the same leading exponent; let [c₂], [c₃] be
-    their leading coefficients.  Monotonicity turns [2^a ≤ 3^k] into
-    [a·c₂ ≤ k·c₃], and [3^k ≤ 2^a] into [k·c₃ ≤ a·c₂];
-  - since [3^c₂ ≠ 2^c₃] (parity), one of the two powers dominates, and a
-    Bernoulli-type bound gives exponents for which these inequalities
-    fail ([nat_no_ratio]).
+  The proof splits into a constructive reduction and a classical lemma
+  about ordinals that does not mention [e]:
+  - constructively ([laws_log23_ratio]): (1) and (4) force
+    [e(n,k) = n^k] for finite [n, k ≥ 1]; with (5) and the
+    commutativity of [⊗], [e(n^k, ω) = e(n,ω)^⊗k].  So [X = e(2,ω)] and
+    [Y = e(3,ω)] satisfy [X ≥ ω] and, by (3), [X^⊗a ≤ Y^⊗k] whenever
+    [2^a ≤ 3^k] and conversely ([log23_ratio]): their ⊗-logarithms are in
+    the ratio [log₂ 3];
+  - classically ([no_log23_ratio]), no ordinals are in that ratio:
+    the leading exponents [D₂], [D₃] of [X], [Y] satisfy
+    [D₂ ⊕ ... ⊕ D₂ ≤ D₃ ⊕ ... ⊕ D₃] ([a] and [k] copies) whenever
+    [2^a ≤ 3^k], and conversely, with [D₂ > 0] since [X ≥ ω].  So [D₂]
+    and [D₃] have the same leading exponent; with [c₂], [c₃] their
+    leading coefficients, [2^a ≤ 3^k] gives [a·c₂ ≤ k·c₃], and
+    [3^k ≤ 2^a] gives [k·c₃ ≤ a·c₂].  Since [3^c₂ ≠ 2^c₃] (parity), one
+    of the two powers dominates, and a Bernoulli-type bound gives
+    exponents for which these inequalities fail ([nat_no_ratio]).
 
-  Altman's proof uses (6) only to make [D(n)] finite; working with the
-  leading coefficient of the ordinal [D(n)] avoids it.
+  The finite products in the reduction are constructive because the
+  finite ordinals form a universe with a decidable order
+  ([nmul_nat_nat], via [nmulOrd_distrib_lower_Q]).
+
+  Altman's proof uses (6) only to make the degrees [D₂], [D₃] finite;
+  working with the leading coefficients of these ordinals avoids it.
 
   Since the conclusion is a negation, double-negated excluded middle
   suffices ([natural_exp_impossible_nn]); see the remark there on why no
-  reverse result to weak excluded middle is possible.
+  reverse result to weak excluded middle is possible.  Whether the
+  theorem holds outright reduces to whether [no_log23_ratio] does.
 
   The natural product here is [NaturalProduct.nmulOrd] (not the
   [⊗] of [NaturalArith.v]).  All operations are compared up to [≈]. *)
@@ -184,24 +194,71 @@ Qed.
 
 End arith.
 
-Section classical.
-Variable EM : excluded_middle.
+(** ** Finite products, constructively
 
-Let cpl x : complete x := classical.ord_complete EM x.
+  On the universe of finite ordinals, which has a decidable order and is
+  closed under natural sums, the lower half of distributivity holds
+  constructively ([nmulOrd_distrib_lower_Q]); with the constructive upper
+  half of the successor law, this gives [m ⊗ k ≈ m·k]. *)
 
-Lemma nmul_nat_r x k : nmulOrd x (natOrdSize k) ≈ nrep k x.
+Definition QN (x:Ord) : Prop := exists n, x ≈ natOrdSize n.
+
+Lemma QN_eq x y : x ≈ y -> QN x -> QN y.
+Proof. intros H [n Hn]. exists n. rewrite <- H. auto. Qed.
+
+Lemma QN_dec x y : QN x -> QN y -> x < y \/ y ≤ x.
+Proof.
+  intros [m Hm] [n Hn]. rewrite Hm, Hn.
+  destruct (le_lt_dec n m) as [H|H].
+  - right. apply natOrdSize_monotone; auto.
+  - left. apply natOrdSize_increasing; auto.
+Qed.
+
+Lemma QN_zero : QN 0.
+Proof. exists 0%nat. reflexivity. Qed.
+
+Lemma QN_nadd x y : QN x -> QN y -> QN (x ⊕ y).
+Proof. intros [m Hm] [n Hn]. exists (m + n)%nat. rewrite Hm, Hn. apply nadd_nat. Qed.
+
+Lemma QH_nat n : QH QN (natOrdSize n).
+Proof.
+  induction n as [|n IH]; split.
+  - apply QN_zero.
+  - intros [].
+  - exists (S n). reflexivity.
+  - intros _. exact IH.
+Qed.
+
+Lemma nmul_succ_nat m k :
+  nmulOrd (natOrdSize m) (succOrd (natOrdSize k)) ≈
+  nmulOrd (natOrdSize m) (natOrdSize k) ⊕ natOrdSize m.
+Proof.
+  split; [apply nmulOrd_succ_upper|].
+  transitivity (nmulOrd (natOrdSize m) (natOrdSize k) ⊕ nmulOrd (natOrdSize m) 1).
+  { apply naddOrd_monotone; [reflexivity | apply (nmulOrd_one (natOrdSize m))]. }
+  transitivity (nmulOrd (natOrdSize m) (natOrdSize k ⊕ 1)).
+  { apply (nmulOrd_distrib_lower_Q QN QN_eq QN_dec QN_zero);
+      [apply (QH_nat m) | apply (QH_nat k) | apply (QH_nat 1)]. }
+  apply nmulOrd_monotone; [reflexivity|].
+  rewrite naddOrd_succ2, naddOrd_zero_r. reflexivity.
+Qed.
+
+Lemma nmul_nat_nat m k : nmulOrd (natOrdSize m) (natOrdSize k) ≈ nrep k (natOrdSize m).
 Proof.
   induction k; simpl.
   - apply nmulOrd_zero.
-  - rewrite nmulOrd_succ_classical; auto. rewrite IHk. reflexivity.
+  - rewrite nmul_succ_nat, IHk. reflexivity.
 Qed.
 
 Lemma npow_nat k m : npow k (natOrdSize m) ≈ natOrdSize (m ^ k).
 Proof.
   induction k; simpl; [reflexivity|].
-  rewrite IHk. rewrite nmul_nat_r. rewrite nrep_nat.
+  rewrite IHk. rewrite nmul_nat_nat. rewrite nrep_nat.
   rewrite Nat.mul_comm. reflexivity.
 Qed.
+
+Lemma npow_one x : npow 1 x ≈ x.
+Proof. simpl. rewrite nmulOrd_comm. apply nmulOrd_one. Qed.
 
 (** ** The laws *)
 
@@ -211,6 +268,99 @@ Definition natural_exp_laws (e : Ord -> Ord -> Ord) : Prop :=
   (forall a a' b, 0 < b -> a ≤ a' -> e a b ≤ e a' b) /\
   (forall a b c, e a (b ⊕ c) ≈ nmulOrd (e a b) (e a c)) /\
   (forall a b c, e a (nmulOrd b c) ≈ e (e a b) c).
+
+(** [X] and [Y] behave as if [Y = X^(log₂ 3)] for the natural product:
+    [X^⊗a ≤ Y^⊗k] whenever [2^a ≤ 3^k], and conversely. *)
+Definition log23_ratio (X Y:Ord) : Prop :=
+  ω ≤ X /\
+  (forall a k, (2 ^ S a <= 3 ^ S k)%nat -> npow (S a) X ≤ npow (S k) Y) /\
+  (forall a k, (3 ^ S k <= 2 ^ S a)%nat -> npow (S k) Y ≤ npow (S a) X).
+
+Section laws.
+Variable e : Ord -> Ord -> Ord.
+Hypothesis He : natural_exp_laws e.
+
+Let H1 : forall a, e a 1 ≈ a := proj1 He.
+Let H2 : forall a b b', 1 < a -> b ≤ b' -> e a b ≤ e a b' := proj1 (proj2 He).
+Let H3 : forall a a' b, 0 < b -> a ≤ a' -> e a b ≤ e a' b := proj1 (proj2 (proj2 He)).
+Let H4 : forall a b c, e a (b ⊕ c) ≈ nmulOrd (e a b) (e a c) :=
+  proj1 (proj2 (proj2 (proj2 He))).
+Let H5 : forall a b c, e a (nmulOrd b c) ≈ e (e a b) c :=
+  proj2 (proj2 (proj2 (proj2 He))).
+
+Lemma e_eq2 a b b' : 1 < a -> b ≈ b' -> e a b ≈ e a b'.
+Proof. intros Ha [Hb1 Hb2]. split; apply H2; auto. Qed.
+
+Lemma e_eq1 a a' b : 0 < b -> a ≈ a' -> e a b ≈ e a' b.
+Proof. intros Hb [Ha1 Ha2]. split; apply H3; auto. Qed.
+
+Lemma e_nrep a k x : 1 < a -> e a (nrep (S k) x) ≈ npow (S k) (e a x).
+Proof.
+  intro Ha. induction k.
+  - simpl. rewrite (e_eq2 a _ x Ha (naddOrd_zero_l x)).
+    rewrite nmulOrd_comm. rewrite nmulOrd_one. reflexivity.
+  - change (nrep (S (S k)) x) with (nrep (S k) x ⊕ x).
+    rewrite H4. rewrite IHk. reflexivity.
+Qed.
+
+Lemma e_nat a k : 1 < a -> e a (natOrdSize (S k)) ≈ npow (S k) a.
+Proof.
+  intro Ha.
+  assert (Hk : natOrdSize (S k) ≈ nrep (S k) 1).
+  { rewrite (nrep_nat (S k) 1). rewrite Nat.mul_1_r. reflexivity. }
+  rewrite (e_eq2 a _ _ Ha Hk). rewrite e_nrep; auto.
+  rewrite H1. reflexivity.
+Qed.
+
+Lemma e_omega_ge n : 1 < natOrdSize n -> ω ≤ e (natOrdSize n) ω.
+Proof.
+  intro Hn. rewrite ord_le_unfold. intro k. simpl.
+  apply ord_lt_le_trans with (e (natOrdSize n) (natOrdSize (S k))).
+  - rewrite e_nat; auto. rewrite npow_nat.
+    apply natOrdSize_increasing.
+    assert (H2n : (2 <= n)%nat).
+    { destruct (le_lt_dec n 1) as [Hle|Hlt]; [|lia].
+      elim (ord_lt_irreflexive 1). apply ord_lt_le_trans with (natOrdSize n); auto.
+      apply (natOrdSize_monotone n 1); auto. }
+    clear Hn. induction k; simpl; [lia|].
+    simpl in IHk. nia.
+  - apply H2; auto. apply ord_lt_le. apply (index_lt ω (S k)).
+Qed.
+
+Lemma e_pow_omega n k : 1 < natOrdSize n ->
+  e (natOrdSize (n ^ S k)) ω ≈ npow (S k) (e (natOrdSize n) ω).
+Proof.
+  intro Hn.
+  assert (HX : 1 < e (natOrdSize n) ω).
+  { apply ord_lt_le_trans with ω; [apply omega_gt1 | apply e_omega_ge; auto]. }
+  rewrite <- (e_eq1 (e (natOrdSize n) (natOrdSize (S k))) _ ω omega_gt0).
+  2: { rewrite e_nat; auto. apply npow_nat. }
+  rewrite <- H5.
+  rewrite (e_eq2 _ _ (nmulOrd ω (natOrdSize (S k))) Hn (nmulOrd_comm _ _)).
+  rewrite H5.
+  apply e_nat; auto.
+Qed.
+
+(** Constructively, the laws put [e(2,ω)] and [e(3,ω)] in the ratio
+    [log₂ 3]. *)
+Theorem laws_log23_ratio : log23_ratio (e (natOrdSize 2) ω) (e (natOrdSize 3) ω).
+Proof.
+  assert (H12 : 1 < natOrdSize 2) by apply succ_lt.
+  assert (H13 : 1 < natOrdSize 3).
+  { apply ord_lt_le_trans with (natOrdSize 2); auto. apply natOrdSize_monotone. lia. }
+  split; [apply e_omega_ge; auto|]. split; intros a k H.
+  - rewrite <- (e_pow_omega 2 a H12), <- (e_pow_omega 3 k H13).
+    apply H3; [apply omega_gt0 | apply natOrdSize_monotone; auto].
+  - rewrite <- (e_pow_omega 2 a H12), <- (e_pow_omega 3 k H13).
+    apply H3; [apply omega_gt0 | apply natOrdSize_monotone; auto].
+Qed.
+
+End laws.
+
+Section classical.
+Variable EM : excluded_middle.
+
+Let cpl x : complete x := classical.ord_complete EM x.
 
 (** ** Leading exponents
 
@@ -421,111 +571,36 @@ Proof.
   - apply naddOrd_monotone; [apply nrep_mono|]; apply expOrd_monotone; auto.
 Qed.
 
-Section laws.
-Variable e : Ord -> Ord -> Ord.
-Hypothesis He : natural_exp_laws e.
-
-Let H1 : forall a, e a 1 ≈ a := proj1 He.
-Let H2 : forall a b b', 1 < a -> b ≤ b' -> e a b ≤ e a b' := proj1 (proj2 He).
-Let H3 : forall a a' b, 0 < b -> a ≤ a' -> e a b ≤ e a' b := proj1 (proj2 (proj2 He)).
-Let H4 : forall a b c, e a (b ⊕ c) ≈ nmulOrd (e a b) (e a c) :=
-  proj1 (proj2 (proj2 (proj2 He))).
-Let H5 : forall a b c, e a (nmulOrd b c) ≈ e (e a b) c :=
-  proj2 (proj2 (proj2 (proj2 He))).
-
-Lemma e_eq2 a b b' : 1 < a -> b ≈ b' -> e a b ≈ e a b'.
-Proof. intros Ha [Hb1 Hb2]. split; apply H2; auto. Qed.
-
-Lemma e_eq1 a a' b : 0 < b -> a ≈ a' -> e a b ≈ e a' b.
-Proof. intros Hb [Ha1 Ha2]. split; apply H3; auto. Qed.
-
-Lemma e_nrep a k x : 1 < a -> e a (nrep (S k) x) ≈ npow (S k) (e a x).
-Proof.
-  intro Ha. induction k.
-  - simpl. rewrite (e_eq2 a _ x Ha (naddOrd_zero_l x)).
-    rewrite nmulOrd_comm. rewrite nmulOrd_one. reflexivity.
-  - change (nrep (S (S k)) x) with (nrep (S k) x ⊕ x).
-    rewrite H4. rewrite IHk. reflexivity.
-Qed.
-
-Lemma e_nat a k : 1 < a -> e a (natOrdSize (S k)) ≈ npow (S k) a.
-Proof.
-  intro Ha.
-  assert (Hk : natOrdSize (S k) ≈ nrep (S k) 1).
-  { rewrite (nrep_nat (S k) 1). rewrite Nat.mul_1_r. reflexivity. }
-  rewrite (e_eq2 a _ _ Ha Hk). rewrite e_nrep; auto.
-  rewrite H1. reflexivity.
-Qed.
-
-Lemma e_pow_omega n k : 1 < natOrdSize n ->
-  e (natOrdSize (n ^ S k)) ω ≈ npow (S k) (e (natOrdSize n) ω).
-Proof.
-  intro Hn.
-  rewrite <- (e_eq1 (e (natOrdSize n) (natOrdSize (S k))) _ ω omega_gt0).
-  2: { rewrite e_nat; auto. apply npow_nat. }
-  rewrite <- H5.
-  rewrite (e_eq2 _ _ (nrep (S k) ω) Hn).
-  2: { rewrite nmulOrd_comm. apply nmul_nat_r. }
-  apply e_nrep; auto.
-Qed.
-
-Lemma e_omega_ge n : 1 < natOrdSize n -> ω ≤ e (natOrdSize n) ω.
-Proof.
-  intro Hn. rewrite ord_le_unfold. intro k. simpl.
-  apply ord_lt_le_trans with (e (natOrdSize n) (natOrdSize (S k))).
-  - rewrite e_nat; auto. rewrite npow_nat.
-    apply natOrdSize_increasing.
-    assert (H2n : (2 <= n)%nat).
-    { destruct (le_lt_dec n 1) as [Hle|Hlt]; [|lia].
-      elim (ord_lt_irreflexive 1). apply ord_lt_le_trans with (natOrdSize n); auto.
-      apply (natOrdSize_monotone n 1); auto. }
-    clear Hn. induction k; simpl; [lia|].
-    simpl in IHk. nia.
-  - apply H2; auto. apply ord_lt_le. apply (index_lt ω (S k)).
-Qed.
-
-End laws.
-
 (** ** The theorem *)
 
-Theorem natural_exp_impossible : ~ exists e, natural_exp_laws e.
+(** Classically, no ordinals are in the ratio [log₂ 3]. *)
+Theorem no_log23_ratio X Y : ~ log23_ratio X Y.
 Proof.
-  intros [e He].
-  pose proof (proj1 (proj2 (proj2 He))) as H3.
-  assert (H12 : 1 < natOrdSize 2) by apply succ_lt.
-  assert (H13 : 1 < natOrdSize 3) by (apply ord_lt_le_trans with (natOrdSize 2); auto;
-    apply natOrdSize_monotone; lia).
-  (* The leading exponent of [e(n^k, ω)] is [k] times that of [e(n, ω)]. *)
-  assert (Hdeg : forall n δ, 1 < natOrdSize n -> has_deg δ (e (natOrdSize n) ω) ->
-            forall k, has_deg (nrep (S k) δ) (e (natOrdSize (n ^ S k)) ω)).
-  { intros n δ Hn Hδ k. eapply has_deg_eq.
-    - symmetry. apply (e_pow_omega e He); auto.
-    - apply has_deg_npow; auto. }
-  assert (HX2 : ω ≤ e (natOrdSize 2) ω) by (apply (e_omega_ge e He); auto).
-  assert (HX23 : e (natOrdSize 2) ω ≤ e (natOrdSize 3) ω).
-  { apply H3; [apply omega_gt0 | apply natOrdSize_monotone; lia]. }
-  destruct (has_deg_exists (e (natOrdSize 2) ω)) as [δ2 Hδ2].
+  intros [HX [Hup Hdown]].
+  assert (HXY : X ≤ Y).
+  { rewrite <- (npow_one X), <- (npow_one Y). apply (Hup 0%nat 0%nat). simpl; lia. }
+  destruct (has_deg_exists X) as [δ2 Hδ2].
   { apply ord_lt_le_trans with ω; auto with ord. }
-  destruct (has_deg_exists (e (natOrdSize 3) ω)) as [δ3 Hδ3].
-  { apply ord_lt_le_trans with ω; auto with ord. transitivity (e (natOrdSize 2) ω); auto. }
+  destruct (has_deg_exists Y) as [δ3 Hδ3].
+  { apply ord_lt_le_trans with ω; auto with ord. transitivity X; auto. }
   assert (Hmono : forall a k, (2 ^ S a <= 3 ^ S k)%nat -> nrep (S a) δ2 ≤ nrep (S k) δ3).
   { intros a k H.
-    apply (has_deg_le _ _ _ _ (Hdeg 2%nat δ2 H12 Hδ2 a) (Hdeg 3%nat δ3 H13 Hδ3 k)).
-    apply H3; [apply omega_gt0 | apply natOrdSize_monotone; auto]. }
+    exact (has_deg_le _ _ _ _ (has_deg_npow (S a) δ2 X Hδ2) (has_deg_npow (S k) δ3 Y Hδ3)
+             (Hup a k H)). }
   assert (Hmono' : forall a k, (3 ^ S k <= 2 ^ S a)%nat -> nrep (S k) δ3 ≤ nrep (S a) δ2).
   { intros a k H.
-    apply (has_deg_le _ _ _ _ (Hdeg 3%nat δ3 H13 Hδ3 k) (Hdeg 2%nat δ2 H12 Hδ2 a)).
-    apply H3; [apply omega_gt0 | apply natOrdSize_monotone; auto]. }
-  (* [δ2 > 0], since [e(2, ω) ≥ ω]. *)
+    exact (has_deg_le _ _ _ _ (has_deg_npow (S k) δ3 Y Hδ3) (has_deg_npow (S a) δ2 X Hδ2)
+             (Hdown a k H)). }
+  (* [δ2 > 0], since [X ≥ ω]. *)
   assert (Hδ2pos : 0 < δ2).
   { destruct (zero_lt_cases δ2) as [Hp|Hz]; auto. exfalso.
     destruct Hδ2 as [_ [n Hn]].
     apply (ord_lt_irreflexive ω).
-    apply ord_le_lt_trans with (e (natOrdSize 2) ω); auto.
+    apply ord_le_lt_trans with X; auto.
     apply ord_lt_le_trans with (nrep n (expOrd ω δ2)); auto.
     rewrite Hz. rewrite expOrd_zero.
     rewrite (nrep_nat n 1). apply ord_lt_le. apply index_lt. }
-  assert (Hδ23 : δ2 ≤ δ3) by exact (has_deg_le _ _ _ _ Hδ2 Hδ3 HX23).
+  assert (Hδ23 : δ2 ≤ δ3) by exact (has_deg_le _ _ _ _ Hδ2 Hδ3 HXY).
   destruct (lead_exists δ2) as [γ2 [c2 Hl2]]; auto.
   destruct (lead_exists δ3) as [γ3 [c3 Hl3]].
   { apply ord_lt_le_trans with δ2; auto. }
@@ -546,6 +621,11 @@ Proof.
              (Hmono' a k H) Hγ23).
 Qed.
 
+Theorem natural_exp_impossible : ~ exists e, natural_exp_laws e.
+Proof.
+  intros [e He]. exact (no_log23_ratio _ _ (laws_log23_ratio e He)).
+Qed.
+
 End classical.
 
 (** ** Without excluded middle
@@ -557,8 +637,11 @@ End classical.
   principle that some finite Kripke model refutes: in the model with a
   root and two incomparable leaves, one forcing [P] and one forcing
   [~P], [~~excluded_middle] holds at the root but [~P \/ ~~P] fails
-  there.  Whether the theorem holds outright is open; a countermodel
-  would have to refute [~~excluded_middle], so it would be infinitary. *)
+  there.  Whether the theorem holds outright is open.  Since
+  [laws_log23_ratio] is constructive, it would follow from a constructive
+  proof of [no_log23_ratio], a statement about ordinals alone; a
+  countermodel would have to refute [~~excluded_middle], so it would be
+  infinitary. *)
 Theorem natural_exp_impossible_nn :
   ~~excluded_middle -> ~ exists e, natural_exp_laws e.
 Proof.

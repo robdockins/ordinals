@@ -699,10 +699,31 @@ NaturalExp,bernoulli,ConstructiveOrdinals.NaturalExp.bernoulli,ported,
 NaturalExp,pow_gap,ConstructiveOrdinals.NaturalExp.pow_gap,ported,
 NaturalExp,pow3_ne_pow2,ConstructiveOrdinals.NaturalExp.pow3_ne_pow2,ported,
 NaturalExp,nat_no_ratio,ConstructiveOrdinals.NaturalExp.nat_no_ratio,ported,
-NaturalExp,cpl,,dropped,section Let (completeness under EM); the Lean proofs call ord_complete em directly
-NaturalExp,nmul_nat_r,ConstructiveOrdinals.NaturalExp.nmul_nat_r,ported,
+NaturalExp,QN,ConstructiveOrdinals.NaturalExp.QN,ported,
+NaturalExp,QN_eq,ConstructiveOrdinals.NaturalExp.QN_eq,ported,
+NaturalExp,QN_dec,ConstructiveOrdinals.NaturalExp.QN_dec,ported,
+NaturalExp,QN_zero,ConstructiveOrdinals.NaturalExp.QN_zero,ported,
+NaturalExp,QN_nadd,ConstructiveOrdinals.NaturalExp.QN_nadd,ported,
+NaturalExp,QH_nat,ConstructiveOrdinals.NaturalExp.QH_nat,ported,
+NaturalExp,nmul_succ_nat,ConstructiveOrdinals.NaturalExp.nmul_succ_nat,ported,
+NaturalExp,nmul_nat_nat,ConstructiveOrdinals.NaturalExp.nmul_nat_nat,ported,
 NaturalExp,npow_nat,ConstructiveOrdinals.NaturalExp.npow_nat,ported,
+NaturalExp,npow_one,ConstructiveOrdinals.NaturalExp.npow_one,ported,
 NaturalExp,natural_exp_laws,ConstructiveOrdinals.NaturalExp.NaturalExpLaws,ported,
+NaturalExp,log23_ratio,ConstructiveOrdinals.NaturalExp.Log23Ratio,ported,
+NaturalExp,H1,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.1 directly
+NaturalExp,H2,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.1 directly
+NaturalExp,H3,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.1 directly
+NaturalExp,H4,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.2.1 directly
+NaturalExp,H5,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.2.2 directly
+NaturalExp,e_eq2,ConstructiveOrdinals.NaturalExp.e_eq2,ported,
+NaturalExp,e_eq1,ConstructiveOrdinals.NaturalExp.e_eq1,ported,
+NaturalExp,e_nrep,ConstructiveOrdinals.NaturalExp.e_nrep,ported,
+NaturalExp,e_nat,ConstructiveOrdinals.NaturalExp.e_nat,ported,
+NaturalExp,e_omega_ge,ConstructiveOrdinals.NaturalExp.e_omega_ge,ported,
+NaturalExp,e_pow_omega,ConstructiveOrdinals.NaturalExp.e_pow_omega,ported,
+NaturalExp,laws_log23_ratio,ConstructiveOrdinals.NaturalExp.laws_log23_ratio,ported,
+NaturalExp,cpl,,dropped,section Let (completeness under EM); the Lean proofs call ord_complete em directly
 NaturalExp,has_deg,ConstructiveOrdinals.NaturalExp.HasDeg,ported,
 NaturalExp,has_deg_eq,ConstructiveOrdinals.NaturalExp.has_deg_eq,ported,
 NaturalExp,has_deg_eq_exp,ConstructiveOrdinals.NaturalExp.has_deg_eq_exp,ported,
@@ -725,17 +746,7 @@ NaturalExp,cantor_nadd_below,ConstructiveOrdinals.NaturalExp.cantor_nadd_below,p
 NaturalExp,cantor_nadd_all_eq,ConstructiveOrdinals.NaturalExp.cantor_nadd_all_eq,ported,
 NaturalExp,lead_exists,ConstructiveOrdinals.NaturalExp.lead_exists,ported,
 NaturalExp,lead_le,ConstructiveOrdinals.NaturalExp.lead_le,ported,
-NaturalExp,H1,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.1 directly
-NaturalExp,H2,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.1 directly
-NaturalExp,H3,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.1 directly
-NaturalExp,H4,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.2.1 directly
-NaturalExp,H5,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.2.2 directly
-NaturalExp,e_eq2,ConstructiveOrdinals.NaturalExp.e_eq2,ported,
-NaturalExp,e_eq1,ConstructiveOrdinals.NaturalExp.e_eq1,ported,
-NaturalExp,e_nrep,ConstructiveOrdinals.NaturalExp.e_nrep,ported,
-NaturalExp,e_nat,ConstructiveOrdinals.NaturalExp.e_nat,ported,
-NaturalExp,e_pow_omega,ConstructiveOrdinals.NaturalExp.e_pow_omega,ported,
-NaturalExp,e_omega_ge,ConstructiveOrdinals.NaturalExp.e_omega_ge,ported,
+NaturalExp,no_log23_ratio,ConstructiveOrdinals.NaturalExp.no_log23_ratio,ported,
 NaturalExp,natural_exp_impossible,ConstructiveOrdinals.NaturalExp.natural_exp_impossible,ported,
 NaturalExp,natural_exp_impossible_nn,ConstructiveOrdinals.NaturalExp.natural_exp_impossible_nn,ported,
 NaturalExp,npow_eq_mor,ConstructiveOrdinals.NaturalExp.npow_congr,ported,
