@@ -88,20 +88,24 @@ repository root) and `coqc` on the path. CI
 | `Notation/VWNotation.v` | `Notation/VW.lean` | done |
 | `Notation/ATowerFinNotation.v` | `Notation/ATowerFin.lean` | done |
 | `Notation/ATowerNotation.v` | `Notation/ATower.lean` | done |
+| `Notation/GrimmT3.v` | `Notation/GrimmT3.lean` | done |
 | `Notation/SchutteStack.v` | `Notation/SchutteStack.lean` | done |
 | `Notation/SchutteMatrix.v` | `Notation/SchutteMatrix.lean` | done |
 
-The port is complete. Of the 2,185 Rocq declarations outside `Countable.v`:
-- 2,173 are ported;
-- 11 are merged into an equivalent declaration (mostly the binary-number
-  embeddings, which coincide with `ofNat`);
-- one, `tree_selection_complete`, is dropped because its Rocq proof is
-  aborted.
+The port is complete. Of the 2,332 Rocq declarations outside `Countable.v`:
+- 2,309 are ported;
+- 17 are merged into an equivalent declaration (mostly the binary-number
+  embeddings, which coincide with `ofNat`, and helpers of `GrimmT3.v` that
+  have an equivalent elsewhere);
+- six are dropped: `tree_selection_complete`, because its Rocq proof is
+  aborted, and five helpers of `GrimmT3.v` (two section abbreviations, a
+  boolean comparison and its correctness lemma, used only by the removed
+  computed tests, and a lemma that holds by `rfl`).
 
 `scripts/port_overrides.csv` gives a reason for each merge and drop. No
 declaration depends on any axiom, and the build has no warnings.
 
-`STATEMENT_REVIEW.md` sets the statements of 341 headline results beside their
+`STATEMENT_REVIEW.md` sets the statements of 349 headline results beside their
 Rocq originals: every Rocq `Theorem`, plus the reflection, notation and
 order-type theorems. Both sides are printed by the provers themselves. The
 review found no mathematical discrepancies, and its introduction lists the

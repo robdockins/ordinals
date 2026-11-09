@@ -67,7 +67,7 @@ are presentational:
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
 
-341 statements.
+349 statements.
 
 ## Defs
 
@@ -4760,6 +4760,155 @@ ATowerNotation.VF_has_enough_notations
 Lean:
 ```
 ATowerNotation.VForm.has_enough_notations : ExcludedMiddle → ∀ (x : Ordinal), x < LargeAckermannOrdinal → ∃ v, sz v ≈ x
+```
+
+## Notation.GrimmT3
+
+### `T3lt_total`
+
+Rocq:
+```
+GrimmT3.T3lt_total
+     : forall x y : GrimmT3.T3, GrimmT3.T3trich x y
+```
+Lean:
+```
+GrimmT3.lt_total : ∀ (x y : GrimmT3.T3), GrimmT3.Trich x y
+```
+
+### `vf_psi_normal`
+
+Rocq:
+```
+GrimmT3.vf_psi_normal
+     : forall A B C : ATowerNotation.VForm,
+       ATowerNotation.VF_isNormal A ->
+       ATowerNotation.VF_isNormal B ->
+       ATowerNotation.VF_isNormal C -> ATowerNotation.VF_isNormal (GrimmT3.vf_psi A B C)
+```
+Lean:
+```
+GrimmT3.vfPsi_normal : ∀ (A B C : ATowerNotation.VForm),
+  A.IsNormal → B.IsNormal → C.IsNormal → (GrimmT3.vfPsi A B C).IsNormal
+```
+
+### `bracket_sound`
+
+Rocq:
+```
+GrimmT3.bracket_sound
+     : forall a b c a' b' c' : GrimmT3.T3,
+       let x := GrimmT3.T3psi a b c in
+       let y := GrimmT3.T3psi a' b' c' in
+       GrimmT3.T3nf x = true ->
+       GrimmT3.T3nf y = true ->
+       ATowerNotation.VF_isNormal (GrimmT3.T3_to_VF a) ->
+       ATowerNotation.VF_isNormal (GrimmT3.T3_to_VF b) ->
+       ATowerNotation.VF_isNormal (GrimmT3.T3_to_VF c) ->
+       ATowerNotation.VF_isNormal (GrimmT3.T3_to_VF a') ->
+       ATowerNotation.VF_isNormal (GrimmT3.T3_to_VF b') ->
+       ATowerNotation.VF_isNormal (GrimmT3.T3_to_VF c') ->
+       (forall u v : GrimmT3.T3,
+        GrimmT3.T3size u + GrimmT3.T3size v < GrimmT3.T3size x + GrimmT3.T3size y ->
+        GrimmT3.T3nf u = true ->
+        GrimmT3.T3nf v = true ->
+        GrimmT3.T3lt u v = true -> Defs.ord_lt (GrimmT3.T3_denote u) (GrimmT3.T3_denote v)) ->
+       GrimmT3.lt_psi_rec GrimmT3.T3lt a b c a' b' c' = true ->
+       Defs.ord_lt (GrimmT3.T3_denote x) (GrimmT3.T3_denote y)
+```
+Lean:
+```
+GrimmT3.bracket_sound : ∀ (a b c a' b' c' : GrimmT3.T3),
+  GrimmT3.nf (a.psi b c) = true →
+    GrimmT3.nf (a'.psi b' c') = true →
+      a.toVF.IsNormal →
+        b.toVF.IsNormal →
+          c.toVF.IsNormal →
+            a'.toVF.IsNormal →
+              b'.toVF.IsNormal →
+                c'.toVF.IsNormal →
+                  (∀ (u v : GrimmT3.T3),
+                      u.size + v.size < (a.psi b c).size + (a'.psi b' c').size →
+                        GrimmT3.nf u = true → GrimmT3.nf v = true → GrimmT3.lt u v = true → u.denote < v.denote) →
+                    GrimmT3.ltPsiRec GrimmT3.lt a b c a' b' c' = true → (a.psi b c).denote < (a'.psi b' c').denote
+```
+
+### `GrimmT3_main`
+
+Rocq:
+```
+GrimmT3.GrimmT3_main
+     : forall m : nat,
+       (forall t : GrimmT3.T3,
+        GrimmT3.T3size t <= m ->
+        GrimmT3.T3nf t = true -> ATowerNotation.VF_isNormal (GrimmT3.T3_to_VF t)) /\
+       (forall u v : GrimmT3.T3,
+        GrimmT3.T3size u + GrimmT3.T3size v <= m ->
+        GrimmT3.T3nf u = true ->
+        GrimmT3.T3nf v = true ->
+        GrimmT3.T3lt u v = true -> Defs.ord_lt (GrimmT3.T3_denote u) (GrimmT3.T3_denote v))
+```
+Lean:
+```
+GrimmT3.GrimmT3_main : ∀ (m : Nat),
+  (∀ (t : GrimmT3.T3), t.size ≤ m → GrimmT3.nf t = true → t.toVF.IsNormal) ∧
+    ∀ (u v : GrimmT3.T3),
+      u.size + v.size ≤ m → GrimmT3.nf u = true → GrimmT3.nf v = true → GrimmT3.lt u v = true → u.denote < v.denote
+```
+
+### `T3_to_VF_normal`
+
+Rocq:
+```
+GrimmT3.T3_to_VF_normal
+     : forall t : GrimmT3.T3,
+       GrimmT3.T3nf t = true -> ATowerNotation.VF_isNormal (GrimmT3.T3_to_VF t)
+```
+Lean:
+```
+GrimmT3.T3_to_VF_normal : ∀ (t : GrimmT3.T3), GrimmT3.nf t = true → t.toVF.IsNormal
+```
+
+### `T3lt_correct`
+
+Rocq:
+```
+GrimmT3.T3lt_correct
+     : forall t u : GrimmT3.T3,
+       GrimmT3.T3nf t = true ->
+       GrimmT3.T3nf u = true ->
+       GrimmT3.T3lt t u = true <-> Defs.ord_lt (GrimmT3.T3_denote t) (GrimmT3.T3_denote u)
+```
+Lean:
+```
+GrimmT3.T3lt_correct : ∀ (t u : GrimmT3.T3),
+  GrimmT3.nf t = true → GrimmT3.nf u = true → (GrimmT3.lt t u = true ↔ t.denote < u.denote)
+```
+
+### `T3_denote_inj`
+
+Rocq:
+```
+GrimmT3.T3_denote_inj
+     : forall t u : GrimmT3.T3,
+       GrimmT3.T3nf t = true ->
+       GrimmT3.T3nf u = true -> Defs.ord_eq (GrimmT3.T3_denote t) (GrimmT3.T3_denote u) -> t = u
+```
+Lean:
+```
+GrimmT3.T3_denote_inj : ∀ (t u : GrimmT3.T3), GrimmT3.nf t = true → GrimmT3.nf u = true → t.denote ≈ u.denote → t = u
+```
+
+### `T3_LAO`
+
+Rocq:
+```
+GrimmT3.T3_LAO
+     : Defs.ord_eq GrimmT3.T3ord AckermannTower.LargeAckermannOrdinal
+```
+Lean:
+```
+GrimmT3.T3_LAO : GrimmT3.T3ord ≈ LargeAckermannOrdinal
 ```
 
 ## Notation.SchutteStack

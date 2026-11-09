@@ -32,5 +32,6 @@ import ConstructiveOrdinals.Notation.V
 import ConstructiveOrdinals.Notation.VW
 import ConstructiveOrdinals.Notation.ATowerFin
 import ConstructiveOrdinals.Notation.ATower
+import ConstructiveOrdinals.Notation.GrimmT3
 import ConstructiveOrdinals.Notation.SchutteStack
 import ConstructiveOrdinals.Notation.SchutteMatrix

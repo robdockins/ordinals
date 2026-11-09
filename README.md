@@ -128,6 +128,7 @@ notation is itself denoted by some notation.
 | `VWNotation.v` | Γ₀ | Two-level `V`/`W` terms reflecting `veblen ε` (`VF ≈ Γ 0`). |
 | `ATowerFinNotation.v` | Small Ackermann ordinal | Finite Ackermann towers (`VF ≈ SmallAckermannOrdinal`). |
 | `ATowerNotation.v` | Large Ackermann ordinal | Transfinite Ackermann towers (`VF ≈ LargeAckermannOrdinal`). |
+| `GrimmT3.v` | Large Ackermann ordinal | Grimm's syntactic presentation of Ackermann's 1951 system (from GAIA), translated into `ATowerNotation`. On normal forms Grimm's comparison agrees with the semantic order, and the normal forms have order type `LargeAckermannOrdinal` (`T3_LAO`). |
 | `SchutteStack.v` | Small Veblen ordinal | Finitary Schütte stacks (`VF ≈ SmallVeblenOrdinal`). |
 | `SchutteMatrix.v` | Large Veblen ordinal | Transfinite Schütte matrices (`VF ≈ LargeVeblenOrdinal`). |
 
@@ -144,9 +145,9 @@ notation is itself denoted by some notation.
 `lean/` contains a complete port of the development (except `Countable.v`) to
 Lean 4, using only Lean core and no axioms: no declaration depends on
 `propext`, `Quot.sound` or `Classical.choice`, and the excluded middle
-appears only as an explicit hypothesis, as in Rocq. All 2,185 Rocq
+appears only as an explicit hypothesis, as in Rocq. All 2,332 Rocq
 declarations outside `Countable.v` are accounted for, and a generated
-statement review sets 341 headline statements beside their Rocq originals.
+statement review sets 349 headline statements beside their Rocq originals.
 See `lean/README.md` for how to build and check it, and for the differences
 from Rocq.
 
