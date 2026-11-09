@@ -67,7 +67,7 @@ are presentational:
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
 
-349 statements.
+351 statements.
 
 ## Defs
 
@@ -1310,6 +1310,34 @@ NaturalProduct.distrib_lower_complete_WEM : (∀ (a b c : Ordinal),
     a.Complete →
       b.Complete → c.Complete → NaturalProduct.nmul a b ♯ NaturalProduct.nmul a c ≤ NaturalProduct.nmul a (b ♯ c)) →
   WeakExcludedMiddle
+```
+
+## NaturalExp
+
+### `natural_exp_impossible`
+
+Rocq:
+```
+NaturalExp.natural_exp_impossible
+     : ClassicalFacts.excluded_middle ->
+       ~ (exists e : Defs.Ord -> Defs.Ord -> Defs.Ord, NaturalExp.natural_exp_laws e)
+```
+Lean:
+```
+NaturalExp.natural_exp_impossible : ExcludedMiddle → ¬∃ e, NaturalExp.NaturalExpLaws e
+```
+
+### `natural_exp_impossible_nn`
+
+Rocq:
+```
+NaturalExp.natural_exp_impossible_nn
+     : ~ ~ ClassicalFacts.excluded_middle ->
+       ~ (exists e : Defs.Ord -> Defs.Ord -> Defs.Ord, NaturalExp.natural_exp_laws e)
+```
+Lean:
+```
+NaturalExp.natural_exp_impossible_nn : ¬¬ExcludedMiddle → ¬∃ e, NaturalExp.NaturalExpLaws e
 ```
 
 ## Classical

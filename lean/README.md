@@ -74,6 +74,7 @@ repository root) and `coqc` on the path. CI
 | `VeblenClassical.v` | `Veblen/Classical.lean` | done |
 | `NaturalArith.v` | `NaturalArith.lean` | done |
 | `NaturalProduct.v` | `NaturalProduct.lean` | done |
+| `NaturalExp.v` | `NaturalExp.lean` | done |
 | `WellFounded.v` | `WellFounded.lean` | done |
 | `Examples.v` | `Examples.lean` | done |
 | `GoodsteinSequences.v` | `GoodsteinSequences.lean` | done |
@@ -92,20 +93,21 @@ repository root) and `coqc` on the path. CI
 | `Notation/SchutteStack.v` | `Notation/SchutteStack.lean` | done |
 | `Notation/SchutteMatrix.v` | `Notation/SchutteMatrix.lean` | done |
 
-The port is complete. Of the 2,332 Rocq declarations outside `Countable.v`:
-- 2,309 are ported;
+The port is complete. Of the 2,384 Rocq declarations outside `Countable.v`:
+- 2,355 are ported;
 - 17 are merged into an equivalent declaration (mostly the binary-number
   embeddings, which coincide with `ofNat`, and helpers of `GrimmT3.v` that
   have an equivalent elsewhere);
-- six are dropped: `tree_selection_complete`, because its Rocq proof is
-  aborted, and five helpers of `GrimmT3.v` (two section abbreviations, a
+- 12 are dropped: `tree_selection_complete`, because its Rocq proof is
+  aborted; five helpers of `GrimmT3.v` (two section abbreviations, a
   boolean comparison and its correctness lemma, used only by the removed
-  computed tests, and a lemma that holds by `rfl`).
+  computed tests, and a lemma that holds by `rfl`); and six section `Let`s
+  of `NaturalExp.v` that only name hypotheses.
 
 `scripts/port_overrides.csv` gives a reason for each merge and drop. No
 declaration depends on any axiom, and the build has no warnings.
 
-`STATEMENT_REVIEW.md` sets the statements of 349 headline results beside their
+`STATEMENT_REVIEW.md` sets the statements of 351 headline results beside their
 Rocq originals: every Rocq `Theorem`, plus the reflection, notation and
 order-type theorems. Both sides are printed by the provers themselves. The
 review found no mathematical discrepancies, and its introduction lists the

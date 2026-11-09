@@ -53,6 +53,10 @@ Open Scope ord_scope.
   Altman's proof uses (6) only to make [D(n)] finite; working with the
   leading coefficient of the ordinal [D(n)] avoids it.
 
+  Since the conclusion is a negation, double-negated excluded middle
+  suffices ([natural_exp_impossible_nn]); see the remark there on why no
+  reverse result to weak excluded middle is possible.
+
   The natural product here is [NaturalProduct.nmulOrd] (not the
   [⊗] of [NaturalArith.v]).  All operations are compared up to [≈]. *)
 
@@ -543,3 +547,20 @@ Proof.
 Qed.
 
 End classical.
+
+(** ** Without excluded middle
+
+  The conclusion is a negation, so excluded middle can be weakened to
+  its double negation.  [~~excluded_middle] is not provable, but it holds
+  in every finite Kripke model, since the maximal worlds are classical.
+  So the theorem cannot imply weak excluded middle, or any other
+  principle that some finite Kripke model refutes: in the model with a
+  root and two incomparable leaves, one forcing [P] and one forcing
+  [~P], [~~excluded_middle] holds at the root but [~P \/ ~~P] fails
+  there.  Whether the theorem holds outright is open; a countermodel
+  would have to refute [~~excluded_middle], so it would be infinitary. *)
+Theorem natural_exp_impossible_nn :
+  ~~excluded_middle -> ~ exists e, natural_exp_laws e.
+Proof.
+  intros HEM He. apply HEM. intro EM. exact (natural_exp_impossible EM He).
+Qed.

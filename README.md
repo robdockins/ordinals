@@ -146,9 +146,9 @@ notation is itself denoted by some notation.
 `lean/` contains a complete port of the development (except `Countable.v`) to
 Lean 4, using only Lean core and no axioms: no declaration depends on
 `propext`, `Quot.sound` or `Classical.choice`, and the excluded middle
-appears only as an explicit hypothesis, as in Rocq. All 2,332 Rocq
+appears only as an explicit hypothesis, as in Rocq. All 2,384 Rocq
 declarations outside `Countable.v` are accounted for, and a generated
-statement review sets 349 headline statements beside their Rocq originals.
+statement review sets 351 headline statements beside their Rocq originals.
 See `lean/README.md` for how to build and check it, and for the differences
 from Rocq.
 

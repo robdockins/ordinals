@@ -23,3 +23,9 @@ Notation.GrimmT3,top_cond,ConstructiveOrdinals.ATowerNotation.VForm.NormalTail,m
 Notation.GrimmT3,VF_isNormal_V,ConstructiveOrdinals.ATowerNotation.VForm.IsNormal,merged,holds by definition of IsNormal with NormalTail
 Notation.GrimmT3,VF_compare_V_Z,,dropped,holds by rfl; used inline
 Notation.GrimmT3,VF_onePlus_nonzero,ConstructiveOrdinals.GrimmT3.onePlus_V,merged,weakening of VF_onePlus_V; unused in Rocq
+NaturalExp,cpl,,dropped,section Let (completeness under EM); the Lean proofs call ord_complete em directly
+NaturalExp,H1,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.1 directly
+NaturalExp,H2,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.1 directly
+NaturalExp,H3,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.1 directly
+NaturalExp,H4,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.2.1 directly
+NaturalExp,H5,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.2.2 directly

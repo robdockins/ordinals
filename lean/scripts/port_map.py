@@ -42,6 +42,7 @@ MODULES = {
     "Cantor": "Cantor.lean",
     "NaturalArith": "NaturalArith.lean",
     "NaturalProduct": "NaturalProduct.lean",
+    "NaturalExp": "NaturalExp.lean",
     "Classical": "Classical.lean",
     "Reflection": "Reflection.lean",
     "WellFounded": "WellFounded.lean",

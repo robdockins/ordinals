@@ -18,6 +18,7 @@ import ConstructiveOrdinals.Veblen.Facts
 import ConstructiveOrdinals.Veblen.Classical
 import ConstructiveOrdinals.NaturalArith
 import ConstructiveOrdinals.NaturalProduct
+import ConstructiveOrdinals.NaturalExp
 import ConstructiveOrdinals.WellFounded
 import ConstructiveOrdinals.Examples
 import ConstructiveOrdinals.GoodsteinSequences
