@@ -711,17 +711,29 @@ NaturalExp,npow_nat,ConstructiveOrdinals.NaturalExp.npow_nat,ported,
 NaturalExp,npow_one,ConstructiveOrdinals.NaturalExp.npow_one,ported,
 NaturalExp,natural_exp_laws,ConstructiveOrdinals.NaturalExp.NaturalExpLaws,ported,
 NaturalExp,log23_ratio,ConstructiveOrdinals.NaturalExp.Log23Ratio,ported,
+NaturalExp,natural_exp_laws_on,ConstructiveOrdinals.NaturalExp.NaturalExpLawsOn,ported,
+NaturalExp,exp_domain,ConstructiveOrdinals.NaturalExp.ExpDomain,ported,
+NaturalExp,natural_exp_laws_on_all,ConstructiveOrdinals.NaturalExp.natural_exp_laws_on_all,ported,
+NaturalExp,exp_domain_all,ConstructiveOrdinals.NaturalExp.exp_domain_all,ported,
+NaturalExp,log23_ratio_eq,ConstructiveOrdinals.NaturalExp.log23_ratio_eq,ported,
+NaturalExp,Dnat,,dropped,section Let naming a projection of exp_domain; Lean uses hD.1 directly
+NaturalExp,Domega,,dropped,section Let naming a projection of exp_domain; Lean uses hD.2.1 directly
+NaturalExp,Dnadd,,dropped,section Let naming a projection of exp_domain; Lean uses hD.2.2.1 directly
+NaturalExp,Dnmul,,dropped,section Let naming a projection of exp_domain; Lean uses hD.2.2.2.1 directly
+NaturalExp,De,,dropped,section Let naming a projection of exp_domain; Lean uses hD.2.2.2.2 directly
 NaturalExp,H1,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.1 directly
 NaturalExp,H2,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.1 directly
 NaturalExp,H3,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.1 directly
 NaturalExp,H4,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.2.1 directly
 NaturalExp,H5,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.2.2 directly
+NaturalExp,D_nrep,ConstructiveOrdinals.NaturalExp.D_nrep,ported,
 NaturalExp,e_eq2,ConstructiveOrdinals.NaturalExp.e_eq2,ported,
 NaturalExp,e_eq1,ConstructiveOrdinals.NaturalExp.e_eq1,ported,
 NaturalExp,e_nrep,ConstructiveOrdinals.NaturalExp.e_nrep,ported,
 NaturalExp,e_nat,ConstructiveOrdinals.NaturalExp.e_nat,ported,
 NaturalExp,e_omega_ge,ConstructiveOrdinals.NaturalExp.e_omega_ge,ported,
 NaturalExp,e_pow_omega,ConstructiveOrdinals.NaturalExp.e_pow_omega,ported,
+NaturalExp,laws_log23_ratio_on,ConstructiveOrdinals.NaturalExp.laws_log23_ratio_on,ported,
 NaturalExp,laws_log23_ratio,ConstructiveOrdinals.NaturalExp.laws_log23_ratio,ported,
 NaturalExp,cpl,,dropped,section Let (completeness under EM); the Lean proofs call ord_complete em directly
 NaturalExp,has_deg,ConstructiveOrdinals.NaturalExp.HasDeg,ported,
@@ -2407,3 +2419,27 @@ Notation.SchutteMatrix,VF_reflects_nadd,ConstructiveOrdinals.SchutteMatrixNotati
 Notation.SchutteMatrix,VF_nmul,ConstructiveOrdinals.SchutteMatrixNotation.VForm.nmul,ported,
 Notation.SchutteMatrix,VF_reflects_nmul,ConstructiveOrdinals.SchutteMatrixNotation.VForm.reflects_nmul,ported,
 Notation.SchutteMatrix,VF_has_enough_notations,ConstructiveOrdinals.SchutteMatrixNotation.VForm.has_enough_notations,ported,
+Notation.NaturalExpNotation,V_ge_member,ConstructiveOrdinals.NaturalExpNotation.V_ge_member,ported,
+Notation.NaturalExpNotation,V_le_nrep,ConstructiveOrdinals.NaturalExpNotation.V_le_nrep,ported,
+Notation.NaturalExpNotation,has_deg_V,ConstructiveOrdinals.NaturalExpNotation.has_deg_V,ported,
+Notation.NaturalExpNotation,nrep_below_con,ConstructiveOrdinals.NaturalExpNotation.nrep_below_con,ported,
+Notation.NaturalExpNotation,nrep_lt_closed_con,ConstructiveOrdinals.NaturalExpNotation.nrep_lt_closed_con,ported,
+Notation.NaturalExpNotation,lead_nrep_con,ConstructiveOrdinals.NaturalExpNotation.lead_nrep_con,ported,
+Notation.NaturalExpNotation,Q_f,ConstructiveOrdinals.NaturalExpNotation.Q_f,ported,
+Notation.NaturalExpNotation,Qn_nmul,ConstructiveOrdinals.NaturalExpNotation.Qn_nmul,ported,
+Notation.NaturalExpNotation,Qn_nat,ConstructiveOrdinals.NaturalExpNotation.Qn_nat,ported,
+Notation.NaturalExpNotation,Qn_omega,ConstructiveOrdinals.NaturalExpNotation.Qn_omega,ported,
+Notation.NaturalExpNotation,Qn_nrep,ConstructiveOrdinals.NaturalExpNotation.Qn_nrep,ported,
+Notation.NaturalExpNotation,has_deg_le_Q,ConstructiveOrdinals.NaturalExpNotation.has_deg_le_Q,ported,
+Notation.NaturalExpNotation,dec_head,ConstructiveOrdinals.NaturalExpNotation.dec_head,ported,
+Notation.NaturalExpNotation,pos_of_deg,ConstructiveOrdinals.NaturalExpNotation.pos_of_deg,ported,
+Notation.NaturalExpNotation,has_deg_mul_Q,ConstructiveOrdinals.NaturalExpNotation.has_deg_mul_Q,ported,
+Notation.NaturalExpNotation,npow_deg_Q,ConstructiveOrdinals.NaturalExpNotation.npow_deg_Q,ported,
+Notation.NaturalExpNotation,take_eq,ConstructiveOrdinals.NaturalExpNotation.split_leading,merged,the splitting function and its specification become one existential lemma (avoids equation lemmas)
+Notation.NaturalExpNotation,take_eq_spec,ConstructiveOrdinals.NaturalExpNotation.split_leading,merged,the splitting function and its specification become one existential lemma (avoids equation lemmas)
+Notation.NaturalExpNotation,ordered_app_r,ConstructiveOrdinals.NaturalExpNotation.ordered_app_r,ported,
+Notation.NaturalExpNotation,lead_exists_Q,ConstructiveOrdinals.NaturalExpNotation.lead_exists_Q,ported,
+Notation.NaturalExpNotation,no_log23_ratio_notation,ConstructiveOrdinals.NaturalExpNotation.no_log23_ratio_notation,ported,
+Notation.NaturalExpNotation,exp_domain_notation,ConstructiveOrdinals.NaturalExpNotation.exp_domain_notation,ported,
+Notation.NaturalExpNotation,natural_exp_impossible_notation,ConstructiveOrdinals.NaturalExpNotation.natural_exp_impossible_notation,ported,
+Notation.NaturalExpNotation,natural_exp_impossible_schutte_matrix,ConstructiveOrdinals.NaturalExpNotation.natural_exp_impossible_schutte_matrix,ported,

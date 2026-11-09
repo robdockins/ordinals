@@ -67,6 +67,7 @@ MODULES = {
     "Notation.GrimmT3": "Notation/GrimmT3.lean",
     "Notation.SchutteStack": "Notation/SchutteStack.lean",
     "Notation.SchutteMatrix": "Notation/SchutteMatrix.lean",
+    "Notation.NaturalExpNotation": "Notation/NaturalExpNotation.lean",
 }
 
 STATUSES = {"ported", "merged", "dropped"}

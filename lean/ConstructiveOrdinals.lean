@@ -36,3 +36,4 @@ import ConstructiveOrdinals.Notation.ATower
 import ConstructiveOrdinals.Notation.GrimmT3
 import ConstructiveOrdinals.Notation.SchutteStack
 import ConstructiveOrdinals.Notation.SchutteMatrix
+import ConstructiveOrdinals.Notation.NaturalExpNotation

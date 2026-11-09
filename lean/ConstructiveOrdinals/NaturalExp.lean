@@ -331,72 +331,133 @@ private theorem lt_pow_succ (n : Nat) (hn : 2 ≤ n) : ∀ k, k < n ^ (k + 1)
     exact Nat.lt_of_lt_of_le (Nat.add_lt_add_right ih 1)
       (Nat.add_le_add_left (Nat.lt_of_le_of_lt (Nat.zero_le k) ih) _)
 
-section laws
+/-- The laws restricted to a class `D` of ordinals, e.g. the ordinals denoted by
+a notation system. Rocq: `NaturalExp.natural_exp_laws_on`. -/
+def NaturalExpLawsOn (D : Ordinal.{u} → Prop) (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}) :
+    Prop :=
+  (∀ a, D a → e a 1 ≈ a) ∧
+  (∀ a b b', D a → D b → D b' → 1 < a → b ≤ b' → e a b ≤ e a b') ∧
+  (∀ a a' b, D a → D a' → D b → 0 < b → a ≤ a' → e a b ≤ e a' b) ∧
+  (∀ a b c, D a → D b → D c → e a (b ♯ c) ≈ nmul (e a b) (e a c)) ∧
+  (∀ a b c, D a → D b → D c → e a (nmul b c) ≈ e (e a b) c)
 
-variable (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}) (he : NaturalExpLaws e)
+/-- The closure properties of `D` that the reduction uses: `D` contains the
+natural numbers and `ω`, is closed under the natural operations, and `e` maps
+`D` to itself. Rocq: `NaturalExp.exp_domain`. -/
+def ExpDomain (D : Ordinal.{u} → Prop) (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}) : Prop :=
+  (∀ n, D (ofNat n)) ∧ D ω ∧
+  (∀ x y, D x → D y → D (x ♯ y)) ∧
+  (∀ x y, D x → D y → D (nmul x y)) ∧
+  (∀ a b, D a → D b → D (e a b))
 
-include he
+/-- Rocq: `NaturalExp.natural_exp_laws_on_all`. -/
+theorem natural_exp_laws_on_all (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u})
+    (he : NaturalExpLaws e) : NaturalExpLawsOn (fun _ => True) e :=
+  ⟨fun a _ => he.1 a, fun a b b' _ _ _ => he.2.1 a b b', fun a a' b _ _ _ => he.2.2.1 a a' b,
+    fun a b c _ _ _ => he.2.2.2.1 a b c, fun a b c _ _ _ => he.2.2.2.2 a b c⟩
+
+/-- Rocq: `NaturalExp.exp_domain_all`. -/
+theorem exp_domain_all (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}) :
+    ExpDomain (fun _ => True) e :=
+  ⟨fun _ => trivial, trivial, fun _ _ _ _ => trivial, fun _ _ _ _ => trivial,
+    fun _ _ _ _ => trivial⟩
+
+/-- Rocq: `NaturalExp.log23_ratio_eq`. -/
+theorem log23_ratio_eq (X X' Y Y' : Ordinal.{u}) (hX : X ≈ X') (hY : Y ≈ Y')
+    (h : Log23Ratio X Y) : Log23Ratio X' Y' :=
+  ⟨le_trans h.1 hX.le,
+    fun a k hk => le_trans (npow_congr _ hX).ge (le_trans (h.2.1 a k hk) (npow_congr _ hY).le),
+    fun a k hk => le_trans (npow_congr _ hY).ge (le_trans (h.2.2 a k hk) (npow_congr _ hX).le)⟩
+
+/-- Rocq: `NaturalExp.D_nrep`. -/
+theorem D_nrep (D : Ordinal.{u} → Prop) (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u})
+    (hD : ExpDomain D e) (k : Nat) (x : Ordinal.{u}) (hx : D x) : D (nrep k x) := by
+  induction k with
+  | zero => exact hD.1 0
+  | succ k ih => exact hD.2.2.1 _ _ ih hx
 
 /-- Rocq: `NaturalExp.e_eq2`. -/
-theorem e_eq2 (a b b' : Ordinal.{u}) (ha : 1 < a) (h : b ≈ b') : e a b ≈ e a b' :=
-  equiv_intro (he.2.1 a b b' ha h.le) (he.2.1 a b' b ha h.ge)
+theorem e_eq2 (D : Ordinal.{u} → Prop) (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u})
+    (he : NaturalExpLawsOn D e) (a b b' : Ordinal.{u}) (da : D a) (db : D b) (db' : D b')
+    (ha : 1 < a) (h : b ≈ b') : e a b ≈ e a b' :=
+  equiv_intro (he.2.1 a b b' da db db' ha h.le) (he.2.1 a b' b da db' db ha h.ge)
 
 /-- Rocq: `NaturalExp.e_eq1`. -/
-theorem e_eq1 (a a' b : Ordinal.{u}) (hb : 0 < b) (h : a ≈ a') : e a b ≈ e a' b :=
-  equiv_intro (he.2.2.1 a a' b hb h.le) (he.2.2.1 a' a b hb h.ge)
+theorem e_eq1 (D : Ordinal.{u} → Prop) (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u})
+    (he : NaturalExpLawsOn D e) (a a' b : Ordinal.{u}) (da : D a) (da' : D a') (db : D b)
+    (hb : 0 < b) (h : a ≈ a') : e a b ≈ e a' b :=
+  equiv_intro (he.2.2.1 a a' b da da' db hb h.le) (he.2.2.1 a' a b da' da db hb h.ge)
 
 /-- Rocq: `NaturalExp.e_nrep`. -/
-theorem e_nrep (a : Ordinal.{u}) (k : Nat) (x : Ordinal.{u}) (ha : 1 < a) :
+theorem e_nrep (D : Ordinal.{u} → Prop) (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u})
+    (hD : ExpDomain D e) (he : NaturalExpLawsOn D e) (a : Ordinal.{u}) (k : Nat)
+    (x : Ordinal.{u}) (da : D a) (dx : D x) (ha : 1 < a) :
     e a (nrep (k + 1) x) ≈ npow (k + 1) (e a x) := by
   induction k with
   | zero =>
-    exact equiv_trans (e_eq2 e he a _ x ha (nadd_zero_l x))
+    exact equiv_trans (e_eq2 D e he a _ x da (hD.2.2.1 _ _ (hD.1 0) dx) dx ha (nadd_zero_l x))
       (equiv_symm (equiv_trans (nmul_comm 1 _) (nmul_one _)))
   | succ k ih =>
-    exact equiv_trans (he.2.2.2.1 a _ x) (nmul_congr ih (equiv_refl _))
+    exact equiv_trans (he.2.2.2.1 a _ x da (D_nrep D e hD _ x dx) dx)
+      (nmul_congr ih (equiv_refl _))
 
 /-- Rocq: `NaturalExp.e_nat`. -/
-theorem e_nat (a : Ordinal.{u}) (k : Nat) (ha : 1 < a) :
-    e a (ofNat (k + 1)) ≈ npow (k + 1) a := by
+theorem e_nat (D : Ordinal.{u} → Prop) (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u})
+    (hD : ExpDomain D e) (he : NaturalExpLawsOn D e) (a : Ordinal.{u}) (k : Nat) (da : D a)
+    (ha : 1 < a) : e a (ofNat (k + 1)) ≈ npow (k + 1) a := by
   have hk : ofNat.{u} (k + 1) ≈ nrep (k + 1) 1 := by
     have h := nrep_nat.{u} (k + 1) 1
     rw [Nat.mul_one] at h
     exact equiv_symm h
-  exact equiv_trans (e_eq2 e he a _ _ ha hk)
-    (equiv_trans (e_nrep e he a k 1 ha) (npow_congr _ (he.1 a)))
+  exact equiv_trans (e_eq2 D e he a _ _ da (hD.1 _) (D_nrep D e hD _ _ (hD.1 1)) ha hk)
+    (equiv_trans (e_nrep D e hD he a k 1 da (hD.1 1) ha) (npow_congr _ (he.1 a da)))
 
 /-- Rocq: `NaturalExp.e_omega_ge`. -/
-theorem e_omega_ge (n : Nat) (hn : 1 < ofNat.{u} n) : ω ≤ e (ofNat n) ω :=
+theorem e_omega_ge (D : Ordinal.{u} → Prop) (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u})
+    (hD : ExpDomain D e) (he : NaturalExpLawsOn D e) (n : Nat) (hn : 1 < ofNat.{u} n) :
+    ω ≤ e (ofNat n) ω :=
   le_intro fun ⟨k⟩ => by
     have h1 : e (ofNat n) (ofNat (k + 1)) ≈ ofNat (n ^ (k + 1)) :=
-      equiv_trans (e_nat e he _ k hn) (npow_nat n (k + 1))
+      equiv_trans (e_nat D e hD he _ k (hD.1 n) hn) (npow_nat n (k + 1))
     exact lt_of_lt_of_le
       (lt_of_lt_of_le (ofNat_increasing (lt_pow_succ n (two_le_of_one_lt n hn) k)) h1.ge)
-      (he.2.1 _ _ _ hn (le_of_lt (index_lt ω ⟨k + 1⟩)))
+      (he.2.1 _ _ _ (hD.1 n) (hD.1 _) hD.2.1 hn (le_of_lt (index_lt ω ⟨k + 1⟩)))
 
 /-- Rocq: `NaturalExp.e_pow_omega`. -/
-theorem e_pow_omega (n k : Nat) (hn : 1 < ofNat.{u} n) :
+theorem e_pow_omega (D : Ordinal.{u} → Prop) (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u})
+    (hD : ExpDomain D e) (he : NaturalExpLawsOn D e) (n k : Nat) (hn : 1 < ofNat.{u} n) :
     e (ofNat (n ^ (k + 1))) ω ≈ npow (k + 1) (e (ofNat n) ω) := by
-  have hX : 1 < e (ofNat n) ω := lt_of_lt_of_le omega_gt1 (e_omega_ge e he n hn)
+  have hX : 1 < e (ofNat n) ω := lt_of_lt_of_le omega_gt1 (e_omega_ge D e hD he n hn)
+  have dX : D (e (ofNat n) ω) := hD.2.2.2.2 _ _ (hD.1 n) hD.2.1
   have h1 : e (ofNat n) (ofNat (k + 1)) ≈ ofNat (n ^ (k + 1)) :=
-    equiv_trans (e_nat e he _ k hn) (npow_nat n (k + 1))
-  refine equiv_trans (e_eq1 e he _ _ ω omega_gt0 (equiv_symm h1)) ?_
-  refine equiv_trans (equiv_symm (he.2.2.2.2 _ _ ω)) ?_
-  refine equiv_trans (e_eq2 e he _ _ (nmul ω (ofNat (k + 1))) hn (nmul_comm _ _)) ?_
-  exact equiv_trans (he.2.2.2.2 _ ω _) (e_nat e he _ k hX)
+    equiv_trans (e_nat D e hD he _ k (hD.1 n) hn) (npow_nat n (k + 1))
+  refine equiv_trans (e_eq1 D e he _ _ ω (hD.1 _) (hD.2.2.2.2 _ _ (hD.1 n) (hD.1 _)) hD.2.1
+    omega_gt0 (equiv_symm h1)) ?_
+  refine equiv_trans (equiv_symm (he.2.2.2.2 _ _ ω (hD.1 n) (hD.1 _) hD.2.1)) ?_
+  refine equiv_trans (e_eq2 D e he _ _ (nmul ω (ofNat (k + 1))) (hD.1 n)
+    (hD.2.2.2.1 _ _ (hD.1 _) hD.2.1) (hD.2.2.2.1 _ _ hD.2.1 (hD.1 _)) hn (nmul_comm _ _)) ?_
+  exact equiv_trans (he.2.2.2.2 _ ω _ (hD.1 n) hD.2.1 (hD.1 _)) (e_nat D e hD he _ k dX hX)
+
+/-- Constructively, the laws put `e(2,ω)` and `e(3,ω)` in the ratio `log₂ 3`.
+Rocq: `NaturalExp.laws_log23_ratio_on`. -/
+theorem laws_log23_ratio_on (D : Ordinal.{u} → Prop)
+    (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}) (hD : ExpDomain D e)
+    (he : NaturalExpLawsOn D e) : Log23Ratio (e (ofNat 2) ω) (e (ofNat 3) ω) := by
+  have H12 : (1 : Ordinal.{u}) < ofNat 2 := succ_lt 1
+  have H13 : (1 : Ordinal.{u}) < ofNat 3 := lt_of_lt_of_le H12 (ofNat_monotone (Nat.le_succ 2))
+  refine ⟨e_omega_ge D e hD he 2 H12, fun a k h => ?_, fun a k h => ?_⟩
+  · exact le_trans (e_pow_omega D e hD he 2 a H12).ge
+      (le_trans (he.2.2.1 _ _ _ (hD.1 _) (hD.1 _) hD.2.1 omega_gt0 (ofNat_monotone h))
+        (e_pow_omega D e hD he 3 k H13).le)
+  · exact le_trans (e_pow_omega D e hD he 3 k H13).ge
+      (le_trans (he.2.2.1 _ _ _ (hD.1 _) (hD.1 _) hD.2.1 omega_gt0 (ofNat_monotone h))
+        (e_pow_omega D e hD he 2 a H12).le)
 
 /-- Constructively, the laws put `e(2,ω)` and `e(3,ω)` in the ratio `log₂ 3`.
 Rocq: `NaturalExp.laws_log23_ratio`. -/
-theorem laws_log23_ratio : Log23Ratio (e (ofNat 2) ω) (e (ofNat 3) ω) := by
-  have H12 : (1 : Ordinal.{u}) < ofNat 2 := succ_lt 1
-  have H13 : (1 : Ordinal.{u}) < ofNat 3 := lt_of_lt_of_le H12 (ofNat_monotone (Nat.le_succ 2))
-  refine ⟨e_omega_ge e he 2 H12, fun a k h => ?_, fun a k h => ?_⟩
-  · exact le_trans (e_pow_omega e he 2 a H12).ge
-      (le_trans (he.2.2.1 _ _ _ omega_gt0 (ofNat_monotone h)) (e_pow_omega e he 3 k H13).le)
-  · exact le_trans (e_pow_omega e he 3 k H13).ge
-      (le_trans (he.2.2.1 _ _ _ omega_gt0 (ofNat_monotone h)) (e_pow_omega e he 2 a H12).le)
-
-end laws
+theorem laws_log23_ratio (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}) (he : NaturalExpLaws e) :
+    Log23Ratio (e (ofNat 2) ω) (e (ofNat 3) ω) :=
+  laws_log23_ratio_on _ e (exp_domain_all e) (natural_exp_laws_on_all e he)
 
 /-! ## Leading exponents -/
 

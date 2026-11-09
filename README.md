@@ -132,6 +132,7 @@ notation is itself denoted by some notation.
 | `GrimmT3.v` | Ackermann ordinal | Grimm's syntactic presentation of Ackermann's 1951 system (from GAIA), translated into `ATowerNotation`. On normal forms Grimm's comparison agrees with the semantic order, and the normal forms have order type `AckermannOrdinal` (`T3_AO`). |
 | `SchutteStack.v` | Small Veblen ordinal | Finitary Schütte stacks (`VF ≈ SmallVeblenOrdinal`). |
 | `SchutteMatrix.v` | Large Veblen ordinal | Transfinite Schütte matrices (`VF ≈ LargeVeblenOrdinal`). |
+| `NaturalExpNotation.v` | — | No natural exponentiation on notation systems, constructively: for any notation system with a Cantor decomposition and interpolants (all of the above), no operation on its notations satisfies the laws of a natural exponentiation restricted to them (`natural_exp_impossible_notation`; e.g. `natural_exp_impossible_schutte_matrix`). The `e`-free ratio lemma of `NaturalExp.v` holds constructively for notation-denoted ordinals (`no_log23_ratio_notation`). |
 
 ### Applications and examples
 
@@ -146,9 +147,9 @@ notation is itself denoted by some notation.
 `lean/` contains a complete port of the development (except `Countable.v`) to
 Lean 4, using only Lean core and no axioms: no declaration depends on
 `propext`, `Quot.sound` or `Classical.choice`, and the excluded middle
-appears only as an explicit hypothesis, as in Rocq. All 2,395 Rocq
+appears only as an explicit hypothesis, as in Rocq. All 2,431 Rocq
 declarations outside `Countable.v` are accounted for, and a generated
-statement review sets 353 headline statements beside their Rocq originals.
+statement review sets 356 headline statements beside their Rocq originals.
 See `lean/README.md` for how to build and check it, and for the differences
 from Rocq.
 

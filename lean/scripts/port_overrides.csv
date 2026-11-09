@@ -29,3 +29,10 @@ NaturalExp,H2,,dropped,section Let naming a projection of natural_exp_laws; Lean
 NaturalExp,H3,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.1 directly
 NaturalExp,H4,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.2.1 directly
 NaturalExp,H5,,dropped,section Let naming a projection of natural_exp_laws; Lean uses he.2.2.2.2 directly
+NaturalExp,Dnat,,dropped,section Let naming a projection of exp_domain; Lean uses hD.1 directly
+NaturalExp,Domega,,dropped,section Let naming a projection of exp_domain; Lean uses hD.2.1 directly
+NaturalExp,Dnadd,,dropped,section Let naming a projection of exp_domain; Lean uses hD.2.2.1 directly
+NaturalExp,Dnmul,,dropped,section Let naming a projection of exp_domain; Lean uses hD.2.2.2.1 directly
+NaturalExp,De,,dropped,section Let naming a projection of exp_domain; Lean uses hD.2.2.2.2 directly
+Notation.NaturalExpNotation,take_eq,ConstructiveOrdinals.NaturalExpNotation.split_leading,merged,the splitting function and its specification become one existential lemma (avoids equation lemmas)
+Notation.NaturalExpNotation,take_eq_spec,ConstructiveOrdinals.NaturalExpNotation.split_leading,merged,the splitting function and its specification become one existential lemma (avoids equation lemmas)

@@ -281,40 +281,91 @@ Definition log23_ratio (X Y:Ord) : Prop :=
   (forall a k, (2 ^ S a <= 3 ^ S k)%nat -> npow (S a) X ≤ npow (S k) Y) /\
   (forall a k, (3 ^ S k <= 2 ^ S a)%nat -> npow (S k) Y ≤ npow (S a) X).
 
-Section laws.
-Variable e : Ord -> Ord -> Ord.
-Hypothesis He : natural_exp_laws e.
+(** The laws restricted to a class [D] of ordinals, e.g. the ordinals
+    denoted by a notation system. *)
+Definition natural_exp_laws_on (D:Ord -> Prop) (e : Ord -> Ord -> Ord) : Prop :=
+  (forall a, D a -> e a 1 ≈ a) /\
+  (forall a b b', D a -> D b -> D b' -> 1 < a -> b ≤ b' -> e a b ≤ e a b') /\
+  (forall a a' b, D a -> D a' -> D b -> 0 < b -> a ≤ a' -> e a b ≤ e a' b) /\
+  (forall a b c, D a -> D b -> D c -> e a (b ⊕ c) ≈ nmulOrd (e a b) (e a c)) /\
+  (forall a b c, D a -> D b -> D c -> e a (nmulOrd b c) ≈ e (e a b) c).
 
-Let H1 : forall a, e a 1 ≈ a := proj1 He.
-Let H2 : forall a b b', 1 < a -> b ≤ b' -> e a b ≤ e a b' := proj1 (proj2 He).
-Let H3 : forall a a' b, 0 < b -> a ≤ a' -> e a b ≤ e a' b := proj1 (proj2 (proj2 He)).
-Let H4 : forall a b c, e a (b ⊕ c) ≈ nmulOrd (e a b) (e a c) :=
-  proj1 (proj2 (proj2 (proj2 He))).
-Let H5 : forall a b c, e a (nmulOrd b c) ≈ e (e a b) c :=
-  proj2 (proj2 (proj2 (proj2 He))).
+(** The closure properties of [D] that the reduction uses: [D] contains
+    the natural numbers and [ω], is closed under the natural operations,
+    and [e] maps [D] to itself. *)
+Definition exp_domain (D:Ord -> Prop) (e : Ord -> Ord -> Ord) : Prop :=
+  (forall n, D (natOrdSize n)) /\ D ω /\
+  (forall x y, D x -> D y -> D (x ⊕ y)) /\
+  (forall x y, D x -> D y -> D (nmulOrd x y)) /\
+  (forall a b, D a -> D b -> D (e a b)).
 
-Lemma e_eq2 a b b' : 1 < a -> b ≈ b' -> e a b ≈ e a b'.
-Proof. intros Ha [Hb1 Hb2]. split; apply H2; auto. Qed.
-
-Lemma e_eq1 a a' b : 0 < b -> a ≈ a' -> e a b ≈ e a' b.
-Proof. intros Hb [Ha1 Ha2]. split; apply H3; auto. Qed.
-
-Lemma e_nrep a k x : 1 < a -> e a (nrep (S k) x) ≈ npow (S k) (e a x).
+Lemma natural_exp_laws_on_all e : natural_exp_laws e -> natural_exp_laws_on (fun _ => True) e.
 Proof.
-  intro Ha. induction k.
-  - simpl. rewrite (e_eq2 a _ x Ha (naddOrd_zero_l x)).
-    rewrite nmulOrd_comm. rewrite nmulOrd_one. reflexivity.
-  - change (nrep (S (S k)) x) with (nrep (S k) x ⊕ x).
-    rewrite H4. rewrite IHk. reflexivity.
+  intros [H1 [H2 [H3 [H4 H5]]]].
+  exact (conj (fun a _ => H1 a) (conj (fun a b b' _ _ _ => H2 a b b')
+    (conj (fun a a' b _ _ _ => H3 a a' b) (conj (fun a b c _ _ _ => H4 a b c)
+      (fun a b c _ _ _ => H5 a b c))))).
 Qed.
 
-Lemma e_nat a k : 1 < a -> e a (natOrdSize (S k)) ≈ npow (S k) a.
+Lemma exp_domain_all e : exp_domain (fun _ => True) e.
+Proof. exact (conj (fun _ => I) (conj I (conj (fun _ _ _ _ => I) (conj (fun _ _ _ _ => I) (fun _ _ _ _ => I))))). Qed.
+
+Lemma log23_ratio_eq X X' Y Y' : X ≈ X' -> Y ≈ Y' -> log23_ratio X Y -> log23_ratio X' Y'.
 Proof.
-  intro Ha.
+  intros HX HY [H0 [Hup Hdown]]. split; [|split].
+  - rewrite <- HX. auto.
+  - intros a k H. rewrite <- (npow_eq_mor _ _ _ HX), <- (npow_eq_mor _ _ _ HY). auto.
+  - intros a k H. rewrite <- (npow_eq_mor _ _ _ HX), <- (npow_eq_mor _ _ _ HY). auto.
+Qed.
+
+Section laws.
+Variable D : Ord -> Prop.
+Variable e : Ord -> Ord -> Ord.
+Hypothesis HD : exp_domain D e.
+Hypothesis He : natural_exp_laws_on D e.
+
+Let Dnat : forall n, D (natOrdSize n) := proj1 HD.
+Let Domega : D ω := proj1 (proj2 HD).
+Let Dnadd : forall x y, D x -> D y -> D (x ⊕ y) := proj1 (proj2 (proj2 HD)).
+Let Dnmul : forall x y, D x -> D y -> D (nmulOrd x y) := proj1 (proj2 (proj2 (proj2 HD))).
+Let De : forall a b, D a -> D b -> D (e a b) := proj2 (proj2 (proj2 (proj2 HD))).
+
+Let H1 : forall a, D a -> e a 1 ≈ a := proj1 He.
+Let H2 : forall a b b', D a -> D b -> D b' -> 1 < a -> b ≤ b' -> e a b ≤ e a b' :=
+  proj1 (proj2 He).
+Let H3 : forall a a' b, D a -> D a' -> D b -> 0 < b -> a ≤ a' -> e a b ≤ e a' b :=
+  proj1 (proj2 (proj2 He)).
+Let H4 : forall a b c, D a -> D b -> D c -> e a (b ⊕ c) ≈ nmulOrd (e a b) (e a c) :=
+  proj1 (proj2 (proj2 (proj2 He))).
+Let H5 : forall a b c, D a -> D b -> D c -> e a (nmulOrd b c) ≈ e (e a b) c :=
+  proj2 (proj2 (proj2 (proj2 He))).
+
+Lemma D_nrep k x : D x -> D (nrep k x).
+Proof. intro Hx. induction k; simpl; [exact (Dnat 0) | apply Dnadd; auto]. Qed.
+
+Lemma e_eq2 a b b' : D a -> D b -> D b' -> 1 < a -> b ≈ b' -> e a b ≈ e a b'.
+Proof. intros Da Db Db' Ha [Hb1 Hb2]. split; apply H2; auto. Qed.
+
+Lemma e_eq1 a a' b : D a -> D a' -> D b -> 0 < b -> a ≈ a' -> e a b ≈ e a' b.
+Proof. intros Da Da' Db Hb [Ha1 Ha2]. split; apply H3; auto. Qed.
+
+Lemma e_nrep a k x : D a -> D x -> 1 < a -> e a (nrep (S k) x) ≈ npow (S k) (e a x).
+Proof.
+  intros Da Dx Ha. induction k.
+  - simpl. rewrite (e_eq2 a _ x Da (Dnadd _ _ (Dnat 0) Dx) Dx Ha (naddOrd_zero_l x)).
+    rewrite nmulOrd_comm. rewrite nmulOrd_one. reflexivity.
+  - change (nrep (S (S k)) x) with (nrep (S k) x ⊕ x).
+    rewrite H4; [|auto | apply D_nrep; auto | auto]. rewrite IHk. reflexivity.
+Qed.
+
+Lemma e_nat a k : D a -> 1 < a -> e a (natOrdSize (S k)) ≈ npow (S k) a.
+Proof.
+  intros Da Ha.
   assert (Hk : natOrdSize (S k) ≈ nrep (S k) 1).
   { rewrite (nrep_nat (S k) 1). rewrite Nat.mul_1_r. reflexivity. }
-  rewrite (e_eq2 a _ _ Ha Hk). rewrite e_nrep; auto.
-  rewrite H1. reflexivity.
+  rewrite (e_eq2 a _ _ Da (Dnat _) (D_nrep _ _ (Dnat 1)) Ha Hk).
+  rewrite (e_nrep a k 1 Da (Dnat 1) Ha).
+  rewrite (H1 a Da). reflexivity.
 Qed.
 
 Lemma e_omega_ge n : 1 < natOrdSize n -> ω ≤ e (natOrdSize n) ω.
@@ -338,29 +389,40 @@ Proof.
   intro Hn.
   assert (HX : 1 < e (natOrdSize n) ω).
   { apply ord_lt_le_trans with ω; [apply omega_gt1 | apply e_omega_ge; auto]. }
-  rewrite <- (e_eq1 (e (natOrdSize n) (natOrdSize (S k))) _ ω omega_gt0).
+  rewrite <- (e_eq1 (e (natOrdSize n) (natOrdSize (S k))) _ ω (De _ _ (Dnat _) (Dnat _))
+                (Dnat _) Domega omega_gt0).
   2: { rewrite e_nat; auto. apply npow_nat. }
-  rewrite <- H5.
-  rewrite (e_eq2 _ _ (nmulOrd ω (natOrdSize (S k))) Hn (nmulOrd_comm _ _)).
-  rewrite H5.
+  rewrite <- H5; auto.
+  rewrite (e_eq2 _ _ (nmulOrd ω (natOrdSize (S k))) (Dnat _) (Dnmul _ _ (Dnat _) Domega)
+             (Dnmul _ _ Domega (Dnat _)) Hn (nmulOrd_comm _ _)).
+  rewrite H5; auto.
   apply e_nat; auto.
 Qed.
 
 (** Constructively, the laws put [e(2,ω)] and [e(3,ω)] in the ratio
     [log₂ 3]. *)
-Theorem laws_log23_ratio : log23_ratio (e (natOrdSize 2) ω) (e (natOrdSize 3) ω).
+Theorem laws_log23_ratio_on : log23_ratio (e (natOrdSize 2) ω) (e (natOrdSize 3) ω).
 Proof.
   assert (H12 : 1 < natOrdSize 2) by apply succ_lt.
   assert (H13 : 1 < natOrdSize 3).
   { apply ord_lt_le_trans with (natOrdSize 2); auto. apply natOrdSize_monotone. lia. }
   split; [apply e_omega_ge; auto|]. split; intros a k H.
   - rewrite <- (e_pow_omega 2 a H12), <- (e_pow_omega 3 k H13).
-    apply H3; [apply omega_gt0 | apply natOrdSize_monotone; auto].
+    apply H3; auto; [apply omega_gt0 | apply natOrdSize_monotone; auto].
   - rewrite <- (e_pow_omega 2 a H12), <- (e_pow_omega 3 k H13).
-    apply H3; [apply omega_gt0 | apply natOrdSize_monotone; auto].
+    apply H3; auto; [apply omega_gt0 | apply natOrdSize_monotone; auto].
 Qed.
 
 End laws.
+
+(** Constructively, the laws put [e(2,ω)] and [e(3,ω)] in the ratio
+    [log₂ 3]. *)
+Theorem laws_log23_ratio e :
+  natural_exp_laws e -> log23_ratio (e (natOrdSize 2) ω) (e (natOrdSize 3) ω).
+Proof.
+  intro He.
+  exact (laws_log23_ratio_on _ e (exp_domain_all e) (natural_exp_laws_on_all e He)).
+Qed.
 
 Section classical.
 Variable EM : excluded_middle.

@@ -67,7 +67,7 @@ are presentational:
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
 
-353 statements.
+356 statements.
 
 ## Defs
 
@@ -1313,6 +1313,23 @@ NaturalProduct.distrib_lower_complete_WEM : (∀ (a b c : Ordinal),
 ```
 
 ## NaturalExp
+
+### `laws_log23_ratio_on`
+
+Rocq:
+```
+NaturalExp.laws_log23_ratio_on
+     : forall (D : Defs.Ord -> Prop) (e : Defs.Ord -> Defs.Ord -> Defs.Ord),
+       NaturalExp.exp_domain D e ->
+       NaturalExp.natural_exp_laws_on D e ->
+       NaturalExp.log23_ratio (e (Operators.natOrdSize 2) Operators.ω)
+         (e (Operators.natOrdSize 3) Operators.ω)
+```
+Lean:
+```
+NaturalExp.laws_log23_ratio_on : ∀ (D : Ordinal → Prop) (e : Ordinal → Ordinal → Ordinal),
+  NaturalExp.ExpDomain D e → NaturalExp.NaturalExpLawsOn D e → NaturalExp.Log23Ratio (e (ofNat 2) ω) (e (ofNat 3) ω)
+```
 
 ### `laws_log23_ratio`
 
@@ -5772,4 +5789,47 @@ SchutteMatrixNotation.VForm.has_enough_notations : ExcludedMiddle →
   ∀ (x : Ordinal),
     x < LargeVeblenOrdinal →
       ∃ a, (a.IsNormal ∧ a.denote ≈ x) ∧ ∀ (a' : SchutteMatrixNotation.VForm), a'.IsNormal ∧ a'.denote ≈ x → a' = a
+```
+
+## Notation.NaturalExpNotation
+
+### `no_log23_ratio_notation`
+
+Rocq:
+```
+NaturalExpNotation.no_log23_ratio_notation
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop),
+       CantorDecomposition.has_cantor_decomposition f P ->
+       Interpolants.has_all_interpolants f P ->
+       forall x y : A, P x -> P y -> ~ NaturalExp.log23_ratio (f x) (f y)
+```
+Lean:
+```
+@NaturalExpNotation.no_log23_ratio_notation : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P),
+  Interpolants.HasAllInterpolants f P → ∀ (x y : A), P x → P y → ¬NaturalExp.Log23Ratio (f x) (f y)
+```
+
+### `natural_exp_impossible_notation`
+
+Rocq:
+```
+NaturalExpNotation.natural_exp_impossible_notation
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop),
+       CantorDecomposition.has_cantor_decomposition f P ->
+       Interpolants.has_all_interpolants f P ->
+       ~
+       (exists e : Defs.Ord -> Defs.Ord -> Defs.Ord,
+          (forall a b : Defs.Ord,
+           CantorProduct.Qn A f P a -> CantorProduct.Qn A f P b -> CantorProduct.Qn A f P (e a b)) /\
+          NaturalExp.natural_exp_laws_on (CantorProduct.Qn A f P) e)
+```
+Lean:
+```
+@NaturalExpNotation.natural_exp_impossible_notation : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P),
+  Interpolants.HasAllInterpolants f P →
+    ¬∃ e,
+        (∀ (a b : Ordinal), CantorProduct.Qn f P a → CantorProduct.Qn f P b → CantorProduct.Qn f P (e a b)) ∧
+          NaturalExp.NaturalExpLawsOn (CantorProduct.Qn f P) e
 ```
