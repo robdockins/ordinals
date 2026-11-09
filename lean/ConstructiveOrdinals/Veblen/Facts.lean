@@ -60,8 +60,11 @@ private theorem mul_ofNat_add_le (b : Ordinal.{u}) (n : Nat) : b * ofNat n + b �
     _ ≤ b * 1 + b * ofNat n := (mul_add b 1 _).le
     _ ≤ b + b * ofNat n := add_le_add (mul_one b).le (le_refl _)
 
-/-- The Veblen hierarchy over `1 + x` is `ω ^ a + x`.
-Rocq: `VeblenFacts.veblen_onePlus`. -/
+/-- The Veblen hierarchy over `1 + x` is `ω ^ a + x`. This is the case `γ = 1`
+of Veblen's own Theorem 6, Corollary 2 ("Continuous increasing functions of
+finite and transfinite ordinals", Trans. AMS 9, 1908, p. 285): if
+`f(x) = γ + x` then `f(x, α) = γ·ω^α + (x - 1)`, where Veblen counts arguments
+from 1. Rocq: `VeblenFacts.veblen_onePlus`. -/
 theorem veblen_onePlus : ∀ a : Ordinal.{u}, Complete a → ∀ x : Ordinal.{u}, Complete x →
     veblen (fun y => 1 + y) a x ≈ ω ^ a + x
   | mk A g, ha, x, hx => by

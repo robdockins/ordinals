@@ -88,6 +88,11 @@ Proof.
   rewrite <- (finite_veblen f x y n); auto with ord.
 Qed.
 
+(** The Veblen hierarchy over [1 + x] is [ω^a + x].  This is the case
+    [γ = 1] of Veblen's own Theorem 6, Corollary 2 ("Continuous increasing
+    functions of finite and transfinite ordinals", Trans. AMS 9, 1908,
+    p. 285): if [f(x) = γ + x] then [f(x, α) = γ·ω^α + (x - 1)], where
+    Veblen counts arguments from 1. *)
 Theorem veblen_onePlus :
   forall a x, complete a -> complete x -> veblen (addOrd 1) a x ≈ expOrd ω a + x.
 Proof.
