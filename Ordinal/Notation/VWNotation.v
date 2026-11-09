@@ -67,7 +67,7 @@ Proof.
   - left. apply eq_refl.
   - right. simpl. apply veblen_nonzero; auto.
   - right. simpl. apply veblen_nonzero; auto with ord.
-Qed.
+Defined.
 
 Lemma V_collapse :
   forall a b x,

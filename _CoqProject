@@ -32,5 +32,6 @@ Ordinal/Notation/VNotation.v
 Ordinal/Notation/VWNotation.v
 Ordinal/Notation/ATowerFinNotation.v
 Ordinal/Notation/ATowerNotation.v
+Ordinal/Notation/GrimmT3.v
 Ordinal/Notation/SchutteStack.v
 Ordinal/Notation/SchutteMatrix.v

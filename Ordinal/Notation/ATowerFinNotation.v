@@ -78,7 +78,7 @@ Definition VF_isZero x : { x = Z } + { 0 < VF_denote x }.
 Proof.
   destruct x; auto.
   right. simpl. apply veblen_nonzero; auto.
-Qed.
+Defined.
 
 Theorem V_collapse :
   forall n a b x,
