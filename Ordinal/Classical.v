@@ -53,6 +53,14 @@ Section classic.
     destruct (order_total y x); auto.
   Qed.
 
+  Theorem order_splits (x y:Ord) : x ≤ y <-> (x < y \/ x ≈ y).
+  Proof.
+    intuition auto with ord.
+    destruct (order_total y x); auto.
+    right; split; auto.
+    apply H0.
+  Qed.
+
   Lemma max_or_ascending A (f:A -> Ord) :
     hasMaxElement A f \/ ascendingSet A f.
   Proof.
@@ -237,6 +245,60 @@ Lemma order_total_EM :
 Proof.
   intro; apply zero_dec_EM.
   intros; auto.
+Qed.
+
+Theorem order_splits_EM:
+  (forall (x y:Ord), x ≤ y <-> (x < y \/ x ≈ y)) ->
+  excluded_middle.
+Proof.
+  intros H P.
+  assert (HP: truth_ord P <= 1).
+  { apply limit_least; intro Hp; auto with ord. }
+  rewrite H in HP.
+  destruct HP as [HP|HP].
+  - right. intro Hp.
+    rewrite ord_lt_unfold in HP. destruct HP as [[] HP]. simpl in *.
+    rewrite ord_le_unfold in HP.
+    specialize (HP Hp).
+    rewrite ord_lt_unfold in HP. destruct HP as [[] HP].
+  - destruct HP as [_ HP].
+    rewrite ord_le_unfold in HP.
+    specialize (HP tt). simpl in HP.
+    rewrite ord_lt_unfold in HP. destruct HP as [HP _]. simpl in *.
+    auto.
+Qed.
+
+(** Completeness is intensional: it is not invariant under ≈.  The
+    ordinal with children n ⊔ [P] is equivalent to ω, which is complete,
+    but completeness of its child 0 ⊔ [P] decides P. *)
+Theorem complete_intensional_EM :
+  (forall x y, x ≈ y -> complete x -> complete y) ->
+  excluded_middle.
+Proof.
+  intros H P.
+  set (y := ord nat (fun n => natOrdSize n ⊔ truth_ord P)).
+  assert (Hy : ω ≈ y).
+  { split.
+    - rewrite ord_le_unfold. intro n. simpl.
+      rewrite ord_lt_unfold. exists n. simpl. apply lub_le1.
+    - rewrite ord_le_unfold. intro n. simpl.
+      rewrite ord_lt_unfold. exists (S n). simpl.
+      apply lub_least.
+      + apply ord_lt_le. apply succ_lt.
+      + rewrite ord_le_unfold. intro p. simpl.
+        apply ord_le_lt_trans with (natOrdSize n); [ apply zero_least | apply succ_lt ]. }
+  generalize (complete_subord y (H _ _ Hy omega_complete) 0%nat).
+  simpl. intro Hc.
+  destruct (complete_zeroDec _ Hc) as [Hz|Hz].
+  - right. intro p.
+    apply (ord_lt_irreflexive 0).
+    apply ord_lt_le_trans with (0 ⊔ truth_ord P); auto.
+    apply ord_lt_le_trans with (truth_ord P); [| apply lub_le2 ].
+    unfold truth_ord. rewrite ord_lt_unfold. exists p. simpl. reflexivity.
+  - apply lub_lt in Hz. destruct Hz as [Hz|Hz].
+    + rewrite ord_lt_unfold in Hz. destruct Hz as [[] _].
+    + unfold truth_ord in Hz. rewrite ord_lt_unfold in Hz.
+      destruct Hz as [p _]. left. exact p.
 Qed.
 
 Lemma complete_EM :

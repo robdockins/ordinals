@@ -1,19 +1,20 @@
 import ConstructiveOrdinals.Notation.CantorDecomposition
+import ConstructiveOrdinals.Notation.CantorProduct
 import ConstructiveOrdinals.AckermannTower
 import ConstructiveOrdinals.Prelude.Relations
 
 /-!
-# A notation system for the small Ackermann ordinal
+# A notation system for the finite-tower Ackermann ordinal
 
 Port of `Ordinal/Notation/ATowerFinNotation.v`.
 
 `V n a x` denotes `veblen (T n) a x`, where `T n = ackermannTowerFin (1 + ·) n`
 is the `n`th level of the finite Ackermann tower over `1 + ·`. The normal forms
-denote exactly the ordinals below the small Ackermann ordinal. As in
+denote exactly the ordinals below the finite-tower Ackermann ordinal. As in
 `Notation/V` and `Notation/VW`, normalization is a confluent, strongly
 normalizing rewriting system, and the system has a Cantor decomposition, so it
 supports Cantor arithmetic and natural sums. With the excluded middle, it has
-a notation for every ordinal below the small Ackermann ordinal.
+a notation for every ordinal below the finite-tower Ackermann ordinal.
 
 Lean notes:
 
@@ -1021,7 +1022,7 @@ theorem veblen_tower_epsilon (n : Nat) (x y : Ordinal.{0}) (hx : Complete x) (hy
 
 /-! ## Cantor decomposition and arithmetic -/
 
-open CantorDecomposition
+open CantorDecomposition Interpolants
 
 /-- Rocq: `Notation.ATowerFinNotation.VF_decompose`. -/
 def decompose : VForm → List VForm
@@ -1144,9 +1145,9 @@ private theorem tower_interpolants : ∀ (n : Nat) (b : Ordinal.{0}), Complete b
       (fun x a h => add_reflects 1 (succ Z) (succ_reflects 0 Z ⟨equiv_refl _, trivial⟩) x a h)
       b hb
   | n + 1, b, hb₁, hb₂ =>
-    enum_fix_has_interpolants hasCantorDecomposition (fun x => veblen (T n) x 0)
+    enum_fix_has_interpolants hasCantorDecomposition.complete (fun x => veblen (T n) x 0)
       (veblen_first_normal (T_normal n)).complete
-      (fun b hb₁ hb₂ => veblen_interpolants_first hasCantorDecomposition (T n) (T_normal n)
+      (fun b hb₁ hb₂ => veblen_interpolants_first hasCantorDecomposition.complete (T n) (T_normal n)
         (tower_interpolants n) (vnorm n) (ackermann_reflects n) b hb₁ hb₂)
       (veblen_first_normal (T_normal n)).monotone
       (normal_inflationary (veblen_first_normal (T_normal n))) (vnorm (n + 1) Z)
@@ -1165,7 +1166,7 @@ theorem has_all_interpolants : HasAllInterpolants denote IsNormal := by
     exact fun _ => (has_interpolants_unfold _).2 fun i hi =>
       (lt_irrefl i (lt_of_lt_of_le hi (zero_least i))).elim
   | V n a b iha ihb =>
-    exact fun h => veblen_interpolants hasCantorDecomposition (T n) (T_normal n)
+    exact fun h => veblen_interpolants hasCantorDecomposition.complete (T n) (T_normal n)
       (tower_interpolants n) (vnorm n) (ackermann_reflects n) a (denote b) h.1 (iha h.1)
       (complete b) (ihb h.2.1)
 
@@ -1174,12 +1175,21 @@ def nadd : VForm → VForm → VForm := cantorNadd hasCantorDecomposition
 
 /-- Rocq: `Notation.ATowerFinNotation.VF_reflects_nadd`. -/
 theorem reflects_nadd : Reflects VForm denote IsNormal (.ord ==> .ord ==> .ord) (· ♯ ·) nadd :=
-  cantor_nadd_reflects hasCantorDecomposition has_all_interpolants
+  cantor_nadd_reflects hasCantorDecomposition
+
+/-- The natural product, computed on Cantor normal forms.
+Rocq: `Notation.ATowerFinNotation.VF_nmul`. -/
+def nmul : VForm → VForm → VForm := CantorProduct.cantorNmul hasCantorDecomposition
+
+/-- Constructively, using interpolants. Rocq: `Notation.ATowerFinNotation.VF_reflects_nmul`. -/
+theorem reflects_nmul :
+    Reflects VForm denote IsNormal (.ord ==> .ord ==> .ord) NaturalProduct.nmul nmul :=
+  CantorProduct.cantor_nmul_reflects hasCantorDecomposition has_all_interpolants
 
 /-! ## Order type -/
 
-/-- The small Ackermann ordinal is complete. -/
-private theorem SAO_complete : Complete (SmallAckermannOrdinal.{0}) :=
+/-- The finite-tower Ackermann ordinal is complete. -/
+private theorem FAO_complete : Complete (FinAckermannOrdinal.{0}) :=
   sup_complete (fun i => (T_normal i.down).complete 0 zero_complete)
     (fun a₁ a₂ => ⟨⟨Nat.max a₁.down a₂.down⟩,
       ackermann_tower_fin_monotone _ _ _ 0 0 onePlus_normal (Nat.le_max_left _ _) (le_refl _)
@@ -1188,13 +1198,13 @@ private theorem SAO_complete : Complete (SmallAckermannOrdinal.{0}) :=
         zero_complete⟩)
     (.inl ⟨⟨0⟩, lt_of_lt_of_le (succ_lt 0) (add_zero 1).ge⟩)
 
-/-- Rocq: `Notation.ATowerFinNotation.VF_below_SAO`. -/
-theorem below_SAO : ∀ x : VForm, denote x < SmallAckermannOrdinal
+/-- Rocq: `Notation.ATowerFinNotation.VF_below_FAO`. -/
+theorem below_FAO : ∀ x : VForm, denote x < FinAckermannOrdinal
   | Z => lt_of_lt_of_le (lt_of_lt_of_le (succ_lt 0) (add_zero 1).ge)
       (sup_le (fun n : (ω : Ordinal.{0}).Carrier => T n.down 0) ⟨0⟩)
   | V n a x => by
-    refine veblen_collapse' (T_normal n) _ _ _ (complete a) (complete x) SAO_complete
-      (below_SAO a) (below_SAO x) ?_
+    refine veblen_collapse' (T_normal n) _ _ _ (complete a) (complete x) FAO_complete
+      (below_FAO a) (below_FAO x) ?_
     refine le_trans (veblen_continuous_first (T_normal n) _ _ ⟨0⟩) (sup_least fun i => ?_)
     let k := Nat.max i.down n
     refine le_trans ?_ (sup_le (fun n : (ω : Ordinal.{0}).Carrier => T n.down 0) ⟨k + 1⟩)
@@ -1214,23 +1224,23 @@ theorem below_SAO : ∀ x : VForm, denote x < SmallAckermannOrdinal
 end VForm
 
 open VForm in
-/-- The forms have order type the small Ackermann ordinal.
-Rocq: `Notation.ATowerFinNotation.VF_SAO`. -/
-theorem VF_SAO : VF ≈ SmallAckermannOrdinal :=
-  equiv_intro (le_intro fun x => below_SAO x)
+/-- The forms have order type the finite-tower Ackermann ordinal.
+Rocq: `Notation.ATowerFinNotation.VF_FAO`. -/
+theorem VF_FAO : VF ≈ FinAckermannOrdinal :=
+  equiv_intro (le_intro fun x => below_FAO x)
     (sup_least fun i =>
       le_trans (veblen_zero (T i.down) 0).ge (index_le VF (V i.down Z Z)))
 
 namespace VForm
 
-open CantorDecomposition
+open CantorDecomposition Interpolants
 
-/-- With the excluded middle, every ordinal below the small Ackermann ordinal
+/-- With the excluded middle, every ordinal below the finite-tower Ackermann ordinal
 has a normal form. Rocq: `Notation.ATowerFinNotation.VF_has_enough_notations`. -/
 theorem has_enough_notations (em : ExcludedMiddle) :
-    ∀ x : Ordinal.{0}, x < SmallAckermannOrdinal → ∃ v : VForm, sz v ≈ x := by
+    ∀ x : Ordinal.{0}, x < FinAckermannOrdinal → ∃ v : VForm, sz v ≈ x := by
   intro x hx
-  obtain ⟨a, ha⟩ := lt_elim (lt_of_lt_of_le hx VF_SAO.ge)
+  obtain ⟨a, ha⟩ := lt_elim (lt_of_lt_of_le hx VF_FAO.ge)
   obtain ⟨c, _, hc⟩ := has_interpolants_has_enough_notations em has_all_interpolants
     (normalize a) x (normalize_isNormal a) (le_trans ha (normalize_equal a).ge)
   exact ⟨c, hc⟩

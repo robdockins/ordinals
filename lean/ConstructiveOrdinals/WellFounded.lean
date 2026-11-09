@@ -594,6 +594,197 @@ theorem simulates_round_trip2 (A : Type u) (R : A → A → Prop) (HR : WellFoun
   · exact lt_elim (lt_of_lt_of_le (index_lt (ordTransitiveClosure (wfOrd R HR)) a)
       (ord_transitive_closure_le2 _))
 
+/-! ## The extensional collapse of the transitive closure
+
+Read as an Aczel set, an ordinal tree has its own extensional equality
+`ExtEq` (hereditary bisimulation), finer than `≈`, which identifies trees of
+equal rank. The round trip `wfOrd (ordR x)` is the Mostowski collapse of the
+transitive closure of `x`. Classically it is the von Neumann ordinal of `x`, so
+`≈`-equivalent trees have extensionally equal collapses; constructively the
+collapse determines `x` up to `≈`, but respects `≈` only if the excluded middle
+holds. The witness is the tree with children `1` and `s`, where `s` has a child
+`0` for each proof of `P`: it is `≈ 2`, and its collapse contains the
+truth-value set `{0 | P}` (Taylor's `{∅ : P}`). -/
+
+/-- Extensional (Aczel) equality of trees: hereditary bisimulation.
+Rocq: `WellFounded.ext_eq`. -/
+def ExtEq : Ordinal.{u} → Ordinal.{u} → Prop
+  | mk A f, mk B g => (∀ a : A, ∃ b : B, ExtEq (f a) (g b)) ∧ (∀ b : B, ∃ a : A, ExtEq (f a) (g b))
+
+theorem ExtEq.intro {A B : Type u} {f : A → Ordinal.{u}} {g : B → Ordinal.{u}}
+    (h₁ : ∀ a, ∃ b, ExtEq (f a) (g b)) (h₂ : ∀ b, ∃ a, ExtEq (f a) (g b)) :
+    ExtEq (mk A f) (mk B g) :=
+  show (∀ a, ∃ b, ExtEq (f a) (g b)) ∧ (∀ b, ∃ a, ExtEq (f a) (g b)) from ⟨h₁, h₂⟩
+
+theorem ExtEq.elim {A B : Type u} {f : A → Ordinal.{u}} {g : B → Ordinal.{u}}
+    (h : ExtEq (mk A f) (mk B g)) :
+    (∀ a, ∃ b, ExtEq (f a) (g b)) ∧ (∀ b, ∃ a, ExtEq (f a) (g b)) :=
+  h
+
+/-- Rocq: `WellFounded.ext_eq_ord_eq`. -/
+theorem ext_eq_ord_eq : ∀ x y : Ordinal.{u}, ExtEq x y → x ≈ y
+  | mk A f, mk B g, h =>
+    equiv_intro
+      (le_intro fun a =>
+        let ⟨b, hb⟩ := (ExtEq.elim h).1 a
+        lt_intro (show (mk B g).Carrier from b) (ext_eq_ord_eq (f a) (g b) hb).le)
+      (le_intro fun b =>
+        let ⟨a, ha⟩ := (ExtEq.elim h).2 b
+        lt_intro (show (mk A f).Carrier from a) (ext_eq_ord_eq (f a) (g b) ha).ge)
+
+/-- The Mostowski collapse of the transitive closure.
+Rocq: `WellFounded.vn_collapse`. -/
+def vnCollapse (x : Ordinal.{u}) : Ordinal.{u} := wfOrd (ordR x) (ord_R_well_founded x)
+
+/-- Rocq: `WellFounded.ord_R_elt_eq`. -/
+theorem ord_R_elt_eq (x : Ordinal.{u}) (a : ordTransitiveClosureType x) :
+    wfOrdElt (ordR x) (ord_R_well_founded x) a ≈ ordTransitiveClosureOrd x a := by
+  refine equiv_intro ?_ ?_
+  · show mkWfOrd (ordR x) a ((ord_R_well_founded x).apply a) ≤ _
+    generalize (ord_R_well_founded x).apply a = h
+    induction h with
+    | intro a _ ih =>
+      rw [mkWfOrd_unfold]
+      exact le_intro fun q => lt_of_le_of_lt (ih q.1 q.2) q.2
+  · induction a using (ord_R_well_founded x).induction with
+    | h a ih =>
+      refine le_intro fun q => ?_
+      obtain ⟨k, hk⟩ := ord_transitive_closure_transitive x a q
+      have hka : ordR x k a := lt_of_le_of_lt hk.le (index_lt _ q)
+      exact lt_of_le_of_lt hk.ge (lt_of_le_of_lt (ih k hka) (wf_ord_lt _ a k hka))
+
+/-- Rocq: `WellFounded.vn_collapse_ext_reflects`. -/
+theorem vn_collapse_ext_reflects {x y : Ordinal.{u}} (h : ExtEq (vnCollapse x) (vnCollapse y)) :
+    x ≈ y :=
+  equiv_trans (equiv_symm (ord_R_round_trip x))
+    (equiv_trans (ext_eq_ord_eq _ _ h) (ord_R_round_trip y))
+
+private theorem tc_two_cases (b : ordTransitiveClosureType (2 : Ordinal.{u})) :
+    ordTransitiveClosureOrd 2 b ≈ 0 ∨ ordTransitiveClosureOrd 2 b ≈ 1 :=
+  match b with
+  | .inl _ => .inr (equiv_refl _)
+  | .inr ⟨_, .inl _⟩ => .inl (equiv_refl _)
+  | .inr ⟨_, .inr ⟨_, .inl e⟩⟩ => e.elim
+  | .inr ⟨_, .inr ⟨_, .inr ⟨e, _⟩⟩⟩ => e.elim
+
+/-- The collapse respects `≈` only if the excluded middle holds.
+Rocq: `WellFounded.vn_collapse_ext_EM`. -/
+theorem vn_collapse_ext_EM
+    (h : ∀ x y : Ordinal.{u}, x ≈ y → ExtEq (vnCollapse x) (vnCollapse y)) : ExcludedMiddle :=
+  fun P => by
+    let s : Ordinal.{u} := mk (ULift.{u} (PLift P)) fun _ => 0
+    let y : Ordinal.{u} := mk (ULift.{u} Bool) fun b => cond b.down 1 s
+    have hs1 : s ≤ 1 := le_intro fun _ => succ_lt 0
+    have hy : y ≈ 2 := equiv_intro
+      (le_intro fun ⟨b⟩ => by
+        cases b with
+        | true => exact succ_lt 1
+        | false => exact lt_of_le_of_lt hs1 (succ_lt 1))
+      (le_intro fun _ => lt_intro (show y.Carrier from ⟨true⟩) (le_refl _))
+    have hc : ExtEq (mk _ (wfOrdElt (ordR y) (ord_R_well_founded y)))
+        (mk _ (wfOrdElt (ordR 2) (ord_R_well_founded 2))) := h y 2 hy
+    obtain ⟨b, hb⟩ := (ExtEq.elim hc).1 (.inl ⟨false⟩)
+    have hb' : s ≈ ordTransitiveClosureOrd 2 b :=
+      equiv_trans (equiv_symm (ord_R_elt_eq y (.inl ⟨false⟩)))
+        (equiv_trans (ext_eq_ord_eq _ _ hb) (ord_R_elt_eq 2 b))
+    match tc_two_cases b with
+    | .inl h0 =>
+      exact .inr fun p => lt_irrefl 0
+        (lt_of_lt_of_le (lt_intro (show s.Carrier from ⟨⟨p⟩⟩) (le_refl _)) (le_trans hb'.le h0.le))
+    | .inr h1 =>
+      obtain ⟨⟨⟨p⟩⟩, _⟩ := lt_elim (lt_of_lt_of_le (succ_lt 0) (le_trans h1.ge hb'.ge))
+      exact .inl p
+
+/-- Classically, every ordinal below a node of the transitive closure is
+realized, up to `≈`, by another node. Rocq: `WellFounded.tc_realizes_below`. -/
+theorem tc_realizes_below (em : ExcludedMiddle) (x : Ordinal.{u}) :
+    ∀ (a : ordTransitiveClosureType x) (z : Ordinal.{u}), z < ordTransitiveClosureOrd x a →
+      ∃ k, ordTransitiveClosureOrd x k ≈ z := by
+  intro a
+  induction a using (ord_R_well_founded x).induction with
+  | h a ih =>
+    intro z hz
+    obtain ⟨q, hq⟩ := lt_elim hz
+    obtain ⟨k, hk⟩ := ord_transitive_closure_transitive x a q
+    match order_total em (ordTransitiveClosureOrd x k) z with
+    | .inl hkz => exact ⟨k, equiv_intro hkz (le_trans hq hk.ge)⟩
+    | .inr hzk => exact ih k (lt_of_le_of_lt hk.le (index_lt _ q)) z hzk
+
+/-- Rocq: `WellFounded.tc_realizes`. -/
+theorem tc_realizes (em : ExcludedMiddle) (x z : Ordinal.{u}) (hz : z < x) :
+    ∃ k, ordTransitiveClosureOrd x k ≈ z := by
+  obtain ⟨j, hj⟩ := lt_elim (lt_of_lt_of_le hz (ord_transitive_closure_eq x).ge)
+  match order_total em (ordTransitiveClosureOrd x j) z with
+  | .inl hjz => exact ⟨j, equiv_intro hjz hj⟩
+  | .inr hzj => exact tc_realizes_below em x j z hzj
+
+/-- Rocq: `WellFounded.mk_wf_ord_ord_R_ext`. -/
+theorem mk_wf_ord_ord_R_ext (em : ExcludedMiddle) (x y : Ordinal.{u}) :
+    ∀ (a : ordTransitiveClosureType x) (b : ordTransitiveClosureType y)
+      (ha : Acc (ordR x) a) (hb : Acc (ordR y) b),
+      ordTransitiveClosureOrd x a ≈ ordTransitiveClosureOrd y b →
+      ExtEq (mkWfOrd (ordR x) a ha) (mkWfOrd (ordR y) b hb) := by
+  intro a
+  induction a using (ord_R_well_founded x).induction with
+  | h a ih =>
+    intro b ha hb hab
+    rw [mkWfOrd_unfold (ordR x) a ha, mkWfOrd_unfold (ordR y) b hb]
+    refine ExtEq.intro (fun ⟨a', ha'⟩ => ?_) (fun ⟨b', hb'⟩ => ?_)
+    · obtain ⟨k, hk⟩ := tc_realizes_below em y b (ordTransitiveClosureOrd x a')
+        (lt_of_lt_of_le ha' hab.le)
+      have hkb : ordR y k b := lt_of_le_of_lt hk.le (lt_of_lt_of_le ha' hab.le)
+      exact ⟨⟨k, hkb⟩, ih a' ha' k _ _ (equiv_symm hk)⟩
+    · obtain ⟨k, hk⟩ := tc_realizes_below em x a (ordTransitiveClosureOrd y b')
+        (lt_of_lt_of_le hb' hab.ge)
+      have hka : ordR x k a := lt_of_le_of_lt hk.le (lt_of_lt_of_le hb' hab.ge)
+      exact ⟨⟨k, hka⟩, ih k hka b' _ _ hk⟩
+
+/-- Classically, the collapse maps `≈`-equivalent trees to extensionally equal
+sets. Rocq: `WellFounded.vn_collapse_ext_classical`. -/
+theorem vn_collapse_ext_classical (em : ExcludedMiddle) {x y : Ordinal.{u}} (h : x ≈ y) :
+    ExtEq (vnCollapse x) (vnCollapse y) := by
+  show ExtEq (mk _ (wfOrdElt (ordR x) (ord_R_well_founded x)))
+    (mk _ (wfOrdElt (ordR y) (ord_R_well_founded y)))
+  refine ExtEq.intro (fun a => ?_) (fun b => ?_)
+  · obtain ⟨k, hk⟩ := tc_realizes em y (ordTransitiveClosureOrd x a)
+      (lt_of_lt_of_le (lt_of_lt_of_le (index_lt (ordTransitiveClosure x) a)
+        (ord_transitive_closure_le2 x)) h.le)
+    exact ⟨k, mk_wf_ord_ord_R_ext em x y a k _ _ (equiv_symm hk)⟩
+  · obtain ⟨k, hk⟩ := tc_realizes em x (ordTransitiveClosureOrd y b)
+      (lt_of_lt_of_le (lt_of_lt_of_le (index_lt (ordTransitiveClosure y) b)
+        (ord_transitive_closure_le2 y)) h.ge)
+    exact ⟨k, mk_wf_ord_ord_R_ext em x y k b _ _ hk⟩
+
+/-- Every node of the transitive closure lies below a child.
+Rocq: `WellFounded.tc_below_child`. -/
+theorem tc_below_child : ∀ (x : Ordinal.{u}) (a : ordTransitiveClosureType x),
+    ∃ i : x, ordTransitiveClosureOrd x a ≤ x i
+  | mk _ _, .inl i => ⟨i, le_refl _⟩
+  | mk _ f, .inr ⟨i, q⟩ => ⟨i, le_of_lt (lt_of_lt_of_le (index_lt (ordTransitiveClosure (f i)) q)
+      (ord_transitive_closure_le2 (f i)))⟩
+
+/-- Rocq: `WellFounded.tc_complete_elts`. -/
+theorem tc_complete_elts : ∀ (x : Ordinal.{u}), Complete x →
+    ∀ a, Complete (ordTransitiveClosureOrd x a)
+  | mk _ _, hx, .inl i => complete_subord hx i
+  | mk _ f, hx, .inr ⟨i, q⟩ => tc_complete_elts (f i) (complete_subord hx i) q
+
+/-- Unlike Taylor's extensional setting (1996, Remark 8.10a), the transitive
+closure preserves completeness. Rocq: `WellFounded.ord_transitive_closure_complete`. -/
+theorem ord_transitive_closure_complete (x : Ordinal.{u}) (hx : Complete x) :
+    Complete (ordTransitiveClosure x) := by
+  obtain ⟨hdir, hinh, _⟩ := hx.elim
+  refine Complete.intro (fun a₁ a₂ => ?_) ?_ (tc_complete_elts x hx)
+  · obtain ⟨i₁, h₁⟩ := tc_below_child x a₁
+    obtain ⟨i₂, h₂⟩ := tc_below_child x a₂
+    obtain ⟨i, hi₁, hi₂⟩ := hdir i₁ i₂
+    exact ⟨ordTransitiveClosureInj x i,
+      le_trans h₁ (le_trans hi₁ (ord_transitive_closure_inj_correct x i).ge),
+      le_trans h₂ (le_trans hi₂ (ord_transitive_closure_inj_correct x i).ge)⟩
+  · match hinh with
+    | .inl ⟨i⟩ => exact .inl ⟨ordTransitiveClosureInj x i⟩
+    | .inr hn => exact .inr fun ⟨a⟩ => let ⟨i, _⟩ := tc_below_child x a; hn ⟨i⟩
+
 /-! ## Standard constructions -/
 
 section inverse_image
@@ -1391,146 +1582,6 @@ theorem lex_exp_eq (R_trans : ∀ x y z, R x y → R y z → R x z) :
       (list_interp_correct2 HwfR R_trans ⟨List.replicate (n + 1) a, desc_replicate a (n + 1)⟩ _))
 
 end lex_exp
-
-/-! ## Tree selection -/
-
-/-- Rocq: `WellFounded.tree_selection`. -/
-def treeSelection : Ordinal.{u} → Ordinal.{u}
-  | mk A f => iteratedSmashSum (mk A fun a => treeSelection (f a))
-
-/-- Rocq: `WellFounded.tree_selection_unfold`. -/
-theorem tree_selection_unfold (x : Ordinal.{u}) :
-    treeSelection x = iteratedSmashSum (lim fun a : x => treeSelection (x a)) := by
-  cases x; rfl
-
-/-- Rocq: `WellFounded.tree_selection_nonzero`. -/
-theorem tree_selection_nonzero (x : Ordinal.{u}) : 0 < treeSelection x := by
-  rw [tree_selection_unfold]; exact iteratedSmashSum_nonzero _
-
-/-- Rocq: `WellFounded.tree_selection_monotone`. -/
-theorem tree_selection_monotone : ∀ x y : Ordinal.{u}, x ≤ y → treeSelection x ≤ treeSelection y
-  | mk _ f, mk B g, h => iteratedSmashSum_monotone (le_intro fun a =>
-    let ⟨b, hb⟩ := le_subord h a
-    lt_intro (show (mk B fun b => treeSelection (g b)).Carrier from b)
-      (tree_selection_monotone (f a) (g b) hb))
-
-/-- Rocq: `WellFounded.tree_selection_increasing`. -/
-theorem tree_selection_increasing {x y : Ordinal.{u}} (h : x < y) : treeSelection x < treeSelection y := by
-  obtain ⟨b, hb⟩ := lt_elim h
-  rw [tree_selection_unfold y]
-  exact lt_of_le_of_lt (tree_selection_monotone _ _ hb)
-    (lt_intro (show (iteratedSmashSum (lim fun a : y => treeSelection (y a))).Carrier from [b])
-      (nadd_zero_r _).ge)
-
-/-- Rocq: `WellFounded.tree_selection_scott_continuous`. -/
-theorem tree_selection_scott_continuous : ScottContinuous (treeSelection : Ordinal.{u} → Ordinal.{u}) :=
-  fun A f a₀ hd _ => by
-    rw [tree_selection_unfold]
-    refine limit_least fun xs => ?_
-    have hbound : ∃ i, ∀ p, p ∈ xs → f p.1 ≤ f i := by
-      induction xs with
-      | nil => exact ⟨a₀, fun _ h => nomatch h⟩
-      | cons p xs ih =>
-        obtain ⟨i, hi⟩ := ih
-        obtain ⟨k, hk₁, hk₂⟩ := hd i p.1
-        exact ⟨k, fun q hq => match q, hq with
-          | _, .head _ => hk₂
-          | q, .tail _ hq => le_trans (hi q hq) hk₁⟩
-    obtain ⟨i, hi⟩ := hbound
-    have hqs : ∃ qs : List (f i).Carrier,
-        smashList (lim fun a : sup f => treeSelection (sup f a)) xs ≤
-          smashList (lim fun a : f i => treeSelection (f i a)) qs := by
-      clear hd
-      induction xs with
-      | nil => exact ⟨[], le_refl _⟩
-      | cons p xs ih =>
-        obtain ⟨qs, hqs⟩ := ih fun q hq => hi q (.tail _ hq)
-        obtain ⟨q, hq⟩ := lt_elim (lt_of_lt_of_le (index_lt (f p.1) p.2) (hi p (.head _)))
-        exact ⟨q :: qs, nadd_le_nadd (tree_selection_monotone _ _ hq) hqs⟩
-    obtain ⟨qs, hqs⟩ := hqs
-    refine lt_of_lt_of_le ?_ (sup_le (fun i => treeSelection (f i)) i)
-    rw [tree_selection_unfold (f i)]
-    exact lt_intro (show (iteratedSmashSum (lim fun a : f i => treeSelection (f i a))).Carrier from qs) hqs
-
-/-- Classically, tree selection is a normal function.
-Rocq: `WellFounded.normal_tree_selection`. -/
-theorem normal_tree_selection (em : ExcludedMiddle) : NormalFunction (treeSelection : Ordinal.{u} → Ordinal.{u}) where
-  monotone := tree_selection_monotone
-  increasing _ _ _ h := tree_selection_increasing h
-  continuous := tree_selection_scott_continuous
-  complete _ _ := ord_complete em _
-  nonzero := tree_selection_nonzero
-
-/-- Rocq: `WellFounded.powOmega_le_tree_selection`. -/
-theorem powOmega_le_tree_selection (x : Ordinal.{u}) : ω ^ x ≤ treeSelection x := by
-  induction x using ltRec with
-  | ind x ih =>
-    rw [pow_unfold]
-    refine lub_least (succ_least (tree_selection_nonzero x)) (sup_least fun q => ?_)
-    rw [mul_unfold]
-    refine sup_least fun ⟨i⟩ => le_of_lt ?_
-    have hrep : ∀ n : Nat, ω ^ x q * ofNat n ≤
-        smashList (lim fun a : x => treeSelection (x a)) (List.replicate n q) := by
-      intro n
-      induction n with
-      | zero => exact le_trans (mul_zero _).le (zero_least _)
-      | succ n ihn =>
-        calc ω ^ x q * ofNat (n + 1) ≤ ω ^ x q * ofNat n + ω ^ x q := (mul_succ _ _).le
-          _ ≤ ω ^ x q * ofNat n ♯ ω ^ x q := add_nadd_le _ _
-          _ ≤ smashList (lim fun a : x => treeSelection (x a)) (List.replicate n q) ♯ treeSelection (x q) :=
-              nadd_le_nadd ihn (ih (x q) (index_lt x q))
-          _ ≤ treeSelection (x q) ♯ smashList (lim fun a : x => treeSelection (x a)) (List.replicate n q) :=
-              nadd_comm_le _ _
-    rw [tree_selection_unfold]
-    exact lt_of_le_of_lt (le_trans (mul_succ _ _).ge (hrep (i + 1)))
-      (limit_lt (smashList (lim fun a : x => treeSelection (x a))) (List.replicate (i + 1) q))
-
-/-- Rocq: `WellFounded.tree_selection_le_powOmega`. -/
-theorem tree_selection_le_powOmega (em : ExcludedMiddle) (x : Ordinal.{u}) :
-    treeSelection x ≤ ω ^ x := by
-  induction x using ltRec with
-  | ind x ih =>
-    rw [tree_selection_unfold]
-    refine limit_least fun xs => ?_
-    match xs with
-    | [] => exact pow_pos ω x
-    | o :: l =>
-      have hx := ord_complete em x
-      have hbound : ∃ i, ∀ p, p ∈ o :: l → x p ≤ x i := by
-        induction l with
-        | nil => exact ⟨o, fun p hp => match hp with | .head _ => le_refl _ | .tail _ h => nomatch h⟩
-        | cons a l ih' =>
-          obtain ⟨i, hi⟩ := ih'
-          obtain ⟨k, hk₁, hk₂⟩ := complete_directed hx i a
-          exact ⟨k, fun p hp => match p, hp with
-            | _, .head _ => le_trans (hi o (.head _)) hk₁
-            | _, .tail _ (.head _) => hk₂
-            | p, .tail _ (.tail _ h) => le_trans (hi p (.tail _ h)) hk₁⟩
-      obtain ⟨i, hi⟩ := hbound
-      have hsum : ∀ ys : List x.Carrier, (∀ p, p ∈ ys → x p ≤ x i) →
-          smashList (lim fun a : x => treeSelection (x a)) ys ≤ ω ^ x i * ofNat ys.length := by
-        intro ys
-        induction ys with
-        | nil => intro _; exact zero_least _
-        | cons p ys ihys =>
-          intro hys
-          calc treeSelection (x p) ♯ smashList (lim fun a : x => treeSelection (x a)) ys
-              ≤ ω ^ x i * (ω : Ordinal.{u}) ⟨1⟩ ♯ ω ^ x i * (ω : Ordinal.{u}) ⟨ys.length⟩ :=
-                nadd_le_nadd (le_trans (ih (x p) (index_lt x p))
-                  (le_trans (pow_le_pow_right ω (hys p (.head _))) (mul_one _).ge))
-                  (ihys fun q hq => hys q (.tail _ hq))
-            _ ≤ ω ^ x i * ofNat (1 + ys.length) :=
-                nadd_add_same_powers em (x i) ⟨1⟩ ⟨ys.length⟩ (complete_subord hx i)
-            _ = ω ^ x i * ofNat (ys.length + 1) := by rw [Nat.add_comm]
-      calc smashList _ (o :: l) ≤ ω ^ x i * ofNat (l.length + 1) := hsum (o :: l) hi
-        _ < ω ^ x i * ω := mul_lt_mul_left (pow_pos ω _) (index_lt ω ⟨l.length + 1⟩)
-        _ ≤ ω ^ x := pow_index_mul_omega_le x i
-
-/-- Classically, tree selection is `x ↦ ω ^ x`.
-Rocq: `WellFounded.tree_selection_eq_powOmega`. -/
-theorem tree_selection_eq_powOmega (em : ExcludedMiddle) (x : Ordinal.{u}) :
-    treeSelection x ≈ ω ^ x :=
-  equiv_intro (tree_selection_le_powOmega em x) (powOmega_le_tree_selection x)
 
 /-! ## List extension -/
 

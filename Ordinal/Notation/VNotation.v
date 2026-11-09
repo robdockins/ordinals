@@ -22,7 +22,10 @@ From Ordinal Require Import VeblenDefs.
 From Ordinal Require Import VeblenCon.
 From Ordinal Require Import VeblenFacts.
 
+From Ordinal Require Import Notation.Interpolants.
 From Ordinal Require Import Notation.CantorDecomposition.
+From Ordinal Require NaturalProduct.
+From Ordinal Require Notation.CantorProduct.
 
 
 Open Scope ord_scope.
@@ -717,7 +720,6 @@ Proof.
 
   apply veblen_interpolants
     with (f:=VF_denote) (P:=VF_normal) (g:=addOrd 1) (a:=a) (b:=VF_denote b) (vr:=Vnorm); auto.
-  - apply VF_has_cantor_decomposition.
   - intros. apply onePlus_interpolants with (zr:=Z) (pr:=VF_add VF_one); auto.
     apply VF_reflects_zero.
     hnf; intros; auto.
@@ -743,6 +745,15 @@ Definition VF_nadd := cantor_nadd VF_has_cantor_decomposition.
 Theorem VF_reflects_nadd: reflects VForm VF_denote VF_normal (ORD ==> ORD ==> ORD) naddOrd VF_nadd.
 Proof.
   apply cantor_nadd_reflects.
+Qed.
+
+(** The natural product, computed on Cantor normal forms; it reflects the
+    semantic natural product constructively, using interpolants. *)
+Definition VF_nmul := CantorProduct.cantor_nmul _ _ _ VF_has_cantor_decomposition.
+
+Theorem VF_reflects_nmul: reflects VForm VF_denote VF_normal (ORD ==> ORD ==> ORD) NaturalProduct.nmulOrd VF_nmul.
+Proof.
+  apply CantorProduct.cantor_nmul_reflects.
   apply VF_has_all_interpolants.
 Qed.
 

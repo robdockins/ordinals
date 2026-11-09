@@ -26,7 +26,10 @@ From Ordinal Require Import AckermannTower.
 From Ordinal Require Import SchutteColumn.
 From Ordinal Require Import SchutteColumnFacts.
 
+From Ordinal Require Import Notation.Interpolants.
 From Ordinal Require Import Notation.CantorDecomposition.
+From Ordinal Require NaturalProduct.
+From Ordinal Require Notation.CantorProduct.
 
 Open Scope ord_scope.
 
@@ -1958,8 +1961,8 @@ Definition VF_three := N [(Z, VF_two)].
 
 Definition VF_omega := N[(VF_one, VF_one)].
 
-Definition VF_SAO := N [(VF_two, VF_omega)].
-Definition VF_LAO := N [(VF_three, VF_one)].
+Definition VF_FAO := N [(VF_two, VF_omega)].
+Definition VF_AO := N [(VF_three, VF_one)].
 Definition VF_SVO := N [(VF_omega, VF_one)].
 
 Fixpoint VF_nat (n:nat) : VForm :=
@@ -2412,6 +2415,15 @@ Definition VF_nadd := cantor_nadd VF_has_cantor_decomposition.
 Theorem VF_reflects_nadd: reflects VForm VF_denote VF_normal (ORD ==> ORD ==> ORD) naddOrd VF_nadd.
 Proof.
   apply cantor_nadd_reflects.
+Qed.
+
+(** The natural product, computed on Cantor normal forms; it reflects the
+    semantic natural product constructively, using interpolants. *)
+Definition VF_nmul := CantorProduct.cantor_nmul _ _ _ VF_has_cantor_decomposition.
+
+Theorem VF_reflects_nmul: reflects VForm VF_denote VF_normal (ORD ==> ORD ==> ORD) NaturalProduct.nmulOrd VF_nmul.
+Proof.
+  apply CantorProduct.cantor_nmul_reflects.
   apply schutte_matrix_has_all_interpolants.
 Qed.
 

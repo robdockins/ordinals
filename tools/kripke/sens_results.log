@@ -1,0 +1,23 @@
+== run started Wed Nov  4 21:16:17 PST 2026
+  [1] exit 124 (timeout or error) Wed Nov  4 22:06:17 PST 2026
+  [3] exit 137 (timeout or error) Wed Nov  4 22:22:09 PST 2026
+== stopped by request Thu Nov  5 07:48:51 PST 2026 during [4]
+== run started Thu Nov  5 09:41:13 PST 2026 (hash-consing, reduction, thresholds)
+  [2] exp lower xP,xP: forced  (2.5s)
+  [3] exit 124 (timeout or error) Thu Nov  5 10:31:17 PST 2026
+  [4] exit 138 (timeout or error) Thu Nov  5 11:01:50 PST 2026
+  [5] exit 124 (timeout or error) Thu Nov  5 11:51:50 PST 2026
+  [6] exit 124 (timeout or error) Thu Nov  5 12:41:50 PST 2026
+  [7] exit 124 (timeout or error) Thu Nov  5 13:31:51 PST 2026
+  [8] exit 124 (timeout or error) Thu Nov  5 14:21:51 PST 2026
+  [9] exit 124 (timeout or error) Thu Nov  5 15:11:51 PST 2026
+== run finished Thu Nov  5 15:11:51 PST 2026
+== run started Thu Nov  5 17:22:37 PST 2026 (kle dominance, kadd families, rank0; 5 min cap)
+  [3] exit 124 (timeout or error) Thu Nov  5 17:27:37 PST 2026
+  [4] exit 124 (timeout or error) Thu Nov  5 17:32:37 PST 2026
+  [5] exit 124 (timeout or error) Thu Nov  5 17:37:37 PST 2026
+  [6] exit 124 (timeout or error) Thu Nov  5 17:42:37 PST 2026
+  [7] exit 124 (timeout or error) Thu Nov  5 17:47:37 PST 2026
+  [8] exit 124 (timeout or error) Thu Nov  5 17:52:37 PST 2026
+  [9] exit 124 (timeout or error) Thu Nov  5 17:57:37 PST 2026
+== run finished Thu Nov  5 17:57:37 PST 2026

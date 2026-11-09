@@ -24,7 +24,10 @@ From Ordinal Require Import VeblenCon.
 From Ordinal Require Import VeblenFacts.
 From Ordinal Require Import AckermannTower.
 
+From Ordinal Require Import Notation.Interpolants.
 From Ordinal Require Import Notation.CantorDecomposition.
+From Ordinal Require NaturalProduct.
+From Ordinal Require Notation.CantorProduct.
 
 Open Scope ord_scope.
 
@@ -77,7 +80,7 @@ Definition VF_isZero x : { x = Z } + { 0 < VF_denote x }.
 Proof.
   destruct x; auto.
   right. simpl. apply veblen_nonzero; auto.
-Qed.
+Defined.
 
 Theorem V_collapse :
   forall n a b x,
@@ -1459,7 +1462,6 @@ Proof.
                     (fixOrd (fun d : Ord => veblen (ackermann_tower (addOrd 1) (VF_denote q)) d 0) b')).
     { apply fix_has_interpolants; auto with ord.
       - intros. eapply veblen_interpolants_first with (Vnorm q); eauto with ord.
-        + apply VF_has_cantor_decomposition.
         + hnf; simpl; intros.
           generalize (VF_ackermann_reflects (VF_denote q) q).
           intros. apply H7; intuition auto with ord. }
@@ -1495,7 +1497,6 @@ Proof.
   - simpl.
     apply veblen_interpolants
       with (f:=VF_denote) (P:=VF_isNormal) (g:=ackermann_tower (addOrd 1) (VF_denote n)) (a:= a) (b:=VF_denote b) (vr:=Vnorm n); auto.
-    + apply VF_has_cantor_decomposition.
     + simpl in Hnorm. intuition.
       apply ackermann_tower_has_interpolants; auto with ord.
       apply Hindx; auto.
@@ -1519,31 +1520,40 @@ Definition VF_nadd := cantor_nadd VF_has_cantor_decomposition.
 Theorem VF_reflects_nadd: reflects VForm VF_denote VF_isNormal (ORD ==> ORD ==> ORD) naddOrd VF_nadd.
 Proof.
   apply cantor_nadd_reflects.
+Qed.
+
+(** The natural product, computed on Cantor normal forms; it reflects the
+    semantic natural product constructively, using interpolants. *)
+Definition VF_nmul := CantorProduct.cantor_nmul _ _ _ VF_has_cantor_decomposition.
+
+Theorem VF_reflects_nmul: reflects VForm VF_denote VF_isNormal (ORD ==> ORD ==> ORD) NaturalProduct.nmulOrd VF_nmul.
+Proof.
+  apply CantorProduct.cantor_nmul_reflects.
   apply VF_has_all_interpolants.
 Qed.
 
-Lemma LAO_complete: complete LargeAckermannOrdinal.
+Lemma AO_complete: complete AckermannOrdinal.
 Proof.
-  unfold LargeAckermannOrdinal.
+  unfold AckermannOrdinal.
   apply normal_fix_complete; auto with ord.
   intros. apply normal_inflationary with (f:=fun i => ackermann_tower _ i 0); auto.
   apply ackermann_tower_normal_first; auto with ord.
 Qed.
 
-Theorem VF_below_LAO : forall x:VF, x < LargeAckermannOrdinal.
+Theorem VF_below_AO : forall x:VF, x < AckermannOrdinal.
 Proof.
   induction x; simpl.
-  - unfold LargeAckermannOrdinal.
+  - unfold AckermannOrdinal.
     rewrite normal_fixpoint; auto with ord.
     apply ackermann_tower_nonzero; auto with ord.
   - apply veblen_collapse'; auto with ord.
-    apply LAO_complete.
-    unfold LargeAckermannOrdinal.
+    apply AO_complete.
+    unfold AckermannOrdinal.
     rewrite normal_fixpoint at 2; auto with ord.
     rewrite <- ackermann_tower_fixpoint with (a' := sz x1); auto with ord.
     apply veblen_monotone_first; auto with ord.
     apply normal_fixpoint; auto with ord.
-    apply LAO_complete.
+    apply AO_complete.
 Qed.
 
 Lemma VF_is_complete: complete VF.
@@ -1556,11 +1566,11 @@ Proof.
   - left. constructor. exact Z.
 Qed.
 
-Theorem VF_LAO : VF ≈ LargeAckermannOrdinal.
+Theorem VF_AO : VF ≈ AckermannOrdinal.
 Proof.
   split.
-  - rewrite ord_le_unfold. apply VF_below_LAO.
-  - unfold LargeAckermannOrdinal.
+  - rewrite ord_le_unfold. apply VF_below_AO.
+  - unfold AckermannOrdinal.
     apply normal_fix_least; auto with ord.
     { apply VF_is_complete. }
     rewrite normal_ord_decompose with (f:=fun i => ackermann_tower _ i 0); auto with ord.
@@ -1584,10 +1594,10 @@ From Stdlib Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 Theorem VF_has_enough_notations (EM:excluded_middle) :
-  forall x, x < LargeAckermannOrdinal -> exists v:VF, v ≈ x.
+  forall x, x < AckermannOrdinal -> exists v:VF, v ≈ x.
 Proof.
   intros x H.
-  rewrite <- VF_LAO in H.
+  rewrite <- VF_AO in H.
   assert (HVF: has_enough_notations VF_denote VF_isNormal).
   { apply has_interpolants_has_enough_notations with (A:=VForm) (f:=VF_denote) (P:=VF_isNormal); auto.
     apply VF_has_all_interpolants. }

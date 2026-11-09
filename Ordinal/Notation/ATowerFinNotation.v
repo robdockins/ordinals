@@ -24,7 +24,10 @@ From Ordinal Require Import VeblenCon.
 From Ordinal Require Import VeblenFacts.
 From Ordinal Require Import AckermannTower.
 
+From Ordinal Require Import Notation.Interpolants.
 From Ordinal Require Import Notation.CantorDecomposition.
+From Ordinal Require NaturalProduct.
+From Ordinal Require Notation.CantorProduct.
 
 Open Scope ord_scope.
 
@@ -75,7 +78,7 @@ Definition VF_isZero x : { x = Z } + { 0 < VF_denote x }.
 Proof.
   destruct x; auto.
   right. simpl. apply veblen_nonzero; auto.
-Qed.
+Defined.
 
 Theorem V_collapse :
   forall n a b x,
@@ -1140,7 +1143,6 @@ Proof.
   - simpl.
     apply veblen_interpolants
       with (f:=VF_denote) (P:=VF_isNormal) (g:=ackermann_tower_fin (addOrd 1) n) (a:=a) (b:=VF_denote b) (vr:=Vnorm n); auto.
-    + apply VF_has_cantor_decomposition.
     + clear Hnorm.
       induction n as [n Hindn] using (size_induction ω).
       destruct n; intros.
@@ -1151,10 +1153,8 @@ Proof.
         destruct (VF_succ_reflects 0 Z); simpl; intuition auto with ord. }
       simpl.
       eapply enum_fix_has_interpolants with (enum_gr := Vnorm (S n) Z); auto with ord.
-      * apply VF_has_cantor_decomposition.
       * intros.
         apply veblen_interpolants_first with (vr:= Vnorm n); auto with ord.
-        ** apply VF_has_cantor_decomposition.
         ** intros. apply Hindn; simpl; auto with ord.
            intros.
            apply Hindx; auto.
@@ -1196,19 +1196,28 @@ Definition VF_nadd := cantor_nadd VF_has_cantor_decomposition.
 Theorem VF_reflects_nadd: reflects VForm VF_denote VF_isNormal (ORD ==> ORD ==> ORD) naddOrd VF_nadd.
 Proof.
   apply cantor_nadd_reflects.
+Qed.
+
+(** The natural product, computed on Cantor normal forms; it reflects the
+    semantic natural product constructively, using interpolants. *)
+Definition VF_nmul := CantorProduct.cantor_nmul _ _ _ VF_has_cantor_decomposition.
+
+Theorem VF_reflects_nmul: reflects VForm VF_denote VF_isNormal (ORD ==> ORD ==> ORD) NaturalProduct.nmulOrd VF_nmul.
+Proof.
+  apply CantorProduct.cantor_nmul_reflects.
   apply VF_has_all_interpolants.
 Qed.
 
-Theorem VF_below_SAO : forall x:VF, x < SmallAckermannOrdinal.
+Theorem VF_below_FAO : forall x:VF, x < FinAckermannOrdinal.
 Proof.
   induction x; simpl.
-  - unfold SmallAckermannOrdinal.
+  - unfold FinAckermannOrdinal.
     rewrite <- (sup_le _ _ 0%nat).
     simpl.
     rewrite addOrd_zero_r.
     apply succ_lt.
   - apply veblen_collapse'; auto.
-    + unfold SmallAckermannOrdinal.
+    + unfold FinAckermannOrdinal.
       apply sup_complete; auto.
       hnf; intros.
       exists (Nat.max a1 a2).
@@ -1217,7 +1226,7 @@ Proof.
       simpl.
       rewrite addOrd_zero_r.
       apply succ_lt.
-    + unfold SmallAckermannOrdinal.
+    + unfold FinAckermannOrdinal.
       etransitivity.
       apply veblen_continuous_first; auto.
       apply sup_least; intro i.
@@ -1232,11 +1241,11 @@ Proof.
       apply ackermann_tower_fin_monotone with (m:=i) (n:=S (Nat.max i n)); auto with ord arith.
 Qed.
 
-Theorem VF_SAO : VF ≈ SmallAckermannOrdinal.
+Theorem VF_FAO : VF ≈ FinAckermannOrdinal.
 Proof.
   split.
-  - rewrite ord_le_unfold. apply VF_below_SAO.
-  - unfold SmallAckermannOrdinal.
+  - rewrite ord_le_unfold. apply VF_below_FAO.
+  - unfold FinAckermannOrdinal.
     apply sup_least. intro i.
     transitivity (VF_denote (V i Z Z)).
     2: { apply index_le. }
@@ -1248,10 +1257,10 @@ From Stdlib Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 Theorem VF_has_enough_notations (EM:excluded_middle) :
-  forall x, x < SmallAckermannOrdinal -> exists v:VF, v ≈ x.
+  forall x, x < FinAckermannOrdinal -> exists v:VF, v ≈ x.
 Proof.
   intros x H.
-  rewrite <- VF_SAO in H.
+  rewrite <- VF_FAO in H.
   assert (HVF: has_enough_notations VF_denote VF_isNormal).
   { apply has_interpolants_has_enough_notations with (A:=VForm) (f:=VF_denote) (P:=VF_isNormal); auto.
     apply VF_has_all_interpolants. }

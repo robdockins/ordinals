@@ -6,6 +6,7 @@ Ordinal/Arith.v
 Ordinal/Enumerate.v
 Ordinal/Cantor.v
 Ordinal/NaturalArith.v
+Ordinal/NaturalProduct.v
 Ordinal/Classical.v
 Ordinal/WellFounded.v
 Ordinal/Examples.v
@@ -24,10 +25,13 @@ Ordinal/SchutteColumnFacts.v
 Ordinal/Countable.v
 
 Ordinal/Notation/CantorNotation.v
+Ordinal/Notation/Interpolants.v
 Ordinal/Notation/CantorDecomposition.v
+Ordinal/Notation/CantorProduct.v
 Ordinal/Notation/VNotation.v
 Ordinal/Notation/VWNotation.v
 Ordinal/Notation/ATowerFinNotation.v
 Ordinal/Notation/ATowerNotation.v
+Ordinal/Notation/GrimmT3.v
 Ordinal/Notation/SchutteStack.v
 Ordinal/Notation/SchutteMatrix.v

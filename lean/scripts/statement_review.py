@@ -34,9 +34,9 @@ OUTPUT = LEAN / "STATEMENT_REVIEW.md"
 
 EXTRA = re.compile(
     r"(wf_ord_lt_nat_omega|cantor_decomposition_is_classical|KnuthUp_epsilon|Γ₀_least|"
-    r"Γ_enumerates|^VF_ε₀$|^VF_Γ₀$|^VF_SAO$|^VF_LAO$|^VF_SVO$|^VF_LVO$|EM_iff|reflects|"
+    r"Γ_enumerates|^VF_ε₀$|^VF_Γ₀$|^VF_FAO$|^VF_AO$|^VF_SVO$|^VF_LVO$|EM_iff|reflects|"
     r"has_enough_notations|goodstein4_correct_initial_sequence|goodstein_zero|_EM$|_WEM$|"
-    r"SmallVeblenOrdinal$|LargeAckermannOrdinal$|SmallAckermannOrdinal$)")
+    r"SmallVeblenOrdinal$|AckermannOrdinal$|FinAckermannOrdinal$)")
 KIND = re.compile(r"^\s*(?:Global\s+|Local\s+|Program\s+)*(Lemma|Theorem|Corollary|Definition|Fixpoint)\s+"
                   r"([^\s:(]+)", re.M)
 

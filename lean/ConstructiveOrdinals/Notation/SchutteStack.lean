@@ -1,4 +1,5 @@
 import ConstructiveOrdinals.Notation.CantorDecomposition
+import ConstructiveOrdinals.Notation.CantorProduct
 import ConstructiveOrdinals.Schutte.ColumnFacts
 import ConstructiveOrdinals.Prelude.Relations
 
@@ -1412,7 +1413,7 @@ def recompose : List VForm → VForm
   | Z :: x' :: xs' => N [recompose (x' :: xs')]
   | N l :: x' :: xs' => N [N l, recompose (x' :: xs')]
 
-open CantorDecomposition in
+open CantorDecomposition Interpolants in
 /-- Rocq: `Notation.SchutteStack.VF_decompose_correct`. -/
 theorem decompose_correct : ∀ x : VForm, IsNormal x →
     Each IsNormal (decompose x) ∧ CantorOrdered denote (decompose x) ∧
@@ -1526,7 +1527,7 @@ private theorem lt_powOmega_small : ∀ x : VForm, IsNormal x → Small x → de
       (lt_of_lt_of_le h'.2.2.2.1 (normal_inflationary powOmega_normal _ (complete _))))
   | N (_ :: _ :: _ :: _), _, h => h.elim
 
-open CantorDecomposition in
+open CantorDecomposition Interpolants in
 /-- Rocq: `Notation.SchutteStack.VF_recompose_correct`. -/
 theorem recompose_correct : ∀ xs : List VForm, Each IsNormal xs → CantorOrdered denote xs →
     IsNormal (recompose xs) ∧ cantorDenote denote xs ≈ denote (recompose xs)
@@ -1574,7 +1575,7 @@ theorem recompose_correct : ∀ xs : List VForm, Each IsNormal xs → CantorOrde
       · exact lt_of_lt_of_le (lt_of_le_of_lt ih.2.ge (lt_of_lt_of_le
           (cantor_tail_lt (N l) (x' :: xs') hord) (add_le_add (le_refl _) ih.2.le))) h2.ge
 
-open CantorDecomposition
+open CantorDecomposition Interpolants
 
 /-- Rocq: `Notation.SchutteStack.VF_has_cantor_decomposition`. -/
 def hasCantorDecomposition : HasCantorDecomposition denote IsNormal where
@@ -1635,11 +1636,11 @@ def gamma (x : VForm) : VForm := nnorm [two, Z, x]
 /-- Rocq: `Notation.SchutteStack.VF_ackermann`. -/
 def ackermann (a x : VForm) : VForm := nnorm [a, Z, x]
 
-/-- Rocq: `Notation.SchutteStack.VF_SAO`. -/
-def SAO : VForm := N [omega, Z, Z]
+/-- Rocq: `Notation.SchutteStack.VF_FAO`. -/
+def FAO : VForm := N [omega, Z, Z]
 
-/-- Rocq: `Notation.SchutteStack.VF_LAO`. -/
-def LAO : VForm := N [one, Z, Z, Z]
+/-- Rocq: `Notation.SchutteStack.VF_AO`. -/
+def AO : VForm := N [one, Z, Z, Z]
 
 /-- Rocq: `Notation.SchutteStack.VF_nat`. -/
 def nat : Nat → VForm
@@ -1714,18 +1715,18 @@ theorem ackermann_tower_reflects :
         (complete b))) (equiv_symm (equiv_trans (nnorm_eq _) (denote_aZc a b)))),
       nnorm_normal _ ⟨ha, trivial, hb, trivial⟩⟩
 
-/-- Rocq: `Notation.SchutteStack.VF_SmallAckermannOrdinal`. -/
-theorem SmallAckermannOrdinal_reflects :
-    Reflects VForm denote IsNormal .ord SmallAckermannOrdinal SAO :=
-  ⟨equiv_trans SmallAckermannOrdinal_alt (equiv_trans (equiv_intro
+/-- Rocq: `Notation.SchutteStack.VF_FinAckermannOrdinal`. -/
+theorem FinAckermannOrdinal_reflects :
+    Reflects VForm denote IsNormal .ord FinAckermannOrdinal FAO :=
+  ⟨equiv_trans FinAckermannOrdinal_alt (equiv_trans (equiv_intro
       (ackermann_tower_monotone _ onePlus_normal.monotone _ _ _ _ omega_reflects.1.le (le_refl 0))
       (ackermann_tower_monotone _ onePlus_normal.monotone _ _ _ _ omega_reflects.1.ge (le_refl 0)))
     (equiv_trans (equiv_symm (schutte_column_2_ackermann_tower _ _ _ onePlus_normal (complete omega)
       zero_complete)) (equiv_symm (denote_aZc omega Z)))),
     by decide⟩
 
-/-- Rocq: `Notation.SchutteStack.VF_LAO_eq`. -/
-theorem LAO_eq : denote LAO ≈ schutteColumn (fun y => 1 + y) 3 1 0 := by
+/-- Rocq: `Notation.SchutteStack.VF_AO_eq`. -/
+theorem AO_eq : denote AO ≈ schutteColumn (fun y => 1 + y) 3 1 0 := by
   have mono : ∀ (f : Ordinal.{0} → Ordinal.{0}) (β α : Ordinal.{0}), (∀ a b, a ≤ b → f a ≤ f b) →
       ∀ a b, a ≤ b → schutteColumn f β α a ≤ schutteColumn f β α b := fun f β α hf _ _ h =>
     schutte_column_monotone f β α _ α _ hf (le_refl _) h
@@ -1737,15 +1738,15 @@ theorem LAO_eq : denote LAO ≈ schutteColumn (fun y => 1 + y) 3 1 0 := by
     (schutte_column_monotone _ 3 _ _ _ _ onePlus_normal.monotone (add_zero 1).le (add_zero 0).le)
     (schutte_column_monotone _ 3 _ _ _ _ onePlus_normal.monotone (add_zero 1).ge (add_zero 0).ge)
 
-/-- Rocq: `Notation.SchutteStack.VF_LargeAckermannOrdinal`. -/
-theorem LargeAckermannOrdinal_reflects :
-    Reflects VForm denote IsNormal .ord LargeAckermannOrdinal LAO := by
-  refine ⟨equiv_trans ?_ (equiv_symm LAO_eq), by decide⟩
+/-- Rocq: `Notation.SchutteStack.VF_AckermannOrdinal`. -/
+theorem AckermannOrdinal_reflects :
+    Reflects VForm denote IsNormal .ord AckermannOrdinal AO := by
+  refine ⟨equiv_trans ?_ (equiv_symm AO_eq), by decide⟩
   have hf := onePlus_normal
   have h3 : Complete (3 : Ordinal.{0}) := ofNat_complete 3
   have h1 : Complete (1 : Ordinal.{0}) := ofNat_complete 1
   have hfirst := ackermann_tower_normal_first _ hf
-  have hL : Complete (LargeAckermannOrdinal.{0}) :=
+  have hL : Complete (AckermannOrdinal.{0}) :=
     normal_fix_complete 0 zero_complete (normal_inflationary hfirst) hfirst.monotone hfirst.complete
   have hC := (schutte_column_normal 3 1 _ h3 h1 hf).complete 0 zero_complete
   have hg := schutte_column_normal 3 0 _ h3 zero_complete hf
@@ -1766,12 +1767,12 @@ theorem LargeAckermannOrdinal_reflects :
       (Nat.zero_lt_succ 2)) (succ_lt 0)).le (sup_least fun _ => sup_least fun _ => ?_)
     have hn := schutte_column_normal_arg 2 _ (ofNat_complete 2) hg
     refine normal_fix_least hn _ _ hL (limit_least fun i => nomatch i) ?_
-    calc schutteColumn (schutteColumn (fun y => 1 + y) 3 0) 2 LargeAckermannOrdinal 0
-        ≈ ackermannTower (schutteColumn (fun y => 1 + y) 3 0) LargeAckermannOrdinal 0 :=
+    calc schutteColumn (schutteColumn (fun y => 1 + y) 3 0) 2 AckermannOrdinal 0
+        ≈ ackermannTower (schutteColumn (fun y => 1 + y) 3 0) AckermannOrdinal 0 :=
           schutte_column_2_ackermann_tower _ _ _ hg hL zero_complete
-      _ ≤ ackermannTower (fun y => 1 + y) LargeAckermannOrdinal 0 :=
+      _ ≤ ackermannTower (fun y => 1 + y) AckermannOrdinal 0 :=
           ackermann_tower_monotone_func _ _ _ _ hg hf hL zero_complete fun z _ => (hgf z).le
-      _ ≈ LargeAckermannOrdinal := equiv_symm (normal_fixpoint hfirst 0 zero_complete)
+      _ ≈ AckermannOrdinal := equiv_symm (normal_fixpoint hfirst 0 zero_complete)
 
 /-! ## Interpolants -/
 
@@ -2165,7 +2166,16 @@ def nadd : VForm → VForm → VForm := cantorNadd hasCantorDecomposition
 
 /-- Rocq: `Notation.SchutteStack.VF_reflects_nadd`. -/
 theorem reflects_nadd : Reflects VForm denote IsNormal (.ord ==> .ord ==> .ord) (· ♯ ·) nadd :=
-  cantor_nadd_reflects hasCantorDecomposition schutte_stack_has_all_interpolants
+  cantor_nadd_reflects hasCantorDecomposition
+
+/-- The natural product, computed on Cantor normal forms.
+Rocq: `Notation.SchutteStack.VF_nmul`. -/
+def nmul : VForm → VForm → VForm := CantorProduct.cantorNmul hasCantorDecomposition
+
+/-- Constructively, using interpolants. Rocq: `Notation.SchutteStack.VF_reflects_nmul`. -/
+theorem reflects_nmul :
+    Reflects VForm denote IsNormal (.ord ==> .ord ==> .ord) NaturalProduct.nmul nmul :=
+  CantorProduct.cantor_nmul_reflects hasCantorDecomposition schutte_stack_has_all_interpolants
 
 /-- With the excluded middle, every ordinal below the small Veblen ordinal has
 a unique normal form. Rocq's `exists!` is spelled out.

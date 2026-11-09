@@ -27,7 +27,7 @@ Lean notes:
   together with `Sized` instances on `CantorForm` and `CantorNormalForm`.
 - A `match` on a comparison result inside a statement (`match cantorCompare a
   b with LT => … | EQ => … | GT => … end`) is written `OrderingCorrect`, which
-  is the same proposition by definition (`Reflection.ordering_correct`).
+  is the same proposition by definition (`Defs.ordering_correct`).
 -/
 
 namespace ConstructiveOrdinals.CantorNotation
@@ -208,9 +208,9 @@ theorem compare_correct_lemma (a : CantorForm) :
 
 end CantorForm
 
-/-- `a < b + a` when `a` is complete, `a ≤ b` and `0 < b`.
-Rocq: `Notation.CantorNotation.add_lemma`. -/
-theorem add_lemma {a b : Ordinal.{0}} (ha : Complete a) (hab : a ≤ b) (hb : 0 < b) : a < b + a :=
+/-- `a < b + a` when `a` is complete, `a ≤ b` and `0 < b`: a strict version of
+`le_add_left`. Rocq: `Notation.CantorNotation.addOrd_lt2`. -/
+theorem lt_add_left {a b : Ordinal.{0}} (ha : Complete a) (hab : a ≤ b) (hb : 0 < b) : a < b + a :=
   match complete_zeroDec ha with
   | .inl h => lt_of_le_of_lt h (lt_of_lt_of_le hb (le_add_right b a))
   | .inr h =>
@@ -898,8 +898,7 @@ theorem expSingle_correct (x e : CantorForm) (hx : IsNormal x) (he : IsNormal e)
           (mul_congr (equiv_refl _) (add_zero _)))) ?_)
       refine equiv_trans (pow_mul ω _ _) (equiv_intro ?_ ?_)
       · exact pow_le_pow_left (le_add_right _ _) _
-      · refine expToOmega_collapse_tower _ _ ⟨xs.length⟩ ?_ (firstTerm_dominates _ xs hx) _
-          (denote_complete e) he₀
+      · refine expToOmega_collapse_tower _ _ ⟨xs.length⟩ ?_ (firstTerm_dominates _ xs hx) _ he₀
         have h₁ : 1 ≤ denote (sum (l :: ls)) := le_trans (succ_least (pow_pos ω _)) (le_add_right _ _)
         calc ofNat xs.length + 1 ≈ ofNat (1 + xs.length) := equiv_symm (ofNat_add 1 xs.length)
           _ ≤ ω := le_of_lt (index_lt ω ⟨1 + xs.length⟩)

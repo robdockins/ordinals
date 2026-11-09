@@ -1,0 +1,6 @@
+== run started Thu Nov  5 15:12:19 PST 2026
+  [0] calibration ω^4 ⊕ ω^4 ≤ ω^4·2: forced  (0.0s)
+  [1] calibration ω^4 ⊕ ω^4 ≤ ω^4·1 (expect NOT): NOT forced  (0.0s)
+  [2] exit 124 (timeout or error) Thu Nov  5 16:02:20 PST 2026
+  [3] exit 124 (timeout or error) Thu Nov  5 16:52:20 PST 2026
+== run finished Thu Nov  5 16:52:20 PST 2026

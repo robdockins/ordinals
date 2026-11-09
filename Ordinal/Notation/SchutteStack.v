@@ -26,7 +26,10 @@ From Ordinal Require Import AckermannTower.
 From Ordinal Require Import SchutteColumn.
 From Ordinal Require Import SchutteColumnFacts.
 
+From Ordinal Require Import Notation.Interpolants.
 From Ordinal Require Import Notation.CantorDecomposition.
+From Ordinal Require NaturalProduct.
+From Ordinal Require Notation.CantorProduct.
 
 Open Scope ord_scope.
 
@@ -1710,8 +1713,8 @@ Definition VF_epsilon x := Nnorm [VF_one; Z; x].
 Definition VF_gamma x := Nnorm [VF_two; Z; x].
 Definition VF_ackermann a x := Nnorm [a; Z; x].
 
-Definition VF_SAO := N [VF_omega; Z; Z].
-Definition VF_LAO := N [VF_one; Z; Z; Z].
+Definition VF_FAO := N [VF_omega; Z; Z].
+Definition VF_AO := N [VF_one; Z; Z; Z].
 
 
 Fixpoint VF_nat (n:nat) : VForm :=
@@ -1837,13 +1840,13 @@ Proof.
   - apply Nnorm_normal; simpl; auto.
 Qed.
 
-Theorem VF_SmallAckermannOrdinal:
-  reflects VForm VF_denote VF_normal ORD SmallAckermannOrdinal VF_SAO.
+Theorem VF_FinAckermannOrdinal:
+  reflects VForm VF_denote VF_normal ORD FinAckermannOrdinal VF_FAO.
 Proof.
-  unfold VF_SAO.
+  unfold VF_FAO.
   hnf; intros.
   split.
-  - rewrite SmallAckermannOrdinal_alt.
+  - rewrite FinAckermannOrdinal_alt.
     simpl.
     rewrite schutte_column0.
     rewrite schutte_column_arg0; auto with ord.
@@ -1852,13 +1855,13 @@ Proof.
     + apply VF_omega_reflects.
     + apply VF_omega_reflects.
     + rewrite addOrd_zero_r. auto with ord.
-  - assert (exists H, VF_normal_dec VF_SAO = left H).
+  - assert (exists H, VF_normal_dec VF_FAO = left H).
     { eexists. reflexivity. }
     destruct H; auto.
 Qed.
 
-Lemma VF_LAO_eq:
-  VF_denote VF_LAO ≈ schutte_column (addOrd 1) 3 1 0.
+Lemma VF_AO_eq:
+  VF_denote VF_AO ≈ schutte_column (addOrd 1) 3 1 0.
 Proof.
   simpl.
   rewrite schutte_column0.
@@ -1867,12 +1870,12 @@ Proof.
   split; apply schutte_column_monotone; auto with ord; rewrite addOrd_zero_r; reflexivity.
 Qed.
 
-Theorem VF_LargeAckermannOrdinal:
-  reflects VForm VF_denote VF_normal ORD LargeAckermannOrdinal VF_LAO.
+Theorem VF_AckermannOrdinal:
+  reflects VForm VF_denote VF_normal ORD AckermannOrdinal VF_AO.
 Proof.
   hnf; intros.
   split.
-  - rewrite VF_LAO_eq.
+  - rewrite VF_AO_eq.
     split.
     + apply normal_fix_least; auto 50 with ord.
       rewrite <- (schutte_column_fixpoint 3 1 0 _ 2 0) at 2; auto with ord.
@@ -1884,11 +1887,11 @@ Proof.
       apply sup_least; intros [].
       simpl.
       apply normal_fix_least; auto 50 with ord.
-      * unfold LargeAckermannOrdinal.
+      * unfold AckermannOrdinal.
         apply normal_fix_complete; auto with ord.
         intros. apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
       * apply limit_least; intros [].
-      * unfold LargeAckermannOrdinal.
+      * unfold AckermannOrdinal.
         rewrite normal_fixpoint at 2; auto with ord.
         rewrite schutte_column_2_ackermann_tower; auto with ord.
         apply ackermann_tower_monotone_func; auto with ord.
@@ -1897,7 +1900,7 @@ Proof.
         ** intros. rewrite schutte_column_arg0; auto with ord.
         ** apply normal_fix_complete; auto with ord.
            intros. apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
-  - assert (exists H, VF_normal_dec VF_LAO = left H).
+  - assert (exists H, VF_normal_dec VF_AO = left H).
     { eexists. reflexivity. }
     destruct H; auto.
 Qed.
@@ -2336,6 +2339,15 @@ Definition VF_nadd := cantor_nadd VF_has_cantor_decomposition.
 Theorem VF_reflects_nadd: reflects VForm VF_denote VF_normal (ORD ==> ORD ==> ORD) naddOrd VF_nadd.
 Proof.
   apply cantor_nadd_reflects.
+Qed.
+
+(** The natural product, computed on Cantor normal forms; it reflects the
+    semantic natural product constructively, using interpolants. *)
+Definition VF_nmul := CantorProduct.cantor_nmul _ _ _ VF_has_cantor_decomposition.
+
+Theorem VF_reflects_nmul: reflects VForm VF_denote VF_normal (ORD ==> ORD ==> ORD) NaturalProduct.nmulOrd VF_nmul.
+Proof.
+  apply CantorProduct.cantor_nmul_reflects.
   apply schutte_stack_has_all_interpolants.
 Qed.
 

@@ -7,3 +7,4 @@
 Makefile.conf
 .Makefile.d
 *.lia.cache
+tools/kripke/*_progress.log

@@ -1,6 +1,7 @@
 From Stdlib Require Import Setoid.
 From Stdlib Require Import Morphisms.
 From Stdlib Require Import Program.Basics.
+From Stdlib Require Import ClassicalFacts.
 
 Unset Printing Records.
 
@@ -9,6 +10,7 @@ From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
 From Ordinal Require Import Fixpoints.
 From Ordinal Require Import VeblenDefs.
+From Ordinal Require Import Classical.
 
 (** We say that a function is Scott continuous if it
     preserves all nonempty directed suprema of complete ordinals. *)
@@ -1427,6 +1429,139 @@ Section veblen.
 End veblen.
 
 Global Hint Resolve veblen_normal veblen_first_normal: ord.
+
+(** [veblen_increasing] uses the completeness of [β] only to decide
+    whether [β] is zero, and this cannot be avoided: for β = 1 if P and
+    0 otherwise (which is directed, with complete children), strict
+    monotonicity of [veblen powOmega β] gives excluded middle. *)
+Lemma veblen_increasing_EM :
+  (forall β x y, complete y -> x < y -> veblen powOmega β x < veblen powOmega β y) ->
+  excluded_middle.
+Proof.
+  intros H P.
+  set (β := ord P (fun _ => 0)).
+  generalize (H β 0 1 (succ_complete 0 zero_complete) (succ_lt 0)).
+  rewrite (veblen_unroll powOmega β 1).
+  intro Hlt. apply lub_lt in Hlt. destruct Hlt as [Hlt|Hlt].
+  - right. intro HP.
+    set (z := veblen powOmega 1 0).
+    assert (Hz : powOmega z ≈ z).
+    { rewrite <- (veblen_zero powOmega z).
+      apply veblen_fixpoints; auto with ord. }
+    apply (ord_lt_irreflexive z).
+    apply ord_lt_le_trans with (powOmega 1).
+    + apply ord_le_lt_trans with (veblen powOmega β 0); auto.
+      apply veblen_monotone_first.
+      { apply powOmega_monotone. }
+      apply succ_least.
+      rewrite ord_lt_unfold. exists HP. simpl. auto with ord.
+    + transitivity (powOmega z); [| apply Hz].
+      apply powOmega_monotone.
+      apply succ_least.
+      apply veblen_nonzero; apply powOmega_normal.
+  - left. apply sup_lt in Hlt. destruct Hlt as [HP _]. exact HP.
+Qed.
+
+(** [veblen_fixpoints] needs [β] to be directed: when [veblen f β x]
+    is unrolled, an element lies in the fixpoint branch of one child of
+    [β], while [α < β] is witnessed by another, and the proof uses a
+    child above both.  Two complete, incomparable children (1 or ω,
+    depending on P) give weak excluded middle: [w] lies in the branch
+    of the second child, and the fixpoint law moves [veblen b1 w] into
+    a branch, which decides which child is the larger. *)
+Lemma veblen_fixpoints_WEM :
+  (forall α (B:Type) (g:B -> Ord) x,
+      inhabited B ->
+      (forall b, complete (g b)) ->
+      complete α ->
+      complete x ->
+      α < ord B g ->
+      veblen powOmega α (veblen powOmega (ord B g) x) ≤ veblen powOmega (ord B g) x) ->
+  weak_excluded_middle.
+Proof.
+  intros H P.
+  set (b1 := classical.truth_ord' P).
+  set (b2 := classical.truth_ord' (~P)).
+  set (g := fun b:bool => if b then b1 else b2).
+  set (Z := veblen powOmega (ord bool g) 0).
+  assert (Hc1 : complete b1) by apply classical.truth_ord'_complete.
+  assert (Hc2 : complete b2) by apply classical.truth_ord'_complete.
+  assert (Hpos : forall Q, 0 < classical.truth_ord' Q).
+  { intro Q. apply ord_lt_le_trans with 1; [ apply succ_lt | ].
+    unfold classical.truth_ord'.
+    rewrite <- (sup_le _ _ 0%nat). apply lub_le1. }
+  (* iterating the smaller child stays below the first value of the larger *)
+  assert (Hstay : forall b b', complete b -> complete b' -> b < b' ->
+             forall z, z ≤ veblen powOmega b' 0 ->
+             forall n, iter_f (veblen powOmega b) z n ≤ veblen powOmega b' 0).
+  { intros b b' Hb Hb' Hlt z Hz n.
+    induction n; simpl; auto.
+    transitivity (veblen powOmega b (veblen powOmega b' 0)).
+    - apply veblen_monotone; auto. apply powOmega_monotone.
+    - destruct (veblen_fixpoints powOmega powOmega_normal b b' 0 Hb Hb' zero_complete Hlt)
+        as [Hle _].
+      exact Hle. }
+  assert (Hbase : forall y, limOrd (fun i : ordCarrier 0 => veblen powOmega (ord bool g) (0 i)) ≤ y).
+  { intro y. rewrite ord_le_unfold. intros []. }
+  set (w := veblen powOmega b2 0).
+  assert (Hwc : complete w).
+  { apply veblen_complete; auto with ord. }
+  assert (Hw : w < Z).
+  { unfold Z. rewrite veblen_unroll.
+    rewrite <- lub_le2.
+    rewrite <- (sup_le _ _ false).
+    unfold fixOrd.
+    rewrite <- (sup_le _ _ 2%nat).
+    simpl.
+    apply ord_lt_le_trans with (veblen powOmega b2 w).
+    - apply (veblen_increasing_nonzero powOmega powOmega_normal b2 (Hpos (~P)) 0 w).
+      apply veblen_nonzero. apply powOmega_normal.
+    - apply veblen_monotone. apply powOmega_monotone.
+      apply veblen_monotone. apply powOmega_monotone.
+      apply zero_least. }
+  assert (HE : veblen powOmega b1 w < Z).
+  { apply ord_lt_le_trans with (veblen powOmega b1 Z).
+    - apply (veblen_increasing_nonzero powOmega powOmega_normal b1 (Hpos P) w Z Hw).
+    - apply H; auto.
+      + exact (inhabits true).
+      + intros []; auto.
+      + apply zero_complete.
+      + rewrite ord_lt_unfold. exists true. simpl. reflexivity. }
+  unfold Z in HE. rewrite (veblen_unroll powOmega (ord bool g) 0) in HE.
+  apply lub_lt in HE. destruct HE as [HE|HE].
+  - exfalso.
+    unfold powOmega in HE. rewrite expOrd_zero in HE.
+    rewrite ord_lt_unfold in HE. destruct HE as [[] HE]. simpl in HE.
+    apply (ord_lt_irreflexive 0).
+    apply ord_lt_le_trans with (veblen powOmega b1 w); auto.
+    apply veblen_nonzero. apply powOmega_normal.
+  - apply sup_lt in HE. destruct HE as [b HE].
+    unfold fixOrd in HE. apply sup_lt in HE. destruct HE as [n HE].
+    destruct b; simpl in HE.
+    + left. intro HNP.
+      assert (Hlt : b1 < b2).
+      { unfold b1, b2.
+        rewrite (classical.truth_ord'_false P HNP).
+        rewrite (classical.truth_ord'_true (~P) HNP).
+        apply omega_gt1. }
+      apply (ord_lt_irreflexive w).
+      apply ord_le_lt_trans with (veblen powOmega b1 w).
+      { apply veblen_inflationary; auto. apply powOmega_normal. }
+      eapply ord_lt_le_trans; [ apply HE | ].
+      apply Hstay; auto.
+    + right. intro HP.
+      assert (Hlt : b2 < b1).
+      { assert (HNNP : ~~P) by auto.
+        unfold b1, b2.
+        rewrite (classical.truth_ord'_true P HP).
+        rewrite (classical.truth_ord'_false (~P) HNNP).
+        apply omega_gt1. }
+      apply (ord_lt_irreflexive (veblen powOmega b1 0)).
+      apply ord_le_lt_trans with (veblen powOmega b1 w).
+      { apply veblen_monotone. apply powOmega_monotone. apply zero_least. }
+      eapply ord_lt_le_trans; [ apply HE | ].
+      apply Hstay; auto.
+Qed.
 
 Lemma enumerates_equiv_pred f P P' :
   normal_function f ->

@@ -395,6 +395,14 @@ Proof.
     auto.
 Qed.
 
+Lemma addOrd_cancel_lt x y z : x + y < x + z -> y < z.
+Proof.
+  intro H. destruct (add_lt _ _ _ H) as [H1|[j Hj]].
+  - elim (ord_lt_irreflexive x). eapply ord_le_lt_trans; [apply addOrd_le1 | exact H1].
+  - apply ord_le_lt_trans with (ordSize z j); [|apply index_lt].
+    apply addOrd_cancel_le with x x; auto. reflexivity.
+Qed.
+
 
 Lemma addOrd_cancel a b x y :
   a + x ≈ b + y -> a ≈ b -> x ≈ y.

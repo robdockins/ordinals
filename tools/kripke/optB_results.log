@@ -1,0 +1,12 @@
+== run started Thu Nov  5 18:34:36 PST 2026 (KRIPKE_OPP=left, 10 min cap)
+  [1] exp upper xP,1: forced  (0.1s)
+  [3] exp upper xP,xP: forced  (7.6s)
+  [sens 4] exit 124 (timeout or error) Thu Nov  5 18:44:44 PST 2026
+  [sens 5] exit 124 (timeout or error) Thu Nov  5 18:54:44 PST 2026
+  [sens 6] exit 124 (timeout or error) Thu Nov  5 19:04:45 PST 2026
+  [sens 7] exit 124 (timeout or error) Thu Nov  5 19:14:45 PST 2026
+  [8] exp lower cP,1: forced  (21.4s)
+  [sens 9] exit 124 (timeout or error) Thu Nov  5 19:25:07 PST 2026
+  [2] ω^γ ⊕ ω^γ ≤ ω^γ·2: NOT forced  (134.3s)
+  [3] ω^γ ⊕ ω^γ ≤ ω^γ·3: forced  (166.4s)
+== run finished Thu Nov  5 19:30:13 PST 2026

@@ -1,4 +1,5 @@
 import ConstructiveOrdinals.Notation.CantorDecomposition
+import ConstructiveOrdinals.Notation.CantorProduct
 import ConstructiveOrdinals.Veblen.Facts
 import ConstructiveOrdinals.Prelude.Relations
 
@@ -928,7 +929,7 @@ theorem normalizes_iff (x y : VForm) :
 
 /-! ## Cantor decomposition and arithmetic -/
 
-open CantorDecomposition
+open CantorDecomposition Interpolants
 
 /-- Rocq: `Notation.VWNotation.VF_decompose`. -/
 def decompose : VForm → List VForm
@@ -1131,13 +1132,13 @@ private theorem onePlus_has_interpolants : ∀ b, Complete b →
 theorem expOrd_interpolants (b : Ordinal.{0}) (hb₁ : Complete b)
     (hb₂ : HasInterpolants denote IsNormal b) : HasInterpolants denote IsNormal (ω ^ b) :=
   (has_interpolants_eq_mor (equiv_trans (veblen_onePlus b hb₁ 0 zero_complete) (add_zero _))).1
-    (veblen_interpolants_first hasCantorDecomposition (fun y => 1 + y) onePlus_normal
+    (veblen_interpolants_first hasCantorDecomposition.complete (fun y => 1 + y) onePlus_normal
       onePlus_has_interpolants vnorm reflects_vnorm b hb₁ hb₂)
 
 /-- Rocq: `Notation.VWNotation.ε_interpolants`. -/
 theorem ε_interpolants (b : Ordinal.{0}) (hb₁ : Complete b)
     (hb₂ : HasInterpolants denote IsNormal b) : HasInterpolants denote IsNormal (ε b) :=
-  enum_fix_has_interpolants hasCantorDecomposition powOmega powOmega_normal.complete
+  enum_fix_has_interpolants hasCantorDecomposition.complete powOmega powOmega_normal.complete
     (fun b hb₁ hb₂ => expOrd_interpolants b hb₁ hb₂) powOmega_normal.monotone
     (normal_inflationary powOmega_normal) (fun x => wnorm Z x)
     (fun _ a ⟨hxa, ha⟩ =>
@@ -1154,11 +1155,11 @@ theorem has_all_interpolants : HasAllInterpolants denote IsNormal := by
     exact fun _ => (has_interpolants_unfold _).2 fun i hi =>
       (lt_irrefl i (lt_of_lt_of_le hi (zero_least i))).elim
   | V a b iha ihb =>
-    exact fun h => veblen_interpolants hasCantorDecomposition (fun y => 1 + y) onePlus_normal
+    exact fun h => veblen_interpolants hasCantorDecomposition.complete (fun y => 1 + y) onePlus_normal
       onePlus_has_interpolants vnorm reflects_vnorm a (denote b) h.1 (iha h.1) (complete b)
       (ihb h.2.1)
   | W a b iha ihb =>
-    exact fun h => veblen_interpolants hasCantorDecomposition ε ε_normal
+    exact fun h => veblen_interpolants hasCantorDecomposition.complete ε ε_normal
       (fun b hb₁ hb₂ => ε_interpolants b hb₁ hb₂) wnorm reflects_veblen a (denote b) h.1
       (iha h.1) (complete b) (ihb h.2.1)
 
@@ -1167,7 +1168,16 @@ def nadd : VForm → VForm → VForm := cantorNadd hasCantorDecomposition
 
 /-- Rocq: `Notation.VWNotation.VF_reflects_nadd`. -/
 theorem reflects_nadd : Reflects VForm denote IsNormal (.ord ==> .ord ==> .ord) (· ♯ ·) nadd :=
-  cantor_nadd_reflects hasCantorDecomposition has_all_interpolants
+  cantor_nadd_reflects hasCantorDecomposition
+
+/-- The natural product, computed on Cantor normal forms.
+Rocq: `Notation.VWNotation.VF_nmul`. -/
+def nmul : VForm → VForm → VForm := CantorProduct.cantorNmul hasCantorDecomposition
+
+/-- Constructively, using interpolants. Rocq: `Notation.VWNotation.VF_reflects_nmul`. -/
+theorem reflects_nmul :
+    Reflects VForm denote IsNormal (.ord ==> .ord ==> .ord) NaturalProduct.nmul nmul :=
+  CantorProduct.cantor_nmul_reflects hasCantorDecomposition has_all_interpolants
 
 /-- With the excluded middle, every ordinal below `Γ 0` has a normal form.
 Rocq: `Notation.VWNotation.VW_has_enough_notations`. -/

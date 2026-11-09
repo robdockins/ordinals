@@ -41,6 +41,7 @@ MODULES = {
     "Fixpoints": "Fixpoints.lean",
     "Cantor": "Cantor.lean",
     "NaturalArith": "NaturalArith.lean",
+    "NaturalProduct": "NaturalProduct.lean",
     "Classical": "Classical.lean",
     "Reflection": "Reflection.lean",
     "WellFounded": "WellFounded.lean",
@@ -55,11 +56,14 @@ MODULES = {
     "SchutteColumn": "Schutte/Column.lean",
     "SchutteColumnFacts": "Schutte/ColumnFacts.lean",
     "Notation.CantorNotation": "Notation/Cantor.lean",
+    "Notation.Interpolants": "Notation/Interpolants.lean",
+    "Notation.CantorProduct": "Notation/CantorProduct.lean",
     "Notation.CantorDecomposition": "Notation/CantorDecomposition.lean",
     "Notation.VNotation": "Notation/V.lean",
     "Notation.VWNotation": "Notation/VW.lean",
     "Notation.ATowerFinNotation": "Notation/ATowerFin.lean",
     "Notation.ATowerNotation": "Notation/ATower.lean",
+    "Notation.GrimmT3": "Notation/GrimmT3.lean",
     "Notation.SchutteStack": "Notation/SchutteStack.lean",
     "Notation.SchutteMatrix": "Notation/SchutteMatrix.lean",
 }
@@ -120,7 +124,7 @@ LEAN_DECL_RE = re.compile(
 )
 NS_RE = re.compile(r"^\s*(namespace|section|mutual)(?:\s+(\S+))?\s*$")
 END_RE = re.compile(r"^\s*end(?:\s+(\S+))?\s*$")
-CITE_RE = re.compile(r"`((?:Notation\.)?[A-Z][A-Za-z]*)\.([^`\s]+)`")
+CITE_RE = re.compile(r"`((?:Notation\.)?[A-Z][A-Za-z0-9]*)\.([^`\s]+)`")
 
 
 def lean_citations():

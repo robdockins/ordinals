@@ -17,6 +17,7 @@ import ConstructiveOrdinals.Veblen.Constructive
 import ConstructiveOrdinals.Veblen.Facts
 import ConstructiveOrdinals.Veblen.Classical
 import ConstructiveOrdinals.NaturalArith
+import ConstructiveOrdinals.NaturalProduct
 import ConstructiveOrdinals.WellFounded
 import ConstructiveOrdinals.Examples
 import ConstructiveOrdinals.GoodsteinSequences
@@ -24,10 +25,13 @@ import ConstructiveOrdinals.AckermannTower
 import ConstructiveOrdinals.Schutte.Column
 import ConstructiveOrdinals.Schutte.ColumnFacts
 import ConstructiveOrdinals.Notation.Cantor
+import ConstructiveOrdinals.Notation.Interpolants
 import ConstructiveOrdinals.Notation.CantorDecomposition
+import ConstructiveOrdinals.Notation.CantorProduct
 import ConstructiveOrdinals.Notation.V
 import ConstructiveOrdinals.Notation.VW
 import ConstructiveOrdinals.Notation.ATowerFin
 import ConstructiveOrdinals.Notation.ATower
+import ConstructiveOrdinals.Notation.GrimmT3
 import ConstructiveOrdinals.Notation.SchutteStack
 import ConstructiveOrdinals.Notation.SchutteMatrix
