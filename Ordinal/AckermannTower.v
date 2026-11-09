@@ -715,9 +715,9 @@ Proof.
   lia.
 Qed.
 
-Definition SmallAckermannOrdinal := supOrd (fun n:ω => ackermann_tower_fin (addOrd 1) n 0).
+Definition FinAckermannOrdinal := supOrd (fun n:ω => ackermann_tower_fin (addOrd 1) n 0).
 
-Definition LargeAckermannOrdinal := fixOrd (fun x => ackermann_tower (addOrd 1) x 0) 0.
+Definition AckermannOrdinal := fixOrd (fun x => ackermann_tower (addOrd 1) x 0) 0.
 
 Lemma ackermann_tower_base_le: forall a x,
     complete a ->
@@ -786,9 +786,9 @@ Proof.
       apply normal_inflationary with (f:=fun x => ackermann_tower _ x 0); auto with ord.
 Qed.
 
-Lemma LargeAckermannOrdinal_limit: limitOrdinal LargeAckermannOrdinal.
+Lemma AckermannOrdinal_limit: limitOrdinal AckermannOrdinal.
 Proof.
-  unfold LargeAckermannOrdinal.
+  unfold AckermannOrdinal.
   apply ackermann_tower_fix_limit; auto with ord.
 Qed.
 
@@ -826,10 +826,10 @@ Proof.
         apply ackermann_tower_base_le; auto with ord.
 Qed.
 
-Lemma SmallAckermannOrdinal_alt :
-  SmallAckermannOrdinal ≈ ackermann_tower (addOrd 1) ω 0.
+Lemma FinAckermannOrdinal_alt :
+  FinAckermannOrdinal ≈ ackermann_tower (addOrd 1) ω 0.
 Proof.
-  unfold SmallAckermannOrdinal. split.
+  unfold FinAckermannOrdinal. split.
   - apply sup_least; intro i.
     rewrite ackermann_tower_fin_eq; auto with ord.
   - rewrite ackermann_tower_unroll.
@@ -846,19 +846,19 @@ Proof.
     rewrite <- ackermann_tower_fixpoint with (a':=natOrdSize i) at 2; auto with ord.
 Qed.
 
-Lemma SmallAckermannOrdinal_alt2 :
-  SmallAckermannOrdinal ≈ ackermann_tower (expOrd ω) ω 0.
+Lemma FinAckermannOrdinal_alt2 :
+  FinAckermannOrdinal ≈ ackermann_tower (expOrd ω) ω 0.
 Proof.
-  rewrite SmallAckermannOrdinal_alt.
+  rewrite FinAckermannOrdinal_alt.
   apply ackermann_tower_base_eq; auto with ord.
   apply additively_closed_collapse; auto with ord.
   apply additively_closed_omega.
 Qed.
 
-Lemma LargeAckermannOrdinal_alt:
-  LargeAckermannOrdinal ≈ fixOrd (fun x => ackermann_tower (expOrd ω) x 0) 0.
+Lemma AckermannOrdinal_alt:
+  AckermannOrdinal ≈ fixOrd (fun x => ackermann_tower (expOrd ω) x 0) 0.
 Proof.
-  unfold LargeAckermannOrdinal.
+  unfold AckermannOrdinal.
   split.
   - apply normal_fix_least; auto with ord.
     + apply normal_fix_complete; auto with ord.

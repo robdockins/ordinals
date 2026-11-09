@@ -1686,11 +1686,11 @@ def three : VForm := N [(Z, two)]
 /-- Rocq: `Notation.SchutteMatrix.VF_omega`. -/
 def omega : VForm := N [(one, one)]
 
-/-- Rocq: `Notation.SchutteMatrix.VF_SAO`. -/
-def SAO : VForm := N [(two, omega)]
+/-- Rocq: `Notation.SchutteMatrix.VF_FAO`. -/
+def FAO : VForm := N [(two, omega)]
 
-/-- Rocq: `Notation.SchutteMatrix.VF_LAO`. -/
-def LAO : VForm := N [(three, one)]
+/-- Rocq: `Notation.SchutteMatrix.VF_AO`. -/
+def AO : VForm := N [(three, one)]
 
 /-- Rocq: `Notation.SchutteMatrix.VF_SVO`. -/
 def SVO : VForm := N [(omega, one)]

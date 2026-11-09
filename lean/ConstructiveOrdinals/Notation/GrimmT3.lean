@@ -24,7 +24,7 @@ Main results:
 - `T3lt_correct`: on normal forms, Grimm's comparison agrees with the semantic
   order, in both directions;
 - `T3_denote_inj`: normal forms are determined by their denotation;
-- `T3_LAO`: the normal forms have order type `LargeAckermannOrdinal`.
+- `T3_AO`: the normal forms have order type `AckermannOrdinal`.
 
 Lean notes:
 - Booleans are reasoned about by case analysis (`band_true`, `bor_true`, …),
@@ -1618,7 +1618,7 @@ example : (psi .zero .zero tEps0).toVF = V Z (V Z (V vfOne Z Z) vfOne) Z := rfl
 /-- Grimm's `ψ(0,Γ₀,0)` lies above `Γ₀`: β-absorption. -/
 example : (psi .zero tGamma0 .zero).toVF = V vfOne (V (V Z Z vfOne) Z Z) vfOne := rfl
 
-/-! ## Order type: `LargeAckermannOrdinal` -/
+/-! ## Order type: `AckermannOrdinal` -/
 
 /-- Rocq: `Notation.GrimmT3.VF_V_monotone`. -/
 theorem VF_V_monotone (m a b m' a' b' : VForm) (hm : denote m ≤ denote m')
@@ -1680,11 +1680,11 @@ theorem vfUp_ge : ∀ x : VForm, denote x ≤ T3.denote (vfUp x)
 def T3ord : Ordinal.{0} := mk {t : T3 // nf t = true} fun t => T3.denote t.1
 
 /-- Grimm's (that is, Ackermann's) normal forms, ordered by `lt`
-(`T3lt_correct`), have order type `LargeAckermannOrdinal`.
-Rocq: `Notation.GrimmT3.T3_LAO`. -/
-theorem T3_LAO : T3ord ≈ LargeAckermannOrdinal :=
-  equiv_intro (le_intro fun t => below_LAO t.1.toVF)
-    (le_trans VF_LAO.ge (le_intro fun x =>
+(`T3lt_correct`), have order type `AckermannOrdinal`.
+Rocq: `Notation.GrimmT3.T3_AO`. -/
+theorem T3_AO : T3ord ≈ AckermannOrdinal :=
+  equiv_intro (le_intro fun t => below_AO t.1.toVF)
+    (le_trans VF_AO.ge (le_intro fun x =>
       lt_of_le_of_lt (vfUp_ge x) (index_lt T3ord ⟨vfUp x, vfUp_nf x⟩)))
 
 end ConstructiveOrdinals.GrimmT3

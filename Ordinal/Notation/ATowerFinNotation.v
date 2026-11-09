@@ -1208,16 +1208,16 @@ Proof.
   apply VF_has_all_interpolants.
 Qed.
 
-Theorem VF_below_SAO : forall x:VF, x < SmallAckermannOrdinal.
+Theorem VF_below_FAO : forall x:VF, x < FinAckermannOrdinal.
 Proof.
   induction x; simpl.
-  - unfold SmallAckermannOrdinal.
+  - unfold FinAckermannOrdinal.
     rewrite <- (sup_le _ _ 0%nat).
     simpl.
     rewrite addOrd_zero_r.
     apply succ_lt.
   - apply veblen_collapse'; auto.
-    + unfold SmallAckermannOrdinal.
+    + unfold FinAckermannOrdinal.
       apply sup_complete; auto.
       hnf; intros.
       exists (Nat.max a1 a2).
@@ -1226,7 +1226,7 @@ Proof.
       simpl.
       rewrite addOrd_zero_r.
       apply succ_lt.
-    + unfold SmallAckermannOrdinal.
+    + unfold FinAckermannOrdinal.
       etransitivity.
       apply veblen_continuous_first; auto.
       apply sup_least; intro i.
@@ -1241,11 +1241,11 @@ Proof.
       apply ackermann_tower_fin_monotone with (m:=i) (n:=S (Nat.max i n)); auto with ord arith.
 Qed.
 
-Theorem VF_SAO : VF ≈ SmallAckermannOrdinal.
+Theorem VF_FAO : VF ≈ FinAckermannOrdinal.
 Proof.
   split.
-  - rewrite ord_le_unfold. apply VF_below_SAO.
-  - unfold SmallAckermannOrdinal.
+  - rewrite ord_le_unfold. apply VF_below_FAO.
+  - unfold FinAckermannOrdinal.
     apply sup_least. intro i.
     transitivity (VF_denote (V i Z Z)).
     2: { apply index_le. }
@@ -1257,10 +1257,10 @@ From Stdlib Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 Theorem VF_has_enough_notations (EM:excluded_middle) :
-  forall x, x < SmallAckermannOrdinal -> exists v:VF, v ≈ x.
+  forall x, x < FinAckermannOrdinal -> exists v:VF, v ≈ x.
 Proof.
   intros x H.
-  rewrite <- VF_SAO in H.
+  rewrite <- VF_FAO in H.
   assert (HVF: has_enough_notations VF_denote VF_isNormal).
   { apply has_interpolants_has_enough_notations with (A:=VForm) (f:=VF_denote) (P:=VF_isNormal); auto.
     apply VF_has_all_interpolants. }

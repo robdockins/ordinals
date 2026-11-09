@@ -28,7 +28,7 @@ From Ordinal Require Import Notation.ATowerNotation.
     This file ports Grimm's syntax, comparison and normal forms (his file
     depends on MathComp), and defines a translation [T3_to_VF] into the
     semantic notation system of [ATowerNotation], whose order type is
-    [LargeAckermannOrdinal] ([VF_LAO]).
+    [AckermannOrdinal] ([VF_AO]).
 
     Ackermann's brackets skip fixed points, whereas [VForm] uses Veblen's
     functions and forbids fixed-point arguments in normal forms.  The
@@ -45,7 +45,7 @@ From Ordinal Require Import Notation.ATowerNotation.
       semantic order, in both directions, so it is in particular
       well-founded (independently of Grimm's syntactic proof);
     - [T3_denote_inj]: normal forms are determined by their denotation;
-    - [T3_LAO]: the normal forms have order type [LargeAckermannOrdinal].
+    - [T3_AO]: the normal forms have order type [AckermannOrdinal].
 
     The proof of [T3lt_correct] is by induction on the combined size of the
     terms ([GrimmT3_main]), carrying normality of the translation along.
@@ -1502,7 +1502,7 @@ Example T3_to_VF_absorb :
   V vf_one (V (V Z Z vf_one) Z Z) vf_one.
 Proof. reflexivity. Qed.
 
-(** ** Order type: [LargeAckermannOrdinal] *)
+(** ** Order type: [AckermannOrdinal] *)
 
 Lemma VF_V_monotone m a b m' a' b' :
   VF_denote m ≤ VF_denote m' -> VF_denote a ≤ VF_denote a' -> VF_denote b ≤ VF_denote b' ->
@@ -1560,13 +1560,13 @@ Qed.
 Definition T3ord : Ord := ord { t:T3 | T3nf t = true } (fun t => T3_denote (proj1_sig t)).
 
 (** Grimm's (that is, Ackermann's) normal forms, ordered by [T3lt]
-    ([T3lt_correct]), have order type [LargeAckermannOrdinal]. *)
-Theorem T3_LAO : T3ord ≈ LargeAckermannOrdinal.
+    ([T3lt_correct]), have order type [AckermannOrdinal]. *)
+Theorem T3_AO : T3ord ≈ AckermannOrdinal.
 Proof.
   split.
   - rewrite ord_le_unfold. intros [t Ht]. simpl.
-    apply (VF_below_LAO (T3_to_VF t)).
-  - rewrite <- VF_LAO. rewrite ord_le_unfold. intro x. simpl.
+    apply (VF_below_AO (T3_to_VF t)).
+  - rewrite <- VF_AO. rewrite ord_le_unfold. intro x. simpl.
     apply ord_le_lt_trans with (T3_denote (vf_up x)); [apply vf_up_ge|].
     apply (index_lt T3ord (exist _ (vf_up x) (vf_up_nf x))).
 Qed.

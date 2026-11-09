@@ -1961,8 +1961,8 @@ Definition VF_three := N [(Z, VF_two)].
 
 Definition VF_omega := N[(VF_one, VF_one)].
 
-Definition VF_SAO := N [(VF_two, VF_omega)].
-Definition VF_LAO := N [(VF_three, VF_one)].
+Definition VF_FAO := N [(VF_two, VF_omega)].
+Definition VF_AO := N [(VF_three, VF_one)].
 Definition VF_SVO := N [(VF_omega, VF_one)].
 
 Fixpoint VF_nat (n:nat) : VForm :=

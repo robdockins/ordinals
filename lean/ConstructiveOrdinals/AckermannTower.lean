@@ -6,7 +6,7 @@ import ConstructiveOrdinals.Veblen.Facts
 `ackermannTower f a` generalises the Veblen hierarchy by one more level of
 diagonalisation. Its fixpoints are closed under `veblen (ackermannTower f a')`
 for every `a' < a`. Iterating it finitely often from `x ↦ 1 + x` gives the
-small Ackermann ordinal, and taking its first fixpoint gives the large
+finite-tower Ackermann ordinal, and taking its first fixpoint gives the
 Ackermann ordinal.
 
 As for `veblen`, the nested `fix` of the Rocq definition becomes the inner
@@ -497,12 +497,12 @@ theorem ackermann_tower_fin_fixpoints (n : Nat) (f : Ordinal.{u} → Ordinal.{u}
         (Nat.le_of_lt_succ hmn) (le_refl z) hz) _ 0 hEc zero_complete)
       (Con.enum_are_fixpoints (veblen_first_normal hn) x hx).ge
 
-/-- The small Ackermann ordinal. Rocq: `AckermannTower.SmallAckermannOrdinal`. -/
-def SmallAckermannOrdinal : Ordinal.{u} :=
+/-- The finite-tower Ackermann ordinal. Rocq: `AckermannTower.FinAckermannOrdinal`. -/
+def FinAckermannOrdinal : Ordinal.{u} :=
   sup fun n : (ω : Ordinal.{u}).Carrier => ackermannTowerFin (fun y => 1 + y) n.down 0
 
-/-- The large Ackermann ordinal. Rocq: `AckermannTower.LargeAckermannOrdinal`. -/
-def LargeAckermannOrdinal : Ordinal.{u} := fixOrd (fun x => ackermannTower (fun y => 1 + y) x 0) 0
+/-- The Ackermann ordinal. Rocq: `AckermannTower.AckermannOrdinal`. -/
+def AckermannOrdinal : Ordinal.{u} := fixOrd (fun x => ackermannTower (fun y => 1 + y) x 0) 0
 
 /-- Rocq: `AckermannTower.ackermann_tower_base_le`. -/
 theorem ackermann_tower_base_le (a : Ordinal.{u}) :
@@ -556,8 +556,8 @@ theorem ackermann_tower_fix_limit (f : Ordinal.{u} → Ordinal.{u}) (x : Ordinal
   · exact lt_of_lt_of_le (ackermann_tower_add_closed f _ 0 p q hf hΦ zero_complete hΦ₀
       (lt_of_lt_of_le hp hfix.le) (lt_of_lt_of_le hq hfix.le)) hfix.ge
 
-/-- Rocq: `AckermannTower.LargeAckermannOrdinal_limit`. -/
-theorem LargeAckermannOrdinal_limit : IsLimit (LargeAckermannOrdinal.{u}) :=
+/-- Rocq: `AckermannTower.AckermannOrdinal_limit`. -/
+theorem AckermannOrdinal_limit : IsLimit (AckermannOrdinal.{u}) :=
   ackermann_tower_fix_limit _ 0 onePlus_normal zero_complete
 
 /-- Rocq: `AckermannTower.ackermann_tower_base_eq`. -/
@@ -590,15 +590,15 @@ theorem ackermann_tower_base_eq (a : Ordinal.{u}) :
         (ackermann_tower_fixpoint _ a (1 + a a') x onePlus_normal ha h1a' hx
           (lt_of_lt_of_le (add_lt_add_left 1 (index_lt a a')) h1a))
 
-/-- Rocq: `AckermannTower.SmallAckermannOrdinal_alt`. -/
-theorem SmallAckermannOrdinal_alt :
-    SmallAckermannOrdinal.{u} ≈ ackermannTower (fun y => 1 + y) ω 0 := by
+/-- Rocq: `AckermannTower.FinAckermannOrdinal_alt`. -/
+theorem FinAckermannOrdinal_alt :
+    FinAckermannOrdinal.{u} ≈ ackermannTower (fun y => 1 + y) ω 0 := by
   refine equiv_intro (sup_least fun i => ?_) ?_
   · exact le_trans (ackermann_tower_fin_eq i.down _ 0 onePlus_normal zero_complete).le
       (ackermann_tower_monotone _ onePlus_normal.monotone _ _ 0 0 (le_of_lt (index_lt ω i)) (le_refl 0))
   · rw [ackermann_tower_unroll]
     refine lub_least ?_ (sup_least fun i => ?_)
-    · have h0 : (0 : Ordinal.{u}) < SmallAckermannOrdinal :=
+    · have h0 : (0 : Ordinal.{u}) < FinAckermannOrdinal :=
         lt_of_lt_of_le ((ackermann_tower_fin_normal 0 _ onePlus_normal).nonzero 0)
           (sup_le (fun n : (ω : Ordinal.{u}).Carrier => ackermannTowerFin (fun y => 1 + y) n.down 0) ⟨0⟩)
       exact le_trans (add_zero 1).le (succ_least h0)
@@ -611,14 +611,14 @@ theorem SmallAckermannOrdinal_alt :
         (ackermann_tower_fixpoint _ (ofNat (i.down + 1)) (ofNat i.down) 0 onePlus_normal (ofNat_complete _)
           (ofNat_complete _) zero_complete (succ_lt _))
 
-/-- Rocq: `AckermannTower.SmallAckermannOrdinal_alt2`. -/
-theorem SmallAckermannOrdinal_alt2 : SmallAckermannOrdinal.{u} ≈ ackermannTower powOmega ω 0 :=
-  equiv_trans SmallAckermannOrdinal_alt (ackermann_tower_base_eq ω 0 omega_complete zero_complete
+/-- Rocq: `AckermannTower.FinAckermannOrdinal_alt2`. -/
+theorem FinAckermannOrdinal_alt2 : FinAckermannOrdinal.{u} ≈ ackermannTower powOmega ω 0 :=
+  equiv_trans FinAckermannOrdinal_alt (ackermann_tower_base_eq ω 0 omega_complete zero_complete
     (additively_closed_collapse additively_closed_omega omega_gt1))
 
-/-- Rocq: `AckermannTower.LargeAckermannOrdinal_alt`. -/
-theorem LargeAckermannOrdinal_alt :
-    LargeAckermannOrdinal.{u} ≈ fixOrd (fun x => ackermannTower powOmega x 0) 0 := by
+/-- Rocq: `AckermannTower.AckermannOrdinal_alt`. -/
+theorem AckermannOrdinal_alt :
+    AckermannOrdinal.{u} ≈ fixOrd (fun x => ackermannTower powOmega x 0) 0 := by
   have h1 := ackermann_tower_normal_first _ onePlus_normal
   have hω := ackermann_tower_normal_first _ powOmega_normal
   have hΦ1 : Complete (fixOrd (fun x => ackermannTower (fun y => 1 + y) x 0) (0 : Ordinal.{u})) :=

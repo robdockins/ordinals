@@ -22,10 +22,10 @@ The development has two goals:
    structures. Through the coercions on `Ord`, a type can carry a canonical
    "size" measure, written `x ◃ y` (strictly smaller measure) and `x ⊴ y`.
 2. **A climb into "Cantor's attic".** The development builds the Veblen
-   hierarchy, the Feferman–Schütte ordinal Γ₀, the small and large Ackermann
-   ordinals, and the small and large Veblen ordinals (SVO and LVO). It also
-   gives ordinal notation systems up to each of these, with decidable ordering
-   and constructive Cantor normal forms.
+   hierarchy, the Feferman–Schütte ordinal Γ₀, the finite-tower Ackermann
+   ordinal, the Ackermann ordinal, and the small and large Veblen ordinals
+   (SVO and LVO). It also gives ordinal notation systems up to each of these,
+   with decidable ordering and constructive Cantor normal forms.
 
 ## Constructivity
 
@@ -102,7 +102,7 @@ Files are listed roughly in dependency order. All paths are relative to
 | `VeblenCon.v` | The constructive theory of normal functions and the Veblen hierarchy, assuming completeness instead of EM. Shows that `veblen f β` enumerates the β-critical points. Γ is normal and enumerates the strongly critical ordinals of ω^x, and Γ₀ is the least fixpoint of `β ↦ φ_β(0)`. Reverse results show that the completeness hypotheses for `veblen` being increasing and for its fixpoints are needed. |
 | `VeblenClassical.v` | A parallel, classical (EM-based) development of the same results. It goes one level further with Ξ, which enumerates the strongly critical ordinals of Γ. It is standalone; nothing imports it. |
 | `VeblenFacts.v` | Further facts about Veblen functions, especially over the base `1 + x` (`veblen_onePlus`). The Ackermann and Schütte material uses these. |
-| `AckermannTower.v` | Ackermann-style towers of Veblen functions (`ackermann_tower`) and a finite-height variant. Proves normality and fixpoint properties, and defines the `SmallAckermannOrdinal` and `LargeAckermannOrdinal`. |
+| `AckermannTower.v` | Ackermann-style towers of Veblen functions (`ackermann_tower`) and a finite-height variant. Proves normality and fixpoint properties, and defines the `FinAckermannOrdinal` and `AckermannOrdinal`. |
 | `SchutteColumn.v` | Schütte's "Klammersymbol" functions in column form (`schutte_column f β α x`), which generalize Veblen functions to more arguments, and their monotonicity, continuity and normality. Defines `E_number`. |
 | `SchutteColumnFacts.v` | Critical, supercritical, hypercritical and unreachable ordinals for Schütte functions. Defines the `SmallVeblenOrdinal` and `LargeVeblenOrdinal`. Also defines finitary Schütte *stacks* and transfinite Schütte *matrices*, with the enumeration, normal-form and lexicographic comparison results that the SVO and LVO notation systems use. |
 
@@ -126,9 +126,9 @@ notation is itself denoted by some notation.
 | `CantorProduct.v` | — | The natural product on Cantor normal forms. The algorithm satisfies the usual laws constructively on notations, and, given interpolants (needed only at epsilon notations), reflects `nmulOrd` constructively. |
 | `VNotation.v` | ε₀ | Binary Veblen-style terms `V a x` over 1+x (`VF ≈ ε 0`). |
 | `VWNotation.v` | Γ₀ | Two-level `V`/`W` terms reflecting `veblen ε` (`VF ≈ Γ 0`). |
-| `ATowerFinNotation.v` | Small Ackermann ordinal | Finite Ackermann towers (`VF ≈ SmallAckermannOrdinal`). |
-| `ATowerNotation.v` | Large Ackermann ordinal | Transfinite Ackermann towers (`VF ≈ LargeAckermannOrdinal`). |
-| `GrimmT3.v` | Large Ackermann ordinal | Grimm's syntactic presentation of Ackermann's 1951 system (from GAIA), translated into `ATowerNotation`. On normal forms Grimm's comparison agrees with the semantic order, and the normal forms have order type `LargeAckermannOrdinal` (`T3_LAO`). |
+| `ATowerFinNotation.v` | Finite-tower Ackermann ordinal | Finite Ackermann towers (`VF ≈ FinAckermannOrdinal`). |
+| `ATowerNotation.v` | Ackermann ordinal | Transfinite Ackermann towers (`VF ≈ AckermannOrdinal`). |
+| `GrimmT3.v` | Ackermann ordinal | Grimm's syntactic presentation of Ackermann's 1951 system (from GAIA), translated into `ATowerNotation`. On normal forms Grimm's comparison agrees with the semantic order, and the normal forms have order type `AckermannOrdinal` (`T3_AO`). |
 | `SchutteStack.v` | Small Veblen ordinal | Finitary Schütte stacks (`VF ≈ SmallVeblenOrdinal`). |
 | `SchutteMatrix.v` | Large Veblen ordinal | Transfinite Schütte matrices (`VF ≈ LargeVeblenOrdinal`). |
 

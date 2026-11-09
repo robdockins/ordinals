@@ -4,14 +4,14 @@ import ConstructiveOrdinals.AckermannTower
 import ConstructiveOrdinals.Prelude.Relations
 
 /-!
-# A notation system for the large Ackermann ordinal
+# A notation system for the Ackermann ordinal
 
 Port of `Ordinal/Notation/ATowerNotation.v`.
 
 `V n a x` denotes `veblen (T n) a x`, where `T n = ackermannTower (1 + ·) n`
 is the Ackermann tower over `1 + ·` at the level denoted by the form `n`.
-The normal forms denote exactly the ordinals below the large Ackermann
-ordinal. The development follows `Notation/ATowerFin`, whose levels are
+The normal forms denote exactly the ordinals below the Ackermann ordinal.
+The development follows `Notation/ATowerFin`, whose levels are
 natural numbers. Here the levels are forms themselves, compared with the same
 comparison function.
 
@@ -1300,24 +1300,24 @@ theorem reflects_nmul :
 private theorem T_first_normal : NormalFunction fun a : Ordinal.{0} => T a 0 :=
   ackermann_tower_normal_first _ onePlus_normal
 
-/-- Rocq: `Notation.ATowerNotation.LAO_complete`. -/
-theorem LAO_complete : Complete (LargeAckermannOrdinal.{0}) :=
+/-- Rocq: `Notation.ATowerNotation.AO_complete`. -/
+theorem AO_complete : Complete (AckermannOrdinal.{0}) :=
   normal_fix_complete 0 zero_complete (normal_inflationary T_first_normal)
     T_first_normal.monotone T_first_normal.complete
 
-/-- `LAO ≈ T LAO 0`. -/
-private theorem LAO_fixpoint : LargeAckermannOrdinal.{0} ≈ T LargeAckermannOrdinal 0 :=
+/-- `AO ≈ T AO 0`. -/
+private theorem AO_fixpoint : AckermannOrdinal.{0} ≈ T AckermannOrdinal 0 :=
   normal_fixpoint T_first_normal 0 zero_complete
 
-/-- Rocq: `Notation.ATowerNotation.VF_below_LAO`. -/
-theorem below_LAO : ∀ x : VForm, denote x < LargeAckermannOrdinal
-  | Z => lt_of_lt_of_le (ackermann_tower_nonzero _ _ _ onePlus_normal) LAO_fixpoint.ge
+/-- Rocq: `Notation.ATowerNotation.VF_below_AO`. -/
+theorem below_AO : ∀ x : VForm, denote x < AckermannOrdinal
+  | Z => lt_of_lt_of_le (ackermann_tower_nonzero _ _ _ onePlus_normal) AO_fixpoint.ge
   | V m a x =>
-    veblen_collapse' (TV_normal m) _ _ _ (complete a) (complete x) LAO_complete
-      (below_LAO a) (below_LAO x)
-      (le_trans (veblen_monotone_first (TV_normal m).monotone _ _ _ LAO_fixpoint.le)
-        (le_trans (ackermann_tower_fixpoint _ _ _ 0 onePlus_normal LAO_complete (complete m)
-          zero_complete (below_LAO m)) LAO_fixpoint.ge))
+    veblen_collapse' (TV_normal m) _ _ _ (complete a) (complete x) AO_complete
+      (below_AO a) (below_AO x)
+      (le_trans (veblen_monotone_first (TV_normal m).monotone _ _ _ AO_fixpoint.le)
+        (le_trans (ackermann_tower_fixpoint _ _ _ 0 onePlus_normal AO_complete (complete m)
+          zero_complete (below_AO m)) AO_fixpoint.ge))
 
 /-- Rocq: `Notation.ATowerNotation.VF_is_complete`. -/
 theorem VF_is_complete : Complete VF :=
@@ -1330,10 +1330,10 @@ theorem VF_is_complete : Complete VF :=
 end VForm
 
 open VForm in
-/-- The forms have order type the large Ackermann ordinal.
-Rocq: `Notation.ATowerNotation.VF_LAO`. -/
-theorem VF_LAO : VF ≈ LargeAckermannOrdinal := by
-  refine equiv_intro (le_intro fun x => below_LAO x) ?_
+/-- The forms have order type the Ackermann ordinal.
+Rocq: `Notation.ATowerNotation.VF_AO`. -/
+theorem VF_AO : VF ≈ AckermannOrdinal := by
+  refine equiv_intro (le_intro fun x => below_AO x) ?_
   refine normal_fix_least T_first_normal 0 VF VF_is_complete (zero_least _) ?_
   refine le_trans (normal_ord_decompose VF (fun i => T i 0) VF_is_complete
     (lt_intro (show VF.Carrier from Z) (zero_least _)) T_first_normal).le (sup_least fun x => ?_)
@@ -1348,12 +1348,12 @@ namespace VForm
 
 open CantorDecomposition Interpolants
 
-/-- With the excluded middle, every ordinal below the large Ackermann ordinal
+/-- With the excluded middle, every ordinal below the Ackermann ordinal
 has a normal form. Rocq: `Notation.ATowerNotation.VF_has_enough_notations`. -/
 theorem has_enough_notations (em : ExcludedMiddle) :
-    ∀ x : Ordinal.{0}, x < LargeAckermannOrdinal → ∃ v : VForm, sz v ≈ x := by
+    ∀ x : Ordinal.{0}, x < AckermannOrdinal → ∃ v : VForm, sz v ≈ x := by
   intro x hx
-  obtain ⟨a, ha⟩ := lt_elim (lt_of_lt_of_le hx VF_LAO.ge)
+  obtain ⟨a, ha⟩ := lt_elim (lt_of_lt_of_le hx VF_AO.ge)
   obtain ⟨c, _, hc⟩ := has_interpolants_has_enough_notations em has_all_interpolants
     (normalize a) x (normalize_isNormal a) (le_trans ha (normalize_equal a).ge)
   exact ⟨c, hc⟩

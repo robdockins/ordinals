@@ -1532,28 +1532,28 @@ Proof.
   apply VF_has_all_interpolants.
 Qed.
 
-Lemma LAO_complete: complete LargeAckermannOrdinal.
+Lemma AO_complete: complete AckermannOrdinal.
 Proof.
-  unfold LargeAckermannOrdinal.
+  unfold AckermannOrdinal.
   apply normal_fix_complete; auto with ord.
   intros. apply normal_inflationary with (f:=fun i => ackermann_tower _ i 0); auto.
   apply ackermann_tower_normal_first; auto with ord.
 Qed.
 
-Theorem VF_below_LAO : forall x:VF, x < LargeAckermannOrdinal.
+Theorem VF_below_AO : forall x:VF, x < AckermannOrdinal.
 Proof.
   induction x; simpl.
-  - unfold LargeAckermannOrdinal.
+  - unfold AckermannOrdinal.
     rewrite normal_fixpoint; auto with ord.
     apply ackermann_tower_nonzero; auto with ord.
   - apply veblen_collapse'; auto with ord.
-    apply LAO_complete.
-    unfold LargeAckermannOrdinal.
+    apply AO_complete.
+    unfold AckermannOrdinal.
     rewrite normal_fixpoint at 2; auto with ord.
     rewrite <- ackermann_tower_fixpoint with (a' := sz x1); auto with ord.
     apply veblen_monotone_first; auto with ord.
     apply normal_fixpoint; auto with ord.
-    apply LAO_complete.
+    apply AO_complete.
 Qed.
 
 Lemma VF_is_complete: complete VF.
@@ -1566,11 +1566,11 @@ Proof.
   - left. constructor. exact Z.
 Qed.
 
-Theorem VF_LAO : VF ≈ LargeAckermannOrdinal.
+Theorem VF_AO : VF ≈ AckermannOrdinal.
 Proof.
   split.
-  - rewrite ord_le_unfold. apply VF_below_LAO.
-  - unfold LargeAckermannOrdinal.
+  - rewrite ord_le_unfold. apply VF_below_AO.
+  - unfold AckermannOrdinal.
     apply normal_fix_least; auto with ord.
     { apply VF_is_complete. }
     rewrite normal_ord_decompose with (f:=fun i => ackermann_tower _ i 0); auto with ord.
@@ -1594,10 +1594,10 @@ From Stdlib Require Import ClassicalFacts.
 From Ordinal Require Import Classical.
 
 Theorem VF_has_enough_notations (EM:excluded_middle) :
-  forall x, x < LargeAckermannOrdinal -> exists v:VF, v ≈ x.
+  forall x, x < AckermannOrdinal -> exists v:VF, v ≈ x.
 Proof.
   intros x H.
-  rewrite <- VF_LAO in H.
+  rewrite <- VF_AO in H.
   assert (HVF: has_enough_notations VF_denote VF_isNormal).
   { apply has_interpolants_has_enough_notations with (A:=VForm) (f:=VF_denote) (P:=VF_isNormal); auto.
     apply VF_has_all_interpolants. }
