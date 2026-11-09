@@ -5,21 +5,22 @@ import ConstructiveOrdinals.NaturalProduct
 
 Port of `Ordinal/NaturalExp.v`.
 
-Altman ("Transfinitely iterated natural multiplication of ordinal numbers",
-2015, Appendix B, Theorem B.1) shows that no operation `e(α,β)` on the ordinals
-satisfies
+There is no operation `e(α,β)` on the ordinals satisfying
 
 1. `e(α,1) = α`,
 2. `e(α,β)` weakly increasing in `β`, for `α > 1`,
 3. `e(α,β)` weakly increasing in `α`, for `β > 0`,
 4. `e(α, β ♯ γ) = e(α,β) ⊗ e(α,γ)`,
 5. `e(α, β ⊗ γ) = e(e(α,β), γ)`,
-6. `deg e(α,β) = deg α ⊗ β` for `α ≥ ω`,
 
-where `♯` and `⊗` are the natural (Hessenberg) sum and product and `deg` is the
-leading exponent of the Cantor normal form. We prove the stronger statement
-that (1)–(5) alone are inconsistent (`natural_exp_impossible`); the degree law
-(6) is not needed.
+where `♯` and `⊗` are the natural (Hessenberg) sum and product
+(`natural_exp_impossible`). This is Altman's theorem ("Intermediate arithmetic
+operations on ordinal numbers", MLQ 63, 2017, Theorem 4.1), with slightly
+weaker monotonicity hypotheses: Altman assumes (2) for `α > 0` and (3) for all
+`β`. (The 2015 arXiv version, Appendix B, Theorem B.1, also assumed a degree
+law, which the published version drops.) A version was proved independently by
+Asperó and Tsaprounis ("Long reals", J. Log. Anal. 10, 2018, Theorem 3.2 and
+Corollary 3.3).
 
 The proof splits into a constructive reduction and a classical lemma about
 ordinals that does not mention `e`:
