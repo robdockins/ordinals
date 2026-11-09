@@ -331,6 +331,50 @@ private theorem lt_pow_succ (n : Nat) (hn : 2 ≤ n) : ∀ k, k < n ^ (k + 1)
     exact Nat.lt_of_lt_of_le (Nat.add_lt_add_right ih 1)
       (Nat.add_le_add_left (Nat.lt_of_le_of_lt (Nat.zero_le k) ih) _)
 
+/-- A power family: `F(2) ≥ ω`, `F` weakly increasing (from 2 on), and
+`F(n^k) = F(n)^⊗k`. The laws make `n ↦ e(n,ω)` one (`laws_power_family`), and a
+power family puts `F(2)` and `F(3)` in the ratio `log₂ 3`
+(`power_family_ratio`). So, constructively, `no_log23_ratio` implies that there
+is no power family, which implies that there is no natural exponentiation.
+Rocq: `NaturalExp.power_family`. -/
+def PowerFamily (F : Nat → Ordinal.{u}) : Prop :=
+  ω ≤ F 2 ∧
+  (∀ m n, 2 ≤ m → m ≤ n → F m ≤ F n) ∧
+  (∀ n k, 2 ≤ n → F (n ^ (k + 1)) ≈ npow (k + 1) (F n))
+
+/-- Rocq: `NaturalExp.pow_ge_base`. -/
+theorem pow_ge_base (n k : Nat) (hn : 1 ≤ n) : n ≤ n ^ (k + 1) := by
+  have h : 1 * n ≤ n ^ k * n := Nat.mul_le_mul_right n (Nat.pow_pos hn)
+  rw [Nat.one_mul] at h
+  exact h
+
+/-- Rocq: `NaturalExp.power_family_ratio`. -/
+theorem power_family_ratio (F : Nat → Ordinal.{u}) (h : PowerFamily F) :
+    Log23Ratio (F 2) (F 3) :=
+  have h2 : 2 ≤ 2 := Nat.le_refl 2
+  have h3 : 2 ≤ 3 := Nat.le_succ 2
+  ⟨h.1,
+    fun a k hk => le_trans (h.2.2 2 a h2).ge
+      (le_trans (h.2.1 _ _ (pow_ge_base 2 a (Nat.le_succ 1)) hk) (h.2.2 3 k h3).le),
+    fun a k hk => le_trans (h.2.2 3 k h3).ge
+      (le_trans (h.2.1 _ _ (Nat.le_trans h3 (pow_ge_base 3 k (Nat.le_trans (Nat.le_succ 1) h3)))
+        hk) (h.2.2 2 a h2).le)⟩
+
+/-- Asperó and Tsaprounis's hypothesis, multiplicativity in the base, gives a
+power family. Rocq: `NaturalExp.multiplicative_power_family`. -/
+theorem multiplicative_power_family (F : Nat → Ordinal.{u}) (h0 : ω ≤ F 2)
+    (hmono : ∀ m n, 2 ≤ m → m ≤ n → F m ≤ F n)
+    (hmul : ∀ m n, F (m * n) ≈ nmul (F m) (F n)) : PowerFamily F := by
+  refine ⟨h0, hmono, fun n k _ => ?_⟩
+  induction k with
+  | zero =>
+    show F (1 * n) ≈ npow 1 (F n)
+    rw [Nat.one_mul]
+    exact equiv_symm (npow_one _)
+  | succ k ih =>
+    show F (n ^ (k + 1) * n) ≈ nmul (npow (k + 1) (F n)) (F n)
+    exact equiv_trans (hmul _ _) (nmul_congr ih (equiv_refl _))
+
 /-- The laws restricted to a class `D` of ordinals, e.g. the ordinals denoted by
 a notation system. Rocq: `NaturalExp.natural_exp_laws_on`. -/
 def NaturalExpLawsOn (D : Ordinal.{u} → Prop) (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}) :
@@ -438,20 +482,21 @@ theorem e_pow_omega (D : Ordinal.{u} → Prop) (e : Ordinal.{u} → Ordinal.{u} 
     (hD.2.2.2.1 _ _ (hD.1 _) hD.2.1) (hD.2.2.2.1 _ _ hD.2.1 (hD.1 _)) hn (nmul_comm _ _)) ?_
   exact equiv_trans (he.2.2.2.2 _ ω _ (hD.1 n) hD.2.1 (hD.1 _)) (e_nat D e hD he _ k dX hX)
 
+/-- Constructively, the laws make `n ↦ e(n,ω)` a power family.
+Rocq: `NaturalExp.laws_power_family`. -/
+theorem laws_power_family (D : Ordinal.{u} → Prop)
+    (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}) (hD : ExpDomain D e)
+    (he : NaturalExpLawsOn D e) : PowerFamily (fun n => e (ofNat n) ω) :=
+  ⟨e_omega_ge D e hD he 2 (succ_lt 1),
+    fun m n _ h => he.2.2.1 _ _ _ (hD.1 m) (hD.1 n) hD.2.1 omega_gt0 (ofNat_monotone h),
+    fun n k hn => e_pow_omega D e hD he n k (lt_of_lt_of_le (succ_lt 1) (ofNat_monotone hn))⟩
+
 /-- Constructively, the laws put `e(2,ω)` and `e(3,ω)` in the ratio `log₂ 3`.
 Rocq: `NaturalExp.laws_log23_ratio_on`. -/
 theorem laws_log23_ratio_on (D : Ordinal.{u} → Prop)
     (e : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}) (hD : ExpDomain D e)
-    (he : NaturalExpLawsOn D e) : Log23Ratio (e (ofNat 2) ω) (e (ofNat 3) ω) := by
-  have H12 : (1 : Ordinal.{u}) < ofNat 2 := succ_lt 1
-  have H13 : (1 : Ordinal.{u}) < ofNat 3 := lt_of_lt_of_le H12 (ofNat_monotone (Nat.le_succ 2))
-  refine ⟨e_omega_ge D e hD he 2 H12, fun a k h => ?_, fun a k h => ?_⟩
-  · exact le_trans (e_pow_omega D e hD he 2 a H12).ge
-      (le_trans (he.2.2.1 _ _ _ (hD.1 _) (hD.1 _) hD.2.1 omega_gt0 (ofNat_monotone h))
-        (e_pow_omega D e hD he 3 k H13).le)
-  · exact le_trans (e_pow_omega D e hD he 3 k H13).ge
-      (le_trans (he.2.2.1 _ _ _ (hD.1 _) (hD.1 _) hD.2.1 omega_gt0 (ofNat_monotone h))
-        (e_pow_omega D e hD he 2 a H12).le)
+    (he : NaturalExpLawsOn D e) : Log23Ratio (e (ofNat 2) ω) (e (ofNat 3) ω) :=
+  power_family_ratio _ (laws_power_family D e hD he)
 
 /-- Constructively, the laws put `e(2,ω)` and `e(3,ω)` in the ratio `log₂ 3`.
 Rocq: `NaturalExp.laws_log23_ratio`. -/
@@ -687,6 +732,18 @@ theorem no_log23_ratio (em : ExcludedMiddle) (X Y : Ordinal.{u}) : ¬ Log23Ratio
     | a + 1, k + 1, _, _, h =>
       exact lead_le _ _ _ _ _ _ (lead_nrep em _ _ _ k hl3) (lead_nrep em _ _ _ a hl2)
         (Hmono' a k h) Hγ23
+
+/-- Classically, there is no power family. Rocq: `NaturalExp.no_power_family`. -/
+theorem no_power_family (em : ExcludedMiddle) (F : Nat → Ordinal.{u}) : ¬ PowerFamily F :=
+  fun h => no_log23_ratio em _ _ (power_family_ratio F h)
+
+/-- Asperó and Tsaprounis's Theorem 3.2: no `f : ω → Ord` with `f(2) ≥ ω`,
+weakly increasing, and `f(m·n) = f(m) ⊗ f(n)`.
+Rocq: `NaturalExp.aspero_tsaprounis`. -/
+theorem aspero_tsaprounis (em : ExcludedMiddle) (F : Nat → Ordinal.{u}) :
+    ¬ (ω ≤ F 2 ∧ (∀ m n, 2 ≤ m → m ≤ n → F m ≤ F n) ∧
+      (∀ m n, F (m * n) ≈ nmul (F m) (F n))) :=
+  fun ⟨h0, hm, hmul⟩ => no_power_family em F (multiplicative_power_family F h0 hm hmul)
 
 /-- Rocq: `NaturalExp.natural_exp_impossible`. -/
 theorem natural_exp_impossible (em : ExcludedMiddle) :

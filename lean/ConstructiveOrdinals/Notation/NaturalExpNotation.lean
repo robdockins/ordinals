@@ -373,6 +373,16 @@ theorem no_log23_ratio_notation (X : HasCantorDecomposition f P)
       exact lead_le _ _ _ _ _ _ (lead_nrep_con _ _ _ k Cg3 Hl3) (lead_nrep_con _ _ _ a Cg2 Hl2)
         (Hmono' a k h) Hγ23
 
+/-- Constructively, there is no power family with values in the notations.
+Rocq: `Notation.NaturalExpNotation.no_power_family_notation`. -/
+theorem no_power_family_notation (X : HasCantorDecomposition f P)
+    (Hinterp : HasAllInterpolants f P) (F : Nat → Ordinal.{0}) (hQ : ∀ n, Qn f P (F n)) :
+    ¬ PowerFamily F := fun h => by
+  obtain ⟨x, hx, ex⟩ := hQ 2
+  obtain ⟨y, hy, ey⟩ := hQ 3
+  exact no_log23_ratio_notation X Hinterp x y hx hy
+    (log23_ratio_eq _ _ _ _ ex ey (power_family_ratio F h))
+
 /-! ## No natural exponentiation on notations -/
 
 /-- An operation on the notations: it maps notation-denoted ordinals to

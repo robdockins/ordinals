@@ -373,6 +373,16 @@ Proof.
              (Hmono' a k H) Hγ23).
 Qed.
 
+(** Constructively, there is no power family with values in the
+    notations. *)
+Theorem no_power_family_notation F : (forall n, Q (F n)) -> ~ power_family F.
+Proof.
+  intros HQ H.
+  destruct (HQ 2%nat) as [x [Hx Ex]]. destruct (HQ 3%nat) as [y [Hy Ey]].
+  apply (no_log23_ratio_notation x y Hx Hy).
+  exact (log23_ratio_eq _ _ _ _ Ex Ey (power_family_ratio F H)).
+Qed.
+
 (** ** No natural exponentiation on notations *)
 
 (** An operation on the notations: it maps notation-denoted ordinals to

@@ -67,7 +67,7 @@ are presentational:
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
 
-356 statements.
+360 statements.
 
 ## Defs
 
@@ -1314,6 +1314,34 @@ NaturalProduct.distrib_lower_complete_WEM : (∀ (a b c : Ordinal),
 
 ## NaturalExp
 
+### `power_family_ratio`
+
+Rocq:
+```
+NaturalExp.power_family_ratio
+     : forall F : nat -> Defs.Ord, NaturalExp.power_family F -> NaturalExp.log23_ratio (F 2) (F 3)
+```
+Lean:
+```
+NaturalExp.power_family_ratio : ∀ (F : Nat → Ordinal), NaturalExp.PowerFamily F → NaturalExp.Log23Ratio (F 2) (F 3)
+```
+
+### `laws_power_family`
+
+Rocq:
+```
+NaturalExp.laws_power_family
+     : forall (D : Defs.Ord -> Prop) (e : Defs.Ord -> Defs.Ord -> Defs.Ord),
+       NaturalExp.exp_domain D e ->
+       NaturalExp.natural_exp_laws_on D e ->
+       NaturalExp.power_family (fun n : nat => e (Operators.natOrdSize n) Operators.ω)
+```
+Lean:
+```
+NaturalExp.laws_power_family : ∀ (D : Ordinal → Prop) (e : Ordinal → Ordinal → Ordinal),
+  NaturalExp.ExpDomain D e → NaturalExp.NaturalExpLawsOn D e → NaturalExp.PowerFamily fun n => e (ofNat n) ω
+```
+
 ### `laws_log23_ratio_on`
 
 Rocq:
@@ -1357,6 +1385,18 @@ NaturalExp.no_log23_ratio
 Lean:
 ```
 NaturalExp.no_log23_ratio : ExcludedMiddle → ∀ (X Y : Ordinal), ¬NaturalExp.Log23Ratio X Y
+```
+
+### `no_power_family`
+
+Rocq:
+```
+NaturalExp.no_power_family
+     : ClassicalFacts.excluded_middle -> forall F : nat -> Defs.Ord, ~ NaturalExp.power_family F
+```
+Lean:
+```
+NaturalExp.no_power_family : ExcludedMiddle → ∀ (F : Nat → Ordinal), ¬NaturalExp.PowerFamily F
 ```
 
 ### `natural_exp_impossible`
@@ -5808,6 +5848,25 @@ Lean:
 @NaturalExpNotation.no_log23_ratio_notation : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
   (X : CantorDecomposition.HasCantorDecomposition f P),
   Interpolants.HasAllInterpolants f P → ∀ (x y : A), P x → P y → ¬NaturalExp.Log23Ratio (f x) (f y)
+```
+
+### `no_power_family_notation`
+
+Rocq:
+```
+NaturalExpNotation.no_power_family_notation
+     : forall (A : Type) (f : A -> Defs.Ord) (P : A -> Prop),
+       CantorDecomposition.has_cantor_decomposition f P ->
+       Interpolants.has_all_interpolants f P ->
+       forall F : nat -> Defs.Ord,
+       (forall n : nat, CantorProduct.Qn A f P (F n)) -> ~ NaturalExp.power_family F
+```
+Lean:
+```
+@NaturalExpNotation.no_power_family_notation : ∀ {A : Type} {f : A → Ordinal} {P : A → Prop}
+  (X : CantorDecomposition.HasCantorDecomposition f P),
+  Interpolants.HasAllInterpolants f P →
+    ∀ (F : Nat → Ordinal), (∀ (n : Nat), CantorProduct.Qn f P (F n)) → ¬NaturalExp.PowerFamily F
 ```
 
 ### `natural_exp_impossible_notation`

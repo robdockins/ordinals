@@ -318,6 +318,49 @@ Proof.
   - intros a k H. rewrite <- (npow_eq_mor _ _ _ HX), <- (npow_eq_mor _ _ _ HY). auto.
 Qed.
 
+(** A power family: [F(2) ≥ ω], [F] weakly increasing (from 2 on), and
+    [F(n^k) = F(n)^⊗k].  The laws make [n ↦ e(n,ω)] one
+    ([laws_power_family]), and a power family puts [F(2)] and [F(3)] in the
+    ratio [log₂ 3] ([power_family_ratio]).  So, constructively,
+    [no_log23_ratio] implies that there is no power family, which implies
+    that there is no natural exponentiation. *)
+Definition power_family (F : nat -> Ord) : Prop :=
+  ω ≤ F 2%nat /\
+  (forall m n, (2 <= m)%nat -> (m <= n)%nat -> F m ≤ F n) /\
+  (forall n k, (2 <= n)%nat -> F (n ^ S k)%nat ≈ npow (S k) (F n)).
+
+Lemma pow_ge_base n k : (1 <= n)%nat -> (n <= n ^ S k)%nat.
+Proof.
+  intro Hn. apply Nat.le_trans with (n ^ 1)%nat; [simpl; lia|].
+  apply Nat.pow_le_mono_r; lia.
+Qed.
+
+Theorem power_family_ratio F : power_family F -> log23_ratio (F 2%nat) (F 3%nat).
+Proof.
+  intros [H0 [Hmono Hpow]]. split; [exact H0|]. split; intros a k H.
+  - rewrite <- (Hpow 2%nat a), <- (Hpow 3%nat k); try lia.
+    apply Hmono; auto.
+    apply pow_ge_base; lia.
+  - rewrite <- (Hpow 2%nat a), <- (Hpow 3%nat k); try lia.
+    apply Hmono; auto.
+    apply Nat.le_trans with 3%nat; [lia | apply pow_ge_base; lia].
+Qed.
+
+(** Asperó and Tsaprounis's hypothesis, multiplicativity in the base,
+    gives a power family. *)
+Lemma multiplicative_power_family F :
+  ω ≤ F 2%nat ->
+  (forall m n, (2 <= m)%nat -> (m <= n)%nat -> F m ≤ F n) ->
+  (forall m n, F (m * n)%nat ≈ nmulOrd (F m) (F n)) ->
+  power_family F.
+Proof.
+  intros H0 Hmono Hmul. split; [exact H0|]. split; [exact Hmono|].
+  intros n k Hn. induction k.
+  - simpl. rewrite Nat.mul_1_r. symmetry. apply npow_one.
+  - change (n ^ S (S k))%nat with (n * n ^ S k)%nat.
+    rewrite Nat.mul_comm, Hmul, IHk. reflexivity.
+Qed.
+
 Section laws.
 Variable D : Ord -> Prop.
 Variable e : Ord -> Ord -> Ord.
@@ -399,19 +442,20 @@ Proof.
   apply e_nat; auto.
 Qed.
 
+(** Constructively, the laws make [n ↦ e(n,ω)] a power family. *)
+Theorem laws_power_family : power_family (fun n => e (natOrdSize n) ω).
+Proof.
+  split; [|split].
+  - apply e_omega_ge. apply succ_lt.
+  - intros m n _ Hmn. apply H3; auto; [apply omega_gt0 | apply natOrdSize_monotone; auto].
+  - intros n k Hn. apply e_pow_omega.
+    apply ord_lt_le_trans with (natOrdSize 2); [apply succ_lt | apply natOrdSize_monotone; auto].
+Qed.
+
 (** Constructively, the laws put [e(2,ω)] and [e(3,ω)] in the ratio
     [log₂ 3]. *)
 Theorem laws_log23_ratio_on : log23_ratio (e (natOrdSize 2) ω) (e (natOrdSize 3) ω).
-Proof.
-  assert (H12 : 1 < natOrdSize 2) by apply succ_lt.
-  assert (H13 : 1 < natOrdSize 3).
-  { apply ord_lt_le_trans with (natOrdSize 2); auto. apply natOrdSize_monotone. lia. }
-  split; [apply e_omega_ge; auto|]. split; intros a k H.
-  - rewrite <- (e_pow_omega 2 a H12), <- (e_pow_omega 3 k H13).
-    apply H3; auto; [apply omega_gt0 | apply natOrdSize_monotone; auto].
-  - rewrite <- (e_pow_omega 2 a H12), <- (e_pow_omega 3 k H13).
-    apply H3; auto; [apply omega_gt0 | apply natOrdSize_monotone; auto].
-Qed.
+Proof. exact (power_family_ratio _ laws_power_family). Qed.
 
 End laws.
 
@@ -686,6 +730,21 @@ Proof.
     destruct a as [|a]; [lia|]. destruct k as [|k]; [lia|].
     exact (lead_le _ _ _ _ _ _ (lead_nrep _ _ _ k Hl3) (lead_nrep _ _ _ a Hl2)
              (Hmono' a k H) Hγ23).
+Qed.
+
+(** Classically, there is no power family. *)
+Theorem no_power_family F : ~ power_family F.
+Proof. intro H. exact (no_log23_ratio _ _ (power_family_ratio F H)). Qed.
+
+(** Asperó and Tsaprounis's Theorem 3.2: no [f : ω → Ord] with
+    [f(2) ≥ ω], weakly increasing, and [f(m·n) = f(m) ⊗ f(n)]. *)
+Corollary aspero_tsaprounis (F : nat -> Ord) :
+  ~ (ω ≤ F 2%nat /\
+     (forall m n, (2 <= m)%nat -> (m <= n)%nat -> F m ≤ F n) /\
+     (forall m n, F (m * n)%nat ≈ nmulOrd (F m) (F n))).
+Proof.
+  intros [H0 [Hmono Hmul]].
+  exact (no_power_family F (multiplicative_power_family F H0 Hmono Hmul)).
 Qed.
 
 Theorem natural_exp_impossible : ~ exists e, natural_exp_laws e.
