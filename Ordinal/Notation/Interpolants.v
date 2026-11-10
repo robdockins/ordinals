@@ -503,3 +503,31 @@ Section interpolants.
   End veblen_interpolants.
 
 End interpolants.
+
+(** Interpolants transfer to any notation system that names every
+    notation of the original one. *)
+Lemma has_interpolants_transfer A B (f:A -> Ord) (g:B -> Ord) (P:A -> Prop) (Q:B -> Prop) :
+  (forall a, P a -> exists b, Q b /\ g b ≈ f a) ->
+  forall z, has_interpolants f P z -> has_interpolants g Q z.
+Proof.
+  intros Hto z.
+  induction z as [z Hind] using ordinal_induction.
+  rewrite !has_interpolants_unfold.
+  intros Hz i Hi.
+  destruct (Hz i Hi) as [y [Hy [Hiy [Hyz Hint]]]].
+  destruct (Hto y Hy) as [b [Hb Heq]].
+  exists b. split; [exact Hb|]. split; [rewrite Heq; exact Hiy|].
+  split; [rewrite Heq; exact Hyz|].
+  rewrite Heq. apply Hind; auto.
+Qed.
+
+Lemma has_all_interpolants_transfer A B (f:A -> Ord) (g:B -> Ord) (P:A -> Prop) (Q:B -> Prop) :
+  (forall a, P a -> exists b, Q b /\ g b ≈ f a) ->
+  (forall b, Q b -> exists a, P a /\ f a ≈ g b) ->
+  has_all_interpolants f P -> has_all_interpolants g Q.
+Proof.
+  intros Hto Hfrom HP b Hb.
+  destruct (Hfrom b Hb) as [a [Ha Heq]].
+  rewrite <- Heq.
+  apply has_interpolants_transfer with (f:=f) (P:=P); auto.
+Qed.

@@ -1145,3 +1145,78 @@ Section cantor_arithmetic.
   End reflects_nadd_con.
 
 End cantor_arithmetic.
+
+(** ** Transfer along a bijection of normal forms
+
+  A Cantor decomposition transfers to any notation system whose normal
+  forms correspond to the original ones, preserving denotations. *)
+Lemma transfer_each A B (P:A -> Prop) (Q:B -> Prop) (h:A -> B) xs :
+  (forall a, P a -> Q (h a)) -> each P xs -> each Q (map h xs).
+Proof. intro H. induction xs; simpl; intuition. Qed.
+
+Lemma transfer_cantor_denote A B (f:A -> Ord) (g:B -> Ord) (P:A -> Prop) (h:A -> B) xs :
+  (forall a, P a -> g (h a) ≈ f a) -> each P xs ->
+  cantor_denote g (map h xs) ≈ cantor_denote f xs.
+Proof.
+  intro H. induction xs as [|x xs IH]; simpl; [reflexivity|].
+  intros [Hx Hxs]. rewrite (H x Hx), (IH Hxs). reflexivity.
+Qed.
+
+Lemma transfer_cantor_ordered A B (f:A -> Ord) (g:B -> Ord) (P:A -> Prop) (h:A -> B) xs :
+  (forall a, P a -> g (h a) ≈ f a) -> each P xs ->
+  cantor_ordered f xs -> cantor_ordered g (map h xs).
+Proof.
+  intro H. induction xs as [|x xs IH]; simpl; auto.
+  intros [Hx Hxs] [Hord Hords]. split; auto.
+  destruct xs as [|y ys]; simpl; auto.
+  destruct Hxs as [Hy _]. rewrite (H x Hx), (H y Hy). exact Hord.
+Qed.
+
+Section cantor_transfer.
+  Variables A B : Type.
+  Variable f : A -> Ord.
+  Variable g : B -> Ord.
+  Variable P : A -> Prop.
+  Variable Q : B -> Prop.
+
+  Variable to : A -> B.
+  Variable from : B -> A.
+  Hypothesis Hto : forall a, P a -> Q (to a) /\ g (to a) ≈ f a.
+  Hypothesis Hfrom : forall b, Q b -> P (from b) /\ f (from b) ≈ g b.
+  Hypothesis g_complete : forall b, complete (g b).
+  Variable X : has_cantor_decomposition f P.
+
+  Definition cantor_transfer : has_cantor_decomposition g Q.
+  Proof.
+    refine (Build_has_cantor_decomposition g Q
+              (fun x y => cantor_decomp_compare X (from x) (from y))
+              (fun x => map to (cantor_decompose X (from x)))
+              (fun xs => to (cantor_recompose X (map from xs)))
+              g_complete _ _ _).
+    - intros x y Hx Hy.
+      destruct (Hfrom Hx) as [Px Ex]. destruct (Hfrom Hy) as [Py Ey].
+      generalize (cantor_decomp_compare_correct X (from x) (from y) Px Py).
+      destruct (cantor_decomp_compare X (from x) (from y)); simpl;
+        rewrite Ex, Ey; auto.
+    - intros x Hx.
+      destruct (Hfrom Hx) as [Px Ex].
+      destruct (cantor_decompose_correct X (from x) Px) as [H1 [H2 H3]].
+      split; [|split].
+      + apply transfer_each with (P:=P); auto. intros; apply Hto; auto.
+      + apply transfer_cantor_ordered with (P:=P) (f:=f); auto. intros; apply Hto; auto.
+      + rewrite transfer_cantor_denote with (P:=P) (f:=f); auto.
+        * rewrite <- Ex. exact H3.
+        * intros; apply Hto; auto.
+    - intros xs Hxs Hord.
+      assert (HP : each P (map from xs)).
+      { apply transfer_each with (P:=Q); auto. intros; apply Hfrom; auto. }
+      assert (HO : cantor_ordered f (map from xs)).
+      { apply transfer_cantor_ordered with (P:=Q) (f:=g); auto. intros; apply Hfrom; auto. }
+      destruct (cantor_recompose_correct X (map from xs) HP HO) as [H1 H2].
+      destruct (Hto H1) as [H3 H4].
+      split; auto.
+      rewrite H4, <- H2.
+      symmetry. apply transfer_cantor_denote with (P:=Q); auto. intros; apply Hfrom; auto.
+  Defined.
+
+End cantor_transfer.

@@ -13,7 +13,15 @@ From Ordinal Require Import VeblenDefs.
 From Ordinal Require Import VeblenCon.
 From Ordinal Require Import VeblenFacts.
 From Ordinal Require Import AckermannTower.
+From Ordinal Require Import Reflection.
+From Ordinal Require Import NaturalArith.
+From Ordinal Require Import NaturalProduct.
+From Ordinal Require Import NaturalExp.
+From Ordinal Require Import Notation.Interpolants.
+From Ordinal Require Import Notation.CantorDecomposition.
+From Ordinal Require Import Notation.CantorProduct.
 From Ordinal Require Import Notation.ATowerNotation.
+From Ordinal Require Import Notation.NaturalExpNotation.
 
 (** * Grimm's syntactic presentation of Ackermann's system
 
@@ -45,7 +53,18 @@ From Ordinal Require Import Notation.ATowerNotation.
       semantic order, in both directions, so it is in particular
       well-founded (independently of Grimm's syntactic proof);
     - [T3_denote_inj]: normal forms are determined by their denotation;
-    - [T3_AO]: the normal forms have order type [AckermannOrdinal].
+    - [VF_to_T3_correct], [T3_to_VF_to_T3]: the structurally recursive
+      [VF_to_T3] is inverse to [T3_to_VF], so the two translations are
+      inverse order isomorphisms between the normal forms of Grimm's
+      system and of [ATowerNotation];
+    - [T3_AO]: the normal forms have order type [AckermannOrdinal];
+    - through the bijection, Grimm's system inherits a Cantor
+      decomposition ([T3_has_cantor_decomposition], via the generic
+      [cantor_transfer]) and interpolants ([T3_has_all_interpolants], via
+      [has_all_interpolants_transfer]), hence ordinary and natural
+      arithmetic ([T3_add_reflects], ..., [T3_reflects_nmul]) and the
+      constructive impossibility of a natural exponentiation
+      ([natural_exp_impossible_T3]).
 
     The proof of [T3lt_correct] is by induction on the combined size of the
     terms ([GrimmT3_main]), carrying normality of the translation along.
@@ -1502,59 +1521,617 @@ Example T3_to_VF_absorb :
   V vf_one (V (V Z Z vf_one) Z Z) vf_one.
 Proof. reflexivity. Qed.
 
-(** ** Order type: [AckermannOrdinal] *)
+(** ** The inverse translation
 
-Lemma VF_V_monotone m a b m' a' b' :
-  VF_denote m ≤ VF_denote m' -> VF_denote a ≤ VF_denote a' -> VF_denote b ≤ VF_denote b' ->
-  VF_denote (V m a b) ≤ VF_denote (V m' a' b').
-Proof.
-  intros Hm Ha Hb. simpl.
-  transitivity (veblen (ackermann_tower (addOrd 1) (VF_denote m')) (VF_denote a) (VF_denote b)).
-  { apply veblen_monotone_func; auto with ord;
-      intros; apply ackermann_tower_monotone; auto with ord. }
-  transitivity (veblen (ackermann_tower (addOrd 1) (VF_denote m')) (VF_denote a') (VF_denote b)).
-  { apply veblen_monotone_first; auto with ord. }
-  apply veblen_monotone; auto with ord.
-Qed.
+    Every normal [VForm] is the translation of a Grimm normal form, so
+    [T3_to_VF] is a bijection between the two sets of normal forms.  The
+    inverse [VF_to_T3] undoes the two index shifts of [vf_psi]: a γ index
+    of the form [λ + (k+1)] that was skipped past a fixed point [λ] is
+    decremented, and a finite index raised by β-absorption is lowered.
+    It is structurally recursive; the decrements act on the translated
+    terms ([t3_drop1], [t3_nat]). *)
 
-(** An upper translation: every [VForm] lies below the denotation of a
-    Grimm bracket. *)
-Fixpoint vf_up (x:VForm) : T3 :=
-  match x with
-  | Z => T3zero
-  | V m a b =>
-      T3psi (match vf_up m with T3zero => t_one | t => t end) (vf_up a) (vf_up b)
+Fixpoint vf_nat (k:nat) : VForm :=
+  match k with
+  | O => Z
+  | S k => V Z Z (vf_nat k)
   end.
 
-Lemma vf_up_nf : forall x, T3nf (vf_up x) = true.
+Definition t3_nat (k:nat) : T3 :=
+  match k with
+  | O => T3zero
+  | S k => T3cons T3zero T3zero T3zero k T3zero
+  end.
+
+Fixpoint vf_to_nat (x:VForm) : option nat :=
+  match x with
+  | Z => Some O
+  | V Z Z r => option_map S (vf_to_nat r)
+  | _ => None
+  end.
+
+(** A strongly critical term: a bracket of nonzero level. *)
+Definition vf_crit (x:VForm) : bool :=
+  match x with
+  | V (V _ _ _) _ _ => true
+  | _ => false
+  end.
+
+(** [λ + (k+1)], with [λ] strongly critical, is [Some (λ, k)]. *)
+Definition vf_dec (x:VForm) : option (VForm * nat) :=
+  match x with
+  | V Z (V (V _ _ _) _ _ as lam) r =>
+      match vf_to_nat r with
+      | Some (S k) => Some (lam, k)
+      | _ => None
+      end
+  | _ => None
+  end.
+
+(** Prepend the bracket [ψ(a,b,c)] to a sum. *)
+Definition t3_push (a b c t:T3) : T3 :=
+  match t with
+  | T3zero => T3psi a b c
+  | T3cons a' b' c' n d =>
+      if T3eqb a a' && T3eqb b b' && T3eqb c c' then T3cons a b c (S n) d
+      else T3cons a b c 0 t
+  end.
+
+(** Subtract one from the finite tail of [ψ(a,b,c)·(n+1) + k]. *)
+Definition t3_drop1 (t:T3) : T3 :=
+  match t with
+  | T3cons a b c n (T3cons _ _ _ O _) => T3cons a b c n T3zero
+  | T3cons a b c n (T3cons x y z (S j) w) => T3cons a b c n (T3cons x y z j w)
+  | _ => t
+  end.
+
+(** Undo [shift_omega]. *)
+Definition t3_unshift_omega (e:VForm) (te:T3) : T3 :=
+  match vf_dec e with
+  | Some _ => t3_drop1 te
+  | None => te
+  end.
+
+(** Undo [shift_gen L B]. *)
+Definition t3_unshift_gen (L B xi:VForm) (txi:T3) : T3 :=
+  match vf_dec xi with
+  | Some (lam, _) => if vf_top_ok L B lam then txi else t3_drop1 txi
+  | None =>
+      match vf_to_nat xi with
+      | Some (S j) => if vf_top_ok L B Z then txi else t3_nat j
+      | _ => txi
+      end
+  end.
+
+Fixpoint VF_to_T3 (x:VForm) : T3 :=
+  match x with
+  | Z => T3zero
+  | V Z e r =>
+      let te := VF_to_T3 e in
+      let tr := VF_to_T3 r in
+      match e with
+      | V (V _ _ _) _ _ =>
+          match te with
+          | T3cons a b c _ _ => t3_push a b c tr
+          | T3zero => T3zero
+          end
+      | _ => t3_push T3zero T3zero (t3_unshift_omega e te) tr
+      end
+  | V m a b =>
+      let tc := t3_unshift_gen m a b (VF_to_T3 b) in
+      match vf_to_nat m with
+      | Some 1 =>
+          T3psi T3zero
+                (match vf_to_nat a with
+                 | Some k => t3_nat (S k)
+                 | None => VF_to_T3 a
+                 end) tc
+      | Some (S k) => T3psi (t3_nat k) (VF_to_T3 a) tc
+      | _ => T3psi (VF_to_T3 m) (VF_to_T3 a) tc
+      end
+  end.
+
+(** *** Finite numbers *)
+
+Lemma vf_to_nat_spec : forall x k, vf_to_nat x = Some k -> x = vf_nat k.
 Proof.
-  induction x as [|m Hm a Ha b Hb]; [reflexivity|].
-  simpl vf_up. apply T3nf_psi; auto.
-  destruct (vf_up m); auto; reflexivity.
+  induction x as [|m _ a _ r IHr]; simpl; intros k H.
+  - injection H as <-. reflexivity.
+  - destruct m; [|discriminate]. destruct a; [|discriminate].
+    destruct (vf_to_nat r) as [k'|] eqn:E; simpl in H; [|discriminate].
+    injection H as <-. simpl. f_equal. apply IHr. reflexivity.
 Qed.
 
-Lemma vf_up_ge : forall x, VF_denote x ≤ T3_denote (vf_up x).
+Lemma vf_to_nat_nat k : vf_to_nat (vf_nat k) = Some k.
+Proof. induction k; simpl; [reflexivity|]. rewrite IHk. reflexivity. Qed.
+
+Lemma VF_compare_Z_Z : VF_compare Z Z = EQ.
+Proof. reflexivity. Qed.
+
+Lemma VF_compare_Z_V m a b : VF_compare Z (V m a b) = LT.
+Proof. reflexivity. Qed.
+
+Lemma vf_nat_normal k : VF_isNormal (vf_nat k).
 Proof.
-  induction x as [|m Hm a Ha b Hb]; [apply zero_least|].
-  simpl vf_up.
-  set (am := match vf_up m with T3zero => t_one | t => t end).
-  assert (Ham : T3_to_VF am <> Z /\ VF_denote m ≤ 1 + VF_denote (T3_to_VF am)).
-  { unfold am. destruct (vf_up m) as [|a1 a2 a3 n1 d1] eqn:Eu.
-    - split; [discriminate|].
-      transitivity (T3_denote T3zero); [exact Hm | apply zero_least].
-    - split; [apply T3_to_VF_cons_nonzero|].
-      transitivity (T3_denote (T3cons a1 a2 a3 n1 d1)); [exact Hm | apply addOrd_le2]. }
-  destruct Ham as [Hnz Hle].
-  rewrite T3_denote_psi_vf.
-  destruct (T3_to_VF am) as [|ma aa ba] eqn:Eam; [congruence|].
-  change (VF_denote (V m a b) ≤
-          VF_denote (V (VF_onePlus (V ma aa ba)) (T3_to_VF (vf_up a))
-                       (shift_gen (VF_onePlus (V ma aa ba)) (T3_to_VF (vf_up a)) (T3_to_VF (vf_up b))))).
-  apply VF_V_monotone.
-  - rewrite VF_onePlus_equal. exact Hle.
-  - exact Ha.
-  - rewrite Hb. apply shift_gen_bounds.
+  induction k; [exact I|].
+  split; [exact I|split; [exact I|split; [exact IHk|]]].
+  destruct k; [exact I|]. change (VF_denote Z ≤ VF_denote Z). reflexivity.
 Qed.
+
+Lemma vf_nat_lt k : VF_denote (vf_nat k) < VF_denote (vf_nat (S k)).
+Proof.
+  induction k.
+  - apply VF_V_pos.
+  - apply VF_V_increasing. exact IHk.
+Qed.
+
+Lemma vf_rep_one k : vf_rep k Z vf_one = vf_nat (S k).
+Proof. induction k; simpl; [reflexivity|]. rewrite IHk. reflexivity. Qed.
+
+Lemma T3_to_VF_nat k : T3_to_VF (t3_nat k) = vf_nat k.
+Proof. destruct k; [reflexivity|]. apply vf_rep_one. Qed.
+
+Lemma T3nf_nat k : T3nf (t3_nat k) = true.
+Proof. destruct k; reflexivity. Qed.
+
+Lemma VF_to_T3_nat k : VF_to_T3 (vf_nat k) = t3_nat k.
+Proof.
+  induction k; [reflexivity|].
+  change (VF_to_T3 (vf_nat (S k))) with
+    (t3_push T3zero T3zero T3zero (VF_to_T3 (vf_nat k))).
+  rewrite IHk. destruct k; reflexivity.
+Qed.
+
+Lemma VF_onePlus_nat k : VF_onePlus (vf_nat k) = vf_nat (S k).
+Proof. induction k; simpl; [reflexivity|]. rewrite IHk. reflexivity. Qed.
+
+Lemma vf_plus_one_nat k : vf_plus_one (vf_nat k) = vf_nat (S k).
+Proof. induction k; simpl; [reflexivity|]. rewrite IHk. reflexivity. Qed.
+
+Lemma vf_finiteb_nat k : vf_finiteb (vf_nat k) = true.
+Proof. induction k; simpl; auto. Qed.
+
+Lemma vf_finiteb_spec : forall r, vf_finiteb r = true -> exists k, r = vf_nat k.
+Proof.
+  induction r as [|m _ a _ r IHr]; simpl; intros H.
+  - exists O. reflexivity.
+  - destruct m; [|discriminate]. destruct a; [|discriminate].
+    destruct (IHr H) as [k ->]. exists (S k). reflexivity.
+Qed.
+
+Lemma VF_denote_le_zero x : VF_denote x ≤ 0 -> x = Z.
+Proof.
+  destruct x as [|m a b]; auto. intro H.
+  elim (ord_lt_irreflexive 0). apply ord_lt_le_trans with (VF_denote (V m a b)); auto.
+  apply VF_V_pos.
+Qed.
+
+(** A normal [1 + r] is finite. *)
+Lemma normal_one_plus_finite : forall r, VF_isNormal (V Z Z r) -> exists k, vf_to_nat r = Some k.
+Proof.
+  induction r as [|n _ x _ y IHy]; intros H.
+  - exists O. reflexivity.
+  - simpl in H. destruct H as [_ [_ [Hr Htop]]].
+    destruct n as [|n1 n2 n3].
+    + simpl in Htop. apply VF_denote_le_zero in Htop. subst x.
+      destruct (IHy Hr) as [k Hk]. exists (S k). simpl. rewrite Hk. reflexivity.
+    + simpl in Htop. elim (ord_lt_irreflexive 0).
+      apply ord_lt_le_trans with (VF_denote (V (V n1 n2 n3) x y)); auto. apply VF_V_pos.
+Qed.
+
+Lemma infinite_shape x :
+  VF_isNormal x -> vf_to_nat x = None ->
+  x <> Z /\ VF_onePlus x = x /\ vf_minus_one x = x.
+Proof.
+  intros Hx Hn. destruct x as [|m a r]; [discriminate|].
+  split; [discriminate|].
+  destruct m as [|m1 m2 m3]; [destruct a as [|a1 a2 a3]|]; auto.
+  destruct (normal_one_plus_finite r Hx) as [k Hk].
+  simpl in Hn. rewrite Hk in Hn. discriminate.
+Qed.
+
+(** *** Strongly critical terms *)
+
+Definition vf_add_nat (lam:VForm) (k:nat) : VForm :=
+  match k with
+  | O => lam
+  | S _ => V Z lam (vf_nat k)
+  end.
+
+Lemma vf_dec_spec x lam k :
+  vf_dec x = Some (lam, k) -> x = V Z lam (vf_nat (S k)) /\ vf_crit lam = true.
+Proof.
+  destruct x as [|[|m1 m2 m3] [|[|a1 a2 a3] a4 a5] r]; simpl; try discriminate.
+  destruct (vf_to_nat r) as [[|k']|] eqn:E; try discriminate.
+  intro H. injection H as <- <-.
+  rewrite (vf_to_nat_spec _ _ E). auto.
+Qed.
+
+Lemma vf_add_nat_facts lam k :
+  vf_crit lam = true ->
+  VF_onePlus (vf_add_nat lam k) = vf_add_nat lam k /\
+  vf_split_fin (vf_add_nat lam k) = Some lam /\
+  vf_plus_one (vf_add_nat lam k) = V Z lam (vf_nat (S k)).
+Proof.
+  destruct lam as [|[|m1 m2 m3] a b]; try discriminate. intros _.
+  destruct k as [|k]; simpl; auto.
+  rewrite vf_finiteb_nat, vf_plus_one_nat. auto.
+Qed.
+
+(** Outside the decrement case, [vf_split_fin] only finds critical terms. *)
+Lemma split_cases x :
+  VF_isNormal x -> vf_dec x = None ->
+  vf_split_fin x = None \/ vf_crit x = true.
+Proof.
+  intros Hx Hd.
+  destruct x as [|[|m1 m2 m3] [|[|a1 a2 a3] a4 a5] r]; simpl; auto.
+  destruct (vf_finiteb r) eqn:Hf; auto.
+  destruct (vf_finiteb_spec r Hf) as [[|k] ->].
+  - simpl in Hx. destruct Hx as [_ [_ [_ Htop]]].
+    elim (ord_lt_irreflexive 0).
+    apply ord_lt_le_trans with (VF_denote (V a1 a2 a3)); auto. apply VF_V_pos.
+  - simpl in Hd. rewrite vf_to_nat_nat in Hd. discriminate.
+Qed.
+
+Lemma vf_exponent_crit x : vf_crit x = true -> vf_exponent x = x.
+Proof. destruct x as [|[|? ? ?] ? ?]; simpl; congruence. Qed.
+
+(** *** Translation lemmas *)
+
+Lemma T3_to_VF_psi a b c :
+  T3_to_VF (T3psi a b c) = vf_psi (T3_to_VF a) (T3_to_VF b) (T3_to_VF c).
+Proof. reflexivity. Qed.
+
+Lemma T3_to_VF_cons0 a b c d :
+  T3_to_VF d <> Z ->
+  T3_to_VF (T3cons a b c 0 d) =
+  V Z (vf_exponent (vf_psi (T3_to_VF a) (T3_to_VF b) (T3_to_VF c))) (T3_to_VF d).
+Proof.
+  intro H. cbn [T3_to_VF]. destruct (T3_to_VF d); [congruence|reflexivity].
+Qed.
+
+Lemma T3_to_VF_consS a b c n d :
+  T3_to_VF (T3cons a b c (S n) d) =
+  V Z (vf_exponent (vf_psi (T3_to_VF a) (T3_to_VF b) (T3_to_VF c)))
+      (T3_to_VF (T3cons a b c n d)).
+Proof. cbn [T3_to_VF]. destruct (T3_to_VF d); reflexivity. Qed.
+
+Lemma T3nf_cons_intro a b c n d :
+  T3nf (T3psi a b c) = true -> T3nf d = true -> T3lt d (T3psi a b c) = true ->
+  T3nf (T3cons a b c n d) = true.
+Proof.
+  intros H Hd Hlt. destruct (T3nf_psi_inv a b c H) as [Ha [Hb Hc]].
+  simpl. rewrite Ha, Hb, Hc, Hd, Hlt. reflexivity.
+Qed.
+
+Lemma T3lt_trans_nf x y z :
+  T3nf x = true -> T3nf y = true -> T3nf z = true ->
+  T3lt x y = true -> T3lt y z = true -> T3lt x z = true.
+Proof.
+  intros Hx Hy Hz Hxy Hyz.
+  apply (T3lt_correct x z Hx Hz).
+  apply ord_lt_trans with (T3_denote y).
+  - apply (T3lt_correct x y Hx Hy). exact Hxy.
+  - apply (T3lt_correct y z Hy Hz). exact Hyz.
+Qed.
+
+Lemma T3lt_nat k : T3lt (t3_nat k) (t3_nat (S k)) = true.
+Proof.
+  apply T3lt_correct; try apply T3nf_nat.
+  unfold T3_denote. rewrite !T3_to_VF_nat. apply vf_nat_lt.
+Qed.
+
+Lemma T3lt_cons_psi a' b' c' n d a b c :
+  T3lt (T3cons a' b' c' n d) (T3psi a b c) = lt_psi_rec T3lt a' b' c' a b c.
+Proof.
+  unfold T3psi. rewrite T3lt_cons, T3lt_zero_r.
+  destruct (lt_psi_rec T3lt a' b' c' a b c); auto.
+  destruct (_ && _ && _); auto. destruct n; reflexivity.
+Qed.
+
+(** The leading exponent of a translated sum. *)
+Lemma T3_to_VF_cons_lead a b c n d E :
+  VF_isNormal (V Z E (T3_to_VF (T3cons a b c n d))) ->
+  VF_denote (vf_exponent (vf_psi (T3_to_VF a) (T3_to_VF b) (T3_to_VF c))) ≤ VF_denote E.
+Proof.
+  set (P := vf_psi (T3_to_VF a) (T3_to_VF b) (T3_to_VF c)).
+  assert (HP : vf_principal_shape P) by apply vf_psi_shape.
+  assert (Hcases : (exists y, T3_to_VF (T3cons a b c n d) = V Z (vf_exponent P) y) \/
+                   T3_to_VF (T3cons a b c n d) = P).
+  { cbn [T3_to_VF]. fold P.
+    destruct (T3_to_VF d); [destruct n|]; simpl; eauto. }
+  intro H. destruct Hcases as [[y Hy]|Hy]; rewrite Hy in H.
+  - simpl in H. destruct H as [_ [_ [_ H]]]. exact H.
+  - destruct P as [|[|m1 m2 m3] e xi]; try contradiction.
+    + destruct xi; [|contradiction]. simpl in H. destruct H as [_ [_ [_ H]]]. exact H.
+    + simpl in H. destruct H as [_ [_ [_ H]]]. exact H.
+Qed.
+
+Lemma t3_push_correct a b c t :
+  let P := vf_psi (T3_to_VF a) (T3_to_VF b) (T3_to_VF c) in
+  T3nf (T3psi a b c) = true -> T3nf t = true ->
+  (t <> T3zero -> VF_isNormal (V Z (vf_exponent P) (T3_to_VF t))) ->
+  T3nf (t3_push a b c t) = true /\
+  T3_to_VF (t3_push a b c t) =
+    match t with T3zero => P | _ => V Z (vf_exponent P) (T3_to_VF t) end.
+Proof.
+  intros P Hpsi Ht Hnorm.
+  destruct t as [|a' b' c' n d]; [split; auto|].
+  unfold t3_push.
+  destruct (T3eqb a a' && T3eqb b b' && T3eqb c c') eqn:Heq.
+  - apply andb_prop in Heq as [Heq Hc]. apply andb_prop in Heq as [Ha Hb].
+    apply T3eqb_eq in Ha, Hb, Hc. subst a' b' c'.
+    split; [exact Ht|]. apply T3_to_VF_consS.
+  - split; [|apply T3_to_VF_cons0; apply T3_to_VF_cons_nonzero].
+    destruct (T3nf_cons_inv _ _ _ _ _ Ht) as [Fa [Fb [Fc [Fd _]]]].
+    assert (Hpsi' : T3nf (T3psi a' b' c') = true) by (apply T3nf_psi; auto).
+    apply T3nf_cons_intro; auto.
+    rewrite T3lt_cons_psi, <- (T3lt_cons_psi a' b' c' 0 T3zero).
+    destruct (T3lt_total (T3psi a' b' c') (T3psi a b c)) as [H|[H|H]]; auto.
+    + injection H as -> -> ->. rewrite !T3eqb_refl in Heq. discriminate.
+    + exfalso.
+      apply (T3lt_correct _ _ Hpsi Hpsi') in H.
+      apply (ord_lt_irreflexive (T3_denote (T3psi a b c))).
+      apply ord_lt_le_trans with (T3_denote (T3psi a' b' c')); auto.
+      rewrite !T3_denote_psi. unfold T3_exp.
+      apply expOrd_monotone.
+      apply (T3_to_VF_cons_lead a' b' c' n d).
+      apply Hnorm. discriminate.
+Qed.
+
+Lemma VF_to_T3_crit_shape m1 m2 m3 a b :
+  exists A B C, VF_to_T3 (V (V m1 m2 m3) a b) = T3psi A B C.
+Proof.
+  cbn [VF_to_T3].
+  destruct (vf_to_nat (V m1 m2 m3)) as [[|[|k]]|]; eauto.
+Qed.
+
+(** The decrement of [λ + (k+1)]. *)
+Lemma drop1_correct lam k :
+  vf_crit lam = true ->
+  T3nf (VF_to_T3 lam) = true -> T3_to_VF (VF_to_T3 lam) = lam ->
+  T3nf (VF_to_T3 (V Z lam (vf_nat (S k)))) = true ->
+  T3nf (t3_drop1 (VF_to_T3 (V Z lam (vf_nat (S k))))) = true /\
+  T3_to_VF (t3_drop1 (VF_to_T3 (V Z lam (vf_nat (S k))))) = vf_add_nat lam k.
+Proof.
+  intros Hcrit Hnf Hrt Hnf'.
+  destruct lam as [|[|m1 m2 m3] a b]; try discriminate.
+  destruct (VF_to_T3_crit_shape m1 m2 m3 a b) as [A [B [C HA]]].
+  assert (Heq : VF_to_T3 (V Z (V (V m1 m2 m3) a b) (vf_nat (S k))) =
+                T3cons A B C 0 (t3_nat (S k))).
+  { change (VF_to_T3 (V Z (V (V m1 m2 m3) a b) (vf_nat (S k)))) with
+      (match VF_to_T3 (V (V m1 m2 m3) a b) with
+       | T3cons a b c _ _ => t3_push a b c (VF_to_T3 (vf_nat (S k)))
+       | T3zero => T3zero end).
+    rewrite HA, VF_to_T3_nat. unfold T3psi at 1. unfold t3_push, t3_nat.
+    destruct (T3eqb A T3zero && T3eqb B T3zero && T3eqb C T3zero) eqn:Hz; auto.
+    apply andb_prop in Hz as [Hz Hc]. apply andb_prop in Hz as [Ha Hb].
+    apply T3eqb_eq in Ha, Hb, Hc. subst.
+    rewrite HA in Hrt. cbn in Hrt. discriminate. }
+  rewrite Heq in Hnf' |- *. rewrite HA in Hnf, Hrt.
+  destruct k as [|j]; simpl t3_drop1.
+  - split; auto.
+  - split.
+    + destruct (T3nf_cons_inv _ _ _ _ _ Hnf') as [_ [_ [_ [_ Hlt]]]].
+      apply T3nf_cons_intro; auto using T3nf_nat.
+      apply T3lt_trans_nf with (t3_nat (S (S j))); auto using T3nf_nat.
+      * exact (T3lt_nat (S j)).
+    + change (T3cons T3zero T3zero T3zero j T3zero) with (t3_nat (S j)).
+      rewrite T3_to_VF_cons0; rewrite T3_to_VF_nat; [|discriminate].
+      rewrite <- T3_to_VF_psi, Hrt. reflexivity.
+Qed.
+
+Lemma vf_leb_complete x y : VF_denote x ≤ VF_denote y -> vf_leb x y = true.
+Proof.
+  intro H. unfold vf_leb.
+  generalize (VF_compare_correct x y).
+  destruct (VF_compare x y); auto. intro H'.
+  elim (ord_lt_irreflexive (VF_denote x)). apply ord_le_lt_trans with (VF_denote y); auto.
+Qed.
+
+Lemma vf_top_ok_complete L B xi : top_cond L B xi -> vf_top_ok L B xi = true.
+Proof.
+  unfold vf_top_ok, top_cond. destruct xi as [|n x y].
+  - destruct B; auto. apply vf_leb_complete.
+  - destruct (VF_compare L n); auto; apply vf_leb_complete.
+Qed.
+
+Section inverse.
+  Variable IH : VForm -> Prop.
+  Hypothesis IH_def :
+    forall y, IH y <-> (VF_isNormal y -> T3nf (VF_to_T3 y) = true /\ T3_to_VF (VF_to_T3 y) = y).
+
+  (** [t3_unshift_omega] inverts [shift_omega]. *)
+  Lemma unshift_omega_correct e :
+    VF_isNormal e -> vf_crit e = false ->
+    T3nf (VF_to_T3 e) = true -> T3_to_VF (VF_to_T3 e) = e ->
+    (forall lam k, vf_dec e = Some (lam, k) -> IH lam) ->
+    T3nf (t3_unshift_omega e (VF_to_T3 e)) = true /\
+    shift_omega (T3_to_VF (t3_unshift_omega e (VF_to_T3 e))) = e.
+  Proof.
+    intros He Hc Hnf Hrt Hsub. unfold t3_unshift_omega.
+    destruct (vf_dec e) as [[lam k]|] eqn:Hd.
+    - destruct (vf_dec_spec _ _ _ Hd) as [-> Hcl].
+      assert (Hl : VF_isNormal lam) by (simpl in He; tauto).
+      apply (IH_def lam) in Hl as [Hl1 Hl2]; [|eapply Hsub; reflexivity].
+      destruct (drop1_correct lam k Hcl Hl1 Hl2 Hnf) as [H1 H2].
+      split; auto. rewrite H2.
+      destruct (vf_add_nat_facts lam k Hcl) as [_ [Hs Hp]].
+      unfold shift_omega. rewrite Hs. exact Hp.
+    - split; auto. rewrite Hrt. unfold shift_omega.
+      destruct (split_cases e He Hd) as [->|H]; congruence.
+  Qed.
+
+  (** [t3_unshift_gen] inverts [shift_gen]. *)
+  Lemma unshift_gen_correct L B xi :
+    VF_isNormal xi -> vf_top_ok L B xi = true ->
+    T3nf (VF_to_T3 xi) = true -> T3_to_VF (VF_to_T3 xi) = xi ->
+    (forall lam k, vf_dec xi = Some (lam, k) -> IH lam) ->
+    T3nf (t3_unshift_gen L B xi (VF_to_T3 xi)) = true /\
+    shift_gen L B (T3_to_VF (t3_unshift_gen L B xi (VF_to_T3 xi))) = xi.
+  Proof.
+    intros Hxi Htop Hnf Hrt Hsub. unfold t3_unshift_gen.
+    destruct (vf_dec xi) as [[lam k]|] eqn:Hd.
+    - destruct (vf_dec_spec _ _ _ Hd) as [Hx Hcl].
+      destruct (vf_add_nat_facts lam k Hcl) as [Ho [Hs Hp]].
+      destruct (vf_top_ok L B lam) eqn:Htl.
+      + split; auto. rewrite Hrt. unfold shift_gen.
+        assert (H1 : (if vf_top_ok L B Z then xi else VF_onePlus xi) = xi).
+        { destruct (vf_top_ok L B Z); auto. subst xi.
+          destruct lam as [|[|? ? ?] ? ?]; try discriminate. reflexivity. }
+        rewrite H1. subst xi.
+        destruct lam as [|[|? ? ?] ? ?]; try discriminate.
+        simpl vf_split_fin. rewrite vf_finiteb_nat, Htl. reflexivity.
+      + subst xi.
+        assert (Hl : VF_isNormal lam) by (simpl in Hxi; tauto).
+        apply (IH_def lam) in Hl as [Hl1 Hl2]; [|eapply Hsub; reflexivity].
+        destruct (drop1_correct lam k Hcl Hl1 Hl2 Hnf) as [H1 H2].
+        split; auto. rewrite H2. unfold shift_gen.
+        assert (H3 : (if vf_top_ok L B Z then vf_add_nat lam k
+                      else VF_onePlus (vf_add_nat lam k)) = vf_add_nat lam k).
+        { destruct (vf_top_ok L B Z); auto. }
+        rewrite H3, Hs, Htl. exact Hp.
+    - destruct (vf_to_nat xi) as [[|j]|] eqn:Hn.
+      + apply vf_to_nat_spec in Hn. subst xi. split; auto.
+        rewrite Hrt. unfold shift_gen. change (vf_top_ok L B Z = true) in Htop. rewrite Htop. reflexivity.
+      + apply vf_to_nat_spec in Hn. subst xi.
+        destruct (vf_top_ok L B Z) eqn:Hz.
+        * split; auto. rewrite Hrt. unfold shift_gen. rewrite Hz. reflexivity.
+        * split; [apply T3nf_nat|].
+          rewrite T3_to_VF_nat. unfold shift_gen. rewrite Hz, VF_onePlus_nat. reflexivity.
+      + destruct (infinite_shape xi Hxi Hn) as [Hnz [Ho _]].
+        split; auto. rewrite Hrt. unfold shift_gen.
+        assert (H1 : (if vf_top_ok L B Z then xi else VF_onePlus xi) = xi).
+        { destruct (vf_top_ok L B Z); auto. }
+        rewrite H1.
+        destruct (split_cases xi Hxi Hd) as [->|Hc]; auto.
+        destruct xi as [|[|? ? ?] ? ?]; try discriminate.
+        simpl vf_split_fin. cbv beta iota. rewrite Htop. reflexivity.
+  Qed.
+End inverse.
+
+Theorem VF_to_T3_correct :
+  forall x, VF_isNormal x -> T3nf (VF_to_T3 x) = true /\ T3_to_VF (VF_to_T3 x) = x.
+Proof.
+  intro x. remember (VF_size x) as s. revert x Heqs.
+  induction s as [s IH] using (well_founded_induction Wf_nat.lt_wf).
+  intros x Hs Hx. subst s.
+  assert (IH' : forall y, (VF_size y < VF_size x)%nat -> VF_isNormal y ->
+                  T3nf (VF_to_T3 y) = true /\ T3_to_VF (VF_to_T3 y) = y).
+  { intros y Hy. apply (IH (VF_size y) Hy y); reflexivity. }
+  destruct x as [|m a b]; [split; reflexivity|].
+  pose proof Hx as Hx'.
+  simpl in Hx'. destruct Hx' as [Hm [Ha [Hb Htop]]].
+  destruct (IH' a) as [Na Ra]; [simpl; lia|exact Ha|].
+  destruct (IH' b) as [Nb Rb]; [simpl; lia|exact Hb|].
+  (* subterms of [λ + (k+1)] in either position *)
+  assert (Hsub : forall y lam k, (VF_size y < VF_size (V m a b))%nat ->
+                   vf_dec y = Some (lam, k) ->
+                   VF_isNormal lam -> T3nf (VF_to_T3 lam) = true /\ T3_to_VF (VF_to_T3 lam) = lam).
+  { intros y lam k Hy Hd. apply IH'.
+    destruct (vf_dec_spec _ _ _ Hd) as [-> _]. simpl in Hy |- *. lia. }
+  destruct m as [|m1 m2 m3].
+  - (* a sum [ω^a + b] *)
+    destruct (vf_crit a) eqn:Hca.
+    + destruct a as [|[|a1 a2 a3] a4 a5]; try discriminate.
+      change (VF_to_T3 (V Z (V (V a1 a2 a3) a4 a5) b)) with
+        (match VF_to_T3 (V (V a1 a2 a3) a4 a5) with
+         | T3cons x y z _ _ => t3_push x y z (VF_to_T3 b)
+         | T3zero => T3zero end).
+      destruct (VF_to_T3_crit_shape a1 a2 a3 a4 a5) as [A [B [C HA]]].
+      rewrite HA. rewrite HA in Na, Ra. rewrite T3_to_VF_psi in Ra.
+      assert (Hbz : b <> Z).
+      { intros ->. simpl in Htop.
+        elim (ord_lt_irreflexive 0).
+        apply ord_lt_le_trans with (VF_denote (V a1 a2 a3)); auto. apply VF_V_pos. }
+      unfold T3psi at 1 2. cbv beta iota.
+      destruct (t3_push_correct A B C (VF_to_T3 b) Na Nb) as [N1 R1].
+      { intros _. rewrite Ra, Rb. exact Hx. }
+      split; auto. rewrite R1, Ra, Rb.
+      destruct (VF_to_T3 b) eqn:Etb; [simpl in Rb; congruence|reflexivity].
+    + assert (Eq : VF_to_T3 (V Z a b) =
+                     t3_push T3zero T3zero (t3_unshift_omega a (VF_to_T3 a)) (VF_to_T3 b)).
+      { destruct a as [|[|? ? ?] ? ?]; [reflexivity|reflexivity|discriminate]. }
+      rewrite Eq.
+      destruct (unshift_omega_correct
+                  (fun y => VF_isNormal y -> T3nf (VF_to_T3 y) = true /\ T3_to_VF (VF_to_T3 y) = y)
+                  (fun y => iff_refl _) a Ha Hca Na Ra) as [Nc Rc].
+      { intros lam k Hd. apply (Hsub a lam k); auto. simpl; lia. }
+      assert (HP : vf_psi (T3_to_VF T3zero) (T3_to_VF T3zero)
+                          (T3_to_VF (t3_unshift_omega a (VF_to_T3 a))) = V Z a Z).
+      { simpl. rewrite Rc. reflexivity. }
+      destruct (t3_push_correct T3zero T3zero (t3_unshift_omega a (VF_to_T3 a)) (VF_to_T3 b))
+        as [N1 R1]; auto.
+      { apply T3nf_psi; auto. }
+      { intros _. rewrite HP, Rb. exact Hx. }
+      split; auto. rewrite R1, HP, Rb.
+      destruct (VF_to_T3 b) eqn:Etb; auto.
+      simpl in Rb. subst b. reflexivity.
+  - (* a bracket of nonzero level *)
+    set (m := V m1 m2 m3) in *.
+    destruct (unshift_gen_correct
+                (fun y => VF_isNormal y -> T3nf (VF_to_T3 y) = true /\ T3_to_VF (VF_to_T3 y) = y)
+                (fun y => iff_refl _) m a b Hb) as [Nc Rc]; auto.
+    { apply vf_top_ok_complete. exact Htop. }
+    { intros lam k Hd. apply (Hsub b lam k); auto. simpl; lia. }
+    set (tc := t3_unshift_gen m a b (VF_to_T3 b)) in *.
+    destruct (IH' m) as [Nm Rm]; [simpl; lia|exact Hm|].
+    change (VF_to_T3 (V m a b)) with
+      (match vf_to_nat m with
+       | Some 1 =>
+           T3psi T3zero
+                 (match vf_to_nat a with
+                  | Some k => t3_nat (S k)
+                  | None => VF_to_T3 a
+                  end) tc
+       | Some (S k) => T3psi (t3_nat k) (VF_to_T3 a) tc
+       | _ => T3psi (VF_to_T3 m) (VF_to_T3 a) tc
+       end).
+    destruct (vf_to_nat m) as [[|[|k]]|] eqn:Hmn.
+    + apply vf_to_nat_spec in Hmn. discriminate.
+    + apply vf_to_nat_spec in Hmn. rewrite Hmn in Rc |- *.
+      destruct (vf_to_nat a) as [k|] eqn:Han.
+      * apply vf_to_nat_spec in Han. subst a.
+        split; [apply T3nf_psi; auto using T3nf_nat|].
+        rewrite T3_to_VF_psi, T3_to_VF_nat. simpl T3_to_VF.
+        change (vf_nat (S k)) with (V Z Z (vf_nat k)). simpl vf_psi. change vf_one with (vf_nat 1). rewrite Rc. reflexivity.
+      * destruct (infinite_shape a Ha Han) as [Hnz [_ Hmo]].
+        split; [apply T3nf_psi; auto|].
+        rewrite T3_to_VF_psi, Ra. simpl T3_to_VF.
+        destruct a as [|a1 a2 a3]; [congruence|].
+        cbn [vf_psi]. rewrite Hmo. change vf_one with (vf_nat 1). rewrite Rc. reflexivity.
+    + apply vf_to_nat_spec in Hmn. rewrite Hmn in Rc |- *.
+      split; [apply T3nf_psi; auto using T3nf_nat|].
+      rewrite T3_to_VF_psi, T3_to_VF_nat, Ra.
+      assert (E : vf_psi (vf_nat (S k)) a (T3_to_VF tc) =
+                  V (VF_onePlus (vf_nat (S k))) a
+                    (shift_gen (VF_onePlus (vf_nat (S k))) a (T3_to_VF tc))) by reflexivity.
+      rewrite E, VF_onePlus_nat, Rc. reflexivity.
+    + destruct (infinite_shape m Hm Hmn) as [_ [Hmo _]].
+      split; [apply T3nf_psi; auto|].
+      rewrite T3_to_VF_psi, Rm, Ra.
+      assert (E : vf_psi m a (T3_to_VF tc) =
+                  V (VF_onePlus m) a (shift_gen (VF_onePlus m) a (T3_to_VF tc)))
+        by (unfold m; reflexivity).
+      rewrite E, Hmo, Rc. reflexivity.
+Qed.
+
+(** [T3_to_VF] and [VF_to_T3] are inverse bijections between the normal
+    forms of the two systems. *)
+Theorem T3_to_VF_to_T3 t : T3nf t = true -> VF_to_T3 (T3_to_VF t) = t.
+Proof.
+  intro Ht.
+  destruct (VF_to_T3_correct (T3_to_VF t) (T3_to_VF_normal t Ht)) as [N R].
+  apply T3_denote_inj; auto.
+  unfold T3_denote. rewrite R. reflexivity.
+Qed.
+
+Theorem VF_to_T3_denote x : VF_isNormal x -> T3_denote (VF_to_T3 x) ≈ VF_denote x.
+Proof.
+  intro Hx. unfold T3_denote. rewrite (proj2 (VF_to_T3_correct x Hx)). reflexivity.
+Qed.
+
+(** ** Order type: [AckermannOrdinal] *)
 
 (** The ordinal of Grimm's normal forms. *)
 Definition T3ord : Ord := ord { t:T3 | T3nf t = true } (fun t => T3_denote (proj1_sig t)).
@@ -1567,6 +2144,68 @@ Proof.
   - rewrite ord_le_unfold. intros [t Ht]. simpl.
     apply (VF_below_AO (T3_to_VF t)).
   - rewrite <- VF_AO. rewrite ord_le_unfold. intro x. simpl.
-    apply ord_le_lt_trans with (T3_denote (vf_up x)); [apply vf_up_ge|].
-    apply (index_lt T3ord (exist _ (vf_up x) (vf_up_nf x))).
+    rewrite <- VF_normalize_equal.
+    rewrite <- (VF_to_T3_denote (VF_normalize x)) by apply VF_normalize_isNormal.
+    apply (index_lt T3ord (exist _ (VF_to_T3 (VF_normalize x))
+                              (proj1 (VF_to_T3_correct _ (VF_normalize_isNormal x))))).
+Qed.
+
+(** ** Results carried over from [ATowerNotation]
+
+    Through the bijection, Grimm's system inherits the Cantor
+    decomposition and the interpolants of [ATowerNotation], and with them
+    the generic arithmetic of [CantorDecomposition] and [CantorProduct]. *)
+
+Definition T3normal (t:T3) : Prop := T3nf t = true.
+
+Lemma T3_to_VF_transfer t :
+  T3normal t -> VF_isNormal (T3_to_VF t) /\ VF_denote (T3_to_VF t) ≈ T3_denote t.
+Proof. intro Ht. split; [apply T3_to_VF_normal; auto|reflexivity]. Qed.
+
+Lemma VF_to_T3_transfer x :
+  VF_isNormal x -> T3normal (VF_to_T3 x) /\ T3_denote (VF_to_T3 x) ≈ VF_denote x.
+Proof. intro Hx. split; [apply VF_to_T3_correct; auto|apply VF_to_T3_denote; auto]. Qed.
+
+Definition T3_has_cantor_decomposition : has_cantor_decomposition T3_denote T3normal :=
+  @cantor_transfer VForm T3 VF_denote T3_denote VF_isNormal T3normal
+    VF_to_T3 T3_to_VF VF_to_T3_transfer T3_to_VF_transfer
+    (fun t => VF_complete (T3_to_VF t)) VF_has_cantor_decomposition.
+
+Theorem T3_has_all_interpolants : has_all_interpolants T3_denote T3normal.
+Proof.
+  apply has_all_interpolants_transfer with (f:=VF_denote) (P:=VF_isNormal).
+  - intros x Hx. exists (VF_to_T3 x). apply VF_to_T3_transfer; auto.
+  - intros t Ht. exists (T3_to_VF t). apply T3_to_VF_transfer; auto.
+  - apply VF_has_all_interpolants.
+Qed.
+
+Definition T3_add := cantor_add T3_has_cantor_decomposition.
+Definition T3_mul := cantor_mul T3_has_cantor_decomposition.
+Definition T3_exp_op := cantor_exp T3_has_cantor_decomposition.
+Definition T3_nadd := cantor_nadd T3_has_cantor_decomposition.
+Definition T3_nmul := CantorProduct.cantor_nmul _ _ _ T3_has_cantor_decomposition.
+
+Theorem T3_add_reflects : reflects T3 T3_denote T3normal (ORD ==> ORD ==> ORD) addOrd T3_add.
+Proof. apply cantor_add_reflects. Qed.
+
+Theorem T3_mul_reflects : reflects T3 T3_denote T3normal (ORD ==> ORD ==> ORD) mulOrd T3_mul.
+Proof. apply cantor_mul_reflects. Qed.
+
+Theorem T3_exp_reflects : reflects T3 T3_denote T3normal (ORD ==> ORD ==> ORD) expOrd T3_exp_op.
+Proof. apply cantor_exp_reflects. Qed.
+
+Theorem T3_reflects_nadd : reflects T3 T3_denote T3normal (ORD ==> ORD ==> ORD) naddOrd T3_nadd.
+Proof. apply cantor_nadd_reflects. Qed.
+
+Theorem T3_reflects_nmul :
+  reflects T3 T3_denote T3normal (ORD ==> ORD ==> ORD) NaturalProduct.nmulOrd T3_nmul.
+Proof. apply CantorProduct.cantor_nmul_reflects. apply T3_has_all_interpolants. Qed.
+
+(** No natural exponentiation on Grimm's notations, constructively. *)
+Corollary natural_exp_impossible_T3 :
+  let Q := CantorProduct.Qn _ T3_denote T3normal in
+  ~ exists e, (forall a b, Q a -> Q b -> Q (e a b)) /\ NaturalExp.natural_exp_laws_on Q e.
+Proof.
+  exact (NaturalExpNotation.natural_exp_impossible_notation _ _ _
+           T3_has_cantor_decomposition T3_has_all_interpolants).
 Qed.
