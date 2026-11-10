@@ -331,4 +331,25 @@ theorem veblen_interpolants_first (a : Ordinal.{0}) (_ha₁ : Complete a)
 
 end veblen_interpolants
 
+/-! ## Transfer -/
+
+/-- Interpolants transfer to any notation system that names every notation of
+the original one. Rocq: `Notation.Interpolants.has_interpolants_transfer`. -/
+theorem has_interpolants_transfer {B : Type} {g : B → Ordinal.{0}} {Q : B → Prop}
+    (hto : ∀ a, P a → ∃ b, Q b ∧ g b ≈ f a) :
+    ∀ z, HasInterpolants f P z → HasInterpolants g Q z :=
+  ltRec (motive := fun z => HasInterpolants f P z → HasInterpolants g Q z) fun z ih hz =>
+    (has_interpolants_unfold z).2 fun i hi =>
+      let ⟨y, hy, hiy, hyz, hint⟩ := (has_interpolants_unfold z).1 hz i hi
+      let ⟨b, hb, heq⟩ := hto y hy
+      ⟨b, hb, le_trans hiy heq.ge, lt_of_le_of_lt heq.le hyz,
+        (has_interpolants_eq_mor (equiv_symm heq)).1 (ih (f y) hyz hint)⟩
+
+/-- Rocq: `Notation.Interpolants.has_all_interpolants_transfer`. -/
+theorem has_all_interpolants_transfer {B : Type} {g : B → Ordinal.{0}} {Q : B → Prop}
+    (hto : ∀ a, P a → ∃ b, Q b ∧ g b ≈ f a) (hfrom : ∀ b, Q b → ∃ a, P a ∧ f a ≈ g b)
+    (h : HasAllInterpolants f P) : HasAllInterpolants g Q := fun b hb =>
+  let ⟨a, ha, heq⟩ := hfrom b hb
+  (has_interpolants_eq_mor heq).1 (has_interpolants_transfer hto (f a) (h a ha))
+
 end ConstructiveOrdinals.Interpolants

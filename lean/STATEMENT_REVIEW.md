@@ -67,7 +67,7 @@ are presentational:
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
 
-363 statements.
+372 statements.
 
 ## Defs
 
@@ -5053,6 +5053,47 @@ Lean:
 GrimmT3.T3_denote_inj : ∀ (t u : GrimmT3.T3), GrimmT3.nf t = true → GrimmT3.nf u = true → t.denote ≈ u.denote → t = u
 ```
 
+### `VF_to_T3_correct`
+
+Rocq:
+```
+GrimmT3.VF_to_T3_correct
+     : forall x : ATowerNotation.VForm,
+       ATowerNotation.VF_isNormal x ->
+       GrimmT3.T3nf (GrimmT3.VF_to_T3 x) = true /\ GrimmT3.T3_to_VF (GrimmT3.VF_to_T3 x) = x
+```
+Lean:
+```
+GrimmT3.VF_to_T3_correct : ∀ (x : ATowerNotation.VForm),
+  x.IsNormal → GrimmT3.nf (GrimmT3.vfToT3 x) = true ∧ (GrimmT3.vfToT3 x).toVF = x
+```
+
+### `T3_to_VF_to_T3`
+
+Rocq:
+```
+GrimmT3.T3_to_VF_to_T3
+     : forall t : GrimmT3.T3, GrimmT3.T3nf t = true -> GrimmT3.VF_to_T3 (GrimmT3.T3_to_VF t) = t
+```
+Lean:
+```
+GrimmT3.T3_to_VF_to_T3 : ∀ (t : GrimmT3.T3), GrimmT3.nf t = true → GrimmT3.vfToT3 t.toVF = t
+```
+
+### `VF_to_T3_denote`
+
+Rocq:
+```
+GrimmT3.VF_to_T3_denote
+     : forall x : ATowerNotation.VForm,
+       ATowerNotation.VF_isNormal x ->
+       Defs.ord_eq (GrimmT3.T3_denote (GrimmT3.VF_to_T3 x)) (ATowerNotation.VF_denote x)
+```
+Lean:
+```
+GrimmT3.VF_to_T3_denote : ∀ (x : ATowerNotation.VForm), x.IsNormal → (GrimmT3.vfToT3 x).denote ≈ x.denote
+```
+
 ### `T3_AO`
 
 Rocq:
@@ -5063,6 +5104,93 @@ GrimmT3.T3_AO
 Lean:
 ```
 GrimmT3.T3_AO : GrimmT3.T3ord ≈ AckermannOrdinal
+```
+
+### `T3_has_all_interpolants`
+
+Rocq:
+```
+GrimmT3.T3_has_all_interpolants
+     : Interpolants.has_all_interpolants GrimmT3.T3_denote GrimmT3.T3normal
+```
+Lean:
+```
+GrimmT3.T3.has_all_interpolants : Interpolants.HasAllInterpolants GrimmT3.T3.denote GrimmT3.T3normal
+```
+
+### `T3_add_reflects`
+
+Rocq:
+```
+GrimmT3.T3_add_reflects
+     : Reflection.reflects GrimmT3.T3 GrimmT3.T3_denote GrimmT3.T3normal
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         Arith.addOrd GrimmT3.T3_add
+```
+Lean:
+```
+GrimmT3.T3.add_reflects : Reflects GrimmT3.T3 GrimmT3.T3.denote GrimmT3.T3normal (Shape.ord ==> Shape.ord ==> Shape.ord)
+  (fun x1 x2 => x1 + x2) GrimmT3.T3.add
+```
+
+### `T3_mul_reflects`
+
+Rocq:
+```
+GrimmT3.T3_mul_reflects
+     : Reflection.reflects GrimmT3.T3 GrimmT3.T3_denote GrimmT3.T3normal
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         Arith.mulOrd GrimmT3.T3_mul
+```
+Lean:
+```
+GrimmT3.T3.mul_reflects : Reflects GrimmT3.T3 GrimmT3.T3.denote GrimmT3.T3normal (Shape.ord ==> Shape.ord ==> Shape.ord)
+  (fun x1 x2 => x1 * x2) GrimmT3.T3.mul
+```
+
+### `T3_exp_reflects`
+
+Rocq:
+```
+GrimmT3.T3_exp_reflects
+     : Reflection.reflects GrimmT3.T3 GrimmT3.T3_denote GrimmT3.T3normal
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         Arith.expOrd GrimmT3.T3_exp_op
+```
+Lean:
+```
+GrimmT3.T3.exp_reflects : Reflects GrimmT3.T3 GrimmT3.T3.denote GrimmT3.T3normal (Shape.ord ==> Shape.ord ==> Shape.ord)
+  (fun x1 x2 => x1 ^ x2) GrimmT3.T3.exp
+```
+
+### `T3_reflects_nadd`
+
+Rocq:
+```
+GrimmT3.T3_reflects_nadd
+     : Reflection.reflects GrimmT3.T3 GrimmT3.T3_denote GrimmT3.T3normal
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalArith.naddOrd GrimmT3.T3_nadd
+```
+Lean:
+```
+GrimmT3.T3.reflects_nadd : Reflects GrimmT3.T3 GrimmT3.T3.denote GrimmT3.T3normal
+  (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 ♯ x2) GrimmT3.T3.nadd
+```
+
+### `T3_reflects_nmul`
+
+Rocq:
+```
+GrimmT3.T3_reflects_nmul
+     : Reflection.reflects GrimmT3.T3 GrimmT3.T3_denote GrimmT3.T3normal
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalProduct.nmulOrd GrimmT3.T3_nmul
+```
+Lean:
+```
+GrimmT3.T3.reflects_nmul : Reflects GrimmT3.T3 GrimmT3.T3.denote GrimmT3.T3normal
+  (Shape.ord ==> Shape.ord ==> Shape.ord) NaturalProduct.nmul GrimmT3.T3.nmul
 ```
 
 ## Notation.SchutteStack

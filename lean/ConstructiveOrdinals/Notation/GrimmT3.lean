@@ -1,4 +1,5 @@
 import ConstructiveOrdinals.Notation.ATower
+import ConstructiveOrdinals.Notation.NaturalExpNotation
 
 /-!
 # Grimm's syntactic presentation of Ackermann's system
@@ -24,7 +25,15 @@ Main results:
 - `T3lt_correct`: on normal forms, Grimm's comparison agrees with the semantic
   order, in both directions;
 - `T3_denote_inj`: normal forms are determined by their denotation;
-- `T3_AO`: the normal forms have order type `AckermannOrdinal`.
+- `VF_to_T3_correct`, `T3_to_VF_to_T3`: the structurally recursive `vfToT3` is
+  inverse to `T3.toVF`, so the two translations are inverse order isomorphisms
+  between the normal forms of Grimm's system and of `ATowerNotation`;
+- `T3_AO`: the normal forms have order type `AckermannOrdinal`;
+- through the bijection, Grimm's system inherits a Cantor decomposition
+  (`T3.hasCantorDecomposition`, via the generic `cantorTransfer`) and
+  interpolants (`T3.has_all_interpolants`), hence ordinary and natural
+  arithmetic (`T3.add_reflects`, …, `T3.reflects_nmul`) and the constructive
+  impossibility of a natural exponentiation (`natural_exp_impossible_T3`).
 
 Lean notes:
 - Booleans are reasoned about by case analysis (`band_true`, `bor_true`, …),
@@ -32,6 +41,13 @@ Lean notes:
 - `shiftOmega` and `shiftGen` are defined through `skip`, so Rocq's
   `shift_omega_skip` and `shift_gen_skip` hold by `rfl`.
 - The sanity `Example`s of the Rocq file are `example`s here, checked by `rfl`.
+- `vfToT3` delegates its two cases to `sumStep` and `bracketStep`, so that
+  every recursive call is on an immediate subterm. The round trip is proved by
+  structural induction (`vfToT3_main`), carrying the instance for the critical
+  part of a decrement, where Rocq uses induction on size; the section
+  hypothesis `IH` of `unshift_omega_correct` and `unshift_gen_correct` is an
+  explicit hypothesis `Hsub`. `t3Push_cons` is the nonzero case of Rocq's
+  `t3_push_correct`.
 -/
 
 namespace ConstructiveOrdinals.GrimmT3
@@ -1618,63 +1634,809 @@ example : (psi .zero .zero tEps0).toVF = V Z (V Z (V vfOne Z Z) vfOne) Z := rfl
 /-- Grimm's `ψ(0,Γ₀,0)` lies above `Γ₀`: β-absorption. -/
 example : (psi .zero tGamma0 .zero).toVF = V vfOne (V (V Z Z vfOne) Z Z) vfOne := rfl
 
-/-! ## Order type: `AckermannOrdinal` -/
+/-! ## The inverse translation
 
-/-- Rocq: `Notation.GrimmT3.VF_V_monotone`. -/
-theorem VF_V_monotone (m a b m' a' b' : VForm) (hm : denote m ≤ denote m')
-    (ha : denote a ≤ denote a') (hb : denote b ≤ denote b') :
-    denote (V m a b) ≤ denote (V m' a' b') :=
-  veblen_level_le hm ha hb
+Every normal `VForm` is the translation of a Grimm normal form, so `T3.toVF` is
+a bijection between the two sets of normal forms. The inverse `vfToT3` undoes
+the two index shifts of `vfPsi`: a γ index of the form `λ + (k+1)` that was
+skipped past a fixed point `λ` is decremented, and a finite index raised by
+β-absorption is lowered. It is structurally recursive; the decrements act on
+the translated terms (`t3Drop1`, `t3Nat`). -/
 
-/-- A nonzero level: `t_one` in place of `T3zero`. The inner `match` of Rocq's
-`vf_up`. -/
-def upLevel : T3 → T3
-  | .zero => tOne
-  | .cons a b c n d => .cons a b c n d
+/-- Rocq: `Notation.GrimmT3.vf_nat`. -/
+def vfNat : Nat → VForm
+  | 0 => Z
+  | k + 1 => V Z Z (vfNat k)
 
-/-- An upper translation: every `VForm` lies below the denotation of a Grimm
-bracket. Rocq: `Notation.GrimmT3.vf_up`. -/
-def vfUp : VForm → T3
+/-- Rocq: `Notation.GrimmT3.t3_nat`. -/
+def t3Nat : Nat → T3
+  | 0 => .zero
+  | k + 1 => cons .zero .zero .zero k .zero
+
+/-- Rocq: `Notation.GrimmT3.vf_to_nat`. -/
+def vfToNat : VForm → Option Nat
+  | Z => some 0
+  | V Z Z r =>
+    match vfToNat r with
+    | some k => some (k + 1)
+    | none => none
+  | V Z (V _ _ _) _ => none
+  | V (V _ _ _) _ _ => none
+
+/-- A strongly critical term: a bracket of nonzero level.
+Rocq: `Notation.GrimmT3.vf_crit`. -/
+def vfCrit : VForm → Bool
+  | Z => false
+  | V Z _ _ => false
+  | V (V _ _ _) _ _ => true
+
+/-- `λ + (k+1)`, with `λ` strongly critical, is `some (λ, k)`.
+Rocq: `Notation.GrimmT3.vf_dec`. -/
+def vfDec : VForm → Option (VForm × Nat)
+  | Z => none
+  | V Z Z _ => none
+  | V Z (V Z _ _) _ => none
+  | V Z (V (V p1 p2 p3) x1 x2) r =>
+    match vfToNat r with
+    | some (k + 1) => some (V (V p1 p2 p3) x1 x2, k)
+    | some 0 => none
+    | none => none
+  | V (V _ _ _) _ _ => none
+
+/-- Prepend the bracket `ψ(a,b,c)` to a sum. Rocq: `Notation.GrimmT3.t3_push`. -/
+def t3Push (a b c : T3) : T3 → T3
+  | .zero => psi a b c
+  | .cons a' b' c' n d =>
+    bif eqb a a' && eqb b b' && eqb c c' then cons a b c (n + 1) d
+    else cons a b c 0 (cons a' b' c' n d)
+
+/-- Subtract one from the finite tail of `ψ(a,b,c)·(n+1) + k`.
+Rocq: `Notation.GrimmT3.t3_drop1`. -/
+def t3Drop1 : T3 → T3
+  | .zero => .zero
+  | .cons a b c n .zero => cons a b c n .zero
+  | .cons a b c n (.cons _ _ _ 0 _) => cons a b c n .zero
+  | .cons a b c n (.cons x y z (j + 1) w) => cons a b c n (cons x y z j w)
+
+/-- Undo `shiftOmega`. Rocq: `Notation.GrimmT3.t3_unshift_omega`. -/
+def t3UnshiftOmega (e : VForm) (te : T3) : T3 :=
+  match vfDec e with
+  | some _ => t3Drop1 te
+  | none => te
+
+/-- Undo `shiftGen L B`. Rocq: `Notation.GrimmT3.t3_unshift_gen`. -/
+def t3UnshiftGen (L B xi : VForm) (txi : T3) : T3 :=
+  match vfDec xi with
+  | some (lam, _) => bif vfTopOk L B lam then txi else t3Drop1 txi
+  | none =>
+    match vfToNat xi with
+    | some (j + 1) => bif vfTopOk L B Z then txi else t3Nat j
+    | some 0 => txi
+    | none => txi
+
+/-- The sum case `ω^e + r` of `vfToT3`, from the translations `te`, `tr` of
+its parts. -/
+def sumStep (e : VForm) (te tr : T3) : T3 :=
+  match e with
+  | V (V _ _ _) _ _ =>
+    match te with
+    | .cons a b c _ _ => t3Push a b c tr
+    | .zero => .zero
+  | Z => t3Push .zero .zero (t3UnshiftOmega e te) tr
+  | V Z _ _ => t3Push .zero .zero (t3UnshiftOmega e te) tr
+
+/-- The bracket case `V m a b`, `m ≠ Z`, of `vfToT3`, from the translations
+`tm`, `ta`, `tb` of its parts. -/
+def bracketStep (m a b : VForm) (tm ta tb : T3) : T3 :=
+  match vfToNat m with
+  | some 1 =>
+    psi .zero
+      (match vfToNat a with
+       | some k => t3Nat (k + 1)
+       | none => ta) (t3UnshiftGen m a b tb)
+  | some (k + 2) => psi (t3Nat (k + 1)) ta (t3UnshiftGen m a b tb)
+  | some 0 => psi tm ta (t3UnshiftGen m a b tb)
+  | none => psi tm ta (t3UnshiftGen m a b tb)
+
+/-- Rocq: `Notation.GrimmT3.VF_to_T3`. -/
+def vfToT3 : VForm → T3
   | Z => .zero
-  | V m a b => psi (upLevel (vfUp m)) (vfUp a) (vfUp b)
+  | V m a b =>
+    match m with
+    | Z => sumStep a (vfToT3 a) (vfToT3 b)
+    | V _ _ _ => bracketStep m a b (vfToT3 m) (vfToT3 a) (vfToT3 b)
 
-/-- Rocq: `Notation.GrimmT3.vf_up_nf`. -/
-theorem vfUp_nf : ∀ x : VForm, nf (vfUp x) = true
-  | Z => rfl
-  | V m a b => by
-    refine nf_psi _ _ _ ?_ (vfUp_nf a) (vfUp_nf b)
-    have hm := vfUp_nf m
-    revert hm
-    cases vfUp m with
-    | zero => exact fun _ => rfl
-    | cons _ _ _ _ _ => exact id
+/-! ### Finite numbers -/
 
-private theorem vfUp_step (m a b : VForm) (am ua ub : T3) (hnz : am.toVF ≠ Z)
-    (hle : denote m ≤ 1 + T3.denote am) (ha : denote a ≤ T3.denote ua)
-    (hb : denote b ≤ T3.denote ub) : denote (V m a b) ≤ T3.denote (psi am ua ub) := by
-  refine le_trans ?_ (T3_denote_psi_vf am ua ub).ge
-  revert hnz hle
-  show am.toVF ≠ Z → denote m ≤ 1 + denote am.toVF →
-    denote (V m a b) ≤ denote (vfPsi am.toVF ua.toVF ub.toVF)
-  cases am.toVF with
+/-- Rocq: `Notation.GrimmT3.vf_to_nat_spec`. -/
+theorem vfToNat_spec : ∀ (x : VForm) (k : Nat), vfToNat x = some k → x = vfNat k
+  | Z, _, h => by cases h; rfl
+  | V Z Z r, k, h => by
+    revert h
+    show (match vfToNat r with | some k => some (k + 1) | none => none) = some k → _
+    cases hr : vfToNat r with
+    | none => exact fun h => nomatch h
+    | some j =>
+      intro h; cases h
+      rw [vfToNat_spec r j hr]; rfl
+  | V Z (V _ _ _) _, _, h => nomatch h
+  | V (V _ _ _) _ _, _, h => nomatch h
+
+/-- Rocq: `Notation.GrimmT3.vf_to_nat_nat`. -/
+theorem vfToNat_nat : ∀ k : Nat, vfToNat (vfNat k) = some k
+  | 0 => rfl
+  | k + 1 => by
+    show (match vfToNat (vfNat k) with | some k => some (k + 1) | none => none) = some (k + 1)
+    rw [vfToNat_nat k]
+
+/-- Rocq: `Notation.GrimmT3.VF_compare_Z_Z`. -/
+theorem compare_Z_Z : compare Z Z = .eq := rfl
+
+/-- Rocq: `Notation.GrimmT3.VF_compare_Z_V`. -/
+theorem compare_Z_V (m a b : VForm) : compare Z (V m a b) = .lt := rfl
+
+/-- Rocq: `Notation.GrimmT3.vf_nat_normal`. -/
+theorem vfNat_normal : ∀ k : Nat, IsNormal (vfNat k)
+  | 0 => trivial
+  | 1 => ⟨trivial, trivial, trivial, trivial⟩
+  | k + 2 => ⟨trivial, trivial, vfNat_normal (k + 1), tail_same Z Z Z (vfNat k) (le_refl _)⟩
+
+/-- Rocq: `Notation.GrimmT3.vf_nat_lt`. -/
+theorem vfNat_lt : ∀ k : Nat, denote (vfNat k) < denote (vfNat (k + 1))
+  | 0 => VF_V_pos Z Z Z
+  | k + 1 => VF_V_increasing Z Z _ _ (vfNat_lt k)
+
+/-- Rocq: `Notation.GrimmT3.vf_rep_one`. -/
+theorem vfRep_one : ∀ k : Nat, vfRep k Z vfOne = vfNat (k + 1)
+  | 0 => rfl
+  | k + 1 => by
+    show V Z Z (vfRep k Z vfOne) = V Z Z (vfNat (k + 1))
+    rw [vfRep_one k]
+
+/-- Rocq: `Notation.GrimmT3.T3_to_VF_nat`. -/
+theorem T3_to_VF_nat : ∀ k : Nat, (t3Nat k).toVF = vfNat k
+  | 0 => rfl
+  | k + 1 => vfRep_one k
+
+/-- Rocq: `Notation.GrimmT3.T3nf_nat`. -/
+theorem nf_nat : ∀ k : Nat, nf (t3Nat k) = true
+  | 0 => rfl
+  | _ + 1 => rfl
+
+/-- Rocq: `Notation.GrimmT3.VF_to_T3_nat`. -/
+theorem vfToT3_nat : ∀ k : Nat, vfToT3 (vfNat k) = t3Nat k
+  | 0 => rfl
+  | k + 1 => by
+    show t3Push .zero .zero .zero (vfToT3 (vfNat k)) = t3Nat (k + 1)
+    rw [vfToT3_nat k]
+    cases k <;> rfl
+
+/-- Rocq: `Notation.GrimmT3.VF_onePlus_nat`. -/
+theorem onePlus_nat : ∀ k : Nat, onePlus (vfNat k) = vfNat (k + 1)
+  | 0 => rfl
+  | k + 1 => by
+    show V Z Z (onePlus (vfNat k)) = V Z Z (vfNat (k + 1))
+    rw [onePlus_nat k]
+
+/-- Rocq: `Notation.GrimmT3.vf_plus_one_nat`. -/
+theorem vfPlusOne_nat : ∀ k : Nat, vfPlusOne (vfNat k) = vfNat (k + 1)
+  | 0 => rfl
+  | k + 1 => by
+    show V Z Z (vfPlusOne (vfNat k)) = V Z Z (vfNat (k + 1))
+    rw [vfPlusOne_nat k]
+
+/-- Rocq: `Notation.GrimmT3.vf_finiteb_nat`. -/
+theorem vfFinite_nat : ∀ k : Nat, vfFinite (vfNat k) = true
+  | 0 => rfl
+  | k + 1 => vfFinite_nat k
+
+/-- Rocq: `Notation.GrimmT3.vf_finiteb_spec`. -/
+theorem vfFinite_spec : ∀ r : VForm, vfFinite r = true → ∃ k, r = vfNat k
+  | Z, _ => ⟨0, rfl⟩
+  | V Z Z r, h =>
+    let ⟨k, hk⟩ := vfFinite_spec r h
+    ⟨k + 1, by rw [hk]; rfl⟩
+  | V Z (V _ _ _) _, h => Bool.noConfusion h
+  | V (V _ _ _) _ _, h => Bool.noConfusion h
+
+/-- Rocq: `Notation.GrimmT3.VF_denote_le_zero`. -/
+theorem denote_le_zero : ∀ x : VForm, denote x ≤ 0 → x = Z
+  | Z, _ => rfl
+  | V m a b, h => absurd (lt_of_lt_of_le (VF_V_pos m a b) h) (lt_irrefl _)
+
+/-- A normal `1 + r` is finite. Rocq: `Notation.GrimmT3.normal_one_plus_finite`. -/
+theorem normal_one_plus_finite : ∀ r : VForm, IsNormal (V Z Z r) → ∃ k, vfToNat r = some k
+  | Z, _ => ⟨0, rfl⟩
+  | V Z x y, ⟨_, _, hr, htop⟩ => by
+    have hx : x = Z := denote_le_zero x (((normalTail_V_iff Z Z Z x y).1 htop).2 (equiv_refl _))
+    subst hx
+    obtain ⟨k, hk⟩ := normal_one_plus_finite y hr
+    exact ⟨k + 1, by
+      show (match vfToNat y with | some k => some (k + 1) | none => none) = _
+      rw [hk]⟩
+  | V (V n1 n2 n3) x y, ⟨_, _, _, htop⟩ =>
+    absurd (lt_of_lt_of_le (VF_V_pos _ x y)
+      (((normalTail_V_iff Z (V n1 n2 n3) Z x y).1 htop).1 (VF_V_pos n1 n2 n3))) (lt_irrefl _)
+
+/-- Rocq: `Notation.GrimmT3.infinite_shape`. -/
+theorem infinite_shape (x : VForm) (hx : IsNormal x) (hn : vfToNat x = none) :
+    x ≠ Z ∧ onePlus x = x ∧ vfMinusOne x = x :=
+  match x, hx, hn with
+  | Z, _, hn => nomatch hn
+  | V Z Z r, hx, hn => by
+    obtain ⟨k, hk⟩ := normal_one_plus_finite r hx
+    revert hn
+    show (match vfToNat r with | some k => some (k + 1) | none => none) = none → _
+    rw [hk]
+    exact fun h => nomatch h
+  | V Z (V _ _ _) _, _, _ => ⟨fun h => VForm.noConfusion h, rfl, rfl⟩
+  | V (V _ _ _) _ _, _, _ => ⟨fun h => VForm.noConfusion h, rfl, rfl⟩
+
+/-! ### Strongly critical terms -/
+
+/-- Rocq: `Notation.GrimmT3.vf_add_nat`. -/
+def vfAddNat (lam : VForm) : Nat → VForm
+  | 0 => lam
+  | k + 1 => V Z lam (vfNat (k + 1))
+
+theorem crit_shape : ∀ x : VForm, vfCrit x = true → ∃ m1 m2 m3 a b, x = V (V m1 m2 m3) a b
+  | V (V m1 m2 m3) a b, _ => ⟨m1, m2, m3, a, b, rfl⟩
+
+theorem crit_split : ∀ x : VForm, vfCrit x = true → vfSplitFin x = some x
+  | V (V _ _ _) _ _, _ => rfl
+
+/-- Rocq: `Notation.GrimmT3.vf_dec_spec`. -/
+theorem vfDec_spec : ∀ (x lam : VForm) (k : Nat), vfDec x = some (lam, k) →
+    x = V Z lam (vfNat (k + 1)) ∧ vfCrit lam = true
+  | Z, _, _, h => nomatch h
+  | V Z Z _, _, _, h => nomatch h
+  | V Z (V Z _ _) _, _, _, h => nomatch h
+  | V (V _ _ _) _ _, _, _, h => nomatch h
+  | V Z (V (V p1 p2 p3) x1 x2) r, lam, k, h => by
+    revert h
+    show (match vfToNat r with
+      | some (k + 1) => some (V (V p1 p2 p3) x1 x2, k) | some 0 => none | none => none) = _ → _
+    cases hr : vfToNat r with
+    | none => exact fun h => nomatch h
+    | some j =>
+      cases j with
+      | zero => exact fun h => nomatch h
+      | succ j =>
+        intro h; cases h
+        rw [vfToNat_spec r _ hr]
+        exact ⟨rfl, rfl⟩
+
+/-- Rocq: `Notation.GrimmT3.vf_add_nat_facts`. -/
+theorem vfAddNat_facts (lam : VForm) (k : Nat) (h : vfCrit lam = true) :
+    onePlus (vfAddNat lam k) = vfAddNat lam k ∧
+    vfSplitFin (vfAddNat lam k) = some lam ∧
+    vfPlusOne (vfAddNat lam k) = V Z lam (vfNat (k + 1)) := by
+  obtain ⟨m1, m2, m3, a, b, rfl⟩ := crit_shape lam h
+  cases k with
+  | zero => exact ⟨rfl, rfl, rfl⟩
+  | succ k =>
+    refine ⟨rfl, ?_, ?_⟩
+    · show (bif vfFinite (vfNat (k + 1)) then some (V (V m1 m2 m3) a b) else none) = _
+      rw [vfFinite_nat]; rfl
+    · show V Z (V (V m1 m2 m3) a b) (vfPlusOne (vfNat (k + 1))) = _
+      rw [vfPlusOne_nat]
+
+/-- Outside the decrement case, `vfSplitFin` only finds critical terms.
+Rocq: `Notation.GrimmT3.split_cases`. -/
+theorem split_cases : ∀ x : VForm, IsNormal x → vfDec x = none →
+    vfSplitFin x = none ∨ vfCrit x = true
+  | Z, _, _ => .inl rfl
+  | V Z Z _, _, _ => .inl rfl
+  | V Z (V Z _ _) _, _, _ => .inl rfl
+  | V (V _ _ _) _ _, _, _ => .inr rfl
+  | V Z (V (V p1 p2 p3) x1 x2) r, hx, hd => by
+    cases hf : vfFinite r with
+    | false =>
+      exact .inl (show (bif vfFinite r then some (V (V p1 p2 p3) x1 x2) else none) = none by
+        rw [hf]; rfl)
+    | true =>
+      obtain ⟨k, rfl⟩ := vfFinite_spec r hf
+      cases k with
+      | zero =>
+        exact absurd (lt_of_lt_of_le (VF_V_pos p1 p2 p3) hx.2.2.2) (lt_irrefl _)
+      | succ k =>
+        revert hd
+        show (match vfToNat (vfNat (k + 1)) with
+          | some (k + 1) => some (V (V p1 p2 p3) x1 x2, k) | some 0 => none | none => none) = none → _
+        rw [vfToNat_nat]
+        exact fun h => nomatch h
+
+/-- Rocq: `Notation.GrimmT3.vf_exponent_crit`. -/
+theorem vfExponent_crit : ∀ x : VForm, vfCrit x = true → vfExponent x = x
+  | V (V _ _ _) _ _, _ => rfl
+
+/-! ### Translation lemmas -/
+
+/-- Rocq: `Notation.GrimmT3.T3_to_VF_psi`. -/
+theorem T3_to_VF_psi (a b c : T3) : (psi a b c).toVF = vfPsi a.toVF b.toVF c.toVF := rfl
+
+/-- Rocq: `Notation.GrimmT3.T3_to_VF_cons0`. -/
+theorem T3_to_VF_cons0 (a b c d : T3) (h : d.toVF ≠ Z) :
+    (cons a b c 0 d).toVF = V Z (vfExponent (vfPsi a.toVF b.toVF c.toVF)) d.toVF := by
+  rw [toVF_cons]; revert h
+  cases d.toVF with
   | Z => exact fun h => absurd rfl h
-  | V _ _ _ =>
-    exact fun _ hle => VF_V_monotone _ _ _ _ _ _ (le_trans hle (onePlus_equal _).ge) ha
-      (le_trans hb (shiftGen_bounds _ _ _).1)
+  | V _ _ _ => exact fun _ => rfl
 
-/-- Rocq: `Notation.GrimmT3.vf_up_ge`. -/
-theorem vfUp_ge : ∀ x : VForm, denote x ≤ T3.denote (vfUp x)
-  | Z => zero_least _
-  | V m a b => by
-    refine vfUp_step m a b _ _ _ ?_ ?_ (vfUp_ge a) (vfUp_ge b)
-    · cases vfUp m with
-      | zero => exact fun h => VForm.noConfusion h
-      | cons _ _ _ _ _ => exact T3_to_VF_cons_nonzero _ _ _ _ _
-    · have hm := vfUp_ge m
-      revert hm
-      cases vfUp m with
-      | zero => exact fun hm => le_trans hm (zero_least _)
-      | cons _ _ _ _ _ => exact fun hm => le_trans hm (le_add_left 1 _)
+/-- Rocq: `Notation.GrimmT3.T3_to_VF_consS`. -/
+theorem T3_to_VF_consS (a b c : T3) (n : Nat) (d : T3) :
+    (cons a b c (n + 1) d).toVF =
+      V Z (vfExponent (vfPsi a.toVF b.toVF c.toVF)) (cons a b c n d).toVF := by
+  rw [toVF_cons, toVF_cons]
+  cases d.toVF <;> rfl
+
+/-- Rocq: `Notation.GrimmT3.T3nf_cons_intro`. -/
+theorem nf_cons_intro (a b c : T3) (n : Nat) (d : T3) (H : nf (psi a b c) = true)
+    (Hd : nf d = true) (Hlt : lt d (psi a b c) = true) : nf (cons a b c n d) = true :=
+  let ⟨ha, hb, hc⟩ := nf_psi_inv a b c H
+  band_intro (band_intro (band_intro (band_intro ha hb) hc) Hd) Hlt
+
+/-- Rocq: `Notation.GrimmT3.T3lt_trans_nf`. -/
+theorem lt_trans_nf (x y z : T3) (hx : nf x = true) (hy : nf y = true) (hz : nf z = true)
+    (hxy : lt x y = true) (hyz : lt y z = true) : lt x z = true :=
+  (T3lt_correct x z hx hz).2
+    (lt_trans ((T3lt_correct x y hx hy).1 hxy) ((T3lt_correct y z hy hz).1 hyz))
+
+/-- Rocq: `Notation.GrimmT3.T3lt_nat`. -/
+theorem lt_nat (k : Nat) : lt (t3Nat k) (t3Nat (k + 1)) = true :=
+  (T3lt_correct _ _ (nf_nat k) (nf_nat (k + 1))).2 (by
+    show denote (t3Nat k).toVF < denote (t3Nat (k + 1)).toVF
+    rw [T3_to_VF_nat, T3_to_VF_nat]
+    exact vfNat_lt k)
+
+/-- Rocq: `Notation.GrimmT3.T3lt_cons_psi`. -/
+theorem lt_cons_psi_eq (a' b' c' : T3) (n : Nat) (d a b c : T3) :
+    lt (cons a' b' c' n d) (psi a b c) = ltPsiRec lt a' b' c' a b c := by
+  show lt (cons a' b' c' n d) (cons a b c 0 .zero) = _
+  rw [lt_cons, lt_zero_r]
+  cases ltPsiRec lt a' b' c' a b c with
+  | true => rfl
+  | false =>
+    cases (eqb a' a && eqb b' b && eqb c' c) with
+    | false => rfl
+    | true => cases n <;> rfl
+
+/-- The leading exponent of a translated sum.
+Rocq: `Notation.GrimmT3.T3_to_VF_cons_lead`. -/
+theorem T3_to_VF_cons_lead (a b c : T3) (n : Nat) (d : T3) (E : VForm)
+    (H : IsNormal (V Z E (cons a b c n d).toVF)) :
+    denote (vfExponent (vfPsi a.toVF b.toVF c.toVF)) ≤ denote E := by
+  have HP := vfPsi_shape a.toVF b.toVF c.toVF
+  revert H; rw [toVF_cons]
+  generalize vfPsi a.toVF b.toVF c.toVF = P at HP ⊢
+  cases d.toVF with
+  | V m x y =>
+    exact fun H => ((normalTail_V_iff Z Z E (vfExponent P)
+      (vfRep n (vfExponent P) (V m x y))).1 H.2.2.2).2 (equiv_refl _)
+  | Z =>
+    cases n with
+    | succ n =>
+      exact fun H => ((normalTail_V_iff Z Z E (vfExponent P)
+        (vfRep n (vfExponent P) P)).1 H.2.2.2).2 (equiv_refl _)
+    | zero =>
+      match P, HP with
+      | V Z e Z, _ => exact fun H => ((normalTail_V_iff Z Z E e Z).1 H.2.2.2).2 (equiv_refl _)
+      | V (V m1 m2 m3) e xi, _ =>
+        exact fun H => ((normalTail_V_iff Z (V m1 m2 m3) E e xi).1 H.2.2.2).1 (VF_V_pos m1 m2 m3)
+
+/-- Prepending a bracket to a nonzero sum. The nonzero case of Rocq's
+`t3_push_correct`; the zero case holds by `rfl`.
+Rocq: `Notation.GrimmT3.t3_push_correct`. -/
+theorem t3Push_cons (a b c a' b' c' : T3) (n : Nat) (d : T3) (Hpsi : nf (psi a b c) = true)
+    (Ht : nf (cons a' b' c' n d) = true)
+    (Hnorm : IsNormal (V Z (vfExponent (vfPsi a.toVF b.toVF c.toVF)) (cons a' b' c' n d).toVF)) :
+    nf (t3Push a b c (cons a' b' c' n d)) = true ∧
+    (t3Push a b c (cons a' b' c' n d)).toVF =
+      V Z (vfExponent (vfPsi a.toVF b.toVF c.toVF)) (cons a' b' c' n d).toVF := by
+  show nf (bif eqb a a' && eqb b b' && eqb c c' then cons a b c (n + 1) d
+      else cons a b c 0 (cons a' b' c' n d)) = true ∧
+    (bif eqb a a' && eqb b b' && eqb c c' then cons a b c (n + 1) d
+      else cons a b c 0 (cons a' b' c' n d)).toVF = _
+  cases heq : (eqb a a' && eqb b b' && eqb c c') with
+  | true =>
+    obtain ⟨ha, hb, hc⟩ := and3 heq
+    have ha := (eqb_eq _ _).1 ha
+    have hb := (eqb_eq _ _).1 hb
+    have hc := (eqb_eq _ _).1 hc
+    subst ha hb hc
+    exact ⟨Ht, T3_to_VF_consS a b c n d⟩
+  | false =>
+    refine ⟨nf_cons_intro _ _ _ _ _ Hpsi Ht ?_,
+      T3_to_VF_cons0 _ _ _ _ (T3_to_VF_cons_nonzero _ _ _ _ _)⟩
+    rw [lt_cons_psi_eq, ← lt_cons_psi_eq a' b' c' 0 .zero a b c]
+    obtain ⟨Fa, Fb, Fc, _, _⟩ := nf_cons_inv _ _ _ _ _ Ht
+    have Hpsi' := nf_psi a' b' c' Fa Fb Fc
+    rcases lt_total (psi a' b' c') (psi a b c) with h | h | h
+    · exact h
+    · cases h
+      rw [eqb_refl, eqb_refl, eqb_refl] at heq
+      exact Bool.noConfusion heq
+    · exact absurd (lt_of_lt_of_le ((T3lt_correct _ _ Hpsi Hpsi').1 h)
+        (le_trans (T3_denote_psi a' b' c').le
+          (le_trans (pow_le_pow_right ω (T3_to_VF_cons_lead a' b' c' n d _ Hnorm))
+            (T3_denote_psi a b c).ge))) (lt_irrefl _)
+
+/-- Rocq: `Notation.GrimmT3.VF_to_T3_crit_shape`. -/
+theorem vfToT3_crit_shape (m1 m2 m3 a b : VForm) :
+    ∃ A B C, vfToT3 (V (V m1 m2 m3) a b) = psi A B C := by
+  show ∃ A B C, bracketStep (V m1 m2 m3) a b _ _ _ = psi A B C
+  unfold bracketStep
+  cases vfToNat (V m1 m2 m3) with
+  | none => exact ⟨_, _, _, rfl⟩
+  | some k =>
+    cases k with
+    | zero => exact ⟨_, _, _, rfl⟩
+    | succ k =>
+      cases k with
+      | zero => exact ⟨_, _, _, rfl⟩
+      | succ k => exact ⟨_, _, _, rfl⟩
+
+/-- The decrement of `λ + (k+1)`. Rocq: `Notation.GrimmT3.drop1_correct`. -/
+theorem drop1_correct (lam : VForm) (k : Nat) (hcl : vfCrit lam = true)
+    (Hnf : nf (vfToT3 lam) = true) (Hrt : (vfToT3 lam).toVF = lam)
+    (Hnf' : nf (vfToT3 (V Z lam (vfNat (k + 1)))) = true) :
+    nf (t3Drop1 (vfToT3 (V Z lam (vfNat (k + 1))))) = true ∧
+    (t3Drop1 (vfToT3 (V Z lam (vfNat (k + 1))))).toVF = vfAddNat lam k := by
+  obtain ⟨m1, m2, m3, a, b, rfl⟩ := crit_shape lam hcl
+  obtain ⟨A, B, C, HA⟩ := vfToT3_crit_shape m1 m2 m3 a b
+  have Heq : vfToT3 (V Z (V (V m1 m2 m3) a b) (vfNat (k + 1))) =
+      cons A B C 0 (t3Nat (k + 1)) := by
+    show (match vfToT3 (V (V m1 m2 m3) a b) with
+      | .cons x y z _ _ => t3Push x y z (vfToT3 (vfNat (k + 1)))
+      | .zero => .zero) = _
+    rw [HA, vfToT3_nat]
+    show (bif eqb A .zero && eqb B .zero && eqb C .zero then cons A B C (k + 1) .zero
+      else cons A B C 0 (cons .zero .zero .zero k .zero)) = _
+    cases hz : (eqb A .zero && eqb B .zero && eqb C .zero) with
+    | false => rfl
+    | true =>
+      obtain ⟨ha, hb, hc⟩ := and3 hz
+      rw [(eqb_eq _ _).1 ha, (eqb_eq _ _).1 hb, (eqb_eq _ _).1 hc] at HA
+      rw [HA] at Hrt
+      have h : V Z Z Z = V (V m1 m2 m3) a b := Hrt
+      cases h
+  rw [Heq] at Hnf' ⊢
+  rw [HA] at Hnf Hrt
+  cases k with
+  | zero => exact ⟨Hnf, Hrt⟩
+  | succ j =>
+    obtain ⟨_, _, _, _, Hlt⟩ := nf_cons_inv _ _ _ _ _ Hnf'
+    refine ⟨nf_cons_intro A B C 0 (t3Nat (j + 1)) Hnf (nf_nat (j + 1))
+      (lt_trans_nf _ _ _ (nf_nat _) (nf_nat _) Hnf (lt_nat (j + 1)) Hlt), ?_⟩
+    show (cons A B C 0 (t3Nat (j + 1))).toVF = V Z (V (V m1 m2 m3) a b) (vfNat (j + 1))
+    rw [T3_to_VF_cons0 _ _ _ _ (by rw [T3_to_VF_nat]; exact fun h => VForm.noConfusion h),
+      T3_to_VF_nat, ← T3_to_VF_psi, Hrt]
+    rfl
+
+/-- Rocq: `Notation.GrimmT3.vf_leb_complete`. -/
+theorem vfLeb_complete (x y : VForm) (h : denote x ≤ denote y) : vfLeb x y = true := by
+  have hc := compare_correct x y
+  show (match compare x y with | .lt => true | .eq => true | .gt => false) = true
+  revert hc
+  cases compare x y with
+  | lt => exact fun _ => rfl
+  | eq => exact fun _ => rfl
+  | gt => exact fun hc => absurd (lt_of_lt_of_le hc h) (lt_irrefl _)
+
+/-- Rocq: `Notation.GrimmT3.vf_top_ok_complete`. -/
+theorem vfTopOk_complete (L B xi : VForm) : NormalTail L B xi → vfTopOk L B xi = true := by
+  cases xi with
+  | Z =>
+    cases B with
+    | Z => exact fun _ => rfl
+    | V n _ _ => exact vfLeb_complete n L
+  | V n x y =>
+    show (match compare L n with
+      | .lt => denote (V n x y) ≤ denote B
+      | .eq => denote x ≤ denote B
+      | .gt => True) →
+      (match compare L n with
+      | .lt => vfLeb (V n x y) B
+      | .eq => vfLeb x B
+      | .gt => true) = true
+    cases compare L n with
+    | lt => exact vfLeb_complete _ _
+    | eq => exact vfLeb_complete _ _
+    | gt => exact fun _ => rfl
+
+/-- `t3UnshiftOmega` inverts `shiftOmega`. Rocq's section hypothesis `IH` on
+the subterms is the hypothesis `Hsub` here.
+Rocq: `Notation.GrimmT3.unshift_omega_correct`. -/
+theorem unshift_omega_correct (e : VForm) (He : IsNormal e) (Hc : vfCrit e = false)
+    (Hnf : nf (vfToT3 e) = true) (Hrt : (vfToT3 e).toVF = e)
+    (Hsub : ∀ lam k, vfDec e = some (lam, k) →
+      nf (vfToT3 lam) = true ∧ (vfToT3 lam).toVF = lam) :
+    nf (t3UnshiftOmega e (vfToT3 e)) = true ∧
+    shiftOmega (t3UnshiftOmega e (vfToT3 e)).toVF = e := by
+  unfold t3UnshiftOmega
+  cases hd : vfDec e with
+  | some p =>
+    obtain ⟨lam, k⟩ := p
+    obtain ⟨Hl1, Hl2⟩ := Hsub lam k hd
+    obtain ⟨rfl, hcl⟩ := vfDec_spec _ _ _ hd
+    obtain ⟨H1, H2⟩ := drop1_correct lam k hcl Hl1 Hl2 Hnf
+    obtain ⟨_, Hs, Hp⟩ := vfAddNat_facts lam k hcl
+    refine ⟨H1, ?_⟩
+    show skip (fun _ => false) (t3Drop1 (vfToT3 (V Z lam (vfNat (k + 1))))).toVF = _
+    rw [H2, skip_some_false Hs rfl, Hp]
+  | none =>
+    refine ⟨Hnf, ?_⟩
+    show shiftOmega (vfToT3 e).toVF = e
+    rw [Hrt]
+    rcases split_cases e He hd with h | h
+    · exact skip_none h
+    · rw [Hc] at h; exact Bool.noConfusion h
+
+/-- `t3UnshiftGen` inverts `shiftGen`. Rocq's section hypothesis `IH` on the
+subterms is the hypothesis `Hsub` here.
+Rocq: `Notation.GrimmT3.unshift_gen_correct`. -/
+theorem unshift_gen_correct (L B xi : VForm) (Hxi : IsNormal xi)
+    (Htop : vfTopOk L B xi = true)
+    (Hnf : nf (vfToT3 xi) = true) (Hrt : (vfToT3 xi).toVF = xi)
+    (Hsub : ∀ lam k, vfDec xi = some (lam, k) →
+      nf (vfToT3 lam) = true ∧ (vfToT3 lam).toVF = lam) :
+    nf (t3UnshiftGen L B xi (vfToT3 xi)) = true ∧
+    shiftGen L B (t3UnshiftGen L B xi (vfToT3 xi)).toVF = xi := by
+  unfold t3UnshiftGen
+  cases hd : vfDec xi with
+  | some p =>
+    obtain ⟨lam, k⟩ := p
+    obtain ⟨Hl1, Hl2⟩ := Hsub lam k hd
+    obtain ⟨rfl, hcl⟩ := vfDec_spec _ _ _ hd
+    obtain ⟨Ho, Hs, Hp⟩ := vfAddNat_facts lam k hcl
+    obtain ⟨Ho', Hs', _⟩ := vfAddNat_facts lam (k + 1) hcl
+    show nf (bif vfTopOk L B lam then vfToT3 (V Z lam (vfNat (k + 1)))
+        else t3Drop1 (vfToT3 (V Z lam (vfNat (k + 1))))) = true ∧
+      shiftGen L B (bif vfTopOk L B lam then vfToT3 (V Z lam (vfNat (k + 1)))
+        else t3Drop1 (vfToT3 (V Z lam (vfNat (k + 1))))).toVF = _
+    cases htl : vfTopOk L B lam with
+    | true =>
+      refine ⟨Hnf, ?_⟩
+      show skip (vfTopOk L B) (absorb L B (vfToT3 (V Z lam (vfNat (k + 1)))).toVF) = _
+      rw [Hrt]
+      have Ha : absorb L B (V Z lam (vfNat (k + 1))) = V Z lam (vfNat (k + 1)) := by
+        unfold absorb
+        cases vfTopOk L B Z with
+        | true => rfl
+        | false => exact Ho'
+      rw [Ha]
+      exact skip_some_true Hs' htl
+    | false =>
+      obtain ⟨H1, H2⟩ := drop1_correct lam k hcl Hl1 Hl2 Hnf
+      refine ⟨H1, ?_⟩
+      show skip (vfTopOk L B) (absorb L B (t3Drop1 (vfToT3 (V Z lam (vfNat (k + 1))))).toVF) = _
+      rw [H2]
+      have Ha : absorb L B (vfAddNat lam k) = vfAddNat lam k := by
+        unfold absorb
+        cases vfTopOk L B Z with
+        | true => rfl
+        | false => exact Ho
+      rw [Ha, skip_some_false Hs htl, Hp]
+  | none =>
+    cases hn : vfToNat xi with
+    | none =>
+      obtain ⟨_, Ho, _⟩ := infinite_shape xi Hxi hn
+      refine ⟨Hnf, ?_⟩
+      show skip (vfTopOk L B) (absorb L B (vfToT3 xi).toVF) = xi
+      rw [Hrt]
+      have Ha : absorb L B xi = xi := by
+        unfold absorb
+        cases vfTopOk L B Z with
+        | true => rfl
+        | false => exact Ho
+      rw [Ha]
+      rcases split_cases xi Hxi hd with h | h
+      · exact skip_none h
+      · exact skip_some_true (crit_split xi h) Htop
+    | some j =>
+      cases j with
+      | zero =>
+        have hx := vfToNat_spec xi 0 hn
+        subst hx
+        refine ⟨Hnf, ?_⟩
+        show skip (vfTopOk L B) (bif vfTopOk L B Z then (vfToT3 Z).toVF
+          else onePlus (vfToT3 Z).toVF) = Z
+        rw [show vfTopOk L B Z = true from Htop]
+        rfl
+      | succ j =>
+        have hx := vfToNat_spec xi (j + 1) hn
+        subst hx
+        cases hz : vfTopOk L B Z with
+        | true =>
+          refine ⟨Hnf, ?_⟩
+          show skip (vfTopOk L B) (bif vfTopOk L B Z then (vfToT3 (vfNat (j + 1))).toVF
+            else onePlus (vfToT3 (vfNat (j + 1))).toVF) = _
+          rw [hz, Hrt]
+          exact skip_none rfl
+        | false =>
+          refine ⟨nf_nat j, ?_⟩
+          show skip (vfTopOk L B) (bif vfTopOk L B Z then (t3Nat j).toVF
+            else onePlus (t3Nat j).toVF) = _
+          rw [hz, T3_to_VF_nat]
+          show skip (vfTopOk L B) (onePlus (vfNat j)) = _
+          rw [onePlus_nat]
+          exact skip_none rfl
+
+/-- One step of the round trip, given the induction hypotheses for the parts.
+The case analysis of Rocq's `VF_to_T3_correct`. -/
+theorem vfToT3_step (m a b : VForm) (hx : IsNormal (V m a b))
+    (IHm : IsNormal m → nf (vfToT3 m) = true ∧ (vfToT3 m).toVF = m)
+    (IHa : (IsNormal a → nf (vfToT3 a) = true ∧ (vfToT3 a).toVF = a) ∧
+      ∀ lam k, vfDec a = some (lam, k) → IsNormal lam →
+        nf (vfToT3 lam) = true ∧ (vfToT3 lam).toVF = lam)
+    (IHb : (IsNormal b → nf (vfToT3 b) = true ∧ (vfToT3 b).toVF = b) ∧
+      ∀ lam k, vfDec b = some (lam, k) → IsNormal lam →
+        nf (vfToT3 lam) = true ∧ (vfToT3 lam).toVF = lam) :
+    nf (vfToT3 (V m a b)) = true ∧ (vfToT3 (V m a b)).toVF = V m a b := by
+  obtain ⟨Hm, Ha, Hb, Htop⟩ := hx
+  obtain ⟨Na, Ra⟩ := IHa.1 Ha
+  obtain ⟨Nb, Rb⟩ := IHb.1 Hb
+  have Hsuba : ∀ lam k, vfDec a = some (lam, k) →
+      nf (vfToT3 lam) = true ∧ (vfToT3 lam).toVF = lam := fun lam k hd =>
+    IHa.2 lam k hd (by obtain ⟨h1, _⟩ := vfDec_spec _ _ _ hd; rw [h1] at Ha; exact Ha.2.1)
+  have Hsubb : ∀ lam k, vfDec b = some (lam, k) →
+      nf (vfToT3 lam) = true ∧ (vfToT3 lam).toVF = lam := fun lam k hd =>
+    IHb.2 lam k hd (by obtain ⟨h1, _⟩ := vfDec_spec _ _ _ hd; rw [h1] at Hb; exact Hb.2.1)
+  cases m with
+  | Z =>
+    cases hca : vfCrit a with
+    | true =>
+      obtain ⟨a1, a2, a3, a4, a5, rfl⟩ := crit_shape a hca
+      obtain ⟨A, B, C, HA⟩ := vfToT3_crit_shape a1 a2 a3 a4 a5
+      rw [HA] at Na Ra
+      have hP : vfPsi A.toVF B.toVF C.toVF = V (V a1 a2 a3) a4 a5 := Ra
+      show nf (match vfToT3 (V (V a1 a2 a3) a4 a5) with
+          | .cons x y z _ _ => t3Push x y z (vfToT3 b) | .zero => .zero) = true ∧
+        (match vfToT3 (V (V a1 a2 a3) a4 a5) with
+          | .cons x y z _ _ => t3Push x y z (vfToT3 b) | .zero => .zero).toVF = _
+      rw [HA]
+      show nf (t3Push A B C (vfToT3 b)) = true ∧ (t3Push A B C (vfToT3 b)).toVF = _
+      cases hbt : vfToT3 b with
+      | zero =>
+        rw [hbt] at Rb
+        subst Rb
+        exact absurd (lt_of_lt_of_le (VF_V_pos a1 a2 a3) Htop) (lt_irrefl _)
+      | cons a' b' c' n d =>
+        rw [hbt] at Nb Rb
+        obtain ⟨N1, R1⟩ := t3Push_cons A B C a' b' c' n d Na Nb (by
+          rw [hP, Rb]
+          exact ⟨Hm, Ha, Hb, Htop⟩)
+        refine ⟨N1, ?_⟩
+        rw [R1, hP, Rb]
+        rfl
+    | false =>
+      have Heq : vfToT3 (V Z a b) = t3Push .zero .zero (t3UnshiftOmega a (vfToT3 a)) (vfToT3 b) := by
+        revert hca
+        cases a with
+        | Z => exact fun _ => rfl
+        | V a1 a2 a3 =>
+          cases a1 with
+          | Z => exact fun _ => rfl
+          | V _ _ _ => exact fun h => Bool.noConfusion h
+      rw [Heq]
+      obtain ⟨Nc, Rc⟩ := unshift_omega_correct a Ha hca Na Ra Hsuba
+      have hP : vfPsi Z Z (t3UnshiftOmega a (vfToT3 a)).toVF = V Z a Z := by
+        show V Z (shiftOmega (t3UnshiftOmega a (vfToT3 a)).toVF) Z = _
+        rw [Rc]
+      have Hpsi := nf_psi .zero .zero _ rfl rfl Nc
+      cases hbt : vfToT3 b with
+      | zero =>
+        rw [hbt] at Rb
+        subst Rb
+        exact ⟨Hpsi, hP⟩
+      | cons a' b' c' n d =>
+        rw [hbt] at Nb Rb
+        obtain ⟨N1, R1⟩ := t3Push_cons .zero .zero _ a' b' c' n d Hpsi Nb (by
+          show IsNormal (V Z (vfExponent (vfPsi Z Z (t3UnshiftOmega a (vfToT3 a)).toVF)) _)
+          rw [hP, Rb]
+          exact ⟨Hm, Ha, Hb, Htop⟩)
+        refine ⟨N1, ?_⟩
+        rw [R1]
+        show V Z (vfExponent (vfPsi Z Z (t3UnshiftOmega a (vfToT3 a)).toVF)) _ = _
+        rw [hP, Rb]
+        rfl
+  | V m1 m2 m3 =>
+    obtain ⟨Nm, Rm⟩ := IHm Hm
+    obtain ⟨Nc, Rc⟩ := unshift_gen_correct (V m1 m2 m3) a b Hb
+      (vfTopOk_complete _ _ _ Htop) Nb Rb Hsubb
+    show nf (bracketStep (V m1 m2 m3) a b (vfToT3 (V m1 m2 m3)) (vfToT3 a) (vfToT3 b)) = true ∧
+      (bracketStep (V m1 m2 m3) a b (vfToT3 (V m1 m2 m3)) (vfToT3 a) (vfToT3 b)).toVF = _
+    unfold bracketStep
+    cases hmn : vfToNat (V m1 m2 m3) with
+    | none =>
+      obtain ⟨_, Hmo, _⟩ := infinite_shape _ Hm hmn
+      refine ⟨nf_psi _ _ _ Nm Na Nc, ?_⟩
+      show vfPsi (vfToT3 (V m1 m2 m3)).toVF (vfToT3 a).toVF
+        (t3UnshiftGen (V m1 m2 m3) a b (vfToT3 b)).toVF = _
+      rw [Rm, Ra]
+      show V (onePlus (V m1 m2 m3)) a (shiftGen (onePlus (V m1 m2 m3)) a
+        (t3UnshiftGen (V m1 m2 m3) a b (vfToT3 b)).toVF) = _
+      rw [Hmo, Rc]
+    | some j =>
+      cases j with
+      | zero => exact absurd (vfToNat_spec _ _ hmn) (fun h => VForm.noConfusion h)
+      | succ j =>
+        cases j with
+        | zero =>
+          have hm1 : V m1 m2 m3 = V Z Z Z := vfToNat_spec _ _ hmn
+          cases hm1
+          cases han : vfToNat a with
+          | some k =>
+            have hak := vfToNat_spec a k han
+            subst hak
+            refine ⟨nf_psi _ _ _ rfl (nf_nat (k + 1)) Nc, ?_⟩
+            show vfPsi Z (t3Nat (k + 1)).toVF
+              (t3UnshiftGen (V Z Z Z) (vfNat k) b (vfToT3 b)).toVF = _
+            rw [T3_to_VF_nat]
+            show V (V Z Z Z) (vfNat k) (shiftGen (V Z Z Z) (vfNat k)
+              (t3UnshiftGen (V Z Z Z) (vfNat k) b (vfToT3 b)).toVF) = _
+            rw [Rc]
+          | none =>
+            obtain ⟨Hnz, _, Hmo⟩ := infinite_shape a Ha han
+            refine ⟨nf_psi _ _ _ rfl Na Nc, ?_⟩
+            show vfPsi Z (vfToT3 a).toVF (t3UnshiftGen (V Z Z Z) a b (vfToT3 b)).toVF = _
+            rw [Ra]
+            cases a with
+            | Z => exact absurd rfl Hnz
+            | V a1 a2 a3 =>
+              show V (V Z Z Z) (vfMinusOne (V a1 a2 a3)) (shiftGen (V Z Z Z)
+                (vfMinusOne (V a1 a2 a3)) (t3UnshiftGen (V Z Z Z) (V a1 a2 a3) b (vfToT3 b)).toVF) = _
+              rw [Hmo, Rc]
+        | succ k =>
+          have hm2 : V m1 m2 m3 = V Z Z (vfNat (k + 1)) := vfToNat_spec _ _ hmn
+          cases hm2
+          refine ⟨nf_psi _ _ _ (nf_nat (k + 1)) Na Nc, ?_⟩
+          show vfPsi (t3Nat (k + 1)).toVF (vfToT3 a).toVF
+            (t3UnshiftGen (V Z Z (vfNat (k + 1))) a b (vfToT3 b)).toVF = _
+          rw [T3_to_VF_nat, Ra]
+          show V (onePlus (vfNat (k + 1))) a (shiftGen (onePlus (vfNat (k + 1))) a
+            (t3UnshiftGen (V Z Z (vfNat (k + 1))) a b (vfToT3 b)).toVF) = _
+          rw [onePlus_nat]
+          show V (V Z Z (vfNat (k + 1))) a (shiftGen (V Z Z (vfNat (k + 1))) a
+            (t3UnshiftGen (V Z Z (vfNat (k + 1))) a b (vfToT3 b)).toVF) = _
+          rw [Rc]
+
+/-- The round trip, together with its instance on the critical part of a
+decrement, by structural induction. -/
+theorem vfToT3_main : ∀ x : VForm,
+    (IsNormal x → nf (vfToT3 x) = true ∧ (vfToT3 x).toVF = x) ∧
+    ∀ lam k, vfDec x = some (lam, k) → IsNormal lam →
+      nf (vfToT3 lam) = true ∧ (vfToT3 lam).toVF = lam
+  | Z => ⟨fun _ => ⟨rfl, rfl⟩, fun _ _ h => nomatch h⟩
+  | V m a b =>
+    have IHm := vfToT3_main m
+    have IHa := vfToT3_main a
+    have IHb := vfToT3_main b
+    ⟨fun hx => vfToT3_step m a b hx IHm.1 IHa IHb, fun lam k hd => by
+      obtain ⟨h1, _⟩ := vfDec_spec _ _ _ hd
+      cases h1
+      exact IHa.1⟩
+
+/-- `vfToT3` is a right inverse of `T3.toVF` on normal forms.
+Rocq: `Notation.GrimmT3.VF_to_T3_correct`. -/
+theorem VF_to_T3_correct (x : VForm) (hx : IsNormal x) :
+    nf (vfToT3 x) = true ∧ (vfToT3 x).toVF = x :=
+  (vfToT3_main x).1 hx
+
+/-- `T3.toVF` and `vfToT3` are inverse bijections between the normal forms
+of the two systems. Rocq: `Notation.GrimmT3.T3_to_VF_to_T3`. -/
+theorem T3_to_VF_to_T3 (t : T3) (ht : nf t = true) : vfToT3 t.toVF = t :=
+  let ⟨N, R⟩ := VF_to_T3_correct _ (T3_to_VF_normal t ht)
+  T3_denote_inj _ _ N ht (by
+    show denote (vfToT3 t.toVF).toVF ≈ denote t.toVF
+    rw [R])
+
+/-- Rocq: `Notation.GrimmT3.VF_to_T3_denote`. -/
+theorem VF_to_T3_denote (x : VForm) (hx : IsNormal x) : T3.denote (vfToT3 x) ≈ denote x := by
+  show denote (vfToT3 x).toVF ≈ denote x
+  rw [(VF_to_T3_correct x hx).2]
+
+/-! ## Order type: `AckermannOrdinal` -/
 
 /-- The ordinal of Grimm's normal forms. Rocq: `Notation.GrimmT3.T3ord`. -/
 def T3ord : Ordinal.{0} := mk {t : T3 // nf t = true} fun t => T3.denote t.1
@@ -1685,6 +2447,87 @@ Rocq: `Notation.GrimmT3.T3_AO`. -/
 theorem T3_AO : T3ord ≈ AckermannOrdinal :=
   equiv_intro (le_intro fun t => below_AO t.1.toVF)
     (le_trans VF_AO.ge (le_intro fun x =>
-      lt_of_le_of_lt (vfUp_ge x) (index_lt T3ord ⟨vfUp x, vfUp_nf x⟩)))
+      lt_of_le_of_lt
+        (le_trans (normalize_equal x).ge (VF_to_T3_denote _ (normalize_isNormal x)).ge)
+        (index_lt T3ord ⟨vfToT3 (normalize x), (VF_to_T3_correct _ (normalize_isNormal x)).1⟩)))
+
+/-! ## Results carried over from `ATowerNotation`
+
+Through the bijection, Grimm's system inherits the Cantor decomposition and
+the interpolants of `ATowerNotation`, and with them the generic arithmetic of
+`CantorDecomposition` and `CantorProduct`. -/
+
+open CantorDecomposition Interpolants
+
+/-- Rocq: `Notation.GrimmT3.T3normal`. -/
+def T3normal (t : T3) : Prop := nf t = true
+
+/-- Rocq: `Notation.GrimmT3.T3_to_VF_transfer`. -/
+theorem T3_to_VF_transfer (t : T3) (ht : T3normal t) :
+    IsNormal t.toVF ∧ denote t.toVF ≈ T3.denote t :=
+  ⟨T3_to_VF_normal t ht, equiv_refl _⟩
+
+/-- Rocq: `Notation.GrimmT3.VF_to_T3_transfer`. -/
+theorem VF_to_T3_transfer (x : VForm) (hx : IsNormal x) :
+    T3normal (vfToT3 x) ∧ T3.denote (vfToT3 x) ≈ denote x :=
+  ⟨(VF_to_T3_correct x hx).1, VF_to_T3_denote x hx⟩
+
+/-- Rocq: `Notation.GrimmT3.T3_has_cantor_decomposition`. -/
+def T3.hasCantorDecomposition : HasCantorDecomposition T3.denote T3normal :=
+  cantorTransfer vfToT3 T3.toVF VF_to_T3_transfer T3_to_VF_transfer
+    (fun t => complete t.toVF) VForm.hasCantorDecomposition
+
+/-- Rocq: `Notation.GrimmT3.T3_has_all_interpolants`. -/
+theorem T3.has_all_interpolants : HasAllInterpolants T3.denote T3normal :=
+  has_all_interpolants_transfer
+    (fun x hx => ⟨vfToT3 x, VF_to_T3_transfer x hx⟩)
+    (fun t ht => ⟨t.toVF, T3_to_VF_transfer t ht⟩)
+    VForm.has_all_interpolants
+
+/-- Rocq: `Notation.GrimmT3.T3_add`. -/
+def T3.add : T3 → T3 → T3 := cantorAdd T3.hasCantorDecomposition
+/-- Rocq: `Notation.GrimmT3.T3_mul`. -/
+def T3.mul : T3 → T3 → T3 := cantorMul T3.hasCantorDecomposition
+/-- Rocq: `Notation.GrimmT3.T3_exp_op`. -/
+def T3.exp : T3 → T3 → T3 := cantorExp T3.hasCantorDecomposition
+/-- Rocq: `Notation.GrimmT3.T3_nadd`. -/
+def T3.nadd : T3 → T3 → T3 := cantorNadd T3.hasCantorDecomposition
+/-- Rocq: `Notation.GrimmT3.T3_nmul`. -/
+def T3.nmul : T3 → T3 → T3 := CantorProduct.cantorNmul T3.hasCantorDecomposition
+
+/-- Rocq: `Notation.GrimmT3.T3_add_reflects`. -/
+theorem T3.add_reflects :
+    Reflects T3 T3.denote T3normal (.ord ==> .ord ==> .ord) (· + ·) T3.add :=
+  cantor_add_reflects T3.hasCantorDecomposition
+
+/-- Rocq: `Notation.GrimmT3.T3_mul_reflects`. -/
+theorem T3.mul_reflects :
+    Reflects T3 T3.denote T3normal (.ord ==> .ord ==> .ord) (· * ·) T3.mul :=
+  cantor_mul_reflects T3.hasCantorDecomposition
+
+/-- Rocq: `Notation.GrimmT3.T3_exp_reflects`. -/
+theorem T3.exp_reflects :
+    Reflects T3 T3.denote T3normal (.ord ==> .ord ==> .ord) (· ^ ·) T3.exp :=
+  cantor_exp_reflects T3.hasCantorDecomposition
+
+/-- Rocq: `Notation.GrimmT3.T3_reflects_nadd`. -/
+theorem T3.reflects_nadd :
+    Reflects T3 T3.denote T3normal (.ord ==> .ord ==> .ord) (· ♯ ·) T3.nadd :=
+  cantor_nadd_reflects T3.hasCantorDecomposition
+
+/-- Rocq: `Notation.GrimmT3.T3_reflects_nmul`. -/
+theorem T3.reflects_nmul :
+    Reflects T3 T3.denote T3normal (.ord ==> .ord ==> .ord) NaturalProduct.nmul T3.nmul :=
+  CantorProduct.cantor_nmul_reflects T3.hasCantorDecomposition T3.has_all_interpolants
+
+/-- No natural exponentiation on Grimm's notations, constructively. Rocq's
+`let Q := …` is unfolded. Rocq: `Notation.GrimmT3.natural_exp_impossible_T3`. -/
+theorem natural_exp_impossible_T3 :
+    ¬ ∃ e : Ordinal.{0} → Ordinal.{0} → Ordinal.{0},
+      (∀ a b, CantorProduct.Qn T3.denote T3normal a → CantorProduct.Qn T3.denote T3normal b →
+        CantorProduct.Qn T3.denote T3normal (e a b)) ∧
+      NaturalExp.NaturalExpLawsOn (CantorProduct.Qn T3.denote T3normal) e :=
+  NaturalExpNotation.natural_exp_impossible_notation T3.hasCantorDecomposition
+    T3.has_all_interpolants
 
 end ConstructiveOrdinals.GrimmT3

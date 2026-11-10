@@ -954,4 +954,68 @@ end reflects_nadd_con
 
 end cantor_arithmetic
 
+/-! ## Transfer along a bijection of normal forms
+
+A Cantor decomposition transfers to any notation system whose normal forms
+correspond to the original ones, preserving denotations. -/
+
+section cantor_transfer
+
+variable {B : Type}
+
+/-- Rocq: `Notation.CantorDecomposition.transfer_each`. -/
+theorem transfer_each {P : A → Prop} {Q : B → Prop} (h : A → B) (H : ∀ a, P a → Q (h a)) :
+    ∀ xs : List A, Each P xs → Each Q (xs.map h)
+  | [], _ => trivial
+  | x :: xs, ⟨hx, hxs⟩ => ⟨H x hx, transfer_each h H xs hxs⟩
+
+/-- Rocq: `Notation.CantorDecomposition.transfer_cantor_denote`. -/
+theorem transfer_cantor_denote {f : A → Ordinal.{0}} {g : B → Ordinal.{0}} {P : A → Prop}
+    (h : A → B) (H : ∀ a, P a → g (h a) ≈ f a) :
+    ∀ xs : List A, Each P xs → cantorDenote g (xs.map h) ≈ cantorDenote f xs
+  | [], _ => equiv_refl _
+  | x :: xs, ⟨hx, hxs⟩ =>
+    add_congr (pow_congr (equiv_refl _) (H x hx)) (transfer_cantor_denote h H xs hxs)
+
+/-- Rocq: `Notation.CantorDecomposition.transfer_cantor_ordered`. -/
+theorem transfer_cantor_ordered {f : A → Ordinal.{0}} {g : B → Ordinal.{0}} {P : A → Prop}
+    (h : A → B) (H : ∀ a, P a → g (h a) ≈ f a) :
+    ∀ xs : List A, Each P xs → CantorOrdered f xs → CantorOrdered g (xs.map h)
+  | [], _, _ => trivial
+  | [_], _, _ => ⟨trivial, trivial⟩
+  | x :: y :: ys, ⟨hx, hy, hys⟩, ⟨hxy, hrest⟩ =>
+    ⟨le_trans (H y hy).le (le_trans hxy (H x hx).ge),
+      transfer_cantor_ordered h H (y :: ys) ⟨hy, hys⟩ hrest⟩
+
+/-- The transferred Cantor decomposition. Rocq's section variables `to` and
+`from` are `to` and `back` here (`from` is a Lean keyword).
+Rocq: `Notation.CantorDecomposition.cantor_transfer`. -/
+def cantorTransfer {f : A → Ordinal.{0}} {g : B → Ordinal.{0}} {P : A → Prop} {Q : B → Prop}
+    (to : A → B) (back : B → A) (hto : ∀ a, P a → Q (to a) ∧ g (to a) ≈ f a)
+    (hfrom : ∀ b, Q b → P (back b) ∧ f (back b) ≈ g b) (hg : ∀ b, Complete (g b))
+    (X : HasCantorDecomposition f P) : HasCantorDecomposition g Q where
+  compare x y := X.compare (back x) (back y)
+  decompose x := (X.decompose (back x)).map to
+  recompose xs := to (X.recompose (xs.map back))
+  complete := hg
+  compare_correct x y hx hy :=
+    OrderingCorrect.congr (hfrom x hx).2 (hfrom y hy).2
+      (X.compare_correct _ _ (hfrom x hx).1 (hfrom y hy).1)
+  decompose_correct x hx :=
+    let ⟨px, ex⟩ := hfrom x hx
+    let ⟨h1, h2, h3⟩ := X.decompose_correct _ px
+    ⟨transfer_each to (fun a ha => (hto a ha).1) _ h1,
+      transfer_cantor_ordered to (fun a ha => (hto a ha).2) _ h1 h2,
+      equiv_trans (equiv_symm ex)
+        (equiv_trans h3 (equiv_symm (transfer_cantor_denote to (fun a ha => (hto a ha).2) _ h1)))⟩
+  recompose_correct xs hxs hord :=
+    let HP := transfer_each back (fun b hb => (hfrom b hb).1) xs hxs
+    let HO := transfer_cantor_ordered back (fun b hb => (hfrom b hb).2) xs hxs hord
+    let ⟨h1, h2⟩ := X.recompose_correct _ HP HO
+    let ⟨h3, h4⟩ := hto _ h1
+    ⟨h3, equiv_trans (equiv_symm (transfer_cantor_denote back (fun b hb => (hfrom b hb).2) xs hxs))
+      (equiv_trans h2 (equiv_symm h4))⟩
+
+end cantor_transfer
+
 end ConstructiveOrdinals.CantorDecomposition
