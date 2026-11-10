@@ -2784,3 +2784,52 @@ Proof.
   - rewrite H; auto with ord. apply nmulOrd_monotone; [reflexivity|].
     rewrite naddOrd_succ2, naddOrd_zero_r. reflexivity.
 Qed.
+
+(** ** What an operation-independent reverse result must use
+
+  The reverse results above concern [nmulOrd], but all their laws are
+  stated up to [≈], so they hold for any operation that is
+  constructively [≈] to it ([succ_lower_WEM_transfer]).  An operation
+  that agrees with the natural product only classically could behave
+  better.  Some laws cannot rule this out: the "incorrect" product of
+  [NaturalArith.v] satisfies commutativity, monotonicity, zero, unit
+  and the successor law, all constructively ([incorrect_product_laws]).
+  So no theorem "every operation with these laws implies weak excluded
+  middle" is provable (weak excluded middle itself is not provable);
+  any such result must use a law the incorrect product fails, such as
+  distributivity ([NaturalArith.incorrect_nmul.nmul_not_distributive]).
+  For [nmulOrd] itself, the same laws imply weak excluded middle
+  ([product_laws_nmul_WEM]). *)
+
+Definition product_laws (g : Ord -> Ord -> Ord) : Prop :=
+  (forall a b, g a b ≈ g b a) /\
+  (forall a a' b b', a ≤ a' -> b ≤ b' -> g a b ≤ g a' b') /\
+  (forall a, g a 0 ≈ 0) /\
+  (forall a, g a 1 ≈ a) /\
+  (forall a b, g a (succOrd b) ≈ g a b ⊕ a).
+
+Theorem incorrect_product_laws : product_laws incorrect_nmul.nmulOrd.
+Proof.
+  split; [|split; [|split; [|split]]].
+  - apply incorrect_nmul.nmulOrd_comm.
+  - intros a a' b b' Ha Hb. apply incorrect_nmul.nmulOrd_monotone; auto.
+  - apply incorrect_nmul.nmulOrd_zero.
+  - apply incorrect_nmul.nmulOrd_one.
+  - intros a b.
+    rewrite incorrect_nmul.nmulOrd_comm, incorrect_nmul.nmulOrd_succ.
+    rewrite (incorrect_nmul.nmulOrd_comm b a). reflexivity.
+Qed.
+
+Theorem product_laws_nmul_WEM : product_laws nmulOrd -> weak_excluded_middle.
+Proof.
+  intros [_ [_ [_ [_ Hs]]]]. apply succ_lower_WEM. intros a b. apply Hs.
+Qed.
+
+Theorem succ_lower_WEM_transfer (g : Ord -> Ord -> Ord) :
+  (forall a b, g a b ≈ nmulOrd a b) ->
+  (forall a b, g a b ⊕ a ≤ g a (succOrd b)) ->
+  weak_excluded_middle.
+Proof.
+  intros Hg H. apply succ_lower_WEM. intros a b.
+  rewrite <- (Hg a b), <- (Hg a (succOrd b)). apply H.
+Qed.

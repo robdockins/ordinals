@@ -67,7 +67,7 @@ are presentational:
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
 
-360 statements.
+363 statements.
 
 ## Defs
 
@@ -1310,6 +1310,48 @@ NaturalProduct.distrib_lower_complete_WEM : (∀ (a b c : Ordinal),
     a.Complete →
       b.Complete → c.Complete → NaturalProduct.nmul a b ♯ NaturalProduct.nmul a c ≤ NaturalProduct.nmul a (b ♯ c)) →
   WeakExcludedMiddle
+```
+
+### `incorrect_product_laws`
+
+Rocq:
+```
+NaturalProduct.incorrect_product_laws
+     : NaturalProduct.product_laws NaturalArith.incorrect_nmul.nmulOrd
+```
+Lean:
+```
+NaturalProduct.incorrect_product_laws : NaturalProduct.ProductLaws IncorrectNmul.nmul
+```
+
+### `product_laws_nmul_WEM`
+
+Rocq:
+```
+NaturalProduct.product_laws_nmul_WEM
+     : NaturalProduct.product_laws NaturalProduct.nmulOrd -> ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+NaturalProduct.product_laws_nmul_WEM : NaturalProduct.ProductLaws NaturalProduct.nmul → WeakExcludedMiddle
+```
+
+### `succ_lower_WEM_transfer`
+
+Rocq:
+```
+NaturalProduct.succ_lower_WEM_transfer
+     : forall g : Defs.Ord -> Defs.Ord -> Defs.Ord,
+       (forall a b : Defs.Ord, Defs.ord_eq (g a b) (NaturalProduct.nmulOrd a b)) ->
+       (forall a b : Defs.Ord,
+        Defs.ord_le (NaturalArith.naddOrd (g a b) a) (g a (Operators.succOrd b))) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+NaturalProduct.succ_lower_WEM_transfer : ∀ (g : Ordinal → Ordinal → Ordinal),
+  (∀ (a b : Ordinal), g a b ≈ NaturalProduct.nmul a b) →
+    (∀ (a b : Ordinal), g a b ♯ a ≤ g a b.succ) → WeakExcludedMiddle
 ```
 
 ## NaturalExp

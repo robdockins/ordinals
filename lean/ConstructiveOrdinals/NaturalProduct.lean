@@ -2354,4 +2354,46 @@ theorem distrib_lower_complete_WEM
     (le_trans (H a b 1 ha hb (succ_complete zero_complete)) (nmul_monotone (le_refl a)
       (le_trans (nadd_succ2 b 0).le (succ_monotone (nadd_zero_r b).le))))
 
+/-! ## What an operation-independent reverse result must use
+
+The reverse results above concern `nmul`, but all their laws are stated up to
+`≈`, so they hold for any operation that is constructively `≈` to it
+(`succ_lower_WEM_transfer`). An operation that agrees with the natural product
+only classically could behave better. Some laws cannot rule this out: the
+"incorrect" product of `NaturalArith` satisfies commutativity, monotonicity,
+zero, unit and the successor law, all constructively (`incorrect_product_laws`).
+So no theorem "every operation with these laws implies weak excluded middle" is
+provable (weak excluded middle itself is not provable); any such result must
+use a law the incorrect product fails, such as distributivity
+(`IncorrectNmul.nmul_not_distributive`). For `nmul` itself, the same laws imply
+weak excluded middle (`product_laws_nmul_WEM`). -/
+
+/-- Rocq: `NaturalProduct.product_laws`. -/
+def ProductLaws (g : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}) : Prop :=
+  (∀ a b, g a b ≈ g b a) ∧
+  (∀ a a' b b', a ≤ a' → b ≤ b' → g a b ≤ g a' b') ∧
+  (∀ a, g a 0 ≈ 0) ∧
+  (∀ a, g a 1 ≈ a) ∧
+  (∀ a b, g a (succ b) ≈ g a b ♯ a)
+
+/-- Rocq: `NaturalProduct.incorrect_product_laws`. -/
+theorem incorrect_product_laws : ProductLaws Ordinal.IncorrectNmul.nmul.{u} :=
+  ⟨Ordinal.IncorrectNmul.nmul_comm,
+    fun a a' b b' ha hb => Ordinal.IncorrectNmul.nmul_monotone a' b' a b ha hb,
+    Ordinal.IncorrectNmul.nmul_zero, Ordinal.IncorrectNmul.nmul_one,
+    fun a b => equiv_trans (Ordinal.IncorrectNmul.nmul_comm a (succ b))
+      (equiv_trans (Ordinal.IncorrectNmul.nmul_succ b a)
+        (nadd_congr (Ordinal.IncorrectNmul.nmul_comm b a) (equiv_refl a)))⟩
+
+/-- Rocq: `NaturalProduct.product_laws_nmul_WEM`. -/
+theorem product_laws_nmul_WEM (h : ProductLaws nmul.{u}) : WeakExcludedMiddle :=
+  succ_lower_WEM fun a b => (h.2.2.2.2 a b).ge
+
+/-- Rocq: `NaturalProduct.succ_lower_WEM_transfer`. -/
+theorem succ_lower_WEM_transfer (g : Ordinal.{u} → Ordinal.{u} → Ordinal.{u})
+    (hg : ∀ a b, g a b ≈ nmul a b) (h : ∀ a b, g a b ♯ a ≤ g a (succ b)) :
+    WeakExcludedMiddle :=
+  succ_lower_WEM fun a b =>
+    le_trans (nadd_le_nadd (hg a b).ge (le_refl a)) (le_trans (h a b) (hg a (succ b)).le)
+
 end ConstructiveOrdinals.NaturalProduct
