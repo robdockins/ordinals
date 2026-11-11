@@ -988,7 +988,8 @@ Qed.
     [≈ 2], and its collapse contains the truth-value set [{0 | P}]
     (Taylor's [{∅ : P}]), which is extensionally [0] or [1] only if [P] is
     decided.  So the canonical quotient of ordinals is classical; the
-    trees are predicative names for Taylor's plump ordinals instead. *)
+    trees are predicative names for Taylor's plump ordinals instead.  The
+    next section makes the collapse exact. *)
 
 Fixpoint ext_eq (x y:Ord) : Prop :=
   match x, y with
@@ -1163,6 +1164,369 @@ Section vn_collapse_classical.
       apply mk_wf_ord_ord_R_ext. exact Hk.
   Qed.
 End vn_collapse_classical.
+
+(** * Aczel sets and the Mostowski collapse
+
+    Reading trees as Aczel sets, with [ext_eq] as equality and [ext_in] as
+    membership, [mk_wf_ord] is exactly the Mostowski collapse of a
+    well-founded relation: it satisfies the collapse equation
+    [π(a) = {π(b) | b R a}] by definition, and is its unique solution
+    ([mostowski_unique]); it is injective when the relation is extensional
+    ([mostowski_injective]) and lands in transitive sets when the relation
+    is transitive ([mostowski_transitive]).  All of this is constructive.
+
+    So [vn_collapse x], the collapse of the strict order on the transitive
+    closure of [x], is a von Neumann ordinal in the sense of constructive
+    set theory, a transitive set of transitive sets
+    ([vn_collapse_czf_ordinal]).  Classically these are exactly its fixed
+    points ([vn_collapse_czf_fixed]), so [vn_collapse] identifies trees up
+    to [≈] with von Neumann ordinals up to extensional equality
+    ([vn_collapse_quotient_classical]).  That every von Neumann ordinal is
+    a fixed point implies excluded middle ([vn_collapse_czf_fixed_EM]). *)
+
+Lemma ext_eq_refl : forall x, ext_eq x x.
+Proof. induction x as [A f IH]; simpl; split; intro a; exists a; auto. Qed.
+
+Lemma ext_eq_sym : forall x y, ext_eq x y -> ext_eq y x.
+Proof.
+  induction x as [A f IH]. intros [B g] [H1 H2]; simpl; split.
+  - intro b. destruct (H2 b) as [a Ha]. exists a. apply IH; auto.
+  - intro a. destruct (H1 a) as [b Hb]. exists b. apply IH; auto.
+Qed.
+
+Lemma ext_eq_trans : forall x y z, ext_eq x y -> ext_eq y z -> ext_eq x z.
+Proof.
+  induction x as [A f IH]. intros [B g] [C h] [H1 H2] [H3 H4]; simpl; split.
+  - intro a. destruct (H1 a) as [b Hb]. destruct (H3 b) as [c Hc].
+    exists c. apply IH with (g b); auto.
+  - intro c. destruct (H4 c) as [b Hb]. destruct (H2 b) as [a Ha].
+    exists a. apply IH with (g b); auto.
+Qed.
+
+Lemma ext_eq_intro (x y:Ord) :
+  (forall i:x, exists j:y, ext_eq (x i) (y j)) ->
+  (forall j:y, exists i:x, ext_eq (x i) (y j)) ->
+  ext_eq x y.
+Proof. destruct x, y; simpl; auto. Qed.
+
+(** Membership up to extensional equality. *)
+Definition ext_in (y x:Ord) : Prop :=
+  match x with ord A f => exists a, ext_eq y (f a) end.
+
+Lemma ext_in_inv y (x:Ord) : ext_in y x -> exists i:x, ext_eq y (x i).
+Proof. destruct x; simpl; auto. Qed.
+
+Lemma ext_in_child (x:Ord) (i:x) : ext_in (x i) x.
+Proof. destruct x; simpl. exists i. apply ext_eq_refl. Qed.
+
+Lemma ext_in_eq_l y y' x : ext_eq y y' -> ext_in y x -> ext_in y' x.
+Proof.
+  destruct x as [A f]. intros H [a Ha]. exists a.
+  apply ext_eq_trans with y; auto. apply ext_eq_sym; auto.
+Qed.
+
+Lemma ext_in_eq_r y x x' : ext_eq x x' -> ext_in y x -> ext_in y x'.
+Proof.
+  destruct x as [A f]; destruct x' as [B g]. intros [H1 _] [a Ha].
+  destruct (H1 a) as [b Hb]. exists b. apply ext_eq_trans with (f a); auto.
+Qed.
+
+Lemma ext_in_lt y x : ext_in y x -> y < x.
+Proof.
+  intro H. destruct (ext_in_inv y x H) as [i Hi].
+  apply ext_eq_ord_eq in Hi. rewrite Hi. apply index_lt.
+Qed.
+
+(** Transitive sets, and the constructive (CZF) notion of ordinal: a
+    transitive set of transitive sets. *)
+Definition transitive_set (x:Ord) : Prop :=
+  forall y, ext_in y x -> forall v, ext_in v y -> ext_in v x.
+
+Definition czf_ordinal (x:Ord) : Prop :=
+  transitive_set x /\ forall y, ext_in y x -> transitive_set y.
+
+Lemma transitive_set_eq x x' : ext_eq x x' -> transitive_set x -> transitive_set x'.
+Proof.
+  intros H T y Hy v Hv.
+  apply ext_in_eq_r with x; auto.
+  apply T with y; auto.
+  apply ext_in_eq_r with x'; auto. apply ext_eq_sym; auto.
+Qed.
+
+Lemma transitive_set_intro (x:Ord) :
+  (forall (i:x) (j:x i), ext_in (x i j) x) -> transitive_set x.
+Proof.
+  intros H y Hy v Hv.
+  destruct (ext_in_inv y x Hy) as [i Hi].
+  apply (ext_in_eq_r _ _ _ Hi) in Hv.
+  destruct (ext_in_inv v (x i) Hv) as [j Hj].
+  apply ext_in_eq_l with (x i j); [apply ext_eq_sym; auto | apply H].
+Qed.
+
+Lemma czf_ordinal_eq x x' : ext_eq x x' -> czf_ordinal x -> czf_ordinal x'.
+Proof.
+  intros H [T Tm]. split.
+  - apply transitive_set_eq with x; auto.
+  - intros y Hy. apply Tm. apply ext_in_eq_r with x'; auto. apply ext_eq_sym; auto.
+Qed.
+
+Lemma czf_member x y : czf_ordinal x -> ext_in y x -> czf_ordinal y.
+Proof.
+  intros [T Tm] Hy. split.
+  - apply Tm; auto.
+  - intros w Hw. apply Tm. apply T with y; auto.
+Qed.
+
+(** Every node of the transitive closure is a hereditary member. *)
+Lemma tc_node_closed (P:Ord -> Prop) :
+  forall x:Ord,
+    (forall i:x, P (x i)) ->
+    (forall w v, P w -> ext_in v w -> P v) ->
+    forall q, P (ord_transitive_closure_ord x q).
+Proof.
+  induction x as [A f IH]. intros Hch Hcl [i|[i q]]; simpl.
+  - apply (Hch i).
+  - apply IH; auto. intro j. apply Hcl with (f i); [apply (Hch i)|apply ext_in_child].
+Qed.
+
+Lemma tc_node_in x : transitive_set x -> forall q, ext_in (ord_transitive_closure_ord x q) x.
+Proof.
+  intro T. apply (tc_node_closed (fun w => ext_in w x) x).
+  - apply ext_in_child.
+  - intros w v Hw Hv. apply T with w; auto.
+Qed.
+
+Lemma tc_inj_eq (y:Ord) (j:y) : ord_transitive_closure_ord y (ord_transitive_closure_inj y j) = y j.
+Proof. destruct y; reflexivity. Qed.
+
+Lemma tc_collapse_eq :
+  forall x i j, ord_transitive_closure_ord x (transitive_closure_collapse x i j) =
+                ord_transitive_closure_ord x i j.
+Proof.
+  induction x as [A f IH]. intros [i|[i q]] j; simpl.
+  - apply tc_inj_eq.
+  - apply IH.
+Qed.
+
+Section mostowski.
+  Variable A : Type.
+  Variable R : A -> A -> Prop.
+
+  Lemma mk_wf_ord_ext_irrelevant :
+    forall a H1 H2, ext_eq (mk_wf_ord A R a H1) (mk_wf_ord A R a H2).
+  Proof.
+    intros a Hacc. generalize Hacc. induction Hacc as [a _ IH].
+    intros [H1] [H2]; simpl; split; intros [b Hb]; exists (exist _ b Hb); simpl; apply IH; auto.
+  Qed.
+
+  (** The collapse is the unique solution of its defining equation. *)
+  Lemma mostowski_unique (g:A -> Ord) :
+    (forall a, ext_eq (g a) (ord { b:A | R b a } (fun b => g (proj1_sig b)))) ->
+    forall a H, ext_eq (g a) (mk_wf_ord A R a H).
+  Proof.
+    intros Hg a Hacc. generalize Hacc. induction Hacc as [a _ IH].
+    intros [H]. apply ext_eq_trans with (ord { b:A | R b a } (fun b => g (proj1_sig b))); auto.
+    simpl; split; intros [b Hb]; exists (exist _ b Hb); simpl; apply IH; auto.
+  Qed.
+
+  (** On an extensional relation, the collapse is injective. *)
+  Lemma mostowski_injective :
+    (forall a b, (forall c, R c a <-> R c b) -> a = b) ->
+    forall a Ha b Hb, ext_eq (mk_wf_ord A R a Ha) (mk_wf_ord A R b Hb) -> a = b.
+  Proof.
+    intros Hext a Hacc. generalize Hacc. induction Hacc as [a _ IH].
+    intros [Ha] b [Hb] [H1 H2]. apply Hext. intro c. split; intro Hc.
+    - destruct (H1 (exist _ c Hc)) as [[d Hd] Hcd]. simpl in Hcd.
+      rewrite (IH c Hc _ d _ Hcd). exact Hd.
+    - destruct (H2 (exist _ c Hc)) as [[d Hd] Hdc]. simpl in Hdc.
+      rewrite <- (IH d Hd _ c _ Hdc). exact Hd.
+  Qed.
+
+  (** On a transitive relation, the collapse lands in transitive sets. *)
+  Lemma mostowski_transitive :
+    (forall a b c, R a b -> R b c -> R a c) ->
+    forall a H, transitive_set (mk_wf_ord A R a H).
+  Proof.
+    intros Htrans a [H]. apply transitive_set_intro.
+    intros [b Hb]. simpl. generalize (H b Hb). intros [Hb2] [c Hc]. simpl.
+    exists (exist _ c (Htrans _ _ _ Hc Hb)). simpl. apply mk_wf_ord_ext_irrelevant.
+  Qed.
+
+  Hypothesis Hwf : well_founded R.
+
+  (** The image of the collapse is a transitive set. *)
+  Lemma wf_ord_transitive : transitive_set (wf_ord R Hwf).
+  Proof.
+    unfold wf_ord, limOrd, wf_ord_elt. apply transitive_set_intro.
+    intro a. simpl. generalize (Hwf a). intros [H] [b Hb]. simpl.
+    exists b. apply mk_wf_ord_ext_irrelevant.
+  Qed.
+
+  Theorem wf_ord_czf_ordinal :
+    (forall a b c, R a b -> R b c -> R a c) -> czf_ordinal (wf_ord R Hwf).
+  Proof.
+    intro Htrans. split; [apply wf_ord_transitive|].
+    intros y Hy. destruct (ext_in_inv _ _ Hy) as [a Ha].
+    apply transitive_set_eq with (wf_ord R Hwf a); [apply ext_eq_sym; auto|].
+    apply mostowski_transitive; auto.
+  Qed.
+End mostowski.
+
+(** [vn_collapse x] is a von Neumann ordinal, constructively. *)
+Theorem vn_collapse_czf_ordinal x : czf_ordinal (vn_collapse x).
+Proof.
+  apply wf_ord_czf_ordinal. unfold ord_R. intros a b c Hab Hbc. transitivity (ord_transitive_closure_ord x b); auto.
+Qed.
+
+Section vn_ordinals_classical.
+  Hypothesis EM : excluded_middle.
+
+  (** Classically, membership is trichotomous on von Neumann ordinals. *)
+  Lemma czf_trichotomy :
+    forall u v, czf_ordinal u -> czf_ordinal v -> ext_in u v \/ ext_eq u v \/ ext_in v u.
+  Proof.
+    induction u as [A f IHu]. intros v Hu. induction v as [B g IHv]. intro Hv.
+    destruct (EM (ext_in (ord A f) (ord B g))) as [H|Hn1]; auto.
+    destruct (EM (ext_in (ord B g) (ord A f))) as [H|Hn2]; auto.
+    right; left. simpl; split.
+    - intro a.
+      destruct (IHu a (ord B g) (czf_member _ _ Hu (ext_in_child (ord A f) a)) Hv) as [H|[H|H]].
+      + exact H.
+      + elim Hn2. exists a. apply ext_eq_sym; auto.
+      + elim Hn2. destruct Hu as [Tu _]. apply Tu with (f a); auto. apply (ext_in_child (ord A f) a).
+    - intro b.
+      destruct (IHv b (czf_member _ _ Hv (ext_in_child (ord B g) b))) as [H|[H|H]].
+      + elim Hn1. destruct Hv as [Tv _]. apply Tv with (g b); auto. apply (ext_in_child (ord B g) b).
+      + elim Hn1. exists b. auto.
+      + destruct H as [a Ha]. exists a. apply ext_eq_sym; auto.
+  Qed.
+
+  Lemma czf_lt_in u v : czf_ordinal u -> czf_ordinal v -> u < v -> ext_in u v.
+  Proof.
+    intros Hu Hv Hlt.
+    destruct (czf_trichotomy u v Hu Hv) as [H|[H|H]]; auto.
+    - apply ext_eq_ord_eq in H. elim (ord_lt_irreflexive v). rewrite <- H at 1. exact Hlt.
+    - apply ext_in_lt in H. elim (ord_lt_irreflexive u). transitivity v; auto.
+  Qed.
+
+  (** Classically, every von Neumann ordinal is its own collapse. *)
+  Theorem vn_collapse_czf_fixed z : czf_ordinal z -> ext_eq (vn_collapse z) z.
+  Proof.
+    intro Hz.
+    assert (Hnode : forall a, czf_ordinal (ord_transitive_closure_ord z a)).
+    { intro a. exact (czf_member z _ Hz (tc_node_in z (proj1 Hz) a)). }
+    assert (Hpi : forall a H, ext_eq (ord_transitive_closure_ord z a)
+                                     (mk_wf_ord _ (ord_R z) a H)).
+    { apply mostowski_unique. intro a. apply ext_eq_intro.
+      - intro j.
+        assert (Hr : ord_R z (transitive_closure_collapse z a j) a).
+        { unfold ord_R. rewrite tc_collapse_eq. apply index_lt. }
+        exists (exist _ (transitive_closure_collapse z a j) Hr). simpl.
+        rewrite tc_collapse_eq. apply ext_eq_refl.
+      - intros [b Hb]. simpl. unfold ord_R in Hb.
+        destruct (ext_in_inv _ _ (czf_lt_in _ _ (Hnode b) (Hnode a) Hb)) as [j Hj].
+        exists j. apply ext_eq_sym; auto. }
+    unfold vn_collapse, wf_ord, limOrd, wf_ord_elt. apply ext_eq_intro.
+    - intro a. simpl.
+      destruct (ext_in_inv _ _ (tc_node_in z (proj1 Hz) a)) as [i Hi].
+      exists i. apply ext_eq_trans with (ord_transitive_closure_ord z a); auto.
+      apply ext_eq_sym; auto.
+    - intro i. exists (ord_transitive_closure_inj z i). simpl.
+      rewrite <- (tc_inj_eq z i). apply ext_eq_sym; auto.
+  Qed.
+
+  (** Classically, [vn_collapse] identifies trees up to [≈] with von Neumann
+      ordinals up to extensional equality. *)
+  Theorem vn_collapse_quotient_classical :
+    (forall x y, x ≈ y <-> ext_eq (vn_collapse x) (vn_collapse y)) /\
+    (forall z, czf_ordinal z <-> exists x, ext_eq z (vn_collapse x)).
+  Proof.
+    split.
+    - intros x y. split.
+      + apply vn_collapse_ext_classical; auto.
+      + apply vn_collapse_ext_reflects.
+    - intro z. split.
+      + intro Hz. exists z. apply ext_eq_sym. apply vn_collapse_czf_fixed; auto.
+      + intros [x Hx]. apply czf_ordinal_eq with (vn_collapse x).
+        * apply ext_eq_sym; auto.
+        * apply vn_collapse_czf_ordinal.
+  Qed.
+End vn_ordinals_classical.
+
+(** That every von Neumann ordinal is its own collapse implies excluded
+    middle: [{0, 1, 2, {0 | P}}] is a von Neumann ordinal, and in its
+    collapse the image of [{0 | P}] is a member of the image of [2]. *)
+Theorem vn_collapse_czf_fixed_EM :
+  (forall z, czf_ordinal z -> ext_eq (vn_collapse z) z) -> excluded_middle.
+Proof.
+  intros H P.
+  pose (v0 := ord False (fun e => match e with end)).
+  pose (v1 := ord unit (fun _ => v0)).
+  pose (v2 := ord bool (fun b => if b then v1 else v0)).
+  pose (aP := ord P (fun _ => v0)).
+  pose (z := ord (option (option bool))
+               (fun o => match o with
+                         | None => v0
+                         | Some None => v1
+                         | Some (Some true) => v2
+                         | Some (Some false) => aP
+                         end)).
+  assert (Hz : czf_ordinal z).
+  { split.
+    - apply transitive_set_intro.
+      intros [[[|]|]|] j; simpl in j.
+      + destruct j; [exists (Some None) | exists None]; apply ext_eq_refl.
+      + exists None. apply ext_eq_refl.
+      + exists None. apply ext_eq_refl.
+      + destruct j.
+    - intros y Hy. destruct (ext_in_inv _ _ Hy) as [i Hi].
+      apply transitive_set_eq with (z i); [apply ext_eq_sym; auto|].
+      apply transitive_set_intro.
+      destruct i as [[[|]|]|]; simpl; intros j k.
+      + destruct j; simpl in k; [exists false; apply ext_eq_refl | destruct k].
+      + destruct k.
+      + destruct k.
+      + destruct j. }
+  specialize (H z Hz).
+  unfold vn_collapse, wf_ord, limOrd in H. destruct H as [H1 _].
+  pose (n2 := inl (Some (Some true)) : ord_transitive_closure_type z).
+  pose (na := inl (Some (Some false)) : ord_transitive_closure_type z).
+  assert (Hv01 : v0 < v1) by (rewrite ord_lt_unfold; exists tt; simpl; reflexivity).
+  assert (Hv12 : v1 < v2) by (rewrite ord_lt_unfold; exists true; simpl; reflexivity).
+  assert (HaP1 : aP ≤ v1) by (rewrite ord_le_unfold; intro p; simpl; exact Hv01).
+  assert (Hrel : ord_R z na n2).
+  { unfold ord_R. simpl. apply ord_le_lt_trans with v1; auto. }
+  destruct (H1 n2) as [m Hm].
+  assert (Hn2 : wf_ord_elt _ (ord_R z) (ord_R_well_founded z) n2 ≈ v2).
+  { rewrite ord_R_elt_eq. simpl. reflexivity. }
+  assert (Hm' : ext_eq (wf_ord_elt _ (ord_R z) (ord_R_well_founded z) n2) v2).
+  { destruct m as [[[|]|]|]; cbv beta iota in Hm.
+    - exact Hm.
+    - apply ext_eq_ord_eq in Hm. rewrite Hn2 in Hm.
+      elim (ord_lt_irreflexive v2). rewrite Hm at 1. apply ord_le_lt_trans with v1; auto.
+    - apply ext_eq_ord_eq in Hm. rewrite Hn2 in Hm.
+      elim (ord_lt_irreflexive v2). rewrite Hm at 1. exact Hv12.
+    - apply ext_eq_ord_eq in Hm. rewrite Hn2 in Hm.
+      elim (ord_lt_irreflexive v2). rewrite Hm at 1. transitivity v1; auto. }
+  clear H1 m Hm Hn2.
+  assert (Ha : wf_ord_elt _ (ord_R z) (ord_R_well_founded z) na ≈ aP).
+  { rewrite ord_R_elt_eq. simpl. reflexivity. }
+  unfold wf_ord_elt in Hm', Ha.
+  revert Hm' Ha. generalize (ord_R_well_founded z na). generalize (ord_R_well_founded z n2).
+  intros [Hacc] Hna [H2 _] Ha. simpl in H2.
+  destruct (H2 (exist _ na Hrel)) as [b Hb]. simpl in Hb.
+  apply ext_eq_ord_eq in Hb.
+  assert (HbaP : mk_wf_ord _ (ord_R z) na (Hacc na Hrel) ≈ aP).
+  { rewrite <- Ha. split; apply wf_ord_Acc_irrelevant. }
+  destruct b; simpl in Hb.
+  - left. assert (Hb' : aP ≈ v1) by (rewrite <- HbaP; exact Hb).
+    assert (H0 : v0 < aP) by (rewrite Hb'; exact Hv01).
+    rewrite ord_lt_unfold in H0. destruct H0 as [p _]. exact p.
+  - right. assert (Hb' : aP ≈ v0) by (rewrite <- HbaP; exact Hb).
+    intro p. elim (ord_lt_irreflexive v0).
+    apply ord_lt_le_trans with aP; [|apply Hb'].
+    rewrite ord_lt_unfold. exists p. simpl. reflexivity.
+Qed.
 
 (** Taylor (1996, Remark 8.10a) observes that the transitive closure does not
     preserve hereditary directedness for extensional relations.  For trees,
