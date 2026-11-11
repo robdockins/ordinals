@@ -604,7 +604,8 @@ transitive closure of `x`. Classically it is the von Neumann ordinal of `x`, so
 collapse determines `x` up to `≈`, but respects `≈` only if the excluded middle
 holds. The witness is the tree with children `1` and `s`, where `s` has a child
 `0` for each proof of `P`: it is `≈ 2`, and its collapse contains the
-truth-value set `{0 | P}` (Taylor's `{∅ : P}`). -/
+truth-value set `{0 | P}` (Taylor's `{∅ : P}`). The next section makes the
+collapse exact. -/
 
 /-- Extensional (Aczel) equality of trees: hereditary bisimulation.
 Rocq: `WellFounded.ext_eq`. -/
@@ -754,6 +755,355 @@ theorem vn_collapse_ext_classical (em : ExcludedMiddle) {x y : Ordinal.{u}} (h :
       (lt_of_lt_of_le (lt_of_lt_of_le (index_lt (ordTransitiveClosure y) b)
         (ord_transitive_closure_le2 y)) h.ge)
     exact ⟨k, mk_wf_ord_ord_R_ext em x y k b _ _ hk⟩
+
+/-! ## Aczel sets and the Mostowski collapse
+
+Reading trees as Aczel sets, with `ExtEq` as equality and `ExtIn` as
+membership, `mkWfOrd` is exactly the Mostowski collapse of a well-founded
+relation: it satisfies the collapse equation `π(a) = {π(b) | b R a}` by
+definition, and is its unique solution (`mostowski_unique`); it is injective
+when the relation is extensional (`mostowski_injective`) and lands in
+transitive sets when the relation is transitive (`mostowski_transitive`). All
+of this is constructive.
+
+So `vnCollapse x` is a von Neumann ordinal in the sense of constructive set
+theory, a transitive set of transitive sets (`vn_collapse_czf_ordinal`).
+Classically these are exactly its fixed points (`vn_collapse_czf_fixed`), so
+`vnCollapse` identifies trees up to `≈` with von Neumann ordinals up to
+extensional equality (`vn_collapse_quotient_classical`). That every von
+Neumann ordinal is a fixed point implies the excluded middle
+(`vn_collapse_czf_fixed_EM`).
+
+In Lean, `mkWfOrd` does not depend on the accessibility proof, by definitional
+proof irrelevance, so `mk_wf_ord_ext_irrelevant` is reflexivity. -/
+
+/-- Rocq: `WellFounded.ext_eq_refl`. -/
+theorem ext_eq_refl : ∀ x : Ordinal.{u}, ExtEq x x
+  | mk _ f => ExtEq.intro (fun a => ⟨a, ext_eq_refl (f a)⟩) (fun a => ⟨a, ext_eq_refl (f a)⟩)
+
+/-- Rocq: `WellFounded.ext_eq_sym`. -/
+theorem ext_eq_symm : ∀ x y : Ordinal.{u}, ExtEq x y → ExtEq y x
+  | mk _ _, mk _ _, h => ExtEq.intro
+    (fun b => let ⟨a, ha⟩ := (ExtEq.elim h).2 b; ⟨a, ext_eq_symm _ _ ha⟩)
+    (fun a => let ⟨b, hb⟩ := (ExtEq.elim h).1 a; ⟨b, ext_eq_symm _ _ hb⟩)
+
+/-- Rocq: `WellFounded.ext_eq_trans`. -/
+theorem ext_eq_trans : ∀ x y z : Ordinal.{u}, ExtEq x y → ExtEq y z → ExtEq x z
+  | mk _ _, mk _ _, mk _ _, h₁, h₂ => ExtEq.intro
+    (fun a =>
+      let ⟨b, hb⟩ := (ExtEq.elim h₁).1 a
+      let ⟨c, hc⟩ := (ExtEq.elim h₂).1 b
+      ⟨c, ext_eq_trans _ _ _ hb hc⟩)
+    (fun c =>
+      let ⟨b, hb⟩ := (ExtEq.elim h₂).2 c
+      let ⟨a, ha⟩ := (ExtEq.elim h₁).2 b
+      ⟨a, ext_eq_trans _ _ _ ha hb⟩)
+
+/-- Rocq: `WellFounded.ext_eq_intro`. -/
+theorem ext_eq_intro : ∀ x y : Ordinal.{u},
+    (∀ i : x.Carrier, ∃ j : y.Carrier, ExtEq (x i) (y j)) →
+    (∀ j : y.Carrier, ∃ i : x.Carrier, ExtEq (x i) (y j)) → ExtEq x y
+  | mk _ _, mk _ _, h₁, h₂ => ExtEq.intro h₁ h₂
+
+/-- Membership up to extensional equality. Rocq's definition matches on `x`.
+Rocq: `WellFounded.ext_in`. -/
+def ExtIn (y x : Ordinal.{u}) : Prop := ∃ i : x.Carrier, ExtEq y (x i)
+
+/-- Rocq: `WellFounded.ext_in_inv`. -/
+theorem ext_in_inv {y x : Ordinal.{u}} (h : ExtIn y x) : ∃ i : x.Carrier, ExtEq y (x i) := h
+
+/-- Rocq: `WellFounded.ext_in_child`. -/
+theorem ext_in_child (x : Ordinal.{u}) (i : x.Carrier) : ExtIn (x i) x := ⟨i, ext_eq_refl _⟩
+
+/-- Rocq: `WellFounded.ext_in_eq_l`. -/
+theorem ext_in_eq_l {y y' x : Ordinal.{u}} (h : ExtEq y y') (hy : ExtIn y x) : ExtIn y' x :=
+  let ⟨a, ha⟩ := hy
+  ⟨a, ext_eq_trans _ _ _ (ext_eq_symm _ _ h) ha⟩
+
+/-- Rocq: `WellFounded.ext_in_eq_r`. -/
+theorem ext_in_eq_r {y : Ordinal.{u}} : ∀ {x x' : Ordinal.{u}}, ExtEq x x' → ExtIn y x → ExtIn y x'
+  | mk _ _, mk _ _, h, ⟨a, ha⟩ =>
+    let ⟨b, hb⟩ := (ExtEq.elim h).1 a
+    ⟨b, ext_eq_trans _ _ _ ha hb⟩
+
+/-- Rocq: `WellFounded.ext_in_lt`. -/
+theorem ext_in_lt {y x : Ordinal.{u}} (h : ExtIn y x) : y < x :=
+  let ⟨i, hi⟩ := h
+  lt_of_le_of_lt (ext_eq_ord_eq _ _ hi).le (index_lt x i)
+
+/-- Rocq: `WellFounded.transitive_set`. -/
+def TransitiveSet (x : Ordinal.{u}) : Prop :=
+  ∀ y, ExtIn y x → ∀ v, ExtIn v y → ExtIn v x
+
+/-- The constructive (CZF) notion of ordinal: a transitive set of transitive
+sets. Rocq: `WellFounded.czf_ordinal`. -/
+def CzfOrdinal (x : Ordinal.{u}) : Prop :=
+  TransitiveSet x ∧ ∀ y, ExtIn y x → TransitiveSet y
+
+/-- Rocq: `WellFounded.transitive_set_eq`. -/
+theorem transitive_set_eq {x x' : Ordinal.{u}} (h : ExtEq x x') (T : TransitiveSet x) :
+    TransitiveSet x' := fun y hy v hv =>
+  ext_in_eq_r h (T y (ext_in_eq_r (ext_eq_symm _ _ h) hy) v hv)
+
+/-- Rocq: `WellFounded.transitive_set_intro`. -/
+theorem transitive_set_intro (x : Ordinal.{u})
+    (h : ∀ (i : x.Carrier) (j : (x i).Carrier), ExtIn (x i j) x) : TransitiveSet x :=
+  fun _ ⟨i, hi⟩ _ hv =>
+    let ⟨j, hj⟩ := ext_in_eq_r hi hv
+    ext_in_eq_l (ext_eq_symm _ _ hj) (h i j)
+
+/-- Rocq: `WellFounded.czf_ordinal_eq`. -/
+theorem czf_ordinal_eq {x x' : Ordinal.{u}} (h : ExtEq x x') (hx : CzfOrdinal x) :
+    CzfOrdinal x' :=
+  ⟨transitive_set_eq h hx.1, fun y hy => hx.2 y (ext_in_eq_r (ext_eq_symm _ _ h) hy)⟩
+
+/-- Rocq: `WellFounded.czf_member`. -/
+theorem czf_member {x y : Ordinal.{u}} (hx : CzfOrdinal x) (hy : ExtIn y x) : CzfOrdinal y :=
+  ⟨hx.2 y hy, fun w hw => hx.2 w (hx.1 y hy w hw)⟩
+
+/-- Every node of the transitive closure is a hereditary member.
+Rocq: `WellFounded.tc_node_closed`. -/
+theorem tc_node_closed (P : Ordinal.{u} → Prop) : ∀ x : Ordinal.{u},
+    (∀ i : x.Carrier, P (x i)) → (∀ w v, P w → ExtIn v w → P v) →
+    ∀ q, P (ordTransitiveClosureOrd x q)
+  | mk _ _, hch, _, .inl i => hch i
+  | mk _ f, hch, hcl, .inr ⟨i, q⟩ =>
+    tc_node_closed P (f i) (fun j => hcl _ _ (hch i) (ext_in_child (f i) j)) hcl q
+
+/-- Rocq: `WellFounded.tc_node_in`. -/
+theorem tc_node_in (x : Ordinal.{u}) (T : TransitiveSet x) :
+    ∀ q, ExtIn (ordTransitiveClosureOrd x q) x :=
+  tc_node_closed (fun w => ExtIn w x) x (ext_in_child x) fun w v hw hv => T w hw v hv
+
+/-- Rocq: `WellFounded.tc_inj_eq`. -/
+theorem tc_inj_eq : ∀ (y : Ordinal.{u}) (j : y.Carrier),
+    ordTransitiveClosureOrd y (ordTransitiveClosureInj y j) = y j
+  | mk _ _, _ => rfl
+
+/-- Rocq: `WellFounded.tc_collapse_eq`. -/
+theorem tc_collapse_eq : ∀ (x : Ordinal.{u}) (i : ordTransitiveClosureType x)
+    (j : (ordTransitiveClosureOrd x i).Carrier),
+    ordTransitiveClosureOrd x (transitiveClosureCollapse x i j) = ordTransitiveClosureOrd x i j
+  | mk _ f, .inl i, j => tc_inj_eq (f i) j
+  | mk _ f, .inr ⟨i, q⟩, j => tc_collapse_eq (f i) q j
+
+section mostowski
+
+variable {A : Type u} {R : A → A → Prop}
+
+/-- By definitional proof irrelevance. Rocq: `WellFounded.mk_wf_ord_ext_irrelevant`. -/
+theorem mk_wf_ord_ext_irrelevant (a : A) (h₁ h₂ : Acc R a) :
+    ExtEq (mkWfOrd R a h₁) (mkWfOrd R a h₂) :=
+  ext_eq_refl _
+
+/-- The collapse is the unique solution of its defining equation.
+Rocq: `WellFounded.mostowski_unique`. -/
+theorem mostowski_unique (g : A → Ordinal.{u})
+    (hg : ∀ a, ExtEq (g a) (mk { b // R b a } fun b => g b.1)) :
+    ∀ a (h : Acc R a), ExtEq (g a) (mkWfOrd R a h) := by
+  intro a h
+  induction h with
+  | intro a _ ih =>
+    rw [mkWfOrd_unfold]
+    exact ext_eq_trans _ _ _ (hg a)
+      (ExtEq.intro (fun b => ⟨b, ih b.1 b.2⟩) (fun b => ⟨b, ih b.1 b.2⟩))
+
+/-- On an extensional relation, the collapse is injective.
+Rocq: `WellFounded.mostowski_injective`. -/
+theorem mostowski_injective (hext : ∀ a b, (∀ c, R c a ↔ R c b) → a = b) :
+    ∀ a (ha : Acc R a) b (hb : Acc R b), ExtEq (mkWfOrd R a ha) (mkWfOrd R b hb) → a = b := by
+  intro a ha
+  induction ha with
+  | intro a _ ih =>
+    intro b hb h
+    rw [mkWfOrd_unfold R a, mkWfOrd_unfold R b] at h
+    obtain ⟨h₁, h₂⟩ := ExtEq.elim h
+    refine hext a b fun c => ⟨fun hc => ?_, fun hc => ?_⟩
+    · obtain ⟨⟨d, hd⟩, hcd⟩ := h₁ ⟨c, hc⟩
+      rw [ih c hc d _ hcd]; exact hd
+    · obtain ⟨⟨d, hd⟩, hdc⟩ := h₂ ⟨c, hc⟩
+      rw [← ih d hd c _ hdc]; exact hd
+
+/-- On a transitive relation, the collapse lands in transitive sets.
+Rocq: `WellFounded.mostowski_transitive`. -/
+theorem mostowski_transitive (htrans : ∀ a b c, R a b → R b c → R a c) :
+    ∀ a (h : Acc R a), TransitiveSet (mkWfOrd R a h) := by
+  intro a h
+  rw [mkWfOrd_unfold]
+  refine transitive_set_intro _ fun ⟨b, hb⟩ => ?_
+  show ∀ j : (mkWfOrd R b (h.inv hb)).Carrier, ExtIn (mkWfOrd R b (h.inv hb) j) _
+  rw [mkWfOrd_unfold R b]
+  exact fun ⟨c, hc⟩ => ⟨⟨c, htrans _ _ _ hc hb⟩, ext_eq_refl _⟩
+
+/-- The image of the collapse is a transitive set.
+Rocq: `WellFounded.wf_ord_transitive`. -/
+theorem wf_ord_transitive (hwf : WellFounded R) : TransitiveSet (wfOrd R hwf) := by
+  refine transitive_set_intro _ fun a => ?_
+  show ∀ j : (mkWfOrd R a (hwf.apply a)).Carrier, ExtIn (mkWfOrd R a (hwf.apply a) j) _
+  rw [mkWfOrd_unfold R a]
+  exact fun ⟨b, _⟩ => ⟨b, ext_eq_refl _⟩
+
+/-- Rocq: `WellFounded.wf_ord_czf_ordinal`. -/
+theorem wf_ord_czf_ordinal (hwf : WellFounded R) (htrans : ∀ a b c, R a b → R b c → R a c) :
+    CzfOrdinal (wfOrd R hwf) :=
+  ⟨wf_ord_transitive hwf, fun _ ⟨a, ha⟩ =>
+    transitive_set_eq (ext_eq_symm _ _ ha) (mostowski_transitive htrans a _)⟩
+
+end mostowski
+
+/-- `vnCollapse x` is a von Neumann ordinal, constructively.
+Rocq: `WellFounded.vn_collapse_czf_ordinal`. -/
+theorem vn_collapse_czf_ordinal (x : Ordinal.{u}) : CzfOrdinal (vnCollapse x) :=
+  wf_ord_czf_ordinal _ fun _ _ _ hab hbc => lt_trans hab hbc
+
+/-- The inner induction of `czf_trichotomy`, on `t`, for fixed `s`. -/
+theorem czf_trichotomy_aux (em : ExcludedMiddle) (s : Ordinal.{u})
+    (IHs : ∀ i : s.Carrier, ∀ t, CzfOrdinal (s i) → CzfOrdinal t →
+      ExtIn (s i) t ∨ ExtEq (s i) t ∨ ExtIn t (s i)) :
+    ∀ t : Ordinal.{u}, CzfOrdinal s → CzfOrdinal t → ExtIn s t ∨ ExtEq s t ∨ ExtIn t s
+  | mk B g, hs, ht => by
+    rcases em (ExtIn s (mk B g)) with h₁ | n₁
+    · exact .inl h₁
+    rcases em (ExtIn (mk B g) s) with h₂ | n₂
+    · exact .inr (.inr h₂)
+    refine .inr (.inl (ext_eq_intro _ _ (fun i => ?_) (fun b => ?_)))
+    · rcases IHs i (mk B g) (czf_member hs (ext_in_child s i)) ht with h | h | h
+      · exact h
+      · exact absurd ⟨i, ext_eq_symm _ _ h⟩ n₂
+      · exact absurd (hs.1 _ (ext_in_child s i) _ h) n₂
+    · rcases czf_trichotomy_aux em s IHs (g b) hs
+          (czf_member ht (ext_in_child (mk B g) b)) with h | h | h
+      · exact absurd (ht.1 _ (ext_in_child (mk B g) b) _ h) n₁
+      · exact absurd ⟨b, h⟩ n₁
+      · obtain ⟨i, hi⟩ := h
+        exact ⟨i, ext_eq_symm _ _ hi⟩
+
+/-- Classically, membership is trichotomous on von Neumann ordinals.
+Rocq: `WellFounded.czf_trichotomy`. -/
+theorem czf_trichotomy (em : ExcludedMiddle) : ∀ s t : Ordinal.{u},
+    CzfOrdinal s → CzfOrdinal t → ExtIn s t ∨ ExtEq s t ∨ ExtIn t s
+  | mk _ f, t => czf_trichotomy_aux em (mk _ f) (fun i => czf_trichotomy em (f i)) t
+
+/-- Rocq: `WellFounded.czf_lt_in`. -/
+theorem czf_lt_in (em : ExcludedMiddle) {s t : Ordinal.{u}} (hs : CzfOrdinal s)
+    (ht : CzfOrdinal t) (hlt : s < t) : ExtIn s t :=
+  match czf_trichotomy em s t hs ht with
+  | .inl h => h
+  | .inr (.inl h) => absurd (lt_of_lt_of_le hlt (ext_eq_ord_eq _ _ h).ge) (lt_irrefl _)
+  | .inr (.inr h) => absurd (lt_trans hlt (ext_in_lt h)) (lt_irrefl _)
+
+/-- Classically, every von Neumann ordinal is its own collapse.
+Rocq: `WellFounded.vn_collapse_czf_fixed`. -/
+theorem vn_collapse_czf_fixed (em : ExcludedMiddle) (z : Ordinal.{u}) (hz : CzfOrdinal z) :
+    ExtEq (vnCollapse z) z := by
+  have hnode : ∀ a, CzfOrdinal (ordTransitiveClosureOrd z a) := fun a =>
+    czf_member hz (tc_node_in z hz.1 a)
+  have hpi : ∀ a (h : Acc (ordR z) a),
+      ExtEq (ordTransitiveClosureOrd z a) (mkWfOrd (ordR z) a h) := by
+    refine mostowski_unique _ fun a => ext_eq_intro _ _ (fun j => ?_) (fun ⟨b, hb⟩ => ?_)
+    · have hr : ordR z (transitiveClosureCollapse z a j) a := by
+        show ordTransitiveClosureOrd z _ < _
+        rw [tc_collapse_eq]; exact index_lt _ j
+      refine ⟨⟨transitiveClosureCollapse z a j, hr⟩, ?_⟩
+      show ExtEq _ (ordTransitiveClosureOrd z (transitiveClosureCollapse z a j))
+      rw [tc_collapse_eq]; exact ext_eq_refl _
+    · obtain ⟨j, hj⟩ := czf_lt_in em (hnode b) (hnode a) hb
+      exact ⟨j, ext_eq_symm _ _ hj⟩
+  show ExtEq (mk _ (wfOrdElt (ordR z) (ord_R_well_founded z))) z
+  refine ext_eq_intro _ _ (fun a => ?_) (fun i => ?_)
+  · obtain ⟨i, hi⟩ := tc_node_in z hz.1 a
+    exact ⟨i, ext_eq_trans _ _ _ (ext_eq_symm _ _ (hpi a _)) hi⟩
+  · refine ⟨ordTransitiveClosureInj z i, ?_⟩
+    have h := hpi (ordTransitiveClosureInj z i) ((ord_R_well_founded z).apply _)
+    rw [tc_inj_eq] at h
+    exact ext_eq_symm _ _ h
+
+/-- Classically, `vnCollapse` identifies trees up to `≈` with von Neumann
+ordinals up to extensional equality.
+Rocq: `WellFounded.vn_collapse_quotient_classical`. -/
+theorem vn_collapse_quotient_classical (em : ExcludedMiddle) :
+    (∀ x y : Ordinal.{u}, x ≈ y ↔ ExtEq (vnCollapse x) (vnCollapse y)) ∧
+    (∀ z : Ordinal.{u}, CzfOrdinal z ↔ ∃ x, ExtEq z (vnCollapse x)) :=
+  ⟨fun _ _ => ⟨vn_collapse_ext_classical em, vn_collapse_ext_reflects⟩,
+    fun z => ⟨fun hz => ⟨z, ext_eq_symm _ _ (vn_collapse_czf_fixed em z hz)⟩,
+      fun ⟨x, hx⟩ => czf_ordinal_eq (ext_eq_symm _ _ hx) (vn_collapse_czf_ordinal x)⟩⟩
+
+/-! The witness of `vn_collapse_czf_fixed_EM`: the von Neumann ordinals `0`,
+`1`, `2`, the truth-value set `{0 | P}`, and `{0, 1, 2, {0 | P}}`. These are
+the `pose`s of the Rocq proof. -/
+
+private def vn0 : Ordinal.{u} := mk PEmpty.{u + 1} fun e => nomatch e
+private def vn1 : Ordinal.{u} := mk PUnit.{u + 1} fun _ => vn0
+private def vn2 : Ordinal.{u} := mk (ULift.{u} Bool) fun b => cond b.down vn1 vn0
+private def vnP (P : Prop) : Ordinal.{u} := mk (ULift.{u} (PLift P)) fun _ => vn0
+private def vnZ (P : Prop) : Ordinal.{u} :=
+  mk (ULift.{u} (Option (Option Bool))) fun o =>
+    match o.down with
+    | none => vn0
+    | some none => vn1
+    | some (some true) => vn2
+    | some (some false) => vnP P
+
+private theorem vnZ_czf (P : Prop) : CzfOrdinal (vnZ.{u} P) := by
+  refine ⟨transitive_set_intro _ fun ⟨o⟩ j => ?_, fun y ⟨⟨o⟩, hi⟩ => ?_⟩
+  · match o, j with
+    | none, j => exact nomatch j
+    | some none, _ => exact ⟨⟨none⟩, ext_eq_refl _⟩
+    | some (some true), ⟨true⟩ => exact ⟨⟨some none⟩, ext_eq_refl _⟩
+    | some (some true), ⟨false⟩ => exact ⟨⟨none⟩, ext_eq_refl _⟩
+    | some (some false), _ => exact ⟨⟨none⟩, ext_eq_refl _⟩
+  · refine transitive_set_eq (ext_eq_symm _ _ hi) (transitive_set_intro _ fun j k => ?_)
+    match o, j, k with
+    | none, j, _ => exact nomatch j
+    | some none, _, k => exact nomatch k
+    | some (some true), ⟨true⟩, _ => exact ⟨⟨false⟩, ext_eq_refl _⟩
+    | some (some true), ⟨false⟩, k => exact nomatch k
+    | some (some false), _, k => exact nomatch k
+
+/-- That every von Neumann ordinal is its own collapse implies the excluded
+middle: `{0, 1, 2, {0 | P}}` is a von Neumann ordinal, and in its collapse the
+image of `{0 | P}` is a member of the image of `2`.
+Rocq: `WellFounded.vn_collapse_czf_fixed_EM`. -/
+theorem vn_collapse_czf_fixed_EM
+    (H : ∀ z : Ordinal.{u}, CzfOrdinal z → ExtEq (vnCollapse z) z) : ExcludedMiddle := by
+  intro P
+  have hv01 : vn0.{u} < vn1.{u} := lt_intro (show vn1.Carrier from PUnit.unit) (le_refl _)
+  have hv12 : vn1.{u} < vn2.{u} := lt_intro (show vn2.Carrier from ⟨true⟩) (le_refl _)
+  have haP1 : vnP.{u} P ≤ vn1 := le_intro fun _ => hv01
+  let n2 : ordTransitiveClosureType (vnZ.{u} P) := .inl ⟨some (some true)⟩
+  let na : ordTransitiveClosureType (vnZ.{u} P) := .inl ⟨some (some false)⟩
+  have hrel : ordR (vnZ P) na n2 := lt_of_le_of_lt haP1 hv12
+  have hz : ExtEq (mk _ (wfOrdElt (ordR (vnZ P)) (ord_R_well_founded (vnZ P)))) (vnZ P) :=
+    H (vnZ P) (vnZ_czf P)
+  obtain ⟨⟨m⟩, hm⟩ := (ExtEq.elim hz).1 n2
+  have hn2 : wfOrdElt (ordR (vnZ P)) (ord_R_well_founded (vnZ P)) n2 ≈ vn2 :=
+    ord_R_elt_eq (vnZ P) n2
+  have hm2 : ExtEq (wfOrdElt (ordR (vnZ P)) (ord_R_well_founded (vnZ P)) n2) vn2 := by
+    match m, hm with
+    | some (some true), hm => exact hm
+    | none, hm =>
+      exact absurd (lt_of_le_of_lt (le_trans hn2.ge (ext_eq_ord_eq _ _ hm).le)
+        (lt_trans hv01 hv12)) (lt_irrefl _)
+    | some none, hm =>
+      exact absurd (lt_of_le_of_lt (le_trans hn2.ge (ext_eq_ord_eq _ _ hm).le) hv12) (lt_irrefl _)
+    | some (some false), hm =>
+      exact absurd (lt_of_le_of_lt (le_trans hn2.ge (ext_eq_ord_eq _ _ hm).le)
+        (lt_of_le_of_lt haP1 hv12)) (lt_irrefl _)
+  have ha : wfOrdElt (ordR (vnZ P)) (ord_R_well_founded (vnZ P)) na ≈ vnP P :=
+    ord_R_elt_eq (vnZ P) na
+  revert hm2
+  show ExtEq (mkWfOrd (ordR (vnZ P)) n2 ((ord_R_well_founded (vnZ P)).apply n2)) vn2 → _
+  rw [mkWfOrd_unfold]
+  intro hm2
+  obtain ⟨⟨b⟩, hb⟩ := (ExtEq.elim hm2).1 ⟨na, hrel⟩
+  have hb' : vnP P ≈ cond b vn1 vn0 := equiv_trans (equiv_symm ha) (ext_eq_ord_eq _ _ hb)
+  cases b with
+  | true =>
+    obtain ⟨⟨⟨p⟩⟩, _⟩ := lt_elim (lt_of_lt_of_le hv01 hb'.ge)
+    exact .inl p
+  | false =>
+    exact .inr fun p => lt_irrefl vn0
+      (lt_of_lt_of_le (lt_intro (show (vnP P).Carrier from ⟨⟨p⟩⟩) (le_refl _)) hb'.le)
 
 /-- Every node of the transitive closure lies below a child.
 Rocq: `WellFounded.tc_below_child`. -/

@@ -67,7 +67,7 @@ are presentational:
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
 
-372 statements.
+377 statements.
 
 ## Defs
 
@@ -1867,6 +1867,81 @@ WellFounded.vn_collapse_ext_classical
 Lean:
 ```
 vn_collapse_ext_classical : ExcludedMiddle → ∀ {x y : Ordinal}, x ≈ y → x.vnCollapse.ExtEq y.vnCollapse
+```
+
+### `wf_ord_czf_ordinal`
+
+Rocq:
+```
+WellFounded.wf_ord_czf_ordinal
+     : forall (A : Type) (R : A -> A -> Prop) (Hwf : well_founded R),
+       (forall a b c : A, R a b -> R b c -> R a c) ->
+       WellFounded.czf_ordinal (WellFounded.wf_ord R Hwf)
+```
+Lean:
+```
+@wf_ord_czf_ordinal : ∀ {A : Type u_1} {R : A → A → Prop} (hwf : WellFounded R),
+  (∀ (a b c : A), R a b → R b c → R a c) → (wfOrd R hwf).CzfOrdinal
+```
+
+### `vn_collapse_czf_ordinal`
+
+Rocq:
+```
+WellFounded.vn_collapse_czf_ordinal
+     : forall x : Defs.Ord, WellFounded.czf_ordinal (WellFounded.vn_collapse x)
+```
+Lean:
+```
+vn_collapse_czf_ordinal : ∀ (x : Ordinal), x.vnCollapse.CzfOrdinal
+```
+
+### `vn_collapse_czf_fixed`
+
+Rocq:
+```
+WellFounded.vn_collapse_czf_fixed
+     : ClassicalFacts.excluded_middle ->
+       forall z : Defs.Ord,
+       WellFounded.czf_ordinal z -> WellFounded.ext_eq (WellFounded.vn_collapse z) z
+```
+Lean:
+```
+vn_collapse_czf_fixed : ExcludedMiddle → ∀ (z : Ordinal), z.CzfOrdinal → z.vnCollapse.ExtEq z
+```
+
+### `vn_collapse_quotient_classical`
+
+Rocq:
+```
+WellFounded.vn_collapse_quotient_classical
+     : ClassicalFacts.excluded_middle ->
+       (forall x y : Defs.Ord,
+        Defs.ord_eq x y <->
+        WellFounded.ext_eq (WellFounded.vn_collapse x) (WellFounded.vn_collapse y)) /\
+       (forall z : Defs.Ord,
+        WellFounded.czf_ordinal z <->
+        (exists x : Defs.Ord, WellFounded.ext_eq z (WellFounded.vn_collapse x)))
+```
+Lean:
+```
+vn_collapse_quotient_classical : ExcludedMiddle →
+  (∀ (x y : Ordinal), x ≈ y ↔ x.vnCollapse.ExtEq y.vnCollapse) ∧
+    ∀ (z : Ordinal), z.CzfOrdinal ↔ ∃ x, z.ExtEq x.vnCollapse
+```
+
+### `vn_collapse_czf_fixed_EM`
+
+Rocq:
+```
+WellFounded.vn_collapse_czf_fixed_EM
+     : (forall z : Defs.Ord,
+        WellFounded.czf_ordinal z -> WellFounded.ext_eq (WellFounded.vn_collapse z) z) ->
+       ClassicalFacts.excluded_middle
+```
+Lean:
+```
+vn_collapse_czf_fixed_EM : (∀ (z : Ordinal), z.CzfOrdinal → z.vnCollapse.ExtEq z) → ExcludedMiddle
 ```
 
 ### `ord_transitive_closure_complete`
