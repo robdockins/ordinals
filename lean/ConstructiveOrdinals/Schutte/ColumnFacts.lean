@@ -2104,6 +2104,267 @@ theorem schutte_matrix_compare_correct {o : Ordering} {f : Ordinal.{u} → Ordin
         (schutte_matrix_lt2 n f mb na m ma 0 hf hn.2.2 hm.1 hn.2.1 hm.2.2 hm.2.1 zero_complete ⟨q, hp.2.2⟩
           (schutte_matrix_proper_monotone n nb mb _ _ hb.ge (le_refl _) hcor) ha)
 
+/-! ## Uniqueness of the Klammersymbol characterization
+
+Schütte defines the functions on Klammersymbole over a normal `f` by their
+critical sets: the Klammersymbol with only an index-`0` component `x` denotes
+`f x`; zero components may be dropped; and when `β > 0` is the lowest nonzero
+index above `0`, with component `α > 0`, the index-`0` argument
+`x ↦ φ(m, (β,α), (0,x))` enumerates the `δ` with `φ(m, (β,a), (b,δ)) = δ` for
+all `b < β` and `a < α`. `schutteMatrix` meets this specification
+(`schutte_matrix_kl_spec`), and the specification determines the functions:
+any `Ψ` meeting it agrees with `fun m => schutteMatrix f m 0` on proper
+Klammersymbole (`klammersymbol_characterization_unique`).
+
+A Klammersymbol is a list of (index, component) pairs with strictly decreasing
+indices (`KlProper`); its index-`0` component, if any, is an ordinary last
+entry `(0,x)`, and its value is `schutteMatrix f m 0`, as in the notation
+system. The proof is constructive. It reads the specification with
+`Con.Enumerates` and quantifies over complete indices and components only;
+beyond the specification it needs that `Ψ` preserves completeness, that
+components `≤ 0` count as zero, and that indices `≤ 0` count as `0`.
+
+The induction is on the bound `γ` of the indices: the value with leading pair
+`(β, α)` is determined, by induction on `α`, from the values with leading pairs
+`(β, a)`, `a < α`, and the rest of the Klammersymbol is handled by the
+induction hypothesis at `β`, over the base `schutteColumn f β α`. Since the
+base changes, the internal lemma `kl_spec_unique` separates the index-`0`
+component as an argument and quantifies over the base. Classically the
+completeness conditions can be dropped
+(`klammersymbol_characterization_unique_EM`). -/
+
+/-- Positive, strictly decreasing, complete indices below `γ`, with complete
+components. Rocq: `SchutteColumnFacts.kl_below`. -/
+def KlBelow (γ : Ordinal.{u}) : List (Ordinal.{u} × Ordinal.{u}) → Prop
+  | [] => True
+  | (b, a) :: m => 0 < b ∧ b < γ ∧ Complete b ∧ Complete a ∧ KlBelow b m
+
+/-- Proper Klammersymbole: strictly decreasing, complete indices below `γ`,
+with complete components; index `0` may occur, as the last entry.
+Rocq: `SchutteColumnFacts.kl_proper`. -/
+def KlProper (γ : Ordinal.{u}) : List (Ordinal.{u} × Ordinal.{u}) → Prop
+  | [] => True
+  | (b, a) :: m => b < γ ∧ Complete b ∧ Complete a ∧ KlProper b m
+
+/-- Rocq: `SchutteColumnFacts.kl_proper_all_complete`. -/
+theorem kl_proper_all_complete : ∀ (γ : Ordinal.{u}) (m : List (Ordinal.{u} × Ordinal.{u})),
+    KlProper γ m → AllComplete m
+  | _, [], _ => trivial
+  | _, (b, _) :: m, ⟨_, hb, ha, hm⟩ => ⟨hb, ha, kl_proper_all_complete b m hm⟩
+
+/-- A proper Klammersymbol either has only positive indices, or ends in an
+entry with index `≤ 0`. Rocq: `SchutteColumnFacts.kl_proper_split`. -/
+theorem kl_proper_split : ∀ (m : List (Ordinal.{u} × Ordinal.{u})) (γ : Ordinal.{u}), KlProper γ m →
+    KlBelow γ m ∨ ∃ m0 b x, m = m0 ++ [(b, x)] ∧ b ≤ 0 ∧ Complete b ∧ Complete x ∧ KlBelow γ m0
+  | [], _, _ => .inl trivial
+  | (b, a) :: m', _, ⟨hbγ, hbc, hac, hm'⟩ =>
+    match complete_zeroDec hbc with
+    | .inl hb0 =>
+      match m', hm' with
+      | [], _ => .inr ⟨[], b, a, rfl, hb0, hbc, hac, trivial⟩
+      | (b', _) :: _, ⟨hb', _⟩ =>
+        absurd (lt_of_le_of_lt (zero_least b') (lt_of_lt_of_le hb' hb0)) (lt_irrefl 0)
+    | .inr hb0 =>
+      match kl_proper_split m' b hm' with
+      | .inl h => .inl ⟨hb0, hbγ, hbc, hac, h⟩
+      | .inr ⟨m0, b', x, he, h1, h2, h3, h4⟩ =>
+        .inr ⟨(b, a) :: m0, b', x, by rw [he]; rfl, h1, h2, h3, ⟨hb0, hbγ, hbc, hac, h4⟩⟩
+
+/-- Rocq: `SchutteColumnFacts.kl_below_mono`. -/
+theorem kl_below_mono {γ γ' : Ordinal.{u}} (h : γ ≤ γ') :
+    ∀ m : List (Ordinal.{u} × Ordinal.{u}), KlBelow γ m → KlBelow γ' m
+  | [], _ => trivial
+  | (_, _) :: _, ⟨h1, h2, h3⟩ => ⟨h1, lt_of_lt_of_le h2 h, h3⟩
+
+/-- Rocq: `SchutteColumnFacts.kl_below_all_complete`. -/
+theorem kl_below_all_complete : ∀ (γ : Ordinal.{u}) (m : List (Ordinal.{u} × Ordinal.{u})),
+    KlBelow γ m → AllComplete m
+  | _, [], _ => trivial
+  | _, (b, _) :: m, ⟨_, _, hb, ha, hm⟩ => ⟨hb, ha, kl_below_all_complete b m hm⟩
+
+/-- The specification, for Klammersymbole with indices below `γ` over the
+base `g`. Rocq: `SchutteColumnFacts.kl_spec`. -/
+def KlSpec (g : Ordinal.{u} → Ordinal.{u}) (γ : Ordinal.{u})
+    (Ψ : List (Ordinal.{u} × Ordinal.{u}) → Ordinal.{u}) : Prop :=
+  (∀ x, Complete x → Ψ [(0, x)] ≈ g x) ∧
+  (∀ m b a n, AllComplete m → AllComplete n → Complete b → Complete a →
+    a ≤ 0 → Ψ (m ++ (b, a) :: n) ≈ Ψ (m ++ n)) ∧
+  (∀ m b δ, AllComplete m → Complete b → Complete δ →
+    b ≤ 0 → Ψ (m ++ [(b, δ)]) ≈ Ψ (m ++ [(0, δ)])) ∧
+  (∀ m β α, KlProper γ (m ++ [(β, α)]) → 0 < β → 0 < α →
+    Con.Enumerates (fun x => Ψ (m ++ [(β, α), (0, x)]))
+      (fun δ => ∀ b a, Complete b → b < β → Complete a → a < α →
+        Ψ (m ++ [(β, a), (b, δ)]) ≈ δ)) ∧
+  (∀ n, KlProper γ n → Complete (Ψ n))
+
+/-- Restricting to the Klammersymbole that begin with `(β,α)`. Rocq's
+hypothesis `0 < β` is not needed. Rocq: `SchutteColumnFacts.kl_spec_cons`. -/
+theorem kl_spec_cons {g g' : Ordinal.{u} → Ordinal.{u}} {γ β α : Ordinal.{u}}
+    {Ψ : List (Ordinal.{u} × Ordinal.{u}) → Ordinal.{u}} (h : KlSpec g γ Ψ)
+    (hβγ : β < γ) (hβc : Complete β) (hαc : Complete α)
+    (hg' : ∀ x, Complete x → Ψ [(β, α), (0, x)] ≈ g' x) :
+    KlSpec g' β fun n => Ψ ((β, α) :: n) :=
+  let ⟨_, hZ, hI, hE, hC⟩ := h
+  ⟨hg', fun m b a n hm hn hb ha h0 => hZ ((β, α) :: m) b a n ⟨hβc, hαc, hm⟩ hn hb ha h0,
+    fun m b δ hm hb hδ h0 => hI ((β, α) :: m) b δ ⟨hβc, hαc, hm⟩ hb hδ h0,
+    fun m b a hm hb ha => hE ((β, α) :: m) b a ⟨hβγ, hβc, hαc, hm⟩ hb ha,
+    fun n hn => hC ((β, α) :: n) ⟨hβγ, hβc, hαc, hn⟩⟩
+
+/-- Rocq: `SchutteColumnFacts.schutte_column_le0_index`. -/
+theorem schutte_column_le0_index (f : Ordinal.{u} → Ordinal.{u}) (β α x : Ordinal.{u}) (hβ : β ≤ 0) :
+    schutteColumn f β α x ≈ f (α + x) := by
+  rw [schutte_column_unroll]
+  exact equiv_intro (lub_least (le_refl _) (sup_least fun b =>
+      (lt_irrefl 0 (lt_of_le_of_lt (zero_least _) (lt_of_lt_of_le (index_lt β b) hβ))).elim))
+    (lub_le1 _ _)
+
+/-- Rocq: `SchutteColumnFacts.schutte_column_le0_comp`. -/
+theorem schutte_column_le0_comp (f : Ordinal.{u} → Ordinal.{u}) (β α x : Ordinal.{u})
+    (hf : ∀ a b, a ≤ b → f a ≤ f b) (hα : α ≤ 0) : schutteColumn f β α x ≈ f x := by
+  rw [schutte_column_unroll]
+  exact equiv_intro
+    (lub_least (hf _ _ (le_trans (add_le_add hα (le_refl x)) (zero_add x).le))
+      (sup_least fun _ => sup_least fun a =>
+        (lt_irrefl 0 (lt_of_le_of_lt (zero_least _) (lt_of_lt_of_le (index_lt α a) hα))).elim))
+    (le_trans (hf _ _ (le_add_left α x)) (lub_le1 _ _))
+
+/-- The internal form of the uniqueness theorem, over an arbitrary base, with
+the index-`0` component as an argument. Rocq: `SchutteColumnFacts.kl_spec_unique`. -/
+theorem kl_spec_unique : ∀ (γ : Ordinal.{u}) (g : Ordinal.{u} → Ordinal.{u})
+    (Ψ : List (Ordinal.{u} × Ordinal.{u}) → Ordinal.{u}), NormalFunction g → KlSpec g γ Ψ →
+    ∀ n, KlBelow γ n → ∀ x, Complete x → Ψ (n ++ [(0, x)]) ≈ schutteMatrix g n x := by
+  intro γ
+  induction γ using ltRec with
+  | ind γ IHγ =>
+  intro g Ψ hg hΨ n hn
+  have ⟨hB, hZ, hI, hE, hC⟩ := hΨ
+  match n, hn with
+  | [], _ => exact fun x hx => hB x hx
+  | (β, α) :: n', ⟨hβ0, hβγ, hβc, hαc, hn'⟩ =>
+    -- the column claim, by induction on the component at `β`
+    have key : ∀ α, Complete α → ∀ x, Complete x → Ψ [(β, α), (0, x)] ≈ schutteColumn g β α x := by
+      intro α
+      induction α using ltRec with
+      | ind α IHα =>
+      intro hαc
+      -- the rest of the Klammersymbol, for components below `α`
+      have tail : ∀ a, a < α → Complete a → ∀ n, KlBelow β n → ∀ x, Complete x →
+          Ψ ((β, a) :: n ++ [(0, x)]) ≈ schutteMatrix (schutteColumn g β a) n x :=
+        fun a ha hac n hn x hx =>
+          IHγ β hβγ (schutteColumn g β a) (fun n => Ψ ((β, a) :: n))
+            (schutte_column_normal β a g hβc hac hg)
+            (kl_spec_cons hΨ hβγ hβc hac (IHα a ha hac)) n hn x hx
+      match complete_zeroDec hαc with
+      | .inl h0 =>
+        exact fun x hx => equiv_trans (hZ [] β α [(0, x)] trivial ⟨zero_complete, hx, trivial⟩ hβc hαc h0)
+          (equiv_trans (hB x hx) (equiv_symm (schutte_column_le0_comp g β α x hg.monotone h0)))
+      | .inr h0 =>
+        refine Con.enumerates_unique (hE [] β α ⟨hβγ, hβc, hαc, trivial⟩ hβ0 h0)
+          (schutte_column_enumerates g β α hg hβc hαc hβ0 h0) (fun δ hδ => ?_)
+          (fun x hx => hC [(β, α), (0, x)] ⟨hβγ, hβc, hαc, hβ0, zero_complete, hx, trivial⟩)
+          (fun x hx => (schutte_column_normal β α g hβc hαc hg).complete x hx)
+        have hval : ∀ b a, Complete b → b < β → Complete a → a < α →
+            Ψ [(β, a), (b, δ)] ≈ schutteColumn (schutteColumn g β a) b δ 0 := fun b a hbc hb hac ha =>
+          match complete_zeroDec hbc with
+          | .inl hb0 =>
+            equiv_trans (hI [(β, a)] b δ ⟨hβc, hac, trivial⟩ hbc hδ hb0)
+              (equiv_trans (IHα a ha hac δ hδ) (equiv_symm (equiv_trans
+                (schutte_column_le0_index _ b δ 0 hb0)
+                (equiv_intro (schutte_column_monotone g β a _ a _ hg.monotone (le_refl _) (add_zero δ).le)
+                  (schutte_column_monotone g β a _ a _ hg.monotone (le_refl _) (add_zero δ).ge)))))
+          | .inr hb0 =>
+            equiv_trans (equiv_symm (hZ [(β, a), (b, δ)] 0 0 [] ⟨hβc, hac, hbc, hδ, trivial⟩ trivial
+                zero_complete zero_complete (le_refl 0)))
+              (tail a ha hac [(b, δ)] ⟨hb0, hb, hbc, hδ, trivial⟩ 0 zero_complete)
+        exact ⟨fun h b a hbc hac hb ha =>
+            equiv_trans (equiv_symm (hval b a hbc hb hac ha)) (h b a hbc hb hac ha),
+          fun h b a hbc hb hac ha => equiv_trans (hval b a hbc hb hac ha) (h b a hbc hac hb ha)⟩
+    exact fun x hx => IHγ β hβγ (schutteColumn g β α) (fun n => Ψ ((β, α) :: n))
+      (schutte_column_normal β α g hβc hαc hg) (kl_spec_cons hΨ hβγ hβc hαc (key α hαc)) n' hn' x hx
+
+/-- `schutteMatrix` meets the specification.
+Rocq: `SchutteColumnFacts.schutte_matrix_kl_spec`. -/
+theorem schutte_matrix_kl_spec (f : Ordinal.{u} → Ordinal.{u}) (γ : Ordinal.{u}) (hf : NormalFunction f) :
+    KlSpec f γ fun m => schutteMatrix f m 0 := by
+  refine ⟨fun x _ => equiv_trans (schutte_column0 f x 0)
+      (equiv_intro (hf.monotone _ _ (add_zero x).le) (hf.monotone _ _ (add_zero x).ge)),
+    fun m b a n hm _ _ _ h0 => ?_, fun m b δ _ _ _ h0 => ?_, fun m β α hm hβ0 hα => ?_,
+    fun n hn => (schutte_matrix_normal n f (kl_proper_all_complete γ n hn) hf).complete 0 zero_complete⟩
+  · show schutteMatrix f (m ++ (b, a) :: n) 0 ≈ schutteMatrix f (m ++ n) 0
+    rw [schutte_matrix_app, schutte_matrix_app]
+    have hh := schutte_matrix_normal m f hm hf
+    show schutteMatrix (schutteColumn (schutteMatrix f m) b a) n 0 ≈ _
+    exact equiv_intro
+      (schutte_matrix_monotone_func n _ _ 0
+        (fun _ _ h => schutte_column_monotone _ b a _ a _ hh.monotone (le_refl _) h) hh.monotone
+        (fun z => (schutte_column_le0_comp _ b a z hh.monotone h0).le))
+      (schutte_matrix_monotone_func n _ _ 0 hh.monotone
+        (fun _ _ h => schutte_column_monotone _ b a _ a _ hh.monotone (le_refl _) h)
+        (fun z => (schutte_column_le0_comp _ b a z hh.monotone h0).ge))
+  · show schutteMatrix f (m ++ [(b, δ)]) 0 ≈ schutteMatrix f (m ++ [(0, δ)]) 0
+    rw [schutte_matrix_app, schutte_matrix_app]
+    exact equiv_trans (schutte_column_le0_index _ b δ 0 h0) (equiv_symm (schutte_column0 _ δ 0))
+  · have ⟨hc1, ⟨hβ, hα', _⟩⟩ := (all_complete_app m [(β, α)]).1 (kl_proper_all_complete γ _ hm)
+    exact schutte_matrix_enumerates f m β α hβ0 hα hf hc1 hβ hα'
+
+/-- The specification determines the functions on Klammersymbole.
+Rocq: `SchutteColumnFacts.klammersymbol_characterization_unique`. -/
+theorem klammersymbol_characterization_unique {f : Ordinal.{u} → Ordinal.{u}} (hf : NormalFunction f)
+    (Ψ : List (Ordinal.{u} × Ordinal.{u}) → Ordinal.{u}) (hΨ : ∀ γ, KlSpec f γ Ψ)
+    (γ : Ordinal.{u}) (n : List (Ordinal.{u} × Ordinal.{u})) (hn : KlProper γ n) :
+    Ψ n ≈ schutteMatrix f n 0 := by
+  have ⟨_, hZ, hI, _, _⟩ := hΨ γ
+  rcases kl_proper_split n γ hn with h | ⟨m0, b, x, rfl, hb0, hbc, hx, hm0⟩
+  · have e := hZ n 0 0 [] (kl_below_all_complete γ n h) trivial zero_complete zero_complete (le_refl 0)
+    rw [List.append_nil] at e
+    exact equiv_trans (equiv_symm e) (kl_spec_unique γ f Ψ hf (hΨ γ) n h 0 zero_complete)
+  · have hc := kl_below_all_complete γ m0 hm0
+    refine equiv_trans (hI m0 b x hc hbc hx hb0)
+      (equiv_trans (kl_spec_unique γ f Ψ hf (hΨ γ) m0 hm0 x hx) ?_)
+    rw [schutte_matrix_app]
+    have hh := schutte_matrix_normal m0 f hc hf
+    exact equiv_symm (equiv_trans (schutte_column_le0_index _ b x 0 hb0)
+      (equiv_intro (hh.monotone _ _ (add_zero x).le) (hh.monotone _ _ (add_zero x).ge)))
+
+/-! ### The classical version -/
+
+/-- Rocq: `SchutteColumnFacts.kl_proper_classical`. -/
+def KlProperClassical (γ : Ordinal.{u}) : List (Ordinal.{u} × Ordinal.{u}) → Prop
+  | [] => True
+  | (b, _) :: m => b < γ ∧ KlProperClassical b m
+
+/-- Rocq: `SchutteColumnFacts.kl_spec_classical`. -/
+def KlSpecClassical (g : Ordinal.{u} → Ordinal.{u}) (γ : Ordinal.{u})
+    (Ψ : List (Ordinal.{u} × Ordinal.{u}) → Ordinal.{u}) : Prop :=
+  (∀ x, Ψ [(0, x)] ≈ g x) ∧
+  (∀ m b a n, a ≤ 0 → Ψ (m ++ (b, a) :: n) ≈ Ψ (m ++ n)) ∧
+  (∀ m b δ, b ≤ 0 → Ψ (m ++ [(b, δ)]) ≈ Ψ (m ++ [(0, δ)])) ∧
+  (∀ m β α, KlProperClassical γ (m ++ [(β, α)]) → 0 < β → 0 < α →
+    Enumerates (fun x => Ψ (m ++ [(β, α), (0, x)]))
+      (fun δ => ∀ b a, b < β → a < α → Ψ (m ++ [(β, a), (b, δ)]) ≈ δ))
+
+/-- Rocq: `SchutteColumnFacts.kl_proper_classical_iff`. -/
+theorem kl_proper_classical_iff (em : ExcludedMiddle) :
+    ∀ (m : List (Ordinal.{u} × Ordinal.{u})) (γ : Ordinal.{u}), KlProper γ m ↔ KlProperClassical γ m
+  | [], _ => Iff.rfl
+  | (b, a) :: m, _ =>
+    ⟨fun ⟨h1, _, _, h4⟩ => ⟨h1, (kl_proper_classical_iff em m b).1 h4⟩,
+      fun ⟨h1, h2⟩ => ⟨h1, ord_complete em b, ord_complete em a, (kl_proper_classical_iff em m b).2 h2⟩⟩
+
+/-- Rocq: `SchutteColumnFacts.klammersymbol_characterization_unique_EM`. -/
+theorem klammersymbol_characterization_unique_EM (em : ExcludedMiddle) {f : Ordinal.{u} → Ordinal.{u}}
+    (hf : NormalFunction f) (Ψ : List (Ordinal.{u} × Ordinal.{u}) → Ordinal.{u})
+    (hΨ : ∀ γ, KlSpecClassical f γ Ψ) (γ : Ordinal.{u}) (n : List (Ordinal.{u} × Ordinal.{u}))
+    (hn : KlProperClassical γ n) : Ψ n ≈ schutteMatrix f n 0 :=
+  klammersymbol_characterization_unique hf Ψ (fun γ' =>
+    let ⟨hB, hZ, hI, hE⟩ := hΨ γ'
+    ⟨fun x _ => hB x, fun m b a n _ _ _ _ h0 => hZ m b a n h0, fun m b δ _ _ _ h0 => hI m b δ h0,
+      fun m β α hm hβ hα => enumerates_of_classical
+        (fun _ => ⟨fun h b a _ hb _ ha => h b a hb ha,
+          fun h b a hb ha => h b a (ord_complete em b) hb (ord_complete em a) ha⟩)
+        (hE m β α ((kl_proper_classical_iff em _ γ').1 hm) hβ hα),
+      fun _ _ => ord_complete em _⟩) γ n ((kl_proper_classical_iff em n γ).2 hn)
+
 end Ordinal
 
 end ConstructiveOrdinals

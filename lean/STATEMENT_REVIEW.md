@@ -67,7 +67,7 @@ are presentational:
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
 
-377 statements.
+387 statements.
 
 ## Defs
 
@@ -722,6 +722,34 @@ NaturalArith.complete_intensional_WEM
 Lean:
 ```
 complete_intensional_WEM : (∀ (x y : Ordinal), x ≈ y → x.Complete → y.Complete) → WeakExcludedMiddle
+```
+
+### `tree_selection_strongly_continuous_WEM`
+
+Rocq:
+```
+NaturalArith.tree_selection_strongly_continuous_WEM
+     : Operators.strongly_continuous NaturalArith.tree_selection ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+tree_selection_strongly_continuous_WEM : StronglyContinuous treeSelection → WeakExcludedMiddle
+```
+
+### `scott_strongly_continuous_WEM`
+
+Rocq:
+```
+NaturalArith.scott_strongly_continuous_WEM
+     : (forall s : Defs.Ord -> Defs.Ord,
+        VeblenCon.scott_continuous s -> Operators.strongly_continuous s) ->
+       ClassicalFacts.weak_excluded_middle
+```
+Lean:
+```
+scott_strongly_continuous_WEM : (∀ (s : Ordinal → Ordinal), ScottContinuous s → StronglyContinuous s) →
+  WeakExcludedMiddle
 ```
 
 ### `tree_selection_fix_complete`
@@ -2247,6 +2275,35 @@ Goodstein.goodstein_zero : ∀ (x : Nat), ∃ i, Goodstein.goodsteinSequence x i
 
 ## VeblenCon
 
+### `scott_strongly_continuous_EM`
+
+Rocq:
+```
+VeblenCon.scott_strongly_continuous_EM
+     : ClassicalFacts.excluded_middle ->
+       forall s : Defs.Ord -> Defs.Ord,
+       VeblenCon.scott_continuous s <-> Operators.strongly_continuous s
+```
+Lean:
+```
+scott_strongly_continuous_EM : ExcludedMiddle → ∀ (s : Ordinal → Ordinal), ScottContinuous s ↔ StronglyContinuous s
+```
+
+### `normal_function_classical_iff`
+
+Rocq:
+```
+VeblenCon.normal_function_classical_iff
+     : ClassicalFacts.excluded_middle ->
+       forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f <-> VeblenClassical.normal_function f
+```
+Lean:
+```
+normal_function_classical_iff : ExcludedMiddle →
+  ∀ (g : Ordinal → Ordinal), NormalFunction g ↔ VeblenClassical.NormalFunction g
+```
+
 ### `onePlus_least`
 
 Rocq:
@@ -2432,6 +2489,66 @@ VeblenCon.Γ_enumerates
 Lean:
 ```
 Γ_enumerates : Con.Enumerates Γ (StronglyCriticalOrdinal powOmega)
+```
+
+### `veblen_characterization_unique`
+
+Rocq:
+```
+VeblenCon.veblen_characterization_unique
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall φ : Defs.Ord -> Defs.Ord -> Defs.Ord,
+       (forall β x : Defs.Ord,
+        Defs.ord_le β Operators.zeroOrd -> Operators.complete x -> Defs.ord_eq (φ β x) (f x)) ->
+       (forall β : Defs.Ord,
+        Operators.complete β ->
+        Defs.ord_lt Operators.zeroOrd β ->
+        VeblenCon.enumerates (φ β)
+          (fun x : Defs.Ord =>
+           forall α : Defs.Ord, Operators.complete α -> Defs.ord_lt α β -> Defs.ord_eq x (φ α x))) ->
+       (forall β x : Defs.Ord,
+        Operators.complete β -> Operators.complete x -> Operators.complete (φ β x)) ->
+       forall β : Defs.Ord,
+       Operators.complete β ->
+       forall x : Defs.Ord, Operators.complete x -> Defs.ord_eq (φ β x) (VeblenDefs.veblen f β x)
+```
+Lean:
+```
+@veblen_characterization_unique : ∀ {f : Ordinal → Ordinal},
+  NormalFunction f →
+    ∀ (φ : Ordinal → Ordinal → Ordinal),
+      (∀ (β x : Ordinal), β ≤ 0 → x.Complete → φ β x ≈ f x) →
+        (∀ (β : Ordinal),
+            β.Complete → 0 < β → Con.Enumerates (φ β) fun x => ∀ (α : Ordinal), α.Complete → α < β → x ≈ φ α x) →
+          (∀ (β x : Ordinal), β.Complete → x.Complete → (φ β x).Complete) →
+            ∀ (β : Ordinal), β.Complete → ∀ (x : Ordinal), x.Complete → φ β x ≈ veblen f β x
+```
+
+### `veblen_characterization_unique_EM`
+
+Rocq:
+```
+VeblenCon.veblen_characterization_unique_EM
+     : ClassicalFacts.excluded_middle ->
+       forall (f : Defs.Ord -> Defs.Ord) (φ : Defs.Ord -> Defs.Ord -> Defs.Ord),
+       VeblenCon.normal_function f ->
+       (forall β x : Defs.Ord, Defs.ord_le β Operators.zeroOrd -> Defs.ord_eq (φ β x) (f x)) ->
+       (forall β : Defs.Ord,
+        Defs.ord_lt Operators.zeroOrd β ->
+        Enumerate.enumerates (φ β)
+          (fun x : Defs.Ord => forall α : Defs.Ord, Defs.ord_lt α β -> Defs.ord_eq x (φ α x))) ->
+       forall β x : Defs.Ord, Defs.ord_eq (φ β x) (VeblenDefs.veblen f β x)
+```
+Lean:
+```
+@veblen_characterization_unique_EM : ∀ {f : Ordinal → Ordinal},
+  ExcludedMiddle →
+    NormalFunction f →
+      ∀ (φ : Ordinal → Ordinal → Ordinal),
+        (∀ (β x : Ordinal), β ≤ 0 → φ β x ≈ f x) →
+          (∀ (β : Ordinal), 0 < β → Enumerates (φ β) fun x => ∀ (α : Ordinal), α < β → x ≈ φ α x) →
+            ∀ (β x : Ordinal), φ β x ≈ veblen f β x
 ```
 
 ## VeblenClassical
@@ -2726,6 +2843,92 @@ schutte_matrix_enumerates : ∀ (f : Ordinal → Ordinal) (m : List (Ordinal × 
               Con.Enumerates (fun x => schutteMatrix f (m ++ [(β, α), (0, x)]) 0) fun δ =>
                 ∀ (b a : Ordinal),
                   b.Complete → b < β → a.Complete → a < α → schutteMatrix f (m ++ [(β, a), (b, δ)]) 0 ≈ δ
+```
+
+### `kl_spec_unique`
+
+Rocq:
+```
+SchutteColumnFacts.kl_spec_unique
+     : forall (γ : Defs.Ord) (g : Defs.Ord -> Defs.Ord)
+         (Ψ : list (Defs.Ord * Defs.Ord) -> Defs.Ord),
+       VeblenCon.normal_function g ->
+       SchutteColumnFacts.kl_spec g γ Ψ ->
+       forall n : list (Defs.Ord * Defs.Ord),
+       SchutteColumnFacts.kl_below γ n ->
+       forall x : Defs.Ord,
+       Operators.complete x ->
+       Defs.ord_eq (Ψ (n ++ (Operators.zeroOrd, x) :: nil)%list)
+         (SchutteColumnFacts.schutte_matrix g n x)
+```
+Lean:
+```
+kl_spec_unique : ∀ (γ : Ordinal) (g : Ordinal → Ordinal) (Ψ : List (Ordinal × Ordinal) → Ordinal),
+  NormalFunction g →
+    KlSpec g γ Ψ →
+      ∀ (n : List (Ordinal × Ordinal)),
+        γ.KlBelow n → ∀ (x : Ordinal), x.Complete → Ψ (n ++ [(0, x)]) ≈ schutteMatrix g n x
+```
+
+### `schutte_matrix_kl_spec`
+
+Rocq:
+```
+SchutteColumnFacts.schutte_matrix_kl_spec
+     : forall (f : Defs.Ord -> Defs.Ord) (γ : Defs.Ord),
+       VeblenCon.normal_function f ->
+       SchutteColumnFacts.kl_spec f γ
+         (fun m : list (Defs.Ord * Defs.Ord) =>
+          SchutteColumnFacts.schutte_matrix f m Operators.zeroOrd)
+```
+Lean:
+```
+schutte_matrix_kl_spec : ∀ (f : Ordinal → Ordinal) (γ : Ordinal),
+  NormalFunction f → KlSpec f γ fun m => schutteMatrix f m 0
+```
+
+### `klammersymbol_characterization_unique`
+
+Rocq:
+```
+SchutteColumnFacts.klammersymbol_characterization_unique
+     : forall (f : Defs.Ord -> Defs.Ord) (Ψ : list (Defs.Ord * Defs.Ord) -> Defs.Ord),
+       VeblenCon.normal_function f ->
+       (forall γ : Defs.Ord, SchutteColumnFacts.kl_spec f γ Ψ) ->
+       forall (γ : Defs.Ord) (n : list (Defs.Ord * Defs.Ord)),
+       SchutteColumnFacts.kl_proper γ n ->
+       Defs.ord_eq (Ψ n) (SchutteColumnFacts.schutte_matrix f n Operators.zeroOrd)
+```
+Lean:
+```
+@klammersymbol_characterization_unique : ∀ {f : Ordinal → Ordinal},
+  NormalFunction f →
+    ∀ (Ψ : List (Ordinal × Ordinal) → Ordinal),
+      (∀ (γ : Ordinal), KlSpec f γ Ψ) →
+        ∀ (γ : Ordinal) (n : List (Ordinal × Ordinal)), γ.KlProper n → Ψ n ≈ schutteMatrix f n 0
+```
+
+### `klammersymbol_characterization_unique_EM`
+
+Rocq:
+```
+SchutteColumnFacts.klammersymbol_characterization_unique_EM
+     : ClassicalFacts.excluded_middle ->
+       forall (f : Defs.Ord -> Defs.Ord) (Ψ : list (Defs.Ord * Defs.Ord) -> Defs.Ord),
+       VeblenCon.normal_function f ->
+       (forall γ : Defs.Ord, SchutteColumnFacts.kl_spec_classical f γ Ψ) ->
+       forall (γ : Defs.Ord) (n : list (Defs.Ord * Defs.Ord)),
+       SchutteColumnFacts.kl_proper_classical γ n ->
+       Defs.ord_eq (Ψ n) (SchutteColumnFacts.schutte_matrix f n Operators.zeroOrd)
+```
+Lean:
+```
+klammersymbol_characterization_unique_EM : ExcludedMiddle →
+  ∀ {f : Ordinal → Ordinal},
+    NormalFunction f →
+      ∀ (Ψ : List (Ordinal × Ordinal) → Ordinal),
+        (∀ (γ : Ordinal), KlSpecClassical f γ Ψ) →
+          ∀ (γ : Ordinal) (n : List (Ordinal × Ordinal)), γ.KlProperClassical n → Ψ n ≈ schutteMatrix f n 0
 ```
 
 ## Notation.CantorNotation
