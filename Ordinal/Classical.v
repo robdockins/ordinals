@@ -222,6 +222,79 @@ Proof.
     reflexivity.
 Qed.
 
+(** ** The truth values inside the ordinals
+
+    [truth_ord P] is the set [{0 | P}], a subset of [1 = {0}], and the
+    truth values are exactly the subsets of [1]: [truth_ord] is the
+    subobject classifier [Ω] of the ambient constructive universe, embedded
+    as the initial segment [≤ 1] of the trees.  It reflects implication
+    ([truth_ord_le_iff]), and every tree [≤ 1] is a truth ordinal
+    ([le_one_truth_ord]), so trees [≤ 1] up to [≈] are propositions up to
+    [↔] ([truth_ord_omega]).  Completeness picks out the decidable truth
+    values ([truth_ord_complete_iff]): the complete trees [≤ 1] are, up to
+    [≈], just [0] and [1] ([complete_le_one]), the classifier [2] of
+    decidable subobjects. *)
+
+Lemma truth_ord_le_one P : truth_ord P ≤ 1.
+Proof. unfold truth_ord. rewrite ord_le_unfold; simpl; intros. apply succ_lt. Qed.
+
+Theorem truth_ord_le_iff P Q : truth_ord P ≤ truth_ord Q <-> (P -> Q).
+Proof.
+  split.
+  - intros H p.
+    assert (H0 : 0 < truth_ord Q).
+    { apply ord_lt_le_trans with (truth_ord P); auto.
+      unfold truth_ord. rewrite ord_lt_unfold. exists p. simpl. reflexivity. }
+    unfold truth_ord in H0. rewrite ord_lt_unfold in H0. destruct H0 as [q _]. exact q.
+  - intro H. unfold truth_ord. rewrite ord_le_unfold. intro p. simpl.
+    rewrite ord_lt_unfold. exists (H p). simpl. reflexivity.
+Qed.
+
+Theorem le_one_truth_ord x : x ≤ 1 -> x ≈ truth_ord (0 < x).
+Proof.
+  intro Hx. split.
+  - rewrite ord_le_unfold. intro i.
+    assert (H0 : 0 < x).
+    { rewrite ord_lt_unfold. exists i. apply zero_least. }
+    unfold truth_ord. rewrite ord_lt_unfold. exists H0. simpl.
+    assert (Hi : x i < 1) by (apply ord_lt_le_trans with x; auto; apply index_lt).
+    rewrite ord_lt_unfold in Hi. destruct Hi as [[] Hi]. exact Hi.
+  - unfold truth_ord. rewrite ord_le_unfold. intro H0. simpl. exact H0.
+Qed.
+
+(** The trees [≤ 1], up to [≈], are the propositions, up to [↔]. *)
+Theorem truth_ord_omega :
+  (forall P Q, truth_ord P ≈ truth_ord Q <-> (P <-> Q)) /\
+  (forall P, truth_ord P ≤ 1) /\
+  (forall x, x ≤ 1 -> exists P, x ≈ truth_ord P).
+Proof.
+  split; [|split].
+  - intros P Q. split.
+    + intros [H1 H2]. split; apply truth_ord_le_iff; auto.
+    + intros [H1 H2]. split; apply truth_ord_le_iff; auto.
+  - apply truth_ord_le_one.
+  - intros x Hx. exists (0 < x). apply le_one_truth_ord; auto.
+Qed.
+
+Theorem truth_ord_complete_iff P : complete (truth_ord P) <-> (P \/ ~P).
+Proof.
+  unfold truth_ord. simpl. split.
+  - intros [_ [[[p]|Hn] _]]; [left; exact p | right; intro p; apply Hn; exact (inhabits p)].
+  - intros HP. split; [|split].
+    + intros p1 p2. exists p1. split; reflexivity.
+    + destruct HP as [p|np]; [left; exact (inhabits p) | right; intros [p]; exact (np p)].
+    + intros; apply zero_complete.
+Qed.
+
+(** The complete trees [≤ 1] are [0] and [1]. *)
+Theorem complete_le_one x : complete x -> x ≤ 1 -> x ≈ 0 \/ x ≈ 1.
+Proof.
+  intros Hc Hx.
+  destruct (complete_zeroDec x Hc) as [H0|H0].
+  - left. split; auto with ord.
+  - right. split; auto. apply succ_least. exact H0.
+Qed.
+
 Lemma zero_dec_EM :
   (forall x, x <= 1 -> x <= 0 \/ 0 < x) ->
   excluded_middle.

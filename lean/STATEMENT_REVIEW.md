@@ -67,7 +67,7 @@ are presentational:
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
 
-387 statements.
+392 statements.
 
 ## Defs
 
@@ -1587,6 +1587,80 @@ Lean:
 ```
 inf_member : ExcludedMiddle →
   DependentFunctionalChoice → ∀ (A : Type u_1) (i₀ : A) (f : A → Ordinal), ∃ i, inf A i₀ f ≈ f i
+```
+
+### `truth_ord_le_iff`
+
+Rocq:
+```
+Classical.classical.truth_ord_le_iff
+     : forall P Q : Prop,
+       Defs.ord_le (Classical.classical.truth_ord P) (Classical.classical.truth_ord Q) <-> (P -> Q)
+```
+Lean:
+```
+truthOrd_le_iff : ∀ (P Q : Prop), truthOrd P ≤ truthOrd Q ↔ P → Q
+```
+
+### `le_one_truth_ord`
+
+Rocq:
+```
+Classical.classical.le_one_truth_ord
+     : forall x : Defs.Ord,
+       Defs.ord_le x (Operators.succOrd Operators.zeroOrd) ->
+       Defs.ord_eq x (Classical.classical.truth_ord (Defs.ord_lt Operators.zeroOrd x))
+```
+Lean:
+```
+@le_one_truthOrd : ∀ {x : Ordinal}, x ≤ 1 → x ≈ truthOrd (0 < x)
+```
+
+### `truth_ord_omega`
+
+Rocq:
+```
+Classical.classical.truth_ord_omega
+     : (forall P Q : Prop,
+        Defs.ord_eq (Classical.classical.truth_ord P) (Classical.classical.truth_ord Q) <->
+        (P <-> Q)) /\
+       (forall P : Prop,
+        Defs.ord_le (Classical.classical.truth_ord P) (Operators.succOrd Operators.zeroOrd)) /\
+       (forall x : Defs.Ord,
+        Defs.ord_le x (Operators.succOrd Operators.zeroOrd) ->
+        exists P : Prop, Defs.ord_eq x (Classical.classical.truth_ord P))
+```
+Lean:
+```
+truthOrd_omega : (∀ (P Q : Prop), truthOrd P ≈ truthOrd Q ↔ (P ↔ Q)) ∧
+  (∀ (P : Prop), truthOrd P ≤ 1) ∧ ∀ (x : Ordinal), x ≤ 1 → ∃ P, x ≈ truthOrd P
+```
+
+### `truth_ord_complete_iff`
+
+Rocq:
+```
+Classical.classical.truth_ord_complete_iff
+     : forall P : Prop, Operators.complete (Classical.classical.truth_ord P) <-> P \/ ~ P
+```
+Lean:
+```
+truthOrd_complete_iff : ∀ (P : Prop), (truthOrd P).Complete ↔ P ∨ ¬P
+```
+
+### `complete_le_one`
+
+Rocq:
+```
+Classical.classical.complete_le_one
+     : forall x : Defs.Ord,
+       Operators.complete x ->
+       Defs.ord_le x (Operators.succOrd Operators.zeroOrd) ->
+       Defs.ord_eq x Operators.zeroOrd \/ Defs.ord_eq x (Operators.succOrd Operators.zeroOrd)
+```
+Lean:
+```
+@complete_le_one : ∀ {x : Ordinal}, x.Complete → x ≤ 1 → x ≈ 0 ∨ x ≈ 1
 ```
 
 ### `zero_dec_EM`
