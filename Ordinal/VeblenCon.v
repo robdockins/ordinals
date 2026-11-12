@@ -11,6 +11,8 @@ From Ordinal Require Import Arith.
 From Ordinal Require Import Fixpoints.
 From Ordinal Require Import VeblenDefs.
 From Ordinal Require Import Classical.
+From Ordinal Require Enumerate.
+From Ordinal Require VeblenClassical.
 
 (** We say that a function is Scott continuous if it
     preserves all nonempty directed suprema of complete ordinals. *)
@@ -30,6 +32,46 @@ Record normal_function (f:Ord -> Ord) :=
   }.
 
 Global Hint Resolve normal_monotone normal_complete normal_nonzero: ord.
+
+(** ** Scott continuity and strong continuity
+
+    Strong continuity (preserving all inhabited suprema) implies Scott
+    continuity (preserving directed suprema of complete ordinals),
+    constructively.  Classically every family is directed and every
+    ordinal is complete, so the two coincide for every function, and the
+    normal functions of this file are exactly those of
+    [VeblenClassical] ([normal_function_classical_iff]). *)
+
+Lemma strongly_scott_continuous s : strongly_continuous s -> scott_continuous s.
+Proof. intros H A f a0 _ _. exact (H A f a0). Qed.
+
+Lemma classical_directed (EM:excluded_middle) A (f:A -> Ord) : directed A f.
+Proof.
+  intros a1 a2.
+  destruct (classical.order_total EM (f a1) (f a2)) as [H|H].
+  - exists a2. split; auto with ord.
+  - exists a1. split; auto with ord.
+Qed.
+
+Theorem scott_strongly_continuous_EM (EM:excluded_middle) s :
+  scott_continuous s <-> strongly_continuous s.
+Proof.
+  split; [|apply strongly_scott_continuous].
+  intros H A f a0. apply (H A f a0).
+  - apply classical_directed; auto.
+  - intro a. apply (classical.ord_complete EM).
+Qed.
+
+Theorem normal_function_classical_iff (EM:excluded_middle) f :
+  normal_function f <-> VeblenClassical.normal_function f.
+Proof.
+  pose proof (classical.ord_complete EM) as HC.
+  split.
+  - intros [Hm Hi Hc Hcomp Hz]. constructor; auto.
+    apply scott_strongly_continuous_EM; auto.
+  - intros [Hm Hi Hc Hz]. constructor; auto.
+    apply strongly_scott_continuous; auto.
+Qed.
 
 Lemma normal_inflationary (f:Ord -> Ord) :
   normal_function f ->
@@ -1635,4 +1677,120 @@ Proof.
 
   apply enum_fixpoints_enumerates; auto with ord.
   apply (normal_inflationary (fun x => veblen powOmega x 0)); auto with ord.
+Qed.
+
+(** * Uniqueness of the Veblen hierarchy's characterization
+
+    The literature defines the Veblen hierarchy over a normal [f] by its
+    critical sets: [φ_0 = f], and for [β > 0], [φ_β] enumerates the common
+    fixed points of the [φ_α] with [α < β].  [veblen_enumerates_critical]
+    shows that [veblen f] meets this specification; here we show that the
+    specification determines the hierarchy: any family [φ] meeting it
+    agrees with [veblen f] up to [≈] ([veblen_characterization_unique]).
+
+    The proof is constructive.  The specification is read with the
+    constructive [enumerates], which constrains only complete arguments,
+    and the conclusion is for complete [β] and [x].  Beyond the
+    specification, it needs only that [φ] preserves completeness, and that
+    [φ_β = f] for every [β ≤ 0] rather than only for the tree [0] (which
+    follows if [φ] respects [≈] in [β]). *)
+
+(** Two enumerations of the same complete ordinals agree on complete
+    arguments, provided their values are complete. *)
+Lemma enumerates_unique_con f g P Q :
+  enumerates f P -> enumerates g Q ->
+  (forall x, complete x -> P x <-> Q x) ->
+  (forall x, complete x -> complete (f x)) ->
+  (forall x, complete x -> complete (g x)) ->
+  forall x, complete x -> f x ≈ g x.
+Proof.
+  intros Hf Hg HPQ Hfc Hgc x.
+  induction x as [x IH] using ordinal_induction. intro Hx.
+  assert (Hfg : forall y, y < x -> f y < g x).
+  { intros y Hy. rewrite ord_lt_unfold in Hy. destruct Hy as [i Hi].
+    apply ord_le_lt_trans with (f (x i)).
+    - apply (enumerates_monotone f P Hf); auto.
+    - rewrite (IH (x i)); [| apply index_lt | apply complete_subord; auto].
+      apply (enumerates_increasing g Q Hg); auto. apply index_lt. }
+  assert (Hgf : forall y, y < x -> g y < f x).
+  { intros y Hy. rewrite ord_lt_unfold in Hy. destruct Hy as [i Hi].
+    apply ord_le_lt_trans with (g (x i)).
+    - apply (enumerates_monotone g Q Hg); auto.
+    - rewrite <- (IH (x i)); [| apply index_lt | apply complete_subord; auto].
+      apply (enumerates_increasing f P Hf); auto. apply index_lt. }
+  split.
+  - apply (enumerates_least f P Hf); auto.
+    apply HPQ; auto. apply (enumerates_included g Q Hg); auto.
+  - apply (enumerates_least g Q Hg); auto.
+    apply HPQ; auto. apply (enumerates_included f P Hf); auto.
+Qed.
+
+Lemma veblen_le_zero f β x : β ≤ 0 -> veblen f β x ≈ f x.
+Proof.
+  intro Hβ. rewrite veblen_unroll. split.
+  - apply lub_least; [reflexivity|].
+    apply sup_least; intro b.
+    elim (ord_lt_irreflexive 0).
+    apply ord_le_lt_trans with (β b); [apply zero_least|].
+    apply ord_lt_le_trans with β; [apply index_lt | exact Hβ].
+  - apply lub_le1.
+Qed.
+
+Section veblen_unique.
+  Variable f : Ord -> Ord.
+  Hypothesis f_normal : normal_function f.
+
+  Variable φ : Ord -> Ord -> Ord.
+  Hypothesis φ_zero : forall β x, β ≤ 0 -> complete x -> φ β x ≈ f x.
+  Hypothesis φ_enumerates : forall β, complete β -> 0 < β ->
+    enumerates (φ β) (fun x => forall α, complete α -> α < β -> x ≈ φ α x).
+  Hypothesis φ_complete : forall β x, complete β -> complete x -> complete (φ β x).
+
+  Theorem veblen_characterization_unique :
+    forall β, complete β -> forall x, complete x -> φ β x ≈ veblen f β x.
+  Proof.
+    intro β. induction β as [β IH] using ordinal_induction. intro Hβ.
+    destruct (complete_zeroDec β Hβ) as [H0|H0].
+    - intros x Hx. rewrite φ_zero; auto. symmetry. apply veblen_le_zero; auto.
+    - apply enumerates_unique_con
+        with (P := fun x => forall α, complete α -> α < β -> x ≈ φ α x)
+             (Q := critical_ordinal f β).
+      + apply φ_enumerates; auto.
+      + apply veblen_enumerates_critical; auto.
+      + intros x Hx. unfold critical_ordinal. split; intros H α Hα Hlt.
+        * rewrite <- (IH α Hlt Hα x Hx). apply H; auto.
+        * rewrite (IH α Hlt Hα x Hx). apply H; auto.
+      + intros; apply φ_complete; auto.
+      + intros; apply veblen_complete; auto with ord.
+  Qed.
+End veblen_unique.
+
+(** A classical enumeration ([Enumerate.enumerates], with no completeness
+    conditions) is in particular a constructive one. *)
+Lemma enumerates_of_classical f (P P':Ord -> Prop) :
+  (forall x, P x <-> P' x) -> Enumerate.enumerates f P -> enumerates f P'.
+Proof.
+  intros HP [Hi Hm Hinc Hl]. constructor; intros.
+  - apply HP. apply Hi.
+  - apply Hm; auto.
+  - apply Hinc; auto.
+  - apply Hl; auto. apply HP; auto.
+Qed.
+
+(** Classically every ordinal is complete, so the side conditions vanish:
+    the classical specification, read with the classical [enumerates],
+    determines the hierarchy everywhere. *)
+Corollary veblen_characterization_unique_EM (EM:excluded_middle) f φ :
+  normal_function f ->
+  (forall β x, β ≤ 0 -> φ β x ≈ f x) ->
+  (forall β, 0 < β ->
+     Enumerate.enumerates (φ β) (fun x => forall α, α < β -> x ≈ φ α x)) ->
+  forall β x, φ β x ≈ veblen f β x.
+Proof.
+  intros Hf H0 Henum β x.
+  pose proof (classical.ord_complete EM) as HC.
+  apply veblen_characterization_unique; auto.
+  intros β' _ Hpos.
+  apply enumerates_of_classical with (fun x => forall α, α < β' -> x ≈ φ α x); auto.
+  intro y. split; intros H α; auto.
 Qed.

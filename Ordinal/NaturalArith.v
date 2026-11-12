@@ -2550,6 +2550,102 @@ Proof.
   - apply expOrd_complete; auto with ord.
 Qed.
 
+(** ** Strong continuity of [tree_selection]
+
+    [tree_selection] is Scott-continuous ([tree_selection_scott_continuous])
+    and, classically, strongly continuous (it is [ω^x]).  Constructively,
+    its strong continuity implies weak excluded middle, so Scott
+    continuity does not imply strong continuity, even for a monotone,
+    strictly increasing function.  The witness is the pair [succ c],
+    [succ d] with [c = {0, 1 | P}] and [d = {0, 1 | ¬P}], both complete:
+    [tree_selection] of their supremum has the child [ω^c ⊕ ω^d], and
+    strong continuity puts it below [tree_selection (succ c)] or below
+    [tree_selection (succ d)], that is, below a finite multiple of [ω^c] or
+    of [ω^d].  The first rules out [¬P], the second rules out [P]. *)
+
+(** Everything below [tree_selection (succ c)] lies below [ω^(c+1)]. *)
+Lemma tree_selection_succ_bound c w :
+  complete c -> w < tree_selection (succOrd c) -> w < expOrd ω (succOrd c).
+Proof.
+  intros Hc Hw.
+  assert (Hcs : complete (succOrd c)) by auto with ord.
+  assert (H1 : tree_selection c < expOrd ω (succOrd c)).
+  { rewrite tree_selection_eq_powOmega_complete; auto.
+    apply expOrd_increasing; auto with ord. }
+  assert (Hl : forall l : list unit,
+             List.fold_right (fun _ y => tree_selection c ⊕ y) 0 l < expOrd ω (succOrd c)).
+  { induction l as [|u l IH]; simpl.
+    - apply expOrd_nonzero.
+    - apply nadd_closed_con; auto. }
+  rewrite tree_selection_unfold in Hw. unfold iterated_smash_sum in Hw.
+  rewrite ord_lt_unfold in Hw. destruct Hw as [l Hl'].
+  apply ord_le_lt_trans with (List.fold_right (fun _ y => tree_selection c ⊕ y) 0 l); auto.
+Qed.
+
+Theorem tree_selection_strongly_continuous_WEM :
+  strongly_continuous tree_selection -> weak_excluded_middle.
+Proof.
+  intros H P.
+  pose (c := ord (option P) (fun o => match o with None => 0 | Some _ => 1 end)).
+  pose (d := ord (option (~P)) (fun o => match o with None => 0 | Some _ => 1 end)).
+  assert (Hcomp : forall Q:Prop,
+             complete (ord (option Q) (fun o => match o with None => 0 | Some _ => 1 end))).
+  { intro Q. simpl. split; [|split].
+    - intros [p|] [q|].
+      + exists (Some p). split; reflexivity.
+      + exists (Some p). simpl. split; [reflexivity | apply zero_least].
+      + exists (Some q). simpl. split; [apply zero_least | reflexivity].
+      + exists None. split; reflexivity.
+    - left. exact (inhabits None).
+    - intros [p|]; auto with ord. }
+  assert (Hc : complete c) by apply Hcomp.
+  assert (Hd : complete d) by apply Hcomp.
+  pose (F := fun b:bool => if b then succOrd c else succOrd d).
+  pose (k1 := existT (fun b => ordCarrier (F b)) true tt).
+  pose (k2 := existT (fun b => ordCarrier (F b)) false tt).
+  pose (z := tree_selection c ⊕ (tree_selection d ⊕ 0)).
+  assert (Hz : z < tree_selection (supOrd F)).
+  { rewrite tree_selection_unfold. unfold iterated_smash_sum.
+    rewrite ord_lt_unfold. exists (k1 :: k2 :: nil). simpl. reflexivity. }
+  destruct (sup_lt _ _ _ (ord_lt_le_trans _ _ _ Hz (H bool F true))) as [[|] Hi];
+    simpl in Hi.
+  - (* below a multiple of ω^c: ¬P is impossible *)
+    left. intro np.
+    assert (Hdz : expOrd ω d < expOrd ω (succOrd c)).
+    { rewrite <- tree_selection_eq_powOmega_complete; auto.
+      apply tree_selection_succ_bound; auto.
+      apply ord_le_lt_trans with z; auto.
+      unfold z. rewrite naddOrd_zero_r. apply naddOrd_le2. }
+    apply (ord_lt_irreflexive (expOrd ω d)).
+    apply ord_lt_le_trans with (expOrd ω (succOrd c)); auto.
+    apply expOrd_monotone. apply succ_least.
+    apply ord_le_lt_trans with 1.
+    + unfold c. rewrite ord_le_unfold. intros [p|]; simpl; [elim (np p)|apply succ_lt].
+    + unfold d. rewrite ord_lt_unfold. exists (Some np). simpl. reflexivity.
+  - (* below a multiple of ω^d: P is impossible *)
+    right. intro p.
+    assert (Hcz : expOrd ω c < expOrd ω (succOrd d)).
+    { rewrite <- tree_selection_eq_powOmega_complete; auto.
+      apply tree_selection_succ_bound; auto.
+      apply ord_le_lt_trans with z; auto.
+      unfold z. apply naddOrd_le1. }
+    apply (ord_lt_irreflexive (expOrd ω c)).
+    apply ord_lt_le_trans with (expOrd ω (succOrd d)); auto.
+    apply expOrd_monotone. apply succ_least.
+    apply ord_le_lt_trans with 1.
+    + unfold d. rewrite ord_le_unfold. intros [np|]; simpl; [elim (np p)|apply succ_lt].
+    + unfold c. rewrite ord_lt_unfold. exists (Some p). simpl. reflexivity.
+Qed.
+
+(** So the classical equivalence [scott_strongly_continuous_EM] needs at
+    least weak excluded middle. *)
+Corollary scott_strongly_continuous_WEM :
+  (forall s, scott_continuous s -> strongly_continuous s) -> weak_excluded_middle.
+Proof.
+  intro H. apply tree_selection_strongly_continuous_WEM.
+  apply H. apply tree_selection_scott_continuous.
+Qed.
+
 (** ** Fixpoints of [tree_selection]
 
     The least fixpoints of [tree_selection] and [ω^x] coincide, as [ε 0],
