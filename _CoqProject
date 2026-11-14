@@ -18,6 +18,7 @@ Ordinal/HereditarySubst.v
 Ordinal/HereditarySubstLF.v
 Ordinal/HereditarySubstF.v
 Ordinal/HereditarySubstFNorm.v
+Ordinal/SystemT.v
 
 Ordinal/VeblenDefs.v
 Ordinal/VeblenClassical.v
