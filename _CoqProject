@@ -14,6 +14,10 @@ Ordinal/Examples.v
 Ordinal/Fixpoints.v
 Ordinal/Reflection.v
 Ordinal/GoodsteinSequences.v
+Ordinal/HereditarySubst.v
+Ordinal/HereditarySubstLF.v
+Ordinal/HereditarySubstF.v
+Ordinal/HereditarySubstFNorm.v
 
 Ordinal/VeblenDefs.v
 Ordinal/VeblenClassical.v
