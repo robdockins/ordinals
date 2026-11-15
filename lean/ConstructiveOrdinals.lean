@@ -37,3 +37,6 @@ import ConstructiveOrdinals.Notation.GrimmT3
 import ConstructiveOrdinals.Notation.SchutteStack
 import ConstructiveOrdinals.Notation.SchutteMatrix
 import ConstructiveOrdinals.Notation.NaturalExpNotation
+import ConstructiveOrdinals.PeanoArith
+import ConstructiveOrdinals.SystemTCL
+import ConstructiveOrdinals.Dialectica

@@ -68,6 +68,9 @@ MODULES = {
     "Notation.SchutteStack": "Notation/SchutteStack.lean",
     "Notation.SchutteMatrix": "Notation/SchutteMatrix.lean",
     "Notation.NaturalExpNotation": "Notation/NaturalExpNotation.lean",
+    "PeanoArith": "PeanoArith.lean",
+    "SystemTCL": "SystemTCL.lean",
+    "Dialectica": "Dialectica.lean",
 }
 
 STATUSES = {"ported", "merged", "dropped"}

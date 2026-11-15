@@ -93,9 +93,13 @@ repository root) and `coqc` on the path. CI
 | `Notation/SchutteStack.v` | `Notation/SchutteStack.lean` | done |
 | `Notation/SchutteMatrix.v` | `Notation/SchutteMatrix.lean` | done |
 | `Notation/NaturalExpNotation.v` | `Notation/NaturalExpNotation.lean` | done |
+| `PeanoArith.v` | `PeanoArith.lean` | done |
+| `SystemTCL.v` | `SystemTCL.lean` | done |
+| `Dialectica.v` | `Dialectica.lean` | done |
+| `HereditarySubst.v`, `HereditarySubstLF.v`, `HereditarySubstF.v`, `HereditarySubstFNorm.v`, `SystemT.v` | — | not yet ported |
 
-The port is complete. Of the 2,578 Rocq declarations outside `Countable.v`:
-- 2,542 are ported;
+Of the 2,998 Rocq declarations in the ported files:
+- 2,962 are ported;
 - 19 are merged into an equivalent declaration (mostly the binary-number
   embeddings, which coincide with `ofNat`, helpers of `GrimmT3.v` that have
   an equivalent elsewhere, and the list-splitting function of
