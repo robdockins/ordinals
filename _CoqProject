@@ -22,6 +22,11 @@ Ordinal/SystemT.v
 Ordinal/SystemTCL.v
 Ordinal/PeanoArith.v
 Ordinal/Dialectica.v
+Ordinal/Hardy.v
+Ordinal/Cichon.v
+Ordinal/OmegaLogic.v
+Ordinal/Embedding.v
+Ordinal/GoodsteinIndependence.v
 
 Ordinal/VeblenDefs.v
 Ordinal/VeblenClassical.v
