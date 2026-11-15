@@ -18,9 +18,10 @@ From Ordinal Require Notation.CantorProduct.
 
 (** * Strong normalization of combinatory System T below ε₀
 
-    Gödel's T in combinatory form, with the ordinal assignment of Howard
-    and Schütte: each term gets a vector of ordinals below ε₀, indexed by
-    type levels, and every reduction step decreases it. *)
+    Gödel's T in combinatory form, with pairs, and the ordinal assignment
+    of Howard and Schütte: each term gets a vector of ordinals below ε₀,
+    indexed by type levels, and every reduction step decreases it.  The
+    projections reduce like [K], so pairs need nothing new. *)
 
 Open Scope ord_scope.
 
@@ -622,16 +623,21 @@ Proof.
   - eapply ord_le_lt_trans; [|apply (Hup (S i)); lia]. cbn [sumO]. apply naddOrd_le1.
 Qed.
 
-(** ** Combinatory System T *)
+(** ** Combinatory System T
+
+    Base type [N], function types and product types.  [lev (A × B)] is
+    the larger of the two levels. *)
 
 Inductive ty : Set :=
 | TN : ty
-| TAr : ty -> ty -> ty.
+| TAr : ty -> ty -> ty
+| TPr : ty -> ty -> ty.
 
 Fixpoint lev (A:ty) : nat :=
   match A with
   | TN => 0
   | TAr A B => Nat.max (S (lev A)) (lev B)
+  | TPr A B => Nat.max (lev A) (lev B)
   end.
 
 (** Applications are annotated with the type of the argument. *)
@@ -642,6 +648,9 @@ Inductive term : Set :=
 | Zc : term
 | Suc : term
 | Rc : ty -> term                  (* [R_C : N → C → (N → C → C) → C] *)
+| Pc : ty -> ty -> term            (* [P_{A,B} : A → B → A × B] *)
+| P1c : ty -> ty -> term           (* [π₁ : A × B → A] *)
+| P2c : ty -> ty -> term           (* [π₂ : A × B → B] *)
 | app : ty -> term -> term -> term.
 
 Inductive typing (Γ:list ty) : term -> ty -> Prop :=
@@ -651,6 +660,9 @@ Inductive typing (Γ:list ty) : term -> ty -> Prop :=
 | T_Z : typing Γ Zc TN
 | T_Suc : typing Γ Suc (TAr TN TN)
 | T_R C : typing Γ (Rc C) (TAr TN (TAr C (TAr (TAr TN (TAr C C)) C)))
+| T_P A B : typing Γ (Pc A B) (TAr A (TAr B (TPr A B)))
+| T_P1 A B : typing Γ (P1c A B) (TAr (TPr A B) A)
+| T_P2 A B : typing Γ (P2c A B) (TAr (TPr A B) B)
 | T_app A B M N : typing Γ M (TAr A B) -> typing Γ N A -> typing Γ (app A M N) B.
 
 Fixpoint num (n:nat) : term :=
@@ -668,7 +680,7 @@ Proof. induction n as [|n IH]; simpl; auto. rewrite IH. reflexivity. Qed.
 
 Lemma is_num_spec t n : is_num t = Some n -> t = num n.
 Proof.
-  revert n. induction t as [| | | | | |A M _ N IHN]; intros m H; simpl in H; try discriminate.
+  revert n. induction t as [| | | | | | | | |A M _ N IHN]; intros m H; simpl in H; try discriminate.
   - injection H as <-. reflexivity.
   - destruct A; try discriminate. destruct M; try discriminate.
     destruct (is_num N) as [k|] eqn:E; simpl in H; try discriminate.
@@ -686,6 +698,8 @@ Inductive step : term -> term -> Prop :=
 | st_RS C X Y W t n a b : is_num t = Some (S n) ->
     step (app W (app Y (app X (Rc C) t) a) b)
          (app C (app TN b (num n)) (app (TAr TN (TAr C C)) (app C (app TN (Rc C) (num n)) a) b))
+| st_P1 A B C D X Y Z a b : step (app X (P1c A B) (app Y (app Z (Pc C D) a) b)) a
+| st_P2 A B C D X Y Z a b : step (app X (P2c A B) (app Y (app Z (Pc C D) a) b)) b
 | st_l A M M' N : step M M' -> step (app A M N) (app A M' N)
 | st_r A M N N' : step N N' -> step (app A M N) (app A M N').
 
@@ -724,6 +738,12 @@ Proof.
     apply typing_app in H1 as [H1 Ht]. inversion H1; subst.
     econstructor; [econstructor; [exact Hb | apply typing_num]|].
     econstructor; [econstructor; [econstructor; [constructor | apply typing_num] | exact Ha] | exact Hb].
+  - apply typing_app in HT as [H1 Hp]. inversion H1; subst.
+    apply typing_app in Hp as [H2 _]. apply typing_app in H2 as [H3 Ha].
+    inversion H3; subst. exact Ha.
+  - apply typing_app in HT as [H1 Hp]. inversion H1; subst.
+    apply typing_app in Hp as [H2 Hb]. apply typing_app in H2 as [H3 _].
+    inversion H3; subst. exact Hb.
   - apply typing_app in HT as [H1 H2]. econstructor; eauto.
   - apply typing_app in HT as [H1 H2]. econstructor; eauto.
 Qed.
@@ -773,7 +793,7 @@ Proof. apply oone_pos. Qed.
 
 Lemma meas_pos M j : 0 < sz (meas M j).
 Proof.
-  revert j. induction M as [| | | | | C | A M IHM N IHN]; intro j; try apply ones_pos.
+  revert j. induction M as [| | | | | C | | | | A M IHM N IHN]; intro j; try apply ones_pos.
   - apply gen_pos.
   - destruct M; try (rewrite meas_app by discriminate; apply box_pos; auto; fail).
     simpl. destruct (is_num N); [apply vspec_pos | apply box_pos, gen_pos].
@@ -827,6 +847,7 @@ Theorem step_decreases M M' : step M M' ->
   forall Γ A, typing Γ M A -> decr (lev A) (meas M) (meas M').
 Proof.
   induction 1 as [A B X Y a b | A B C X Y W a b c | C X Y W t a b Ht | C X Y W t n a b Ht
+                 | A B C D X Y Z a b | A B C D X Y Z a b
                  | A0 M M' N Hs IH | A0 M N N' Hs IH]; intros Γ T HT.
   - (* K *)
     apply typing_app in HT as [H1 Hb]. apply typing_app in H1 as [H1 Ha].
@@ -863,6 +884,27 @@ Proof.
       - do 2 (rewrite meas_app by not_Rc).
         rewrite (meas_R_num _ _ _ _ (is_num_num n)), lev_rec_step. reflexivity. }
     apply R_decrease; auto using meas_pos, num_meas.
+  - (* first projection *)
+    apply typing_app in HT as [H1 Hp]. inversion H1; subst.
+    apply typing_app in Hp as [H2 _]. apply typing_app in H2 as [H3 _]. inversion H3; subst.
+    do 3 (rewrite meas_app by not_Rc).
+    change (meas (P1c _ _)) with ones. change (meas (Pc _ _)) with ones.
+    apply decr_of_lt. intros i Hi.
+    eapply ord_lt_le_trans; [|apply box_ge_sum; cbn [lev]; lia].
+    eapply ord_lt_le_trans; [apply (oadd_lt2 (ones i) (meas a i)), ones_pos|].
+    apply oadd_mono; [reflexivity|].
+    eapply ord_le_trans; [|apply box_ge_f].
+    eapply ord_le_trans; [|apply box_ge_sum; lia]. apply oadd_le2.
+  - (* second projection *)
+    apply typing_app in HT as [H1 Hp]. inversion H1; subst.
+    apply typing_app in Hp as [H2 _]. apply typing_app in H2 as [H3 _]. inversion H3; subst.
+    do 3 (rewrite meas_app by not_Rc).
+    change (meas (P2c _ _)) with ones. change (meas (Pc _ _)) with ones.
+    apply decr_of_lt. intros i Hi.
+    eapply ord_lt_le_trans; [|apply box_ge_sum; cbn [lev]; lia].
+    eapply ord_lt_le_trans; [apply (oadd_lt2 (ones i) (meas b i)), ones_pos|].
+    apply oadd_mono; [reflexivity|].
+    eapply ord_le_trans; [|apply box_ge_sum; lia]. apply oadd_le2.
   - (* left congruence *)
     apply typing_app in HT as [HM HN].
     destruct (IH _ _ HM) as [IH0 IHle].
@@ -941,7 +983,9 @@ Inductive par : term -> term -> Prop :=
     par (app W (app Y (app X (Rc C) t) a) b) a'
 | p_RS C X Y W t n a a' b b' : is_num t = Some (S n) -> par a a' -> par b b' ->
     par (app W (app Y (app X (Rc C) t) a) b)
-        (app C (app TN b' (num n)) (app (TAr TN (TAr C C)) (app C (app TN (Rc C) (num n)) a') b')).
+        (app C (app TN b' (num n)) (app (TAr TN (TAr C C)) (app C (app TN (Rc C) (num n)) a') b'))
+| p_P1 A B C D X Y Z a a' b : par a a' -> par (app X (P1c A B) (app Y (app Z (Pc C D) a) b)) a'
+| p_P2 A B C D X Y Z a b b' : par b b' -> par (app X (P2c A B) (app Y (app Z (Pc C D) a) b)) b'.
 
 Lemma step_par M N : step M N -> par M N.
 Proof. induction 1; eauto using par. Qed.
@@ -957,6 +1001,8 @@ Proof.
   - eapply star_step; [apply st_R0; auto | auto].
   - eapply star_trans; [apply star_app; [apply star_app_r|]; eauto|].
     apply star_one, st_RS; auto.
+  - eapply star_step; [apply st_P1 | auto].
+  - eapply star_step; [apply st_P2 | auto].
 Qed.
 
 Fixpoint cd (M:term) : term :=
@@ -973,33 +1019,83 @@ Fixpoint cd (M:term) : term :=
                   (app (TAr TN (TAr C C)) (app C (app TN (Rc C) (num n)) (cd a)) (cd c))
           | None => app W (cd F) (cd c)
           end
+      | P1c _ _ =>
+          match c with
+          | app _ (app _ (Pc _ _) a) _ => cd a
+          | _ => app W F (cd c)
+          end
+      | P2c _ _ =>
+          match c with
+          | app _ (app _ (Pc _ _) _) b => cd b
+          | _ => app W F (cd c)
+          end
       | _ => app W (cd F) (cd c)
       end
   | _ => M
   end.
 
 (** The shapes of an application, as [cd] sees them. *)
+Definition is_pair (c:term) : Prop := exists Y Z C D a b, c = app Y (app Z (Pc C D) a) b.
+
+Lemma pair_dec c : is_pair c \/ ~ is_pair c.
+Proof.
+  destruct c as [| | | | | | | | |Y G b];
+    try (right; intros [? [? [? [? [? [? E]]]]]]; discriminate).
+  destruct G as [| | | | | | | | |Z H a];
+    try (right; intros [? [? [? [? [? [? E]]]]]]; discriminate).
+  destruct H; try (right; intros [? [? [? [? [? [? E]]]]]]; discriminate).
+  left. unfold is_pair. do 6 eexists. reflexivity.
+Qed.
+
+Lemma cd_P1_nopair W A B c : ~ is_pair c -> cd (app W (P1c A B) c) = app W (P1c A B) (cd c).
+Proof.
+  intro Hc. destruct c as [| | | | | | | | |Y G b]; try reflexivity.
+  destruct G as [| | | | | | | | |Z H a]; try reflexivity.
+  destruct H; try reflexivity. elim Hc. unfold is_pair. do 6 eexists. reflexivity.
+Qed.
+
+Lemma cd_P2_nopair W A B c : ~ is_pair c -> cd (app W (P2c A B) c) = app W (P2c A B) (cd c).
+Proof.
+  intro Hc. destruct c as [| | | | | | | | |Y G b]; try reflexivity.
+  destruct G as [| | | | | | | | |Z H a]; try reflexivity.
+  destruct H; try reflexivity. elim Hc. unfold is_pair. do 6 eexists. reflexivity.
+Qed.
+
 Lemma app_view W F c :
   (exists X A B a, F = app X (Kc A B) a) \/
   (exists Y X A B C a b, F = app Y (app X (Sc A B C) a) b) \/
   (exists Y X C t a n, F = app Y (app X (Rc C) t) a /\ is_num t = Some n) \/
+  (exists A B Y Z C D a b, F = P1c A B /\ c = app Y (app Z (Pc C D) a) b) \/
+  (exists A B Y Z C D a b, F = P2c A B /\ c = app Y (app Z (Pc C D) a) b) \/
   (cd (app W F c) = app W (cd F) (cd c) /\
    (forall X A B a, F <> app X (Kc A B) a) /\
    (forall Y X A B C a b, F <> app Y (app X (Sc A B C) a) b) /\
-   (forall Y X C t a, F = app Y (app X (Rc C) t) a -> is_num t = None)).
+   (forall Y X C t a, F = app Y (app X (Rc C) t) a -> is_num t = None) /\
+   ((exists A B, F = P1c A B \/ F = P2c A B) -> ~ is_pair c)).
 Proof.
-  destruct F as [| | | | | |Y G b];
-    try (right; right; right; repeat split; intros; discriminate).
-  destruct G as [| | | | | |X H a];
-    try (right; right; right; repeat split; intros; try discriminate; reflexivity).
-  - left. eauto.
-  - destruct H as [| | | | | |];
-      try (right; right; right; repeat split; intros; try discriminate; reflexivity).
-    + right; left. eauto 10.
-    + destruct (is_num a) as [n|] eqn:E.
-      * right; right; left. eauto 10.
-      * right; right; right. simpl. rewrite E. repeat split; intros; try discriminate.
-        congruence.
+  destruct F as [| | | | | | | A B | A B |Y G b];
+    try (right; right; right; right; right; repeat split; intros;
+         try discriminate; try reflexivity;
+         match goal with H : exists _ _, _ |- _ => destruct H as [? [? [?|?]]]; discriminate end).
+  - destruct (pair_dec c) as [[Y [Z [C [D [a [b ->]]]]]]|Hc]; [right; right; right; left; do 8 eexists; split; reflexivity|].
+    right; right; right; right; right. rewrite cd_P1_nopair by exact Hc.
+    repeat split; intros; try discriminate. exact Hc.
+  - destruct (pair_dec c) as [[Y [Z [C [D [a [b ->]]]]]]|Hc]; [right; right; right; right; left; do 8 eexists; split; reflexivity|].
+    right; right; right; right; right. rewrite cd_P2_nopair by exact Hc.
+    repeat split; intros; try discriminate. exact Hc.
+  - destruct G as [| | | | | | | | |X H a];
+      try (right; right; right; right; right; repeat split; intros; try discriminate; try reflexivity;
+           match goal with H : exists _ _, _ |- _ => destruct H as [? [? [?|?]]]; discriminate end).
+    + left. eauto.
+    + destruct H as [| | | | | | | | |];
+        try (right; right; right; right; right; repeat split; intros; try discriminate; try reflexivity;
+             match goal with H : exists _ _, _ |- _ => destruct H as [? [? [?|?]]]; discriminate end).
+      * right; left. eauto 10.
+      * destruct (is_num a) as [n|] eqn:E.
+        -- right; right; left. eauto 10.
+        -- right; right; right; right; right. simpl. rewrite E. repeat split; intros; try discriminate.
+           ++ congruence.
+           ++ match goal with H : exists _ _, _ |- _ => destruct H as [? [? [?|?]]]; discriminate end.
 Qed.
 
 Lemma par_atom M N : par M N -> (forall A F c, M <> app A F c) -> N = M.
@@ -1049,11 +1145,27 @@ Proof.
   match goal with Hs : par (app _ (Rc _) _) _ |- _ => apply par_R1 in Hs as [t' [-> Ht]]; eauto end.
 Qed.
 
+Lemma par_Pc1 X A B a N : par (app X (Pc A B) a) N -> exists a', N = app X (Pc A B) a' /\ par a a'.
+Proof.
+  intro H. inversion H; subst; eauto using par.
+  match goal with Hs : par ?K _ |- _ =>
+    apply par_atom in Hs; [|intros; discriminate]; subst; eauto end.
+Qed.
+
+Lemma par_Pc2 Y X A B a b N : par (app Y (app X (Pc A B) a) b) N ->
+  exists a' b', N = app Y (app X (Pc A B) a') b' /\ par a a' /\ par b b'.
+Proof.
+  intro H. inversion H; subst; eauto 6 using par.
+  match goal with Hs : par (app _ (Pc _ _) _) _ |- _ => apply par_Pc1 in Hs as [a' [-> Ha]]; eauto end.
+Qed.
+
 Lemma par_self_cd M : par M (cd M).
 Proof.
-  induction M as [| | | | | |W F IHF c IHc]; try apply p_refl.
+  induction M as [| | | | | | | | |W F IHF c IHc]; try apply p_refl.
   destruct (app_view W F c) as [[X [A [B [a ->]]]] | [[Y [X [A [B [C [a [b ->]]]]]]] |
-                                [[Y [X [C [t [a [n [-> Hn]]]]]]] | [Hcd _]]]].
+                                [[Y [X [C [t [a [n [-> Hn]]]]]]] |
+                                [[A [B [Y [Z [C [D [a [b [-> ->]]]]]]]]] |
+                                [[A [B [Y [Z [C [D [a [b [-> ->]]]]]]]]] | [Hcd _]]]]]].
   - simpl in IHF. apply par_K1 in IHF as [a' [E Ha]]. injection E as <-.
     simpl. apply p_K. exact Ha.
   - simpl in IHF. apply par_S2 in IHF as [a' [b' [E [Ha Hb]]]]. injection E as <- <-.
@@ -1061,6 +1173,10 @@ Proof.
   - simpl in IHF.
     apply par_R2 in IHF as [t' [a' [E [_ Ha]]]]. injection E as <- <-.
     simpl. rewrite Hn. destruct n; [apply p_R0 | apply p_RS]; auto.
+  - simpl in IHc. apply par_Pc2 in IHc as [a' [b' [E [Ha Hb]]]]. injection E as <- <-.
+    simpl. apply p_P1. exact Ha.
+  - simpl in IHc. apply par_Pc2 in IHc as [a' [b' [E [Ha Hb]]]]. injection E as <- <-.
+    simpl. apply p_P2. exact Hb.
   - rewrite Hcd. apply p_app; auto.
 Qed.
 
@@ -1068,10 +1184,13 @@ Theorem par_cd M N : par M N -> par N (cd M).
 Proof.
   induction 1 as [M | W F F' c c' HF IHF Hc IHc | A B X Y a a' b Ha IHa
                  | A B C X Y W a a' b b' c c' Ha IHa Hb IHb Hc IHc
-                 | C X Y W t a a' b Ht Ha IHa | C X Y W t n a a' b b' Ht Ha IHa Hb IHb].
+                 | C X Y W t a a' b Ht Ha IHa | C X Y W t n a a' b b' Ht Ha IHa Hb IHb
+                 | A B C D X Y Z a a' b Ha IHa | A B C D X Y Z a b b' Hb IHb].
   - apply par_self_cd.
   - destruct (app_view W F c) as [[X [A [B [a ->]]]] | [[Y [X [A [B [C [a [b ->]]]]]]] |
-                                  [[Y [X [C [t [a [n [-> Hn]]]]]]] | [Hcd _]]]].
+                                  [[Y [X [C [t [a [n [-> Hn]]]]]]] |
+                                  [[A [B [Y [Z [C [D [a [b [-> ->]]]]]]]]] |
+                                  [[A [B [Y [Z [C [D [a [b [-> ->]]]]]]]]] | [Hcd _]]]]]].
     + apply par_K1 in HF as [a' [-> Ha]]. simpl in IHF.
       apply par_K1 in IHF as [a'' [E Ha']]. injection E as <-.
       simpl. apply p_K. exact Ha'.
@@ -1082,11 +1201,21 @@ Proof.
       apply par_R2 in IHF as [t'' [a'' [E [Ht' Ha']]]]. injection E as <- <-.
       apply is_num_spec in Hn as Et. subst t. apply par_num in Ht. subst t'.
       simpl. rewrite is_num_num. destruct n; [apply p_R0 | apply p_RS]; auto using is_num_num.
+    + apply par_atom in HF; [|intros; discriminate]. subst F'.
+      apply par_Pc2 in Hc as [a' [b' [-> [Ha Hb]]]]. simpl in IHc.
+      apply par_Pc2 in IHc as [a'' [b'' [E [Ha' Hb']]]]. injection E as <- <-.
+      simpl. apply p_P1. exact Ha'.
+    + apply par_atom in HF; [|intros; discriminate]. subst F'.
+      apply par_Pc2 in Hc as [a' [b' [-> [Ha Hb]]]]. simpl in IHc.
+      apply par_Pc2 in IHc as [a'' [b'' [E [Ha' Hb']]]]. injection E as <- <-.
+      simpl. apply p_P2. exact Hb'.
     + rewrite Hcd. apply p_app; auto.
   - simpl. exact IHa.
   - simpl. repeat apply p_app; auto.
   - simpl. rewrite Ht. exact IHa.
   - simpl. rewrite Ht. repeat apply p_app; auto using p_refl.
+  - simpl. exact IHa.
+  - simpl. exact IHb.
 Qed.
 
 Lemma strip M N1 N2 : par M N1 -> star M N2 -> exists P, star N1 P /\ par N2 P.
@@ -1112,20 +1241,26 @@ Definition normal (M:term) : Prop := forall N, ~ step M N.
 
 Lemma step_or_normal M : (exists N, step M N) \/ normal M.
 Proof.
-  induction M as [| | | | | |W F IHF c IHc];
+  induction M as [| | | | | | | | |W F IHF c IHc];
     try (right; intros N H; inversion H; fail).
   destruct IHF as [[F' HF]|HF]; [left; eauto using step|].
   destruct IHc as [[c' Hc]|Hc]; [left; eauto using step|].
   destruct (app_view W F c) as [[X [A [B [a ->]]]] | [[Y [X [A [B [C [a [b ->]]]]]]] |
-                                [[Y [X [C [t [a [n [-> Hn]]]]]]] | [_ [HK [HS HR]]]]]].
+                                [[Y [X [C [t [a [n [-> Hn]]]]]]] |
+                                [[A [B [Y [Z [C [D [a [b [-> ->]]]]]]]]] |
+                                [[A [B [Y [Z [C [D [a [b [-> ->]]]]]]]]] | [_ [HK [HS [HR HP]]]]]]]]].
   - left. eauto using step.
   - left. eauto using step.
   - left. destruct n; eauto using step.
+  - left. eauto using step.
+  - left. eauto using step.
   - right. intros N H. inversion H; subst.
     + eapply HK; eauto.
     + eapply HS; eauto.
     + rewrite (HR _ _ _ _ _ eq_refl) in *. discriminate.
     + rewrite (HR _ _ _ _ _ eq_refl) in *. discriminate.
+    + apply HP; [eauto | unfold is_pair; eauto 10].
+    + apply HP; [eauto | unfold is_pair; eauto 10].
     + eapply HF; eauto.
     + eapply Hc; eauto.
 Qed.
@@ -1144,8 +1279,8 @@ Proof. induction 1; eauto using subject_reduction. Qed.
 Lemma star_normal M N : normal M -> star M N -> N = M.
 Proof. intros Hn H. destruct H; auto. elim (Hn _ H). Qed.
 
-(** Closed normal terms are numerals or partial applications of
-    constants. *)
+(** Closed normal terms are numerals, pairs, or partial applications
+    of constants. *)
 Inductive value : term -> Prop :=
 | v_num n : value (num n)
 | v_Suc : value Suc
@@ -1156,14 +1291,25 @@ Inductive value : term -> Prop :=
 | v_S2 Y X A B C a b : value (app Y (app X (Sc A B C) a) b)
 | v_R C : value (Rc C)
 | v_R1 X C n : value (app X (Rc C) (num n))
-| v_R2 Y X C n a : value (app Y (app X (Rc C) (num n)) a).
+| v_R2 Y X C n a : value (app Y (app X (Rc C) (num n)) a)
+| v_P A B : value (Pc A B)
+| v_P1 X A B a : value (app X (Pc A B) a)
+| v_P2 Y X A B a b : value (app Y (app X (Pc A B) a) b)
+| v_Fst A B : value (P1c A B)
+| v_Snd A B : value (P2c A B).
+
+Ltac value_shape :=
+  repeat match goal with H : typing _ (app _ _ _) _ |- _ => apply typing_app in H as [H _] end;
+  match goal with H : typing _ _ _ |- _ => inversion H; subst; try congruence end.
 
 Lemma value_nat Γ M : value M -> typing Γ M TN -> exists n, M = num n.
+Proof. intros Hv Ht. destruct Hv; eauto; exfalso; value_shape. Qed.
+
+Lemma value_pair Γ M A B : value M -> typing Γ M (TPr A B) ->
+  exists Y X C D a b, M = app Y (app X (Pc C D) a) b.
 Proof.
-  intros Hv Ht. destruct Hv; eauto; exfalso;
-    repeat match goal with H : typing _ (app _ _ _) _ |- _ => apply typing_app in H as [H _] end;
-    inversion Ht; subst; try congruence;
-    match goal with H : typing _ _ _ |- _ => inversion H end.
+  intros Hv Ht. destruct Hv; eauto 10; exfalso;
+    try (pose proof (typing_unique _ _ _ Ht _ (typing_num Γ n)); discriminate); value_shape.
 Qed.
 
 Lemma normal_app_l A M N : normal (app A M N) -> normal M.
@@ -1174,28 +1320,27 @@ Proof. intros H N' Hs. eapply H, st_r, Hs. Qed.
 
 Lemma closed_normal_value M A : typing [] M A -> normal M -> value M.
 Proof.
-  remember [] as Γ. intro H. induction H as [x A Hx | | | | | | A B F N HF IHF HN IHN]; intros Hn; subst.
+  remember [] as Γ. intro H.
+  induction H as [x A Hx | | | | | | | | | A B F N HF IHF HN IHN]; intros Hn; subst;
+    try constructor.
   - destruct x; discriminate.
-  - constructor.
-  - constructor.
   - apply (v_num 0).
-  - constructor.
-  - constructor.
   - specialize (IHF (normal_app_l _ _ _ Hn)).
     specialize (IHN (normal_app_r _ _ _ Hn)).
-    destruct IHF.
+    destruct IHF; try constructor.
     + exfalso. pose proof (typing_unique _ _ _ HF _ (typing_num [] n)). discriminate.
     + inversion HF; subst. destruct (value_nat _ _ IHN HN) as [m ->]. apply (v_num (S m)).
-    + constructor.
     + elim (Hn _ (st_K _ _ _ _ _ _)).
-    + constructor.
-    + constructor.
     + elim (Hn _ (st_S _ _ _ _ _ _ _ _ _)).
     + inversion HF; subst. destruct (value_nat _ _ IHN HN) as [m ->]. constructor.
-    + constructor.
     + destruct n.
       * elim (Hn _ (st_R0 _ _ _ _ _ _ _ (is_num_num 0))).
       * elim (Hn _ (st_RS _ _ _ _ _ _ _ _ (is_num_num (S n)))).
+    + exfalso. value_shape.
+    + inversion HF; subst. destruct (value_pair _ _ _ _ IHN HN) as [Y [X [C [D [a [b ->]]]]]].
+      elim (Hn _ (st_P1 _ _ _ _ _ _ _ _ _)).
+    + inversion HF; subst. destruct (value_pair _ _ _ _ IHN HN) as [Y [X [C [D [a [b ->]]]]]].
+      elim (Hn _ (st_P2 _ _ _ _ _ _ _ _ _)).
 Qed.
 
 (** Every closed term of type [N] reduces to a unique numeral. *)
