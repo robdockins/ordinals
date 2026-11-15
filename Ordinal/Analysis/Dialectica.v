@@ -3,8 +3,8 @@ From Stdlib Require Import Lia.
 From Stdlib Require Import List.
 Import ListNotations.
 
-From Ordinal Require Import SystemTCL.
-From Ordinal Require Import PeanoArith.
+From Ordinal Require Import Analysis.SystemTCL.
+From Ordinal Require Import Analysis.PeanoArith.
 
 Open Scope nat_scope.
 

@@ -9,11 +9,11 @@ From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
 From Ordinal Require Import Notation.VNotation.
 From Ordinal Require Import GoodsteinSequences.
-From Ordinal Require Import PeanoArith.
-From Ordinal Require Import Hardy.
-From Ordinal Require Import Cichon.
-From Ordinal Require Import OmegaLogic.
-From Ordinal Require Import Embedding.
+From Ordinal Require Import Analysis.PeanoArith.
+From Ordinal Require Import Analysis.Hardy.
+From Ordinal Require Import Analysis.Cichon.
+From Ordinal Require Import Analysis.OmegaLogic.
+From Ordinal Require Import Analysis.Embedding.
 
 Local Open Scope nat_scope.
 

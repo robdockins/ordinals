@@ -8,7 +8,7 @@ From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
 From Ordinal Require Import NaturalArith.
-From Ordinal Require Import HereditarySubstF.
+From Ordinal Require Import Analysis.HereditarySubstF.
 
 Local Open Scope nat_scope.
 

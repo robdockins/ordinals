@@ -5,7 +5,7 @@ From Stdlib Require Import Wellfounded.
 From Ordinal Require Import Defs.
 From Ordinal Require Import Operators.
 From Ordinal Require Import Arith.
-From Ordinal Require Import HereditarySubst.
+From Ordinal Require Import Analysis.HereditarySubst.
 
 Open Scope ord_scope.
 

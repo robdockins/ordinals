@@ -5,8 +5,8 @@ From Stdlib Require Import List.
 Import ListNotations.
 
 From Ordinal Require Import Notation.VNotation.
-From Ordinal Require Import PeanoArith.
-From Ordinal Require Import Hardy.
+From Ordinal Require Import Analysis.PeanoArith.
+From Ordinal Require Import Analysis.Hardy.
 
 Local Open Scope nat_scope.
 

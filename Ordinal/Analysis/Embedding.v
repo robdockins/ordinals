@@ -10,9 +10,9 @@ From Ordinal Require Import Arith.
 From Ordinal Require Import Cantor.
 From Ordinal Require Import VeblenFacts.
 From Ordinal Require Import Notation.VNotation.
-From Ordinal Require Import PeanoArith.
-From Ordinal Require Import Hardy.
-From Ordinal Require Import OmegaLogic.
+From Ordinal Require Import Analysis.PeanoArith.
+From Ordinal Require Import Analysis.Hardy.
+From Ordinal Require Import Analysis.OmegaLogic.
 
 Local Open Scope nat_scope.
 
