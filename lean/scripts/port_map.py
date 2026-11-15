@@ -71,6 +71,11 @@ MODULES = {
     "PeanoArith": "PeanoArith.lean",
     "SystemTCL": "SystemTCL.lean",
     "Dialectica": "Dialectica.lean",
+    "HereditarySubst": "HereditarySubst.lean",
+    "HereditarySubstLF": "HereditarySubstLF.lean",
+    "HereditarySubstF": "HereditarySubstF.lean",
+    "HereditarySubstFNorm": "HereditarySubstFNorm.lean",
+    "SystemT": "SystemT.lean",
 }
 
 STATUSES = {"ported", "merged", "dropped"}

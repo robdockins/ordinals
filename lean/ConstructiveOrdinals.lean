@@ -40,3 +40,8 @@ import ConstructiveOrdinals.Notation.NaturalExpNotation
 import ConstructiveOrdinals.PeanoArith
 import ConstructiveOrdinals.SystemTCL
 import ConstructiveOrdinals.Dialectica
+import ConstructiveOrdinals.HereditarySubst
+import ConstructiveOrdinals.HereditarySubstLF
+import ConstructiveOrdinals.HereditarySubstF
+import ConstructiveOrdinals.HereditarySubstFNorm
+import ConstructiveOrdinals.SystemT

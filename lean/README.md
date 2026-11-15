@@ -96,19 +96,25 @@ repository root) and `coqc` on the path. CI
 | `PeanoArith.v` | `PeanoArith.lean` | done |
 | `SystemTCL.v` | `SystemTCL.lean` | done |
 | `Dialectica.v` | `Dialectica.lean` | done |
-| `HereditarySubst.v`, `HereditarySubstLF.v`, `HereditarySubstF.v`, `HereditarySubstFNorm.v`, `SystemT.v` | — | not yet ported |
+| `HereditarySubst.v` | `HereditarySubst.lean` | done |
+| `HereditarySubstLF.v` | `HereditarySubstLF.lean` | done |
+| `HereditarySubstF.v` | `HereditarySubstF.lean` | done |
+| `HereditarySubstFNorm.v` | `HereditarySubstFNorm.lean` | done |
+| `SystemT.v` | `SystemT.lean` | done |
 
-Of the 2,998 Rocq declarations in the ported files:
-- 2,962 are ported;
+The port is complete. Of the 3,337 Rocq declarations outside `Countable.v`:
+- 3,299 are ported;
 - 19 are merged into an equivalent declaration (mostly the binary-number
   embeddings, which coincide with `ofNat`, helpers of `GrimmT3.v` that have
   an equivalent elsewhere, and the list-splitting function of
   `NaturalExpNotation.v`, which Lean states as one existential lemma);
-- 17 are dropped: `tree_selection_complete`, because its Rocq proof is
+- 19 are dropped: `tree_selection_complete`, because its Rocq proof is
   aborted; five helpers of `GrimmT3.v` (two section abbreviations, a
   boolean comparison and its correctness lemma, used only by the removed
-  computed tests, and a lemma that holds by `rfl`); and eleven section
-  `Let`s of `NaturalExp.v` that only name hypotheses.
+  computed tests, and a lemma that holds by `rfl`); eleven section
+  `Let`s of `NaturalExp.v` that only name hypotheses; and the two mutual
+  induction schemes of `HereditarySubstFNorm.v`, whose uses become mutual
+  structural recursion.
 
 `scripts/port_overrides.csv` gives a reason for each merge and drop. No
 declaration depends on any axiom, and the build has no warnings.
@@ -134,6 +140,11 @@ Deliberate differences from Rocq (statements are otherwise transliterated):
   `WellFounded`, `wf_lex_exp` and `wf_list_ext` are not taken from a library
   but derived from the ordinal interpretations (`lex_exp_lt_interp`,
   `listExtInterp_lt_of_ext`).
+- The de Bruijn lemmas of `HereditarySubstFNorm` and `SystemT`, which Rocq
+  proves with `lia`, go through the recursive index functions `sv` and `svar`
+  of `Prelude/Index.lean` and are proved by structural induction. Rocq's
+  `Example`s are ordinary theorems in Lean, and the recursor constructor
+  `rec` of `SystemT.term` is `recT`, since Lean reserves `Term.rec`.
 - Rocq's canonical structures that attach measures to types become `Sized`
   instances. Lemmas in `Examples` that take `(A : Ord)` and values in its
   carrier take a type with a `[Sized α]` instance instead; the named ordinals

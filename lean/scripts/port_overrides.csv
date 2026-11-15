@@ -36,3 +36,5 @@ NaturalExp,Dnmul,,dropped,section Let naming a projection of exp_domain; Lean us
 NaturalExp,De,,dropped,section Let naming a projection of exp_domain; Lean uses hD.2.2.2.2 directly
 Notation.NaturalExpNotation,take_eq,ConstructiveOrdinals.NaturalExpNotation.split_leading,merged,the splitting function and its specification become one existential lemma (avoids equation lemmas)
 Notation.NaturalExpNotation,take_eq_spec,ConstructiveOrdinals.NaturalExpNotation.split_leading,merged,the splitting function and its specification become one existential lemma (avoids equation lemmas)
+HereditarySubstFNorm,spine_ind',,dropped,induction scheme; Lean proves the spine cases by mutual structural recursion
+HereditarySubstFNorm,spine_mut,,dropped,induction scheme; Lean proves the spine cases by mutual structural recursion
