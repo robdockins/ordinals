@@ -68,14 +68,20 @@ MODULES = {
     "Notation.SchutteStack": "Notation/SchutteStack.lean",
     "Notation.SchutteMatrix": "Notation/SchutteMatrix.lean",
     "Notation.NaturalExpNotation": "Notation/NaturalExpNotation.lean",
-    "PeanoArith": "PeanoArith.lean",
-    "SystemTCL": "SystemTCL.lean",
-    "Dialectica": "Dialectica.lean",
-    "HereditarySubst": "HereditarySubst.lean",
-    "HereditarySubstLF": "HereditarySubstLF.lean",
-    "HereditarySubstF": "HereditarySubstF.lean",
-    "HereditarySubstFNorm": "HereditarySubstFNorm.lean",
-    "SystemT": "SystemT.lean",
+    "Analysis.PeanoArith": "Analysis/PeanoArith.lean",
+    "Analysis.SystemTCL": "Analysis/SystemTCL.lean",
+    "Analysis.Dialectica": "Analysis/Dialectica.lean",
+    "Analysis.HereditarySubst": "Analysis/HereditarySubst.lean",
+    "Analysis.HereditarySubstLF": "Analysis/HereditarySubstLF.lean",
+    "Analysis.HereditarySubstF": "Analysis/HereditarySubstF.lean",
+    "Analysis.HereditarySubstFNorm": "Analysis/HereditarySubstFNorm.lean",
+    "Analysis.SystemT": "Analysis/SystemT.lean",
+    "Analysis.Hardy": "Analysis/Hardy.lean",
+    "Analysis.Cichon": "Analysis/Cichon.lean",
+    "Analysis.OmegaLogic": "Analysis/OmegaLogic.lean",
+    "Analysis.Embedding": "Analysis/Embedding.lean",
+    "Analysis.GoodsteinIndependence": "Analysis/GoodsteinIndependence.lean",
+    "Analysis.GoodsteinFormula": "Analysis/GoodsteinFormula.lean",
 }
 
 STATUSES = {"ported", "merged", "dropped"}
@@ -134,7 +140,7 @@ LEAN_DECL_RE = re.compile(
 )
 NS_RE = re.compile(r"^\s*(namespace|section|mutual)(?:\s+(\S+))?\s*$")
 END_RE = re.compile(r"^\s*end(?:\s+(\S+))?\s*$")
-CITE_RE = re.compile(r"`((?:Notation\.)?[A-Z][A-Za-z0-9]*)\.([^`\s]+)`")
+CITE_RE = re.compile(r"`((?:Notation\.|Analysis\.)?[A-Z][A-Za-z0-9]*)\.([^`\s]+)`")
 
 
 def lean_citations():

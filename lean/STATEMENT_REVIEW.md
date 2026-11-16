@@ -66,8 +66,20 @@ are presentational:
   the same universe as the ordinals.
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
+- **Provability.** Rocq's `prov true` and `prov false` are Lean's `PA` and
+  `HA`, which abbreviate `Prov true` and `Prov false`. Some formula
+  constructors print in dot notation, for example `θ.ex.all` for
+  `All (Ex θ)`.
+- **Split and reordered statements.** Rocq's `Cichon.hbn_dec_Pn` is a
+  conjunction of two statements, one about `hbn_dec` and one about
+  `hbn_exp_dec`. Lean proves these as the mutually recursive theorems
+  `hbn_dec_Pn_x` (listed here) and `hbn_dec_Pn_e`. In
+  `OmegaLogic.od_reduce` the hypothesis `rank C.2 = ρ` comes after the
+  derivation `OD n ρ β Δ`. `OmegaLogic.od_elim` takes `ρ'` with
+  `ρ' = ρ + 1` in place of Rocq's `S ρ`. Both are the forms the structural
+  recursion of the proofs needs.
 
-392 statements.
+464 statements.
 
 ## Defs
 
@@ -6413,4 +6425,1235 @@ Lean:
     ¬∃ e,
         (∀ (a b : Ordinal), CantorProduct.Qn f P a → CantorProduct.Qn f P b → CantorProduct.Qn f P (e a b)) ∧
           NaturalExp.NaturalExpLawsOn (CantorProduct.Qn f P) e
+```
+
+## Analysis.PeanoArith
+
+### `induction_axiom`
+
+Rocq:
+```
+PeanoArith.induction_axiom
+     : forall (cl : bool) (Γ : list PeanoArith.form) (A : PeanoArith.form),
+       PeanoArith.prov cl Γ
+         (PeanoArith.Imp (PeanoArith.sub1 A PeanoArith.tz)
+            (PeanoArith.Imp
+               (PeanoArith.All (PeanoArith.Imp A (PeanoArith.fsubst PeanoArith.suc_sub A)))
+               (PeanoArith.All A)))
+```
+Lean:
+```
+PeanoArith.induction_axiom : ∀ (cl : Bool) (Γ : List PeanoArith.Form) (A : PeanoArith.Form),
+  PeanoArith.Prov cl Γ
+    ((PeanoArith.sub1 A PeanoArith.ATerm.tz).imp ((A.imp (PeanoArith.fsubst PeanoArith.sucSub A)).all.imp A.all))
+```
+
+### `gg_stable`
+
+Rocq:
+```
+PeanoArith.gg_stable
+     : forall (A : PeanoArith.form) (Γ : list PeanoArith.form),
+       PeanoArith.prov false Γ
+         (PeanoArith.Imp (PeanoArith.Neg (PeanoArith.Neg (PeanoArith.gg A))) (PeanoArith.gg A))
+```
+Lean:
+```
+PeanoArith.gg_stable : ∀ (A : PeanoArith.Form) (Γ : List PeanoArith.Form),
+  PeanoArith.HA Γ ((PeanoArith.gg A).neg.neg.imp (PeanoArith.gg A))
+```
+
+### `negative_translation`
+
+Rocq:
+```
+PeanoArith.negative_translation
+     : forall (Γ : list PeanoArith.form) (A : PeanoArith.form),
+       PeanoArith.prov true Γ A ->
+       PeanoArith.prov false (ListDef.map PeanoArith.gg Γ) (PeanoArith.gg A)
+```
+Lean:
+```
+@PeanoArith.negative_translation : ∀ {Γ : List PeanoArith.Form} {A : PeanoArith.Form},
+  PeanoArith.PA Γ A → PeanoArith.HA (List.map PeanoArith.gg Γ) (PeanoArith.gg A)
+```
+
+### `PA_HA_consistency`
+
+Rocq:
+```
+PeanoArith.PA_HA_consistency
+     : PeanoArith.prov true nil PeanoArith.Bot -> PeanoArith.prov false nil PeanoArith.Bot
+```
+Lean:
+```
+PeanoArith.PA_HA_consistency : PeanoArith.PA [] PeanoArith.Form.bot → PeanoArith.HA [] PeanoArith.Form.bot
+```
+
+## Analysis.SystemTCL
+
+### `subject_reduction`
+
+Rocq:
+```
+SystemTCL.subject_reduction
+     : forall (Γ : list SystemTCL.ty) (M M' : SystemTCL.term) (A : SystemTCL.ty),
+       SystemTCL.step M M' -> SystemTCL.typing Γ M A -> SystemTCL.typing Γ M' A
+```
+Lean:
+```
+@SystemTCL.subject_reduction : ∀ {Γ : List SystemTCL.Ty} {M M' : SystemTCL.Term},
+  SystemTCL.Step M M' → ∀ {A : SystemTCL.Ty}, SystemTCL.Typing Γ M A → SystemTCL.Typing Γ M' A
+```
+
+### `step_decreases`
+
+Rocq:
+```
+SystemTCL.step_decreases
+     : forall M M' : SystemTCL.term,
+       SystemTCL.step M M' ->
+       forall (Γ : list SystemTCL.ty) (A : SystemTCL.ty),
+       SystemTCL.typing Γ M A ->
+       SystemTCL.decr (SystemTCL.lev A) (SystemTCL.meas M) (SystemTCL.meas M')
+```
+Lean:
+```
+@SystemTCL.step_decreases : ∀ {M M' : SystemTCL.Term},
+  SystemTCL.Step M M' →
+    ∀ {Γ : List SystemTCL.Ty} {T : SystemTCL.Ty},
+      SystemTCL.Typing Γ M T → SystemTCL.Decr (SystemTCL.lev T) (SystemTCL.meas M) (SystemTCL.meas M')
+```
+
+### `typed_SN`
+
+Rocq:
+```
+SystemTCL.typed_SN
+     : forall (Γ : list SystemTCL.ty) (M : SystemTCL.term) (A : SystemTCL.ty),
+       SystemTCL.typing Γ M A -> SystemTCL.SN M
+```
+Lean:
+```
+@SystemTCL.typed_SN : ∀ {Γ : List SystemTCL.Ty} {M : SystemTCL.Term} {A : SystemTCL.Ty},
+  SystemTCL.Typing Γ M A → SystemTCL.SN M
+```
+
+### `meas_below_ε0`
+
+Rocq:
+```
+SystemTCL.meas_below_ε0
+     : forall M : SystemTCL.term,
+       Defs.ord_lt (Defs.sz (SystemTCL.meas M 0)) (Fixpoints.ε Operators.zeroOrd)
+```
+Lean:
+```
+SystemTCL.meas_below_ε0 : ∀ (M : SystemTCL.Term), sz (SystemTCL.meas M 0) < ε 0
+```
+
+### `par_cd`
+
+Rocq:
+```
+SystemTCL.par_cd
+     : forall M N : SystemTCL.term, SystemTCL.par M N -> SystemTCL.par N (SystemTCL.cd M)
+```
+Lean:
+```
+@SystemTCL.par_cd : ∀ {M N : SystemTCL.Term}, SystemTCL.Par M N → SystemTCL.Par N (SystemTCL.cd M)
+```
+
+### `confluence`
+
+Rocq:
+```
+SystemTCL.confluence
+     : forall M N1 N2 : SystemTCL.term,
+       SystemTCL.star M N1 ->
+       SystemTCL.star M N2 -> exists P : SystemTCL.term, SystemTCL.star N1 P /\ SystemTCL.star N2 P
+```
+Lean:
+```
+@SystemTCL.confluence : ∀ {M N1 N2 : SystemTCL.Term},
+  SystemTCL.Star M N1 → SystemTCL.Star M N2 → ∃ P, SystemTCL.Star N1 P ∧ SystemTCL.Star N2 P
+```
+
+### `T_value`
+
+Rocq:
+```
+SystemTCL.T_value
+     : forall M : SystemTCL.term,
+       SystemTCL.typing nil M SystemTCL.TN ->
+       exists n : nat,
+         SystemTCL.star M (SystemTCL.num n) /\
+         (forall m : nat, SystemTCL.star M (SystemTCL.num m) -> m = n)
+```
+Lean:
+```
+@SystemTCL.T_value : ∀ {M : SystemTCL.Term},
+  SystemTCL.Typing [] M SystemTCL.Ty.TN →
+    ∃ n, SystemTCL.Star M (SystemTCL.num n) ∧ ∀ (m : Nat), SystemTCL.Star M (SystemTCL.num m) → m = n
+```
+
+## Analysis.Dialectica
+
+### `HA_sound`
+
+Rocq:
+```
+Dialectica.HA_sound
+     : forall (Γ : list PeanoArith.form) (A : PeanoArith.form),
+       PeanoArith.prov false Γ A -> Dialectica.Real Γ A
+```
+Lean:
+```
+@Dialectica.HA_sound : ∀ {Γ : List PeanoArith.Form} {A : PeanoArith.Form}, PeanoArith.HA Γ A → Dialectica.Real Γ A
+```
+
+### `HA_consistent`
+
+Rocq:
+```
+Dialectica.HA_consistent
+     : ~ PeanoArith.prov false nil PeanoArith.Bot
+```
+Lean:
+```
+Dialectica.HA_consistent : ¬PeanoArith.HA [] PeanoArith.Form.bot
+```
+
+### `PA_consistent`
+
+Rocq:
+```
+Dialectica.PA_consistent
+     : ~ PeanoArith.prov true nil PeanoArith.Bot
+```
+Lean:
+```
+Dialectica.PA_consistent : ¬PeanoArith.PA [] PeanoArith.Form.bot
+```
+
+## Analysis.HereditarySubst
+
+### `hsub_total`
+
+Rocq:
+```
+HereditarySubst.hsub_total
+     : forall c : HereditarySubst.call, {r : HereditarySubst.res | HereditarySubst.HS c r}
+```
+Lean:
+```
+HereditarySubst.hsub_total : (c : HereditarySubst.Call) → { r // HereditarySubst.HS c r }
+```
+
+### `tyOrd_eq`
+
+Rocq:
+```
+HereditarySubst.tyOrd_eq
+     : forall τ : HereditarySubst.ty,
+       Defs.ord_eq (HereditarySubst.tyOrd τ)
+         (Arith.mulOrd Operators.ω (Operators.natOrdSize (HereditarySubst.height τ)))
+```
+Lean:
+```
+HereditarySubst.tyOrd_eq : ∀ (τ : HereditarySubst.Ty), HereditarySubst.tyOrd τ ≈ ω * ofNat (HereditarySubst.height τ)
+```
+
+### `measure_bound`
+
+Rocq:
+```
+HereditarySubst.measure_bound
+     : forall c : HereditarySubst.call,
+       Defs.ord_lt (HereditarySubst.measure c)
+         (Arith.mulOrd Operators.ω
+            (Operators.natOrdSize (S (HereditarySubst.height (HereditarySubst.call_ty c)))))
+```
+Lean:
+```
+HereditarySubst.measure_bound : ∀ (c : HereditarySubst.Call),
+  HereditarySubst.measure c < ω * ofNat (HereditarySubst.height (HereditarySubst.callTy c) + 1)
+```
+
+## Analysis.HereditarySubstLF
+
+### `lhsub_total`
+
+Rocq:
+```
+HereditarySubstLF.lhsub_total
+     : forall c : HereditarySubstLF.lcall, {r : HereditarySubstLF.lres | HereditarySubstLF.LHS c r}
+```
+Lean:
+```
+HereditarySubstLF.lhsub_total : (c : HereditarySubstLF.LCall) → { r // HereditarySubstLF.LHS c r }
+```
+
+### `erase_hsub_tp`
+
+Rocq:
+```
+HereditarySubstLF.erase_hsub_tp
+     : forall (A : HereditarySubstLF.tp) (τ : HereditarySubst.ty) (M : HereditarySubstLF.tm)
+         (x : nat),
+       HereditarySubstLF.erase (HereditarySubstLF.lhsub_tp τ M x A) = HereditarySubstLF.erase A
+```
+Lean:
+```
+HereditarySubstLF.erase_hsub_tp : ∀ (A : HereditarySubstLF.Tp) (τ : HereditarySubst.Ty) (M : HereditarySubstLF.Tm)
+  (x : Nat), HereditarySubstLF.erase (HereditarySubstLF.lhsubTp τ M x A) = HereditarySubstLF.erase A
+```
+
+### `lmeasure_bound`
+
+Rocq:
+```
+HereditarySubstLF.lmeasure_bound
+     : forall c : HereditarySubstLF.lcall,
+       Defs.ord_lt (HereditarySubstLF.lmeasure c)
+         (Arith.mulOrd Operators.ω
+            (Operators.natOrdSize (S (HereditarySubst.height (HereditarySubstLF.lcall_ty c)))))
+```
+Lean:
+```
+HereditarySubstLF.lmeasure_bound : ∀ (c : HereditarySubstLF.LCall),
+  HereditarySubstLF.lmeasure c < ω * ofNat (HereditarySubst.height (HereditarySubstLF.lcallTy c) + 1)
+```
+
+## Analysis.HereditarySubstF
+
+### `kord_tsubst`
+
+Rocq:
+```
+HereditarySubstF.kord_tsubst
+     : forall (U : HereditarySubstF.typ) (X : nat) (T : HereditarySubstF.typ),
+       Defs.ord_eq (HereditarySubstF.kord (HereditarySubstF.tsubst U X T))
+         (NaturalArith.naddOrd (HereditarySubstF.kord U)
+            (HereditarySubstF.nrep (HereditarySubstF.occ X U) (HereditarySubstF.kord T)))
+```
+Lean:
+```
+HereditarySubstF.kord_tsubst : ∀ (U : HereditarySubstF.Typ) (X : Nat) (T : HereditarySubstF.Typ),
+  HereditarySubstF.kord (HereditarySubstF.tsubst U X T) ≈
+    HereditarySubstF.kord U ♯ HereditarySubstF.nrep (HereditarySubstF.occ X U) (HereditarySubstF.kord T)
+```
+
+### `kinded_bound`
+
+Rocq:
+```
+HereditarySubstF.kinded_bound
+     : forall (Γ : list HereditarySubstF.kind) (T : HereditarySubstF.typ)
+         (k : HereditarySubstF.kind),
+       HereditarySubstF.kinding Γ T k ->
+       Defs.ord_lt (HereditarySubstF.kord T) (Arith.expOrd Operators.ω (Operators.natOrdSize k))
+```
+Lean:
+```
+@HereditarySubstF.kinded_bound : ∀ {Γ : List HereditarySubstF.Kind} {T : HereditarySubstF.Typ}
+  {k : HereditarySubstF.Kind}, HereditarySubstF.Kinding Γ T k → HereditarySubstF.kord T < ω ^ ofNat k
+```
+
+### `kord_inst`
+
+Rocq:
+```
+HereditarySubstF.kord_inst
+     : forall (Γ : list HereditarySubstF.kind) (T : HereditarySubstF.typ)
+         (k : HereditarySubstF.kind) (U : HereditarySubstF.typ),
+       HereditarySubstF.kinding Γ T k ->
+       Defs.ord_lt (HereditarySubstF.kord (HereditarySubstF.tsubst U 0 T))
+         (HereditarySubstF.kord (HereditarySubstF.all k U))
+```
+Lean:
+```
+@HereditarySubstF.kord_inst : ∀ {Γ : List HereditarySubstF.Kind} {T : HereditarySubstF.Typ} {k : HereditarySubstF.Kind}
+  (U : HereditarySubstF.Typ),
+  HereditarySubstF.Kinding Γ T k →
+    HereditarySubstF.kord (HereditarySubstF.tsubst U 0 T) < HereditarySubstF.kord (HereditarySubstF.Typ.all k U)
+```
+
+### `tord_arrow_l`
+
+Rocq:
+```
+HereditarySubstF.tord_arrow_l
+     : forall A B : HereditarySubstF.typ,
+       Defs.ord_lt (HereditarySubstF.tord A) (HereditarySubstF.tord (HereditarySubstF.arrow A B))
+```
+Lean:
+```
+HereditarySubstF.tord_arrow_l : ∀ (A B : HereditarySubstF.Typ),
+  HereditarySubstF.tord A < HereditarySubstF.tord (A.arrow B)
+```
+
+### `tord_arrow_r`
+
+Rocq:
+```
+HereditarySubstF.tord_arrow_r
+     : forall A B : HereditarySubstF.typ,
+       Defs.ord_lt (HereditarySubstF.tord B) (HereditarySubstF.tord (HereditarySubstF.arrow A B))
+```
+Lean:
+```
+HereditarySubstF.tord_arrow_r : ∀ (A B : HereditarySubstF.Typ),
+  HereditarySubstF.tord B < HereditarySubstF.tord (A.arrow B)
+```
+
+### `tord_inst`
+
+Rocq:
+```
+HereditarySubstF.tord_inst
+     : forall (Γ : list HereditarySubstF.kind) (T : HereditarySubstF.typ)
+         (k : HereditarySubstF.kind) (U : HereditarySubstF.typ),
+       HereditarySubstF.kinding Γ T k ->
+       Defs.ord_lt (HereditarySubstF.tord (HereditarySubstF.tsubst U 0 T))
+         (HereditarySubstF.tord (HereditarySubstF.all k U))
+```
+Lean:
+```
+@HereditarySubstF.tord_inst : ∀ {Γ : List HereditarySubstF.Kind} {T : HereditarySubstF.Typ} {k : HereditarySubstF.Kind}
+  (U : HereditarySubstF.Typ),
+  HereditarySubstF.Kinding Γ T k →
+    HereditarySubstF.tord (HereditarySubstF.tsubst U 0 T) < HereditarySubstF.tord (HereditarySubstF.Typ.all k U)
+```
+
+### `tord_tshift`
+
+Rocq:
+```
+HereditarySubstF.tord_tshift
+     : forall (T : HereditarySubstF.typ) (c : nat),
+       Defs.ord_eq (HereditarySubstF.tord (HereditarySubstF.tshift c T)) (HereditarySubstF.tord T)
+```
+Lean:
+```
+HereditarySubstF.tord_tshift : ∀ (T : HereditarySubstF.Typ) (c : Nat),
+  HereditarySubstF.tord (HereditarySubstF.tshift c T) ≈ HereditarySubstF.tord T
+```
+
+### `tord_bound`
+
+Rocq:
+```
+HereditarySubstF.tord_bound
+     : forall (Γ : list HereditarySubstF.kind) (T : HereditarySubstF.typ)
+         (k : HereditarySubstF.kind),
+       HereditarySubstF.kinding Γ T k ->
+       Defs.ord_lt (HereditarySubstF.tord T)
+         (Arith.mulOrd Operators.ω (Arith.expOrd Operators.ω (Operators.natOrdSize k)))
+```
+Lean:
+```
+@HereditarySubstF.tord_bound : ∀ {Γ : List HereditarySubstF.Kind} {T : HereditarySubstF.Typ}
+  {k : HereditarySubstF.Kind}, HereditarySubstF.Kinding Γ T k → HereditarySubstF.tord T < ω * ω ^ ofNat k
+```
+
+## Analysis.HereditarySubstFNorm
+
+### `hsub_total`
+
+Rocq:
+```
+HereditarySubstFNorm.hsub_total
+     : forall c : HereditarySubstFNorm.call,
+       {r : HereditarySubstFNorm.res | HereditarySubstFNorm.HS c r}
+```
+Lean:
+```
+HereditarySubstFNorm.hsub_total : (c : HereditarySubstFNorm.Call) → { r // HereditarySubstFNorm.HS c r }
+```
+
+### `HS_typed`
+
+Rocq:
+```
+HereditarySubstFNorm.HS_typed
+     : forall (c : HereditarySubstFNorm.call) (r : HereditarySubstFNorm.res),
+       HereditarySubstFNorm.HS c r -> HereditarySubstFNorm.post c r
+```
+Lean:
+```
+@HereditarySubstFNorm.HS_typed : ∀ {c : HereditarySubstFNorm.Call} {r : HereditarySubstFNorm.Res},
+  HereditarySubstFNorm.HS c r → HereditarySubstFNorm.Post c r
+```
+
+### `hsub_typed`
+
+Rocq:
+```
+HereditarySubstFNorm.hsub_typed
+     : forall (e : list HereditarySubstFNorm.entry) (U : HereditarySubstF.typ)
+         (u t : HereditarySubstFNorm.nf) (T : HereditarySubstF.typ),
+       HereditarySubstFNorm.check (HereditarySubstFNorm.ET U :: e)%list t T ->
+       HereditarySubstFNorm.check e u U ->
+       HereditarySubstFNorm.check e
+         (HereditarySubstFNorm.hsub (HereditarySubstFNorm.kctx e) U u 0 t) T
+```
+Lean:
+```
+@HereditarySubstFNorm.hsub_typed : ∀ {e : HereditarySubstFNorm.Env} {U : HereditarySubstF.Typ}
+  {u t : HereditarySubstFNorm.Nf} {T : HereditarySubstF.Typ},
+  HereditarySubstFNorm.Check (HereditarySubstFNorm.Entry.ET U :: e) t T →
+    HereditarySubstFNorm.Check e u U →
+      HereditarySubstFNorm.Check e (HereditarySubstFNorm.hsub (HereditarySubstFNorm.kctx e) U u 0 t) T
+```
+
+### `happ_typed`
+
+Rocq:
+```
+HereditarySubstFNorm.happ_typed
+     : forall (e : HereditarySubstFNorm.env) (U : HereditarySubstF.typ)
+         (u : HereditarySubstFNorm.nf) (sp : HereditarySubstFNorm.spine) 
+         (T : HereditarySubstF.typ),
+       HereditarySubstFNorm.check e u U ->
+       HereditarySubstFNorm.spine_ty e U sp T ->
+       HereditarySubstFNorm.check e
+         (HereditarySubstFNorm.happ (HereditarySubstFNorm.kctx e) U u sp) T
+```
+Lean:
+```
+@HereditarySubstFNorm.happ_typed : ∀ {e : HereditarySubstFNorm.Env} {U : HereditarySubstF.Typ}
+  {u : HereditarySubstFNorm.Nf} {sp : HereditarySubstFNorm.Spine} {T : HereditarySubstF.Typ},
+  HereditarySubstFNorm.Check e u U →
+    HereditarySubstFNorm.SpineTy e U sp T →
+      HereditarySubstFNorm.Check e (HereditarySubstFNorm.happ (HereditarySubstFNorm.kctx e) U u sp) T
+```
+
+### `normalization`
+
+Rocq:
+```
+HereditarySubstFNorm.normalization
+     : forall (e : HereditarySubstFNorm.env) (t : HereditarySubstFNorm.term)
+         (T : HereditarySubstF.typ),
+       HereditarySubstFNorm.typing e t T ->
+       exists n : HereditarySubstFNorm.nf, HereditarySubstFNorm.check e n T
+```
+Lean:
+```
+@HereditarySubstFNorm.normalization : ∀ {e : HereditarySubstFNorm.Env} {t : HereditarySubstFNorm.Term}
+  {T : HereditarySubstF.Typ}, HereditarySubstFNorm.Typing e t T → ∃ n, HereditarySubstFNorm.Check e n T
+```
+
+### `consistency`
+
+Rocq:
+```
+HereditarySubstFNorm.consistency
+     : forall t : HereditarySubstFNorm.term,
+       ~ HereditarySubstFNorm.typing nil t (HereditarySubstF.all 0 (HereditarySubstF.tvar 0))
+```
+Lean:
+```
+HereditarySubstFNorm.consistency : ∀ (t : HereditarySubstFNorm.Term),
+  ¬HereditarySubstFNorm.Typing [] t (HereditarySubstF.Typ.all 0 (HereditarySubstF.Typ.tvar 0))
+```
+
+### `HS_red`
+
+Rocq:
+```
+HereditarySubstFNorm.HS_red
+     : forall (c : HereditarySubstFNorm.call) (r : HereditarySubstFNorm.res),
+       HereditarySubstFNorm.HS c r -> HereditarySubstFNorm.rpost c r
+```
+Lean:
+```
+@HereditarySubstFNorm.HS_red : ∀ {c : HereditarySubstFNorm.Call} {r : HereditarySubstFNorm.Res},
+  HereditarySubstFNorm.HS c r → HereditarySubstFNorm.RPost c r
+```
+
+### `happ_red`
+
+Rocq:
+```
+HereditarySubstFNorm.happ_red
+     : forall (e : HereditarySubstFNorm.env) (U : HereditarySubstF.typ)
+         (u : HereditarySubstFNorm.nf) (sp : HereditarySubstFNorm.spine) 
+         (T : HereditarySubstF.typ),
+       HereditarySubstFNorm.check e u U ->
+       HereditarySubstFNorm.spine_ty e U sp T ->
+       HereditarySubstFNorm.reds (HereditarySubstFNorm.emb_sp (HereditarySubstFNorm.emb u) sp)
+         (HereditarySubstFNorm.emb (HereditarySubstFNorm.happ (HereditarySubstFNorm.kctx e) U u sp))
+```
+Lean:
+```
+@HereditarySubstFNorm.happ_red : ∀ {e : HereditarySubstFNorm.Env} {U : HereditarySubstF.Typ}
+  {u : HereditarySubstFNorm.Nf} {sp : HereditarySubstFNorm.Spine} {T : HereditarySubstF.Typ},
+  HereditarySubstFNorm.Check e u U →
+    HereditarySubstFNorm.SpineTy e U sp T →
+      HereditarySubstFNorm.Reds (HereditarySubstFNorm.embSp (HereditarySubstFNorm.emb u) sp)
+        (HereditarySubstFNorm.emb (HereditarySubstFNorm.happ (HereditarySubstFNorm.kctx e) U u sp))
+```
+
+### `normalization_red`
+
+Rocq:
+```
+HereditarySubstFNorm.normalization_red
+     : forall (e : HereditarySubstFNorm.env) (t : HereditarySubstFNorm.term)
+         (T : HereditarySubstF.typ),
+       HereditarySubstFNorm.typing e t T ->
+       exists n : HereditarySubstFNorm.nf,
+         HereditarySubstFNorm.check e n T /\
+         HereditarySubstFNorm.reds t (HereditarySubstFNorm.emb n)
+```
+Lean:
+```
+@HereditarySubstFNorm.normalization_red : ∀ {e : HereditarySubstFNorm.Env} {t : HereditarySubstFNorm.Term}
+  {T : HereditarySubstF.Typ},
+  HereditarySubstFNorm.Typing e t T →
+    ∃ n, HereditarySubstFNorm.Check e n T ∧ HereditarySubstFNorm.Reds t (HereditarySubstFNorm.emb n)
+```
+
+## Analysis.SystemT
+
+### `subst_typed`
+
+Rocq:
+```
+SystemT.subst_typed
+     : forall (ρ : nat) (Γ : list SystemT.ty) (M : SystemT.iterm) (B : SystemT.ty)
+         (α : VNotation.VForm),
+       SystemT.D ρ Γ M B α ->
+       forall (Γ1 Γ2 : list SystemT.ty) (A : SystemT.ty) (N : SystemT.iterm) (β : VNotation.VForm),
+       Γ = (Γ1 ++ A :: Γ2)%list ->
+       SystemT.D ρ (Γ1 ++ Γ2) N A β ->
+       SystemT.lev A <= ρ ->
+       SystemT.D ρ (Γ1 ++ Γ2) (SystemT.subst M (length Γ1) N) B (SystemT.vplus β α)
+```
+Lean:
+```
+@SystemT.subst_typed : ∀ {ρ : Nat} {Γ : List SystemT.Ty} {M : SystemT.ITerm} {B : SystemT.Ty} {α : VNotation.VForm},
+  SystemT.D ρ Γ M B α →
+    ∀ (Γ1 Γ2 : List SystemT.Ty) (A : SystemT.Ty) (N : SystemT.ITerm) (β : VNotation.VForm),
+      Γ = Γ1 ++ A :: Γ2 →
+        SystemT.D ρ (Γ1 ++ Γ2) N A β →
+          SystemT.lev A ≤ ρ → SystemT.D ρ (Γ1 ++ Γ2) (SystemT.subst M Γ1.length N) B (SystemT.vplus β α)
+```
+
+### `app_red_typed`
+
+Rocq:
+```
+SystemT.app_red_typed
+     : forall (ρ : nat) (Γ : list SystemT.ty) (A B : SystemT.ty) (N : SystemT.iterm)
+         (γ2 : VNotation.VForm),
+       SystemT.D ρ Γ N A γ2 ->
+       SystemT.lev (SystemT.TAr A B) <= S ρ ->
+       forall (γ1 : VNotation.VForm) (M : SystemT.iterm),
+       SystemT.D ρ Γ M (SystemT.TAr A B) γ1 ->
+       SystemT.D ρ Γ (SystemT.app_red A B M N) B (SystemT.vsucc (SystemT.vplus γ2 γ1))
+```
+Lean:
+```
+@SystemT.appRed_typed : ∀ {ρ : Nat} {Γ : List SystemT.Ty} {A B : SystemT.Ty} {N : SystemT.ITerm} {γ2 : VNotation.VForm},
+  SystemT.D ρ Γ N A γ2 →
+    SystemT.lev (A.TAr B) ≤ ρ + 1 →
+      ∀ (γ1 : VNotation.VForm) (M : SystemT.ITerm),
+        SystemT.D ρ Γ M (A.TAr B) γ1 → SystemT.D ρ Γ (SystemT.appRed A B M N) B (SystemT.vsucc (SystemT.vplus γ2 γ1))
+```
+
+### `omega_red_typed`
+
+Rocq:
+```
+SystemT.omega_red_typed
+     : forall (Γ : list SystemT.ty) (A B C : SystemT.ty) (γ2 : VNotation.VForm) 
+         (N : SystemT.iterm) (f : nat -> SystemT.iterm) (γ1 : VNotation.VForm),
+       SystemT.D 0 Γ (SystemT.iomega C f) (SystemT.TAr A B) γ1 ->
+       SystemT.D 0 Γ N A γ2 ->
+       SystemT.D 0 Γ (SystemT.omega_red A B C f N) B (SystemT.vsucc (SystemT.vplus γ1 γ2))
+```
+Lean:
+```
+SystemT.omegaRed_typed : ∀ (Γ : List SystemT.Ty) (A B C : SystemT.Ty) (γ2 : VNotation.VForm) (N : SystemT.ITerm)
+  (f : Nat → SystemT.ITerm) (γ1 : VNotation.VForm),
+  SystemT.D 0 Γ (SystemT.ITerm.iomega C f) (A.TAr B) γ1 →
+    SystemT.D 0 Γ N A γ2 → SystemT.D 0 Γ (SystemT.omegaRed A B C f N) B (SystemT.vsucc (SystemT.vplus γ1 γ2))
+```
+
+### `elim_typed`
+
+Rocq:
+```
+SystemT.elim_typed
+     : forall (ρ : nat) (Γ : list SystemT.ty) (M : SystemT.iterm) (T : SystemT.ty)
+         (α : VNotation.VForm),
+       SystemT.D (S ρ) Γ M T α ->
+       SystemT.D ρ Γ (SystemT.elim ρ M) T (SystemT.vexp α) /\
+       (SystemT.isvh M = true -> SystemT.isvh (SystemT.elim ρ M) = true) /\
+       (SystemT.is_om M = true -> SystemT.is_om (SystemT.elim ρ M) = true)
+```
+Lean:
+```
+@SystemT.elim_typed : ∀ {ρ : Nat} {Γ : List SystemT.Ty} {M : SystemT.ITerm} {T : SystemT.Ty} {α : VNotation.VForm},
+  SystemT.D (ρ + 1) Γ M T α →
+    SystemT.D ρ Γ (SystemT.elim ρ M) T (SystemT.vexp α) ∧
+      (SystemT.isvh M = true → SystemT.isvh (SystemT.elim ρ M) = true) ∧
+        (SystemT.isOm M = true → SystemT.isOm (SystemT.elim ρ M) = true)
+```
+
+### `norm_typed`
+
+Rocq:
+```
+SystemT.norm_typed
+     : forall (ρ : nat) (Γ : list SystemT.ty) (M : SystemT.iterm) (T : SystemT.ty)
+         (α : VNotation.VForm),
+       SystemT.D ρ Γ M T α -> SystemT.D 0 Γ (SystemT.norm ρ M) T (SystemT.tower ρ α)
+```
+Lean:
+```
+SystemT.norm_typed : ∀ (ρ : Nat) {Γ : List SystemT.Ty} {M : SystemT.ITerm} {T : SystemT.Ty} {α : VNotation.VForm},
+  SystemT.D ρ Γ M T α → SystemT.D 0 Γ (SystemT.norm ρ M) T (SystemT.tower ρ α)
+```
+
+### `canonical_nat`
+
+Rocq:
+```
+SystemT.canonical_nat
+     : forall (M : SystemT.iterm) (α : VNotation.VForm),
+       SystemT.D 0 nil M SystemT.TN α -> exists k : nat, M = SystemT.inum k
+```
+Lean:
+```
+@SystemT.canonical_nat : ∀ {M : SystemT.ITerm} {α : VNotation.VForm},
+  SystemT.D 0 [] M SystemT.Ty.TN α → ∃ k, M = SystemT.inum k
+```
+
+### `h_below`
+
+Rocq:
+```
+SystemT.h_below
+     : forall t : SystemT.term,
+       Defs.ord_lt (Defs.sz (SystemT.h t)) (Defs.sz (SystemT.vexp (SystemT.vnat (SystemT.hexp t))))
+```
+Lean:
+```
+SystemT.h_below : ∀ (t : SystemT.Term), sz (SystemT.h t) < sz (SystemT.vexp (SystemT.vnat (SystemT.hexp t)))
+```
+
+### `h_below_ω_ω`
+
+Rocq:
+```
+SystemT.h_below_ω_ω
+     : forall t : SystemT.term,
+       Defs.ord_lt (Defs.sz (SystemT.h t)) (Defs.sz (SystemT.vexp SystemT.vω))
+```
+Lean:
+```
+SystemT.h_below_ω_ω : ∀ (t : SystemT.Term), sz (SystemT.h t) < sz (SystemT.vexp SystemT.vω)
+```
+
+### `tr_typed`
+
+Rocq:
+```
+SystemT.tr_typed
+     : forall (Γ : list SystemT.ty) (t : SystemT.term) (A : SystemT.ty),
+       SystemT.typing Γ t A -> SystemT.D (SystemT.tlev t) Γ (SystemT.tr t) A (SystemT.h t)
+```
+Lean:
+```
+@SystemT.tr_typed : ∀ {Γ : List SystemT.Ty} {t : SystemT.Term} {A : SystemT.Ty},
+  SystemT.Typing Γ t A → SystemT.D (SystemT.tlev t) Γ (SystemT.tr t) A (SystemT.h t)
+```
+
+### `T_normalization`
+
+Rocq:
+```
+SystemT.T_normalization
+     : forall (Γ : list SystemT.ty) (t : SystemT.term) (A : SystemT.ty),
+       SystemT.typing Γ t A ->
+       SystemT.D 0 Γ (SystemT.norm (SystemT.tlev t) (SystemT.tr t)) A (SystemT.ord_of t) /\
+       SystemT.red (SystemT.tr t) (SystemT.norm (SystemT.tlev t) (SystemT.tr t))
+```
+Lean:
+```
+@SystemT.T_normalization : ∀ {Γ : List SystemT.Ty} {t : SystemT.Term} {A : SystemT.Ty},
+  SystemT.Typing Γ t A →
+    SystemT.D 0 Γ (SystemT.norm (SystemT.tlev t) (SystemT.tr t)) A (SystemT.ordOf t) ∧
+      SystemT.Red (SystemT.tr t) (SystemT.norm (SystemT.tlev t) (SystemT.tr t))
+```
+
+### `ord_of_bound`
+
+Rocq:
+```
+SystemT.ord_of_bound
+     : forall t : SystemT.term,
+       Defs.ord_lt (Defs.sz (SystemT.ord_of t))
+         (Defs.sz (SystemT.tower (S (SystemT.tlev t)) SystemT.vω))
+```
+Lean:
+```
+SystemT.ordOf_bound : ∀ (t : SystemT.Term), sz (SystemT.ordOf t) < sz (SystemT.tower (SystemT.tlev t + 1) SystemT.vω)
+```
+
+### `ord_of_below_ε0`
+
+Rocq:
+```
+SystemT.ord_of_below_ε0
+     : forall t : SystemT.term,
+       Defs.ord_lt (Defs.sz (SystemT.ord_of t)) (Fixpoints.ε Operators.zeroOrd)
+```
+Lean:
+```
+SystemT.ordOf_below_ε0 : ∀ (t : SystemT.Term), sz (SystemT.ordOf t) < ε 0
+```
+
+### `T_total`
+
+Rocq:
+```
+SystemT.T_total
+     : forall t : SystemT.term,
+       SystemT.typing nil t SystemT.TN ->
+       exists k : nat,
+         SystemT.norm (SystemT.tlev t) (SystemT.tr t) = SystemT.inum k /\
+         SystemT.red (SystemT.tr t) (SystemT.inum k)
+```
+Lean:
+```
+@SystemT.T_total : ∀ {t : SystemT.Term},
+  SystemT.Typing [] t SystemT.Ty.TN →
+    ∃ k, SystemT.norm (SystemT.tlev t) (SystemT.tr t) = SystemT.inum k ∧ SystemT.Red (SystemT.tr t) (SystemT.inum k)
+```
+
+## Analysis.Hardy
+
+### `Pn_bachmann`
+
+Rocq:
+```
+Hardy.Pn_bachmann
+     : forall (n : nat) (a b c : VNotation.VForm),
+       Hardy.Pn n a b -> Hardy.Pn (S n) a c -> Hardy.reach (S n) b c
+```
+Lean:
+```
+@Hardy.Pn_bachmann : ∀ {n : Nat} {a b c : VNotation.VForm},
+  Hardy.Pn n a b → Hardy.Pn (n + 1) a c → Hardy.Reach (n + 1) b c
+```
+
+### `hardy_mono`
+
+Rocq:
+```
+Hardy.hardy_mono
+     : forall a : VNotation.VForm,
+       (forall n m m' : nat, Hardy.hardy a n m -> Hardy.hardy a (S n) m' -> m < m') /\
+       (forall (n : nat) (b : VNotation.VForm) (mb ma : nat),
+        Hardy.reach n b a -> Hardy.hardy b n mb -> Hardy.hardy a n ma -> mb <= ma)
+```
+Lean:
+```
+Hardy.hardy_mono : ∀ (a : VNotation.VForm),
+  (∀ (n m m' : Nat), Hardy.Hardy a n m → Hardy.Hardy a (n + 1) m' → m < m') ∧
+    ∀ (n : Nat) (b : VNotation.VForm) (mb ma : Nat),
+      Hardy.Reach n b a → Hardy.Hardy b n mb → Hardy.Hardy a n ma → mb ≤ ma
+```
+
+### `reach_of_lt`
+
+Rocq:
+```
+Hardy.reach_of_lt
+     : forall (b a : VNotation.VForm) (n : nat),
+       VNotation.VF_normal a ->
+       VNotation.VF_normal b ->
+       Defs.ord_lt (Defs.sz a) (Defs.sz b) -> VNotation.VF_size a < n -> Hardy.reach n a b
+```
+Lean:
+```
+Hardy.reach_of_lt : ∀ (b a : VNotation.VForm) (n : Nat),
+  a.IsNormal → b.IsNormal → sz a < sz b → a.size < n → Hardy.Reach n a b
+```
+
+### `hardy_dominated`
+
+Rocq:
+```
+Hardy.hardy_dominated
+     : forall (a b : VNotation.VForm) (n ma mb : nat),
+       VNotation.VF_normal a ->
+       VNotation.VF_normal b ->
+       Defs.ord_lt (Defs.sz a) (Defs.sz b) ->
+       VNotation.VF_size a < n -> Hardy.hardy a n ma -> Hardy.hardy b n mb -> ma <= mb
+```
+Lean:
+```
+@Hardy.hardy_dominated : ∀ {a b : VNotation.VForm} {n ma mb : Nat},
+  a.IsNormal → b.IsNormal → sz a < sz b → a.size < n → Hardy.Hardy a n ma → Hardy.Hardy b n mb → ma ≤ mb
+```
+
+## Analysis.Cichon
+
+### `hbn_dec_Pn`
+
+Rocq:
+```
+Cichon.hbn_dec_Pn
+     : forall base : BinNums.N,
+       BinNat.N.lt (BinNat.N.pos BinNums.xH) base ->
+       (forall x x' : GoodsteinSequences.HBN,
+        GoodsteinSequences.hbn_dec base x x' ->
+        Cichon.hbn_pos x ->
+        Cichon.hbn_pos x' /\ Hardy.Pn (BinNat.N.to_nat base) (Cichon.hbn_vf x) (Cichon.hbn_vf x')) /\
+       (forall e z : GoodsteinSequences.HBN,
+        GoodsteinSequences.hbn_exp_dec base e z ->
+        Cichon.hbn_pos e ->
+        Cichon.hbn_pos z /\
+        Hardy.Pn (BinNat.N.to_nat base) (VNotation.V (Cichon.hbn_vf e) VNotation.Z)
+          (Cichon.hbn_vf z))
+```
+Lean:
+```
+@Cichon.hbn_dec_Pn_x : ∀ {base : Nat},
+  1 < base →
+    ∀ {x x' : Goodstein.HBN},
+      Goodstein.HbnDec base x x' → Cichon.HbnPos x → Cichon.HbnPos x' ∧ Hardy.Pn base (Cichon.hbnVf x) (Cichon.hbnVf x')
+```
+
+### `cichon`
+
+Rocq:
+```
+Cichon.cichon
+     : forall (m : BinNums.N) (k : nat),
+       GoodsteinSequences.goodstein_sequence m (BinNat.N.of_nat k) = BinNums.N0 /\
+       (forall j : nat,
+        j < k -> GoodsteinSequences.goodstein_sequence m (BinNat.N.of_nat j) <> BinNums.N0) <->
+       Hardy.hardy (Cichon.ord2 m) 3 (k + 3)
+```
+Lean:
+```
+Cichon.cichon : ∀ (m k : Nat),
+  (Goodstein.goodsteinSequence m k = 0 ∧ ∀ (j : Nat), j < k → Goodstein.goodsteinSequence m j ≠ 0) ↔
+    Hardy.Hardy (Cichon.ord2 m) 3 (k + 3)
+```
+
+## Analysis.OmegaLogic
+
+### `od_struct`
+
+Rocq:
+```
+OmegaLogic.od_struct
+     : forall (n ρ : nat) (α : VNotation.VForm) (Γ : list OmegaLogic.sform),
+       OmegaLogic.OD n ρ α Γ ->
+       forall (n' ρ' : nat) (α' : VNotation.VForm) (Γ' : list OmegaLogic.sform),
+       n <= n' ->
+       ρ <= ρ' -> Hardy.reach n α α' -> OmegaLogic.sub_mod Γ Γ' -> OmegaLogic.OD n' ρ' α' Γ'
+```
+Lean:
+```
+@OmegaLogic.od_struct : ∀ {n ρ : Nat} {α : VNotation.VForm} {Γ : List OmegaLogic.SForm},
+  OmegaLogic.OD n ρ α Γ →
+    ∀ (n' ρ' : Nat) (α' : VNotation.VForm) (Γ' : List OmegaLogic.SForm),
+      n ≤ n' → ρ ≤ ρ' → Hardy.Reach n α α' → OmegaLogic.SubMod Γ Γ' → OmegaLogic.OD n' ρ' α' Γ'
+```
+
+### `od_reduce`
+
+Rocq:
+```
+OmegaLogic.od_reduce
+     : forall (ρ : nat) (C : bool * PeanoArith.form),
+       OmegaLogic.rank (snd C) = ρ ->
+       OmegaLogic.isD (snd C) = false ->
+       (exists c1 c2 : OmegaLogic.sform, OmegaLogic.kindof C = OmegaLogic.KConj c1 c2) \/
+       (exists (b : bool) (A : PeanoArith.form), OmegaLogic.kindof C = OmegaLogic.KUniv b A) ->
+       forall (n : nat) (β : VNotation.VForm) (Δ : list OmegaLogic.sform),
+       OmegaLogic.OD n ρ β Δ ->
+       forall (n0 : nat) (α : VNotation.VForm) (Γ : list (bool * PeanoArith.form)),
+       n0 <= n ->
+       OmegaLogic.OD n0 ρ α (C :: Γ) ->
+       (forall y : OmegaLogic.sform, List.In y Δ -> y = OmegaLogic.sneg C \/ List.In y Γ) ->
+       OmegaLogic.OD n ρ (Hardy.vcat α β) Γ
+```
+Lean:
+```
+@OmegaLogic.od_reduce : ∀ {ρ : Nat} {C : OmegaLogic.SForm},
+  OmegaLogic.isD C.snd = false →
+    ((∃ c1 c2, OmegaLogic.kindof C = OmegaLogic.Kind.conj c1 c2) ∨
+        ∃ b A, OmegaLogic.kindof C = OmegaLogic.Kind.univ b A) →
+      ∀ {n : Nat} {β : VNotation.VForm} {Δ : List OmegaLogic.SForm},
+        OmegaLogic.OD n ρ β Δ →
+          OmegaLogic.rank C.snd = ρ →
+            ∀ (n0 : Nat) (α : VNotation.VForm) (Γ : List OmegaLogic.SForm),
+              n0 ≤ n →
+                OmegaLogic.OD n0 ρ α (C :: Γ) →
+                  (∀ (y : OmegaLogic.SForm), y ∈ Δ → y = OmegaLogic.sneg C ∨ y ∈ Γ) →
+                    OmegaLogic.OD n ρ (Hardy.vcat α β) Γ
+```
+
+### `od_elim`
+
+Rocq:
+```
+OmegaLogic.od_elim
+     : forall (n ρ : nat) (α : VNotation.VForm) (Γ : list OmegaLogic.sform),
+       OmegaLogic.OD n (S ρ) α Γ ->
+       1 <= ρ -> 3 <= n -> OmegaLogic.OD n ρ (VNotation.V α VNotation.Z) Γ
+```
+Lean:
+```
+@OmegaLogic.od_elim : ∀ {n ρ' : Nat} {α : VNotation.VForm} {Γ : List OmegaLogic.SForm},
+  OmegaLogic.OD n ρ' α Γ → ∀ (ρ : Nat), ρ' = ρ + 1 → 1 ≤ ρ → 3 ≤ n → OmegaLogic.OD n ρ (α.V VNotation.VForm.Z) Γ
+```
+
+### `od_elim_all`
+
+Rocq:
+```
+OmegaLogic.od_elim_all
+     : forall (k n : nat) (α : VNotation.VForm) (Γ : list OmegaLogic.sform),
+       OmegaLogic.OD n (S k) α Γ -> 3 <= n -> OmegaLogic.OD n 1 (OmegaLogic.otower k α) Γ
+```
+Lean:
+```
+OmegaLogic.od_elim_all : ∀ (k n : Nat) (α : VNotation.VForm) (Γ : List OmegaLogic.SForm),
+  OmegaLogic.OD n (k + 1) α Γ → 3 ≤ n → OmegaLogic.OD n 1 (OmegaLogic.otower k α) Γ
+```
+
+### `od_bounding`
+
+Rocq:
+```
+OmegaLogic.od_bounding
+     : forall (n ρ : nat) (α : VNotation.VForm) (Γ : list OmegaLogic.sform),
+       OmegaLogic.OD n ρ α Γ ->
+       ρ <= 1 ->
+       (forall s : OmegaLogic.sform, List.In s Γ -> OmegaLogic.sigf s) ->
+       forall h : nat,
+       Hardy.hardy α n h -> exists s : OmegaLogic.sform, List.In s Γ /\ OmegaLogic.Tbs h s
+```
+Lean:
+```
+@OmegaLogic.od_bounding : ∀ {n ρ : Nat} {α : VNotation.VForm} {Γ : List OmegaLogic.SForm},
+  OmegaLogic.OD n ρ α Γ →
+    ρ ≤ 1 →
+      (∀ (s : OmegaLogic.SForm), s ∈ Γ → OmegaLogic.Sigf s) →
+        ∀ (h : Nat), Hardy.Hardy α n h → ∃ s, s ∈ Γ ∧ OmegaLogic.Tbs h s
+```
+
+## Analysis.Embedding
+
+### `od_id`
+
+Rocq:
+```
+Embedding.od_id
+     : forall (B : PeanoArith.form) (τ1 τ2 : nat -> PeanoArith.aterm) (n ρ : nat)
+         (Γ : list (bool * PeanoArith.form)),
+       Embedding.teq τ1 τ2 ->
+       List.In (false, PeanoArith.fsubst τ1 B) Γ ->
+       List.In (true, PeanoArith.fsubst τ2 B) Γ ->
+       OmegaLogic.OD n ρ (Embedding.fin (2 * Embedding.fsize B)) Γ
+```
+Lean:
+```
+Embedding.od_id : ∀ (B : PeanoArith.Form) {τ1 τ2 : Nat → PeanoArith.ATerm} {n ρ : Nat} {Γ : List OmegaLogic.SForm},
+  Embedding.Teq τ1 τ2 →
+    (false, PeanoArith.fsubst τ1 B) ∈ Γ →
+      (true, PeanoArith.fsubst τ2 B) ∈ Γ → OmegaLogic.OD n ρ (Embedding.fin (2 * Embedding.fsize B)) Γ
+```
+
+### `embed`
+
+Rocq:
+```
+Embedding.embed
+     : forall (cl : bool) (Γ : list PeanoArith.form) (A : PeanoArith.form),
+       PeanoArith.prov cl Γ A -> Embedding.Emb Γ A
+```
+Lean:
+```
+@Embedding.embed : ∀ {cl : Bool} {Γ : List PeanoArith.Form} {A : PeanoArith.Form},
+  PeanoArith.Prov cl Γ A → Embedding.Emb Γ A
+```
+
+## Analysis.GoodsteinIndependence
+
+### `PA_sigma1_bound`
+
+Rocq:
+```
+GoodsteinIndependence.PA_sigma1_bound
+     : forall θ : PeanoArith.form,
+       PeanoArith.prov true nil (PeanoArith.All (PeanoArith.Ex θ)) ->
+       OmegaLogic.isD θ = true ->
+       OmegaLogic.isD (PeanoArith.Ex θ) = false ->
+       exists (α : VNotation.VForm) (N : nat),
+         VNotation.VF_normal α /\
+         (forall x h : nat,
+          N <= x ->
+          Hardy.hardy α (S x) h ->
+          exists y : nat,
+            y < h /\ OmegaLogic.sat (OmegaLogic.scons y (OmegaLogic.scons x OmegaLogic.ρ0)) θ)
+```
+Lean:
+```
+GoodsteinIndependence.PA_sigma1_bound : ∀ (θ : PeanoArith.Form),
+  PeanoArith.PA [] θ.ex.all →
+    OmegaLogic.isD θ = true →
+      OmegaLogic.isD θ.ex = false →
+        ∃ α N,
+          α.IsNormal ∧
+            ∀ (x h : Nat),
+              N ≤ x →
+                Hardy.Hardy α (x + 1) h →
+                  ∃ y, y < h ∧ OmegaLogic.sat (OmegaLogic.scons y (OmegaLogic.scons x OmegaLogic.ρ0)) θ
+```
+
+### `goodstein_diagonal`
+
+Rocq:
+```
+GoodsteinIndependence.goodstein_diagonal
+     : forall (α : VNotation.VForm) (M : nat),
+       VNotation.VF_normal α ->
+       exists x : nat,
+         M <= x /\
+         (forall h h' : nat,
+          Hardy.hardy α (S x) h -> Hardy.hardy (Cichon.ord2 (BinNat.N.of_nat x)) 3 h' -> h + 3 < h')
+```
+Lean:
+```
+GoodsteinIndependence.goodstein_diagonal : ∀ (α : VNotation.VForm) (M : Nat),
+  α.IsNormal → ∃ x, M ≤ x ∧ ∀ (h h' : Nat), Hardy.Hardy α (x + 1) h → Hardy.Hardy (Cichon.ord2 x) 3 h' → h + 3 < h'
+```
+
+### `goodstein_unprovable`
+
+Rocq:
+```
+GoodsteinIndependence.goodstein_unprovable
+     : forall θ : PeanoArith.form,
+       OmegaLogic.isD θ = true ->
+       OmegaLogic.isD (PeanoArith.Ex θ) = false ->
+       (forall x y : nat,
+        OmegaLogic.sat (OmegaLogic.scons y (OmegaLogic.scons x OmegaLogic.ρ0)) θ ->
+        exists k : nat,
+          k <= y /\
+          GoodsteinSequences.goodstein_sequence (BinNat.N.of_nat x) (BinNat.N.of_nat k) =
+          BinNums.N0) ->
+       ~ PeanoArith.prov true nil (PeanoArith.All (PeanoArith.Ex θ))
+```
+Lean:
+```
+GoodsteinIndependence.goodstein_unprovable : ∀ (θ : PeanoArith.Form),
+  OmegaLogic.isD θ = true →
+    OmegaLogic.isD θ.ex = false →
+      (∀ (x y : Nat),
+          OmegaLogic.sat (OmegaLogic.scons y (OmegaLogic.scons x OmegaLogic.ρ0)) θ →
+            ∃ k, k ≤ y ∧ Goodstein.goodsteinSequence x k = 0) →
+        ¬PeanoArith.PA [] θ.ex.all
+```
+
+## Analysis.GoodsteinFormula
+
+### `beta_exists`
+
+Rocq:
+```
+GoodsteinFormula.beta_exists
+     : forall (f : nat -> nat) (L : nat),
+       exists c d : nat, forall i : nat, i < L -> GoodsteinFormula.beta c d i = f i
+```
+Lean:
+```
+GoodsteinFormula.beta_exists : ∀ (f : Nat → Nat) (L : Nat),
+  ∃ c d, ∀ (i : Nat), i < L → GoodsteinFormula.beta c d i = f i
+```
+
+### `check_sound`
+
+Rocq:
+```
+GoodsteinFormula.check_sound
+     : forall x k M c d : nat,
+       GoodsteinFormula.CHECKok x k M c d ->
+       GoodsteinSequences.goodstein_sequence (BinNat.N.of_nat x) (BinNat.N.of_nat k) = BinNums.N0
+```
+Lean:
+```
+GoodsteinFormula.check_sound : ∀ (x k M c d : Nat),
+  GoodsteinFormula.CHECKok x k M c d → Goodstein.goodsteinSequence x k = 0
+```
+
+### `goodstein_θ_true`
+
+Rocq:
+```
+GoodsteinFormula.goodstein_θ_true
+     : forall x : nat,
+       exists y : nat,
+         OmegaLogic.sat (OmegaLogic.scons y (OmegaLogic.scons x OmegaLogic.ρ0))
+           GoodsteinFormula.goodstein_θ
+```
+Lean:
+```
+GoodsteinFormula.goodstein_θ_true : ∀ (x : Nat),
+  ∃ y, OmegaLogic.sat (OmegaLogic.scons y (OmegaLogic.scons x OmegaLogic.ρ0)) GoodsteinFormula.goodsteinθ
+```
+
+### `goodstein_θ_sound`
+
+Rocq:
+```
+GoodsteinFormula.goodstein_θ_sound
+     : forall x y : nat,
+       OmegaLogic.sat (OmegaLogic.scons y (OmegaLogic.scons x OmegaLogic.ρ0))
+         GoodsteinFormula.goodstein_θ ->
+       exists k : nat,
+         k <= y /\
+         GoodsteinSequences.goodstein_sequence (BinNat.N.of_nat x) (BinNat.N.of_nat k) = BinNums.N0
+```
+Lean:
+```
+GoodsteinFormula.goodstein_θ_sound : ∀ (x y : Nat),
+  OmegaLogic.sat (OmegaLogic.scons y (OmegaLogic.scons x OmegaLogic.ρ0)) GoodsteinFormula.goodsteinθ →
+    ∃ k, k ≤ y ∧ Goodstein.goodsteinSequence x k = 0
+```
+
+### `goodstein_sentence_true`
+
+Rocq:
+```
+GoodsteinFormula.goodstein_sentence_true
+     : OmegaLogic.sat OmegaLogic.ρ0 GoodsteinFormula.goodstein_sentence
+```
+Lean:
+```
+GoodsteinFormula.goodstein_sentence_true : OmegaLogic.sat OmegaLogic.ρ0 GoodsteinFormula.goodsteinSentence
+```
+
+### `goodstein_independent`
+
+Rocq:
+```
+GoodsteinFormula.goodstein_independent
+     : ~ PeanoArith.prov true nil GoodsteinFormula.goodstein_sentence
+```
+Lean:
+```
+GoodsteinFormula.goodstein_independent : ¬PeanoArith.PA [] GoodsteinFormula.goodsteinSentence
 ```

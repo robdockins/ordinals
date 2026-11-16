@@ -41,6 +41,12 @@ Lean has no counterpart to Rocq's setoid rewriting, so
 - `ord_auto` is the analogue of `auto with ord`: a `solve_by_elim` over
   lemmas tagged `@[ord_hint]`.
 
+`Tactic/NatRing.lean` adds `nat_ring`, which proves equations between `Nat`
+expressions built from `+`, `*`, numerals and atoms that hold in every
+commutative semiring. It reifies both sides, compares their normal forms, and
+closes the goal with the soundness lemma of `Prelude/NatRing.lean`, so it adds
+no axioms. `Analysis/GoodsteinFormula.lean` uses it in place of Rocq's `ring`.
+
 ## Commands (run from this directory)
 
 ```sh
@@ -93,33 +99,40 @@ repository root) and `coqc` on the path. CI
 | `Notation/SchutteStack.v` | `Notation/SchutteStack.lean` | done |
 | `Notation/SchutteMatrix.v` | `Notation/SchutteMatrix.lean` | done |
 | `Notation/NaturalExpNotation.v` | `Notation/NaturalExpNotation.lean` | done |
-| `PeanoArith.v` | `PeanoArith.lean` | done |
-| `SystemTCL.v` | `SystemTCL.lean` | done |
-| `Dialectica.v` | `Dialectica.lean` | done |
-| `HereditarySubst.v` | `HereditarySubst.lean` | done |
-| `HereditarySubstLF.v` | `HereditarySubstLF.lean` | done |
-| `HereditarySubstF.v` | `HereditarySubstF.lean` | done |
-| `HereditarySubstFNorm.v` | `HereditarySubstFNorm.lean` | done |
-| `SystemT.v` | `SystemT.lean` | done |
+| `Analysis/PeanoArith.v` | `Analysis/PeanoArith.lean` | done |
+| `Analysis/SystemTCL.v` | `Analysis/SystemTCL.lean` | done |
+| `Analysis/Dialectica.v` | `Analysis/Dialectica.lean` | done |
+| `Analysis/HereditarySubst.v` | `Analysis/HereditarySubst.lean` | done |
+| `Analysis/HereditarySubstLF.v` | `Analysis/HereditarySubstLF.lean` | done |
+| `Analysis/HereditarySubstF.v` | `Analysis/HereditarySubstF.lean` | done |
+| `Analysis/HereditarySubstFNorm.v` | `Analysis/HereditarySubstFNorm.lean` | done |
+| `Analysis/SystemT.v` | `Analysis/SystemT.lean` | done |
+| `Analysis/Hardy.v` | `Analysis/Hardy.lean` | done |
+| `Analysis/Cichon.v` | `Analysis/Cichon.lean` | done |
+| `Analysis/OmegaLogic.v` | `Analysis/OmegaLogic.lean` | done |
+| `Analysis/Embedding.v` | `Analysis/Embedding.lean` | done |
+| `Analysis/GoodsteinIndependence.v` | `Analysis/GoodsteinIndependence.lean` | done |
+| `Analysis/GoodsteinFormula.v` | `Analysis/GoodsteinFormula.lean` | done |
 
-The port is complete. Of the 3,337 Rocq declarations outside `Countable.v`:
-- 3,299 are ported;
-- 19 are merged into an equivalent declaration (mostly the binary-number
+The port is complete. Of the 3,779 Rocq declarations outside `Countable.v`:
+- 3,737 are ported;
+- 22 are merged into an equivalent declaration (mostly the binary-number
   embeddings, which coincide with `ofNat`, helpers of `GrimmT3.v` that have
-  an equivalent elsewhere, and the list-splitting function of
-  `NaturalExpNotation.v`, which Lean states as one existential lemma);
-- 19 are dropped: `tree_selection_complete`, because its Rocq proof is
+  an equivalent elsewhere, the list-splitting function of
+  `NaturalExpNotation.v`, which Lean states as one existential lemma, and
+  the three coprimality lemmas of `Analysis/GoodsteinFormula.v`);
+- 20 are dropped: `tree_selection_complete`, because its Rocq proof is
   aborted; five helpers of `GrimmT3.v` (two section abbreviations, a
   boolean comparison and its correctness lemma, used only by the removed
   computed tests, and a lemma that holds by `rfl`); eleven section
-  `Let`s of `NaturalExp.v` that only name hypotheses; and the two mutual
-  induction schemes of `HereditarySubstFNorm.v`, whose uses become mutual
-  structural recursion.
+  `Let`s of `NaturalExp.v` that only name hypotheses; and the three mutual
+  induction schemes of `Analysis/HereditarySubstFNorm.v` and
+  `Analysis/Cichon.v`, whose uses become mutual structural recursion.
 
 `scripts/port_overrides.csv` gives a reason for each merge and drop. No
 declaration depends on any axiom, and the build has no warnings.
 
-`STATEMENT_REVIEW.md` sets the statements of 392 headline results beside their
+`STATEMENT_REVIEW.md` sets the statements of 464 headline results beside their
 Rocq originals: every Rocq `Theorem`, plus the reflection, notation and
 order-type theorems. Both sides are printed by the provers themselves. The
 review found no mathematical discrepancies, and its introduction lists the
@@ -194,6 +207,17 @@ Deliberate differences from Rocq (statements are otherwise transliterated):
   correctness proofs. The Lean port uses plain functions with explicit fuel
   (`compareFuel`), so that comparison computes in the kernel, and proves
   correctness separately.
+- In the `Analysis` files about Goodstein's theorem:
+  - the Hardy hierarchy and the ω-logic keep Rocq's inductive relations;
+  - functions defined by nested patterns (`isD`, `deval`) become pairs of
+    mutually recursive functions;
+  - Rocq's `setoid_rewrite` under binders becomes chains of `Iff`
+    congruences.
+  - `GoodsteinFormula` avoids `gcd`, whose core lemmas use `propext`. The
+    Chinese remainder theorem uses an explicit inverse of `m_i` modulo
+    `m_j` (`inv_moduli`), and `crt` takes that invertibility as its
+    hypothesis. `gs` and `bumpi` are on `Nat`, so the conversions from
+    `N` disappear.
 - Theorems stated in a Rocq `Section` take exactly the hypotheses Rocq's
   `Check` reports after the section is closed. `Hypothesis EM` becomes an
   explicit `(em : ExcludedMiddle)` argument.

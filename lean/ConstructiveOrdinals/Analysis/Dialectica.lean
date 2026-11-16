@@ -1,10 +1,10 @@
-import ConstructiveOrdinals.SystemTCL
-import ConstructiveOrdinals.PeanoArith
+import ConstructiveOrdinals.Analysis.SystemTCL
+import ConstructiveOrdinals.Analysis.PeanoArith
 
 /-!
 # Consistency of Peano arithmetic by Gödel's Dialectica interpretation
 
-Port of `Ordinal/Dialectica.v`.
+Port of `Ordinal/Analysis/Dialectica.v`.
 
 Gödel's functional interpretation carries Heyting arithmetic into the
 quantifier-free theory of the functionals of System T: from a proof of `A` it
@@ -65,7 +65,7 @@ theorem Forall2.length_eq {α β : Type} {R : α → β → Prop} {l : List α} 
 Terms of T have no binders, so substitution is a plain map over the
 variables. -/
 
-/-- Rocq: `Dialectica.tsub`. -/
+/-- Rocq: `Analysis.Dialectica.tsub`. -/
 def tsub (ρ : Nat → Term) : Term → Term
   | var i => ρ i
   | app A M N => app A (tsub ρ M) (tsub ρ N)
@@ -78,7 +78,7 @@ def tsub (ρ : Nat → Term) : Term → Term
   | P1c A B => P1c A B
   | P2c A B => P2c A B
 
-/-- Rocq: `Dialectica.tsub_ext`. -/
+/-- Rocq: `Analysis.Dialectica.tsub_ext`. -/
 theorem tsub_ext {ρ ρ' : Nat → Term} (h : ∀ i, ρ i = ρ' i) : ∀ M, tsub ρ M = tsub ρ' M
   | var i => h i
   | app A M N => congrArg₂ (app A) (tsub_ext h M) (tsub_ext h N)
@@ -91,7 +91,7 @@ theorem tsub_ext {ρ ρ' : Nat → Term} (h : ∀ i, ρ i = ρ' i) : ∀ M, tsub
   | P1c _ _ => rfl
   | P2c _ _ => rfl
 
-/-- Rocq: `Dialectica.tsub_comp`. -/
+/-- Rocq: `Analysis.Dialectica.tsub_comp`. -/
 theorem tsub_comp (σ ρ : Nat → Term) : ∀ M, tsub σ (tsub ρ M) = tsub (fun i => tsub σ (ρ i)) M
   | var _ => rfl
   | app A M N => congrArg₂ (app A) (tsub_comp σ ρ M) (tsub_comp σ ρ N)
@@ -104,12 +104,12 @@ theorem tsub_comp (σ ρ : Nat → Term) : ∀ M, tsub σ (tsub ρ M) = tsub (fu
   | P1c _ _ => rfl
   | P2c _ _ => rfl
 
-/-- Rocq: `Dialectica.tsub_num`. -/
+/-- Rocq: `Analysis.Dialectica.tsub_num`. -/
 theorem tsub_num (ρ : Nat → Term) : ∀ n, tsub ρ (num n) = num n
   | 0 => rfl
   | n + 1 => congrArg (app TN Suc) (tsub_num ρ n)
 
-/-- Rocq: `Dialectica.tsub_id`. -/
+/-- Rocq: `Analysis.Dialectica.tsub_id`. -/
 theorem tsub_id : ∀ M, tsub var M = M
   | var _ => rfl
   | app A M N => congrArg₂ (app A) (tsub_id M) (tsub_id N)
@@ -122,20 +122,20 @@ theorem tsub_id : ∀ M, tsub var M = M
   | P1c _ _ => rfl
   | P2c _ _ => rfl
 
-/-- Rocq: `Dialectica.prepend`. -/
+/-- Rocq: `Analysis.Dialectica.prepend`. -/
 def prepend {X : Type} : List X → (Nat → X) → Nat → X
   | [], f, i => f i
   | a :: _, _, 0 => a
   | _ :: l, f, i + 1 => prepend l f i
 
-/-- Rocq: `Dialectica.prepend_lt`. -/
+/-- Rocq: `Analysis.Dialectica.prepend_lt`. -/
 theorem prepend_lt {X : Type} : ∀ (l : List X) (f : Nat → X) (i : Nat) (d : X),
     i < l.length → prepend l f i = nthD l i d
   | [], _, _, _, h => absurd h (Nat.not_lt_zero _)
   | _ :: _, _, 0, _, _ => rfl
   | _ :: l, f, i + 1, d, h => prepend_lt l f i d (Nat.lt_of_succ_lt_succ h)
 
-/-- Rocq: `Dialectica.prepend_ge`. -/
+/-- Rocq: `Analysis.Dialectica.prepend_ge`. -/
 theorem prepend_ge {X : Type} : ∀ (l : List X) (f : Nat → X) (j : Nat), prepend l f (l.length + j) = f j
   | [], _, j => congrArg _ (Nat.zero_add j)
   | _ :: l, f, j => by
@@ -143,7 +143,7 @@ theorem prepend_ge {X : Type} : ∀ (l : List X) (f : Nat → X) (j : Nat), prep
     rw [Nat.add_right_comm]
     exact prepend_ge l f j
 
-/-- Rocq: `Dialectica.prepend_ge'`. -/
+/-- Rocq: `Analysis.Dialectica.prepend_ge'`. -/
 theorem prepend_ge' {X : Type} (l : List X) (f : Nat → X) (i : Nat) (h : l.length ≤ i) :
     prepend l f i = f (i - l.length) := by
   have e : l.length + (i - l.length) = i := by
@@ -152,7 +152,7 @@ theorem prepend_ge' {X : Type} (l : List X) (f : Nat → X) (i : Nat) (h : l.len
   rw [e] at this
   exact this
 
-/-- Rocq: `Dialectica.prepend_app`. -/
+/-- Rocq: `Analysis.Dialectica.prepend_app`. -/
 theorem prepend_app {X : Type} : ∀ (l1 l2 : List X) (f : Nat → X) (i : Nat),
     prepend (l1 ++ l2) f i = prepend l1 (prepend l2 f) i
   | [], _, _, _ => rfl
@@ -160,7 +160,7 @@ theorem prepend_app {X : Type} : ∀ (l1 l2 : List X) (f : Nat → X) (i : Nat),
   | _ :: l1, l2, f, i + 1 => prepend_app l1 l2 f i
 
 /-- Typing with a context that assigns a type to every variable.
-Rocq: `Dialectica.wt`. -/
+Rocq: `Analysis.Dialectica.wt`. -/
 inductive Wt (Γ : Nat → Ty) : Term → Ty → Prop where
   | var (i : Nat) : Wt Γ (var i) (Γ i)
   | K (A B : Ty) : Wt Γ (Kc A B) (TAr A (TAr B A))
@@ -173,10 +173,10 @@ inductive Wt (Γ : Nat → Ty) : Term → Ty → Prop where
   | P2 (A B : Ty) : Wt Γ (P2c A B) (TAr (TPr A B) B)
   | app (A B : Ty) (M N : Term) : Wt Γ M (TAr A B) → Wt Γ N A → Wt Γ (app A M N) B
 
-/-- Rocq: `Dialectica.wt_var'`. -/
+/-- Rocq: `Analysis.Dialectica.wt_var'`. -/
 theorem wt_var' {Γ : Nat → Ty} {i : Nat} {A : Ty} (h : Γ i = A) : Wt Γ (var i) A := h ▸ .var i
 
-/-- Rocq: `Dialectica.wt_tsub`. -/
+/-- Rocq: `Analysis.Dialectica.wt_tsub`. -/
 theorem wt_tsub {Γ Δ : Nat → Ty} {ρ : Nat → Term} {M : Term} {A : Ty} (h : Wt Γ M A)
     (hρ : ∀ i, Wt Δ (ρ i) (Γ i)) : Wt Δ (tsub ρ M) A := by
   induction h with
@@ -191,7 +191,7 @@ theorem wt_tsub {Γ Δ : Nat → Ty} {ρ : Nat → Term} {M : Term} {A : Ty} (h 
   | P2 => exact .P2 _ _
   | app _ _ _ _ _ _ ih1 ih2 => exact .app _ _ _ _ ih1 ih2
 
-/-- Rocq: `Dialectica.wt_typing`. -/
+/-- Rocq: `Analysis.Dialectica.wt_typing`. -/
 theorem wt_typing {Γ : Nat → Ty} {ρ : Nat → Term} {M : Term} {A : Ty} (h : Wt Γ M A)
     (hρ : ∀ i, Typing [] (ρ i) (Γ i)) : Typing [] (tsub ρ M) A := by
   induction h with
@@ -206,7 +206,7 @@ theorem wt_typing {Γ : Nat → Ty} {ρ : Nat → Term} {M : Term} {A : Ty} (h :
   | P2 => exact .P2 _ _
   | app _ _ _ _ _ _ ih1 ih2 => exact .app _ _ _ _ ih1 ih2
 
-/-- Rocq: `Dialectica.typing_wt`. -/
+/-- Rocq: `Analysis.Dialectica.typing_wt`. -/
 theorem typing_wt {M : Term} {A : Ty} (h : Typing [] M A) (Γ : Nat → Ty) : Wt Γ M A := by
   induction h with
   | var x _ hx => cases x <;> cases hx
@@ -220,14 +220,14 @@ theorem typing_wt {M : Term} {A : Ty} (h : Typing [] M A) (Γ : Nat → Ty) : Wt
   | P2 => exact .P2 _ _
   | app _ _ _ _ _ _ ih1 ih2 => exact .app _ _ _ _ ih1 ih2
 
-/-- Rocq: `Dialectica.typing_closed`. -/
+/-- Rocq: `Analysis.Dialectica.typing_closed`. -/
 theorem typing_closed {M : Term} {A : Ty} (h : Typing [] M A) (ρ : Nat → Term) : tsub ρ M = M := by
   induction h with
   | var x _ hx => cases x <;> cases hx
   | app _ _ _ _ _ _ ih1 ih2 => exact congrArg₂ (app _) ih1 ih2
   | _ => rfl
 
-/-- Rocq: `Dialectica.prepend_typing`. -/
+/-- Rocq: `Analysis.Dialectica.prepend_typing`. -/
 theorem prepend_typing {xs : List Term} {Ts : List Ty} {ns : Nat → Term} {f : Nat → Ty}
     (h : Forall2 (fun x T => Typing [] x T) xs Ts) (hn : ∀ j, Typing [] (ns j) (f j)) :
     ∀ i, Typing [] (prepend xs ns i) (prepend Ts f i) := by
@@ -241,7 +241,7 @@ theorem prepend_typing {xs : List Term} {Ts : List Ty} {ns : Nat → Term} {f : 
 
 /-! ## Bracket abstraction -/
 
-/-- Rocq: `Dialectica.infer`. -/
+/-- Rocq: `Analysis.Dialectica.infer`. -/
 def infer (Γ : Nat → Ty) : Term → Option Ty
   | var i => some (Γ i)
   | Kc A B => some (TAr A (TAr B A))
@@ -259,7 +259,7 @@ def infer (Γ : Nat → Ty) : Term → Option Ty
     | some (TPr _ _) => none
     | none => none
 
-/-- Rocq: `Dialectica.infer_wt`. -/
+/-- Rocq: `Analysis.Dialectica.infer_wt`. -/
 theorem infer_wt {Γ : Nat → Ty} {M : Term} {A : Ty} (h : Wt Γ M A) : infer Γ M = some A := by
   induction h with
   | app _ _ M _ _ _ ih _ =>
@@ -271,27 +271,27 @@ theorem infer_wt {Γ : Nat → Ty} {M : Term} {A : Ty} (h : Wt Γ M A) : infer �
     rw [ih]
   | _ => rfl
 
-/-- Rocq: `Dialectica.tyof`. -/
+/-- Rocq: `Analysis.Dialectica.tyof`. -/
 def tyof (Γ : Nat → Ty) (M : Term) : Ty :=
   match infer Γ M with
   | some A => A
   | none => TN
 
-/-- `Kt T A M = λ_:A. M`. Rocq: `Dialectica.Kt`. -/
+/-- `Kt T A M = λ_:A. M`. Rocq: `Analysis.Dialectica.Kt`. -/
 def Kt (T A : Ty) (M : Term) : Term := app T (Kc T A) M
 
-/-- The identity. Rocq: `Dialectica.It`. -/
+/-- The identity. Rocq: `Analysis.Dialectica.It`. -/
 def It (A : Ty) : Term :=
   app (TAr A (TAr A A)) (app (TAr A (TAr (TAr A A) A)) (Sc A (TAr A A) A) (Kc A (TAr A A))) (Kc A A)
 
-/-- Rocq: `Dialectica.rem`. -/
+/-- Rocq: `Analysis.Dialectica.rem`. -/
 def rem (j : Nat) (Γ : Nat → Ty) : Nat → Ty := fun i => if i < j then Γ i else Γ (i + 1)
 
-/-- Rocq: `Dialectica.ins`. -/
+/-- Rocq: `Analysis.Dialectica.ins`. -/
 def ins {X : Type} (j : Nat) (a : X) (f : Nat → X) : Nat → X :=
   fun i => if i < j then f i else if i = j then a else f (Nat.pred i)
 
-/-- `lamAt Γ j M` abstracts the variable `j` of `M`. Rocq: `Dialectica.lam_at`. -/
+/-- `lamAt Γ j M` abstracts the variable `j` of `M`. Rocq: `Analysis.Dialectica.lam_at`. -/
 def lamAt (Γ : Nat → Ty) (j : Nat) : Term → Term
   | var i => if i = j then It (Γ j) else Kt (Γ i) (Γ j) (var (if i < j then i else Nat.pred i))
   | app B P Q =>
@@ -306,15 +306,15 @@ def lamAt (Γ : Nat → Ty) (j : Nat) : Term → Term
   | P1c A B => Kt (tyof Γ (P1c A B)) (Γ j) (P1c A B)
   | P2c A B => Kt (tyof Γ (P2c A B)) (Γ j) (P2c A B)
 
-/-- Rocq: `Dialectica.wt_It`. -/
+/-- Rocq: `Analysis.Dialectica.wt_It`. -/
 theorem wt_It (Γ : Nat → Ty) (A : Ty) : Wt Γ (It A) (TAr A A) :=
   .app _ _ _ _ (.app _ _ _ _ (.S _ _ _) (.K _ _)) (.K _ _)
 
-/-- Rocq: `Dialectica.wt_Kt`. -/
+/-- Rocq: `Analysis.Dialectica.wt_Kt`. -/
 theorem wt_Kt {Γ : Nat → Ty} {T : Ty} (A : Ty) {M : Term} (h : Wt Γ M T) : Wt Γ (Kt T A M) (TAr A T) :=
   .app _ _ _ _ (.K _ _) h
 
-/-- Rocq: `Dialectica.wt_lam_at`. -/
+/-- Rocq: `Analysis.Dialectica.wt_lam_at`. -/
 theorem wt_lam_at {Γ : Nat → Ty} (j : Nat) {M : Term} {T : Ty} (h : Wt Γ M T) :
     Wt (rem j Γ) (lamAt Γ j M) (TAr (Γ j) T) := by
   induction h with
@@ -347,11 +347,11 @@ theorem wt_lam_at {Γ : Nat → Ty} (j : Nat) {M : Term} {T : Ty} (h : Wt Γ M T
     rw [e]
     exact .app _ _ _ _ (.app _ _ _ _ (.S _ _ _) ihM) ihN
 
-/-- Rocq: `Dialectica.star_It`. -/
+/-- Rocq: `Analysis.Dialectica.star_It`. -/
 theorem star_It (X A : Ty) (N : Term) : Star (app X (It A) N) N :=
   .step _ _ _ (.S _ _ _ _ _ _ _ _ _) (.step _ _ _ (.K _ _ _ _ _ _) (.refl _))
 
-/-- Rocq: `Dialectica.star_lam_at`. -/
+/-- Rocq: `Analysis.Dialectica.star_lam_at`. -/
 theorem star_lam_at (Γ : Nat → Ty) (j : Nat) : ∀ (M : Term) (ρ : Nat → Term) (X : Ty) (N : Term),
     Star (app X (tsub ρ (lamAt Γ j M)) N) (tsub (ins j N ρ) M)
   | var i, ρ, X, N => by
@@ -379,7 +379,7 @@ theorem star_lam_at (Γ : Nat → Ty) (j : Nat) : ∀ (M : Term) (ρ : Nat → T
   | P1c _ _, _, _, _ => star_one (.K _ _ _ _ _ _)
   | P2c _ _, _, _, _ => star_one (.K _ _ _ _ _ _)
 
-/-- Rocq: `Dialectica.star_tsub`. -/
+/-- Rocq: `Analysis.Dialectica.star_tsub`. -/
 theorem star_tsub {ρ ρ' : Nat → Term} (h : ∀ i, Star (ρ i) (ρ' i)) : ∀ M, Star (tsub ρ M) (tsub ρ' M)
   | var i => h i
   | app _ M N => star_app _ (star_tsub h M) (star_tsub h N)
@@ -396,22 +396,22 @@ theorem star_tsub {ρ ρ' : Nat → Term} (h : ∀ i, Star (ρ i) (ρ' i)) : ∀
 
 A closed term of type `N` is read as true when it reduces to `0`. -/
 
-/-- Rocq: `Dialectica.holds`. -/
+/-- Rocq: `Analysis.Dialectica.holds`. -/
 def Holds (M : Term) : Prop := Star M (num 0)
 
-/-- Rocq: `Dialectica.num_inj`. -/
+/-- Rocq: `Analysis.Dialectica.num_inj`. -/
 theorem num_inj {n m : Nat} (h : num n = num m) : n = m := num_inj' h
 
-/-- Rocq: `Dialectica.star_from_num`. -/
+/-- Rocq: `Analysis.Dialectica.star_from_num`. -/
 theorem star_from_num {n : Nat} {N : Term} (h : Star (num n) N) : N = num n :=
   star_normal (fun _ hs => num_normal n _ hs) h
 
-/-- Rocq: `Dialectica.star_num_unique`. -/
+/-- Rocq: `Analysis.Dialectica.star_num_unique`. -/
 theorem star_num_unique {M : Term} {n m : Nat} (h1 : Star M (num n)) (h2 : Star M (num m)) : n = m := by
   obtain ⟨P, hP1, hP2⟩ := confluence h1 h2
   exact num_inj ((star_from_num hP1).symm.trans (star_from_num hP2))
 
-/-- Rocq: `Dialectica.evals_star`. -/
+/-- Rocq: `Analysis.Dialectica.evals_star`. -/
 theorem evals_star {M M' : Term} {n : Nat} (h : Star M M') : Star M (num n) ↔ Star M' (num n) :=
   ⟨fun hn => by
     obtain ⟨P, hP1, hP2⟩ := confluence h hn
@@ -419,130 +419,130 @@ theorem evals_star {M M' : Term} {n : Nat} (h : Star M M') : Star M (num n) ↔ 
     exact hP1,
    fun hn => star_trans h hn⟩
 
-/-- Rocq: `Dialectica.holds_star`. -/
+/-- Rocq: `Analysis.Dialectica.holds_star`. -/
 theorem holds_star {M M' : Term} (h : Star M M') : Holds M ↔ Holds M' := evals_star h
 
-/-- Rocq: `Dialectica.T_eval`. -/
+/-- Rocq: `Analysis.Dialectica.T_eval`. -/
 theorem T_eval {M : Term} (h : Typing [] M TN) : ∃ n, Star M (num n) :=
   let ⟨n, hn, _⟩ := T_value h
   ⟨n, hn⟩
 
-/-- Rocq: `Dialectica.holds_dec`. -/
+/-- Rocq: `Analysis.Dialectica.holds_dec`. -/
 theorem holds_dec {M : Term} (h : Typing [] M TN) : Holds M ∨ ∃ m, Star M (num (m + 1)) :=
   match T_eval h with
   | ⟨0, h0⟩ => .inl h0
   | ⟨m + 1, hm⟩ => .inr ⟨m, hm⟩
 
-/-- Rocq: `Dialectica.not_holds`. -/
+/-- Rocq: `Analysis.Dialectica.not_holds`. -/
 theorem not_holds {M : Term} {m : Nat} (h : Star M (num (m + 1))) : ¬ Holds M := fun h' =>
   Nat.noConfusion (star_num_unique h h')
 
 /-! ## Pairs, definition by cases and arithmetic -/
 
-/-- Rocq: `Dialectica.tpair`. -/
+/-- Rocq: `Analysis.Dialectica.tpair`. -/
 def tpair (A B : Ty) (a b : Term) : Term := app B (app A (Pc A B) a) b
-/-- Rocq: `Dialectica.pi1`. -/
+/-- Rocq: `Analysis.Dialectica.pi1`. -/
 def pi1 (A B : Ty) (M : Term) : Term := app (TPr A B) (P1c A B) M
-/-- Rocq: `Dialectica.pi2`. -/
+/-- Rocq: `Analysis.Dialectica.pi2`. -/
 def pi2 (A B : Ty) (M : Term) : Term := app (TPr A B) (P2c A B) M
 
-/-- Rocq: `Dialectica.star_pi1`. -/
+/-- Rocq: `Analysis.Dialectica.star_pi1`. -/
 theorem star_pi1 (A B C D : Ty) (a b : Term) : Star (pi1 A B (tpair C D a b)) a :=
   star_one (.P1 _ _ _ _ _ _ _ _ _)
 
-/-- Rocq: `Dialectica.star_pi2`. -/
+/-- Rocq: `Analysis.Dialectica.star_pi2`. -/
 theorem star_pi2 (A B C D : Ty) (a b : Term) : Star (pi2 A B (tpair C D a b)) b :=
   star_one (.P2 _ _ _ _ _ _ _ _ _)
 
-/-- Rocq: `Dialectica.star_pi1'`. -/
+/-- Rocq: `Analysis.Dialectica.star_pi1'`. -/
 theorem star_pi1' (A B : Ty) {M a b : Term} {C D : Ty} (h : Star M (tpair C D a b)) :
     Star (pi1 A B M) a :=
   star_trans (star_app_r _ _ h) (star_pi1 _ _ _ _ _ _)
 
-/-- Rocq: `Dialectica.star_pi2'`. -/
+/-- Rocq: `Analysis.Dialectica.star_pi2'`. -/
 theorem star_pi2' (A B : Ty) {M a b : Term} {C D : Ty} (h : Star M (tpair C D a b)) :
     Star (pi2 A B M) b :=
   star_trans (star_app_r _ _ h) (star_pi2 _ _ _ _ _ _)
 
-/-- Rocq: `Dialectica.wt_tpair`. -/
+/-- Rocq: `Analysis.Dialectica.wt_tpair`. -/
 theorem wt_tpair {Γ : Nat → Ty} {A B : Ty} {a b : Term} (ha : Wt Γ a A) (hb : Wt Γ b B) :
     Wt Γ (tpair A B a b) (TPr A B) :=
   .app _ _ _ _ (.app _ _ _ _ (.P _ _) ha) hb
 
-/-- Rocq: `Dialectica.wt_pi1`. -/
+/-- Rocq: `Analysis.Dialectica.wt_pi1`. -/
 theorem wt_pi1 {Γ : Nat → Ty} {A B : Ty} {M : Term} (h : Wt Γ M (TPr A B)) : Wt Γ (pi1 A B M) A :=
   .app _ _ _ _ (.P1 _ _) h
 
-/-- Rocq: `Dialectica.wt_pi2`. -/
+/-- Rocq: `Analysis.Dialectica.wt_pi2`. -/
 theorem wt_pi2 {Γ : Nat → Ty} {A B : Ty} {M : Term} (h : Wt Γ M (TPr A B)) : Wt Γ (pi2 A B M) B :=
   .app _ _ _ _ (.P2 _ _) h
 
-/-- `cond σ z a b` is `a` if `z = 0`, and `b` otherwise. Rocq: `Dialectica.cond`. -/
+/-- `cond σ z a b` is `a` if `z = 0`, and `b` otherwise. Rocq: `Analysis.Dialectica.cond`. -/
 def cond (σ : Ty) (z a b : Term) : Term :=
   app (TAr TN (TAr σ σ)) (app σ (app TN (Rc σ) z) a) (Kt (TAr σ σ) TN (Kt σ σ b))
 
-/-- Rocq: `Dialectica.wt_cond`. -/
+/-- Rocq: `Analysis.Dialectica.wt_cond`. -/
 theorem wt_cond {Γ : Nat → Ty} {σ : Ty} {z a b : Term} (hz : Wt Γ z TN) (ha : Wt Γ a σ) (hb : Wt Γ b σ) :
     Wt Γ (cond σ z a b) σ :=
   .app _ _ _ _ (.app _ _ _ _ (.app _ _ _ _ (.R _) hz) ha) (wt_Kt _ (wt_Kt _ hb))
 
-/-- Rocq: `Dialectica.cond_0`. -/
+/-- Rocq: `Analysis.Dialectica.cond_0`. -/
 theorem cond_0 (σ : Ty) {z : Term} (a b : Term) (h : Star z (num 0)) : Star (cond σ z a b) a :=
   star_trans (star_app_l _ _ (star_app_l _ _ (star_app_r _ _ h))) (star_one (.R0 _ _ _ _ _ _ _ rfl))
 
-/-- Rocq: `Dialectica.cond_S`. -/
+/-- Rocq: `Analysis.Dialectica.cond_S`. -/
 theorem cond_S (σ : Ty) {z : Term} (a b : Term) {m : Nat} (h : Star z (num (m + 1))) :
     Star (cond σ z a b) b :=
   star_trans (star_app_l _ _ (star_app_l _ _ (star_app_r _ _ h)))
     (.step _ _ _ (.RS _ _ _ _ _ _ _ _ (isNum_num (m + 1)))
       (.step _ _ _ (.l _ _ _ _ (.K _ _ _ _ _ _)) (.step _ _ _ (.K _ _ _ _ _ _) (.refl _))))
 
-/-- Rocq: `Dialectica.recN`. -/
+/-- Rocq: `Analysis.Dialectica.recN`. -/
 def recN (y x g : Term) : Term := app (TAr TN (TAr TN TN)) (app TN (app TN (Rc TN) y) x) g
 
-/-- Rocq: `Dialectica.wt_recN`. -/
+/-- Rocq: `Analysis.Dialectica.wt_recN`. -/
 theorem wt_recN {Γ : Nat → Ty} {y x g : Term} (hy : Wt Γ y TN) (hx : Wt Γ x TN)
     (hg : Wt Γ g (TAr TN (TAr TN TN))) : Wt Γ (recN y x g) TN :=
   .app _ _ _ _ (.app _ _ _ _ (.app _ _ _ _ (.R _) hy) hx) hg
 
-/-- Rocq: `Dialectica.recN_star`. -/
+/-- Rocq: `Analysis.Dialectica.recN_star`. -/
 theorem recN_star {y y' x x' : Term} (g : Term) (hy : Star y y') (hx : Star x x') :
     Star (recN y x g) (recN y' x' g) :=
   star_app_l _ _ (star_app _ (star_app_r _ _ hy) hx)
 
-/-- Rocq: `Dialectica.recN_0`. -/
+/-- Rocq: `Analysis.Dialectica.recN_0`. -/
 theorem recN_0 (x g : Term) : Star (recN (num 0) x g) x := star_one (.R0 _ _ _ _ _ _ _ rfl)
 
-/-- Rocq: `Dialectica.recN_S`. -/
+/-- Rocq: `Analysis.Dialectica.recN_S`. -/
 theorem recN_S (n : Nat) (x f : Term) :
     Star (recN (num (n + 1)) x (Kt (TAr TN TN) TN f)) (app TN f (recN (num n) x (Kt (TAr TN TN) TN f))) :=
   .step _ _ _ (.RS _ _ _ _ _ _ _ _ (isNum_num (n + 1))) (.step _ _ _ (.l _ _ _ _ (.K _ _ _ _ _ _)) (.refl _))
 
-/-- Rocq: `Dialectica.addT`. -/
+/-- Rocq: `Analysis.Dialectica.addT`. -/
 def addT (x y : Term) : Term := recN y x (Kt (TAr TN TN) TN Suc)
 
-/-- Rocq: `Dialectica.TN0`. -/
+/-- Rocq: `Analysis.Dialectica.TN0`. -/
 def TN0 : Nat → Ty := fun _ => TN
 
-/-- `ADDR x w = w + x`. Rocq: `Dialectica.ADDR`. -/
+/-- `ADDR x w = w + x`. Rocq: `Analysis.Dialectica.ADDR`. -/
 def ADDR : Term := lamAt TN0 0 (lamAt TN0 0 (addT (var 0) (var 1)))
-/-- Rocq: `Dialectica.predT`. -/
+/-- Rocq: `Analysis.Dialectica.predT`. -/
 def predT (n : Term) : Term := recN n Zc (Kc TN TN)
-/-- `PREDF n = n - 1`. Rocq: `Dialectica.PREDF`. -/
+/-- `PREDF n = n - 1`. Rocq: `Analysis.Dialectica.PREDF`. -/
 def PREDF : Term := lamAt TN0 0 (predT (var 0))
 
-/-- Rocq: `Dialectica.mulT`. -/
+/-- Rocq: `Analysis.Dialectica.mulT`. -/
 def mulT (x y : Term) : Term := recN y Zc (Kt (TAr TN TN) TN (app TN ADDR x))
-/-- Rocq: `Dialectica.subT`. -/
+/-- Rocq: `Analysis.Dialectica.subT`. -/
 def subT (x y : Term) : Term := recN y x (Kt (TAr TN TN) TN PREDF)
-/-- Rocq: `Dialectica.eqT`. -/
+/-- Rocq: `Analysis.Dialectica.eqT`. -/
 def eqT (x y : Term) : Term := addT (subT x y) (subT y x)
 
-/-- Rocq: `Dialectica.wt_addT`. -/
+/-- Rocq: `Analysis.Dialectica.wt_addT`. -/
 theorem wt_addT {Γ : Nat → Ty} {x y : Term} (hx : Wt Γ x TN) (hy : Wt Γ y TN) : Wt Γ (addT x y) TN :=
   wt_recN hy hx (wt_Kt _ .Suc)
 
-/-- Rocq: `Dialectica.wt_ext`. -/
+/-- Rocq: `Analysis.Dialectica.wt_ext`. -/
 theorem wt_ext {Γ Δ : Nat → Ty} (E : ∀ i, Γ i = Δ i) {M : Term} {A : Ty} (h : Wt Γ M A) : Wt Δ M A := by
   induction h with
   | var i => exact wt_var' (E i).symm
@@ -556,95 +556,95 @@ theorem wt_ext {Γ Δ : Nat → Ty} (E : ∀ i, Γ i = Δ i) {M : Term} {A : Ty}
   | P2 => exact .P2 _ _
   | app _ _ _ _ _ _ ih1 ih2 => exact .app _ _ _ _ ih1 ih2
 
-/-- Closed terms typed in `TN0` are typed everywhere. Rocq: `Dialectica.wt_TN0_closed`. -/
+/-- Closed terms typed in `TN0` are typed everywhere. Rocq: `Analysis.Dialectica.wt_TN0_closed`. -/
 theorem wt_TN0_closed (Γ : Nat → Ty) {M : Term} {A : Ty} (h : Wt TN0 M A)
     (hc : ∀ ρ, tsub ρ M = M) : Wt Γ M A := by
   rw [← hc (fun _ => Zc)]
   exact typing_wt (wt_typing h (fun _ => .Z)) Γ
 
-/-- Rocq: `Dialectica.wt_ADDR`. -/
+/-- Rocq: `Analysis.Dialectica.wt_ADDR`. -/
 theorem wt_ADDR (Γ : Nat → Ty) : Wt Γ ADDR (TAr TN (TAr TN TN)) :=
   have h1 : Wt TN0 (addT (var 0) (var 1)) TN := wt_addT (wt_var' rfl) (wt_var' rfl)
   have h2 : Wt TN0 (lamAt TN0 0 (addT (var 0) (var 1))) (TAr TN TN) :=
     wt_ext (Γ := rem 0 TN0) (fun _ => rfl) (wt_lam_at 0 h1)
   wt_TN0_closed Γ (wt_ext (Γ := rem 0 TN0) (fun _ => rfl) (wt_lam_at 0 h2)) (fun _ => rfl)
 
-/-- Rocq: `Dialectica.wt_predT`. -/
+/-- Rocq: `Analysis.Dialectica.wt_predT`. -/
 theorem wt_predT {Γ : Nat → Ty} {n : Term} (h : Wt Γ n TN) : Wt Γ (predT n) TN :=
   wt_recN h .Z (.K _ _)
 
-/-- Rocq: `Dialectica.wt_PREDF`. -/
+/-- Rocq: `Analysis.Dialectica.wt_PREDF`. -/
 theorem wt_PREDF (Γ : Nat → Ty) : Wt Γ PREDF (TAr TN TN) :=
   have h1 : Wt TN0 (predT (var 0)) TN := wt_predT (wt_var' rfl)
   wt_TN0_closed Γ (wt_ext (Γ := rem 0 TN0) (fun _ => rfl) (wt_lam_at 0 h1)) (fun _ => rfl)
 
-/-- Rocq: `Dialectica.wt_mulT`. -/
+/-- Rocq: `Analysis.Dialectica.wt_mulT`. -/
 theorem wt_mulT {Γ : Nat → Ty} {x y : Term} (hx : Wt Γ x TN) (hy : Wt Γ y TN) : Wt Γ (mulT x y) TN :=
   wt_recN hy .Z (wt_Kt _ (.app _ _ _ _ (wt_ADDR Γ) hx))
 
-/-- Rocq: `Dialectica.wt_subT`. -/
+/-- Rocq: `Analysis.Dialectica.wt_subT`. -/
 theorem wt_subT {Γ : Nat → Ty} {x y : Term} (hx : Wt Γ x TN) (hy : Wt Γ y TN) : Wt Γ (subT x y) TN :=
   wt_recN hy hx (wt_Kt _ (wt_PREDF Γ))
 
-/-- Rocq: `Dialectica.wt_eqT`. -/
+/-- Rocq: `Analysis.Dialectica.wt_eqT`. -/
 theorem wt_eqT {Γ : Nat → Ty} {x y : Term} (hx : Wt Γ x TN) (hy : Wt Γ y TN) : Wt Γ (eqT x y) TN :=
   wt_addT (wt_subT hx hy) (wt_subT hy hx)
 
 /-! Their values. -/
 
-/-- Rocq: `Dialectica.addT_num`. -/
+/-- Rocq: `Analysis.Dialectica.addT_num`. -/
 theorem addT_num (m : Nat) : ∀ k, Star (addT (num m) (num k)) (num (m + k))
   | 0 => recN_0 _ _
   | k + 1 => star_trans (recN_S _ _ _) (star_app_r _ _ (addT_num m k))
 
-/-- Rocq: `Dialectica.addT_eval`. -/
+/-- Rocq: `Analysis.Dialectica.addT_eval`. -/
 theorem addT_eval {x y : Term} {m k : Nat} (hx : Star x (num m)) (hy : Star y (num k)) :
     Star (addT x y) (num (m + k)) :=
   star_trans (recN_star _ hy hx) (addT_num m k)
 
-/-- Rocq: `Dialectica.ADDR_eval`. -/
+/-- Rocq: `Analysis.Dialectica.ADDR_eval`. -/
 theorem ADDR_eval (X Y : Ty) (x w : Term) : Star (app X (app Y ADDR x) w) (addT w x) := by
   rw [← tsub_id ADDR]
   exact star_trans (star_app_l _ _ (star_lam_at TN0 0 _ var Y x))
     (star_lam_at TN0 0 (addT (var 0) (var 1)) (ins 0 x var) X w)
 
-/-- Rocq: `Dialectica.mulT_num`. -/
+/-- Rocq: `Analysis.Dialectica.mulT_num`. -/
 theorem mulT_num (m : Nat) : ∀ k, Star (mulT (num m) (num k)) (num (m * k))
   | 0 => recN_0 _ _
   | k + 1 => star_trans (recN_S _ _ _) (star_trans (ADDR_eval _ _ _ _)
       (addT_eval (mulT_num m k) (.refl _)))
 
-/-- Rocq: `Dialectica.mulT_eval`. -/
+/-- Rocq: `Analysis.Dialectica.mulT_eval`. -/
 theorem mulT_eval {x y : Term} {m k : Nat} (hx : Star x (num m)) (hy : Star y (num k)) :
     Star (mulT x y) (num (m * k)) :=
   star_trans (recN_star _ hy (.refl _))
     (star_trans (star_app_r _ _ (star_app_r _ _ (star_app_r _ _ hx))) (mulT_num m k))
 
-/-- Rocq: `Dialectica.predT_num`. -/
+/-- Rocq: `Analysis.Dialectica.predT_num`. -/
 theorem predT_num : ∀ n, Star (predT (num n)) (num (Nat.pred n))
   | 0 => recN_0 _ _
   | n + 1 => .step _ _ _ (.RS _ _ _ _ _ _ _ _ (isNum_num (n + 1))) (.step _ _ _ (.K _ _ _ _ _ _) (.refl _))
 
-/-- Rocq: `Dialectica.PREDF_eval`. -/
+/-- Rocq: `Analysis.Dialectica.PREDF_eval`. -/
 theorem PREDF_eval (X : Ty) {x : Term} {n : Nat} (h : Star x (num n)) :
     Star (app X PREDF x) (num (Nat.pred n)) := by
   rw [← tsub_id PREDF]
   exact star_trans (star_lam_at TN0 0 (predT (var 0)) var X x)
     (star_trans (recN_star _ h (.refl _)) (predT_num n))
 
-/-- Rocq: `Dialectica.subT_num`. -/
+/-- Rocq: `Analysis.Dialectica.subT_num`. -/
 theorem subT_num (m : Nat) : ∀ k, Star (subT (num m) (num k)) (num (m - k))
   | 0 => recN_0 _ _
   | k + 1 => by
     rw [Nat.sub_succ]
     exact star_trans (recN_S _ _ _) (PREDF_eval _ (subT_num m k))
 
-/-- Rocq: `Dialectica.subT_eval`. -/
+/-- Rocq: `Analysis.Dialectica.subT_eval`. -/
 theorem subT_eval {x y : Term} {m k : Nat} (hx : Star x (num m)) (hy : Star y (num k)) :
     Star (subT x y) (num (m - k)) :=
   star_trans (recN_star _ hy hx) (subT_num m k)
 
-/-- Rocq: `Dialectica.eqT_eval`. -/
+/-- Rocq: `Analysis.Dialectica.eqT_eval`. -/
 theorem eqT_eval {x y : Term} {m k : Nat} (hx : Star x (num m)) (hy : Star y (num k)) :
     ∃ d, Star (eqT x y) (num d) ∧ (d = 0 ↔ m = k) :=
   ⟨(m - k) + (k - m), addT_eval (subT_eval hx hy) (subT_eval hy hx),
@@ -653,7 +653,7 @@ theorem eqT_eval {x y : Term} {m k : Nat} (hx : Star x (num m)) (hy : Star y (nu
       Nat.le_antisymm (le_of_sub_eq_zero' h1) (le_of_sub_eq_zero' h2),
     fun h => by subst h; rw [sub_self']⟩
 
-/-- Arithmetic terms as terms of T. Rocq: `Dialectica.tr`. -/
+/-- Arithmetic terms as terms of T. Rocq: `Analysis.Dialectica.tr`. -/
 def tr : ATerm → Term
   | .tv i => var i
   | .tz => Zc
@@ -661,20 +661,20 @@ def tr : ATerm → Term
   | .tplus a b => addT (tr a) (tr b)
   | .tmult a b => mulT (tr a) (tr b)
 
-/-- Rocq: `Dialectica.tsub_addT`. -/
+/-- Rocq: `Analysis.Dialectica.tsub_addT`. -/
 theorem tsub_addT (ρ : Nat → Term) (x y : Term) : tsub ρ (addT x y) = addT (tsub ρ x) (tsub ρ y) := rfl
 
-/-- Rocq: `Dialectica.tsub_mulT`. -/
+/-- Rocq: `Analysis.Dialectica.tsub_mulT`. -/
 theorem tsub_mulT (ρ : Nat → Term) (x y : Term) : tsub ρ (mulT x y) = mulT (tsub ρ x) (tsub ρ y) := rfl
 
-/-- Rocq: `Dialectica.tsub_eqT`. -/
+/-- Rocq: `Analysis.Dialectica.tsub_eqT`. -/
 theorem tsub_eqT (ρ : Nat → Term) (x y : Term) : tsub ρ (eqT x y) = eqT (tsub ρ x) (tsub ρ y) := rfl
 
-/-- Rocq: `Dialectica.tsub_cond`. -/
+/-- Rocq: `Analysis.Dialectica.tsub_cond`. -/
 theorem tsub_cond (ρ : Nat → Term) (σ : Ty) (z a b : Term) :
     tsub ρ (cond σ z a b) = cond σ (tsub ρ z) (tsub ρ a) (tsub ρ b) := rfl
 
-/-- Rocq: `Dialectica.tr_asubst`. -/
+/-- Rocq: `Analysis.Dialectica.tr_asubst`. -/
 theorem tr_asubst (σ : Nat → ATerm) : ∀ t, tr (asubst σ t) = tsub (fun i => tr (σ i)) (tr t)
   | .tv _ => rfl
   | .tz => rfl
@@ -682,7 +682,7 @@ theorem tr_asubst (σ : Nat → ATerm) : ∀ t, tr (asubst σ t) = tsub (fun i =
   | .tplus a b => congrArg₂ addT (tr_asubst σ a) (tr_asubst σ b)
   | .tmult a b => congrArg₂ mulT (tr_asubst σ a) (tr_asubst σ b)
 
-/-- Rocq: `Dialectica.wt_tr`. -/
+/-- Rocq: `Analysis.Dialectica.wt_tr`. -/
 theorem wt_tr {Γ : Nat → Ty} (h : ∀ i, Γ i = TN) : ∀ t, Wt Γ (tr t) TN
   | .tv i => wt_var' (h i)
   | .tz => .Z
@@ -690,10 +690,10 @@ theorem wt_tr {Γ : Nat → Ty} (h : ∀ i, Γ i = TN) : ∀ t, Wt Γ (tr t) TN
   | .tplus a b => wt_addT (wt_tr h a) (wt_tr h b)
   | .tmult a b => wt_mulT (wt_tr h a) (wt_tr h b)
 
-/-- Rocq: `Dialectica.Ns`. -/
+/-- Rocq: `Analysis.Dialectica.Ns`. -/
 def Ns (ns : Nat → Term) : Prop := ∀ j, Typing [] (ns j) TN
 
-/-- Rocq: `Dialectica.typing_tr`. -/
+/-- Rocq: `Analysis.Dialectica.typing_tr`. -/
 theorem typing_tr {ns : Nat → Term} (t : ATerm) (h : Ns ns) : Typing [] (tsub ns (tr t)) TN :=
   wt_typing (Γ := TN0) (wt_tr (fun _ => rfl) t) h
 
@@ -705,7 +705,7 @@ counterexamples, and `dia A` the quantifier-free matrix `A_D`: a term of type
 variables `2 + j` the free number variables of `A`. -/
 
 mutual
-/-- Rocq: `Dialectica.wty`. -/
+/-- Rocq: `Analysis.Dialectica.wty`. -/
 def wty : Form → Ty
   | .eq _ _ => TN
   | .bot => TN
@@ -714,7 +714,7 @@ def wty : Form → Ty
   | .imp A B => TPr (TAr (wty A) (wty B)) (TAr (wty A) (TAr (cty B) (cty A)))
   | .all A => TAr TN (wty A)
   | .ex A => TPr TN (wty A)
-/-- Rocq: `Dialectica.cty`. -/
+/-- Rocq: `Analysis.Dialectica.cty`. -/
 def cty : Form → Ty
   | .eq _ _ => TN
   | .bot => TN
@@ -725,7 +725,7 @@ def cty : Form → Ty
   | .ex A => cty A
 end
 
-/-- Rocq: `Dialectica.wty_cty_subst`. -/
+/-- Rocq: `Analysis.Dialectica.wty_cty_subst`. -/
 theorem wty_cty_subst : ∀ (A : Form) (σ : Nat → ATerm), wty (fsubst σ A) = wty A ∧ cty (fsubst σ A) = cty A
   | .eq _ _, _ => ⟨rfl, rfl⟩
   | .bot, _ => ⟨rfl, rfl⟩
@@ -750,22 +750,22 @@ theorem wty_cty_subst : ∀ (A : Form) (σ : Nat → ATerm), wty (fsubst σ A) =
     rw [(wty_cty_subst A (up σ)).1]
     exact ⟨rfl, (wty_cty_subst A (up σ)).2⟩
 
-/-- Rocq: `Dialectica.wty_subst`. -/
+/-- Rocq: `Analysis.Dialectica.wty_subst`. -/
 theorem wty_subst (A : Form) (σ : Nat → ATerm) : wty (fsubst σ A) = wty A := (wty_cty_subst A σ).1
 
-/-- Rocq: `Dialectica.cty_subst`. -/
+/-- Rocq: `Analysis.Dialectica.cty_subst`. -/
 theorem cty_subst (A : Form) (σ : Nat → ATerm) : cty (fsubst σ A) = cty A := (wty_cty_subst A σ).2
 
-/-- Rocq: `Dialectica.dsub`. -/
+/-- Rocq: `Analysis.Dialectica.dsub`. -/
 def dsub {X : Type} (y x : X) (f : Nat → X) : Nat → X
   | 0 => y
   | 1 => x
   | j + 2 => f j
 
-/-- Rocq: `Dialectica.nvars`. -/
+/-- Rocq: `Analysis.Dialectica.nvars`. -/
 def nvars : Nat → Term := fun j => var (j + 2)
 
-/-- Rocq: `Dialectica.dia`. -/
+/-- Rocq: `Analysis.Dialectica.dia`. -/
 def dia : Form → Term
   | .eq s t => eqT (tsub nvars (tr s)) (tsub nvars (tr t))
   | .bot => num 1
@@ -793,7 +793,7 @@ def dia : Form → Term
   | .ex A =>
     tsub (dsub (var 0) (pi2 TN (wty A) (var 1)) (prepend [pi1 TN (wty A) (var 1)] nvars)) (dia A)
 
-/-- Rocq: `Dialectica.dctx`. -/
+/-- Rocq: `Analysis.Dialectica.dctx`. -/
 def dctx (A : Form) : Nat → Ty := dsub (cty A) (wty A) TN0
 
 theorem wt_dsub {Γ Δ : Nat → Ty} {Y X : Term} {F : Nat → Term} (hy : Wt Δ Y (Γ 0)) (hx : Wt Δ X (Γ 1))
@@ -802,7 +802,7 @@ theorem wt_dsub {Γ Δ : Nat → Ty} {Y X : Term} {F : Nat → Term} (hy : Wt Δ
   | 1 => hx
   | j + 2 => hf j
 
-/-- Rocq: `Dialectica.wt_dia`. -/
+/-- Rocq: `Analysis.Dialectica.wt_dia`. -/
 theorem wt_dia : ∀ A : Form, Wt (dctx A) (dia A) TN
   | .eq s t => wt_eqT (wt_tsub (wt_tr (Γ := TN0) (fun _ => rfl) s) (fun _ => wt_var' rfl))
       (wt_tsub (wt_tr (Γ := TN0) (fun _ => rfl) t) (fun _ => wt_var' rfl))
@@ -830,36 +830,36 @@ theorem wt_dia : ∀ A : Form, Wt (dctx A) (dia A) TN
 
 /-! ## Truth of the matrix on closed instances -/
 
-/-- Rocq: `Dialectica.Dsem`. -/
+/-- Rocq: `Analysis.Dialectica.Dsem`. -/
 def Dsem (A : Form) (x y : Term) (ns : Nat → Term) : Prop := Holds (tsub (dsub y x ns) (dia A))
 
-/-- Rocq: `Dialectica.DT`. -/
+/-- Rocq: `Analysis.Dialectica.DT`. -/
 def DT (A : Form) (x y : Term) (ns : Nat → Term) : Prop :=
   Typing [] x (wty A) ∧ Typing [] y (cty A) ∧ Ns ns
 
-/-- Rocq: `Dialectica.dia_typing`. -/
+/-- Rocq: `Analysis.Dialectica.dia_typing`. -/
 theorem dia_typing {A : Form} {x y : Term} {ns : Nat → Term} (h : DT A x y ns) :
     Typing [] (tsub (dsub y x ns) (dia A)) TN :=
   wt_typing (wt_dia A) (fun | 0 => h.2.1 | 1 => h.1 | j + 2 => h.2.2 j)
 
-/-- Rocq: `Dialectica.tsub_dsub`. -/
+/-- Rocq: `Analysis.Dialectica.tsub_dsub`. -/
 theorem tsub_dsub (σ : Nat → Term) (Y X : Term) (NF : Nat → Term) (M : Term) :
     tsub σ (tsub (dsub Y X NF) M) = tsub (dsub (tsub σ Y) (tsub σ X) (fun j => tsub σ (NF j))) M :=
   (tsub_comp _ _ _).trans (tsub_ext (ρ := fun i => tsub σ (dsub Y X NF i))
     (ρ' := dsub (tsub σ Y) (tsub σ X) (fun j => tsub σ (NF j))) (fun | 0 => rfl | 1 => rfl | _ + 2 => rfl) M)
 
-/-- Rocq: `Dialectica.Dsem_star`. -/
+/-- Rocq: `Analysis.Dialectica.Dsem_star`. -/
 theorem Dsem_star (A : Form) {x x' y y' : Term} {ns ns' : Nat → Term} (hx : Star x x') (hy : Star y y')
     (hn : ∀ j, Star (ns j) (ns' j)) : Dsem A x y ns ↔ Dsem A x' y' ns' :=
   holds_star (star_tsub (fun | 0 => hy | 1 => hx | j + 2 => hn j) _)
 
-/-- Rocq: `Dialectica.Dsem_ext`. -/
+/-- Rocq: `Analysis.Dialectica.Dsem_ext`. -/
 theorem Dsem_ext (A : Form) (x y : Term) {ns ns' : Nat → Term} (E : ∀ j, ns j = ns' j) :
     Dsem A x y ns ↔ Dsem A x y ns' := by
   unfold Dsem
   rw [tsub_ext (ρ := dsub y x ns) (ρ' := dsub y x ns') (fun | 0 => rfl | 1 => rfl | j + 2 => E j)]
 
-/-- Rocq: `Dialectica.holds_addT`. -/
+/-- Rocq: `Analysis.Dialectica.holds_addT`. -/
 theorem holds_addT {p q : Term} (hp : Typing [] p TN) (hq : Typing [] q TN) :
     Holds (addT p q) ↔ Holds p ∧ Holds q := by
   obtain ⟨m, hm⟩ := T_eval hp
@@ -872,7 +872,7 @@ theorem holds_addT {p q : Term} (hp : Typing [] p TN) (hq : Typing [] q TN) :
   · rw [star_num_unique hm h1, star_num_unique hk h2] at ha
     exact ha
 
-/-- Rocq: `Dialectica.holds_cond`. -/
+/-- Rocq: `Analysis.Dialectica.holds_cond`. -/
 theorem holds_cond {z : Term} (p q : Term) (hz : Typing [] z TN) :
     Holds (cond TN z p q) ↔ (Holds z ∧ Holds p) ∨ ((∃ m, Star z (num (m + 1))) ∧ Holds q) :=
   match holds_dec hz with
@@ -887,7 +887,7 @@ theorem holds_cond {z : Term} (p q : Term) (hz : Typing [] z TN) :
       | .inl ⟨h, _⟩ => absurd h (not_holds hm)
       | .inr ⟨_, h⟩ => hs.2 h⟩
 
-/-- Rocq: `Dialectica.holds_imp`. -/
+/-- Rocq: `Analysis.Dialectica.holds_imp`. -/
 theorem holds_imp {p : Term} (q : Term) (hp : Typing [] p TN) :
     Holds (cond TN p q Zc) ↔ (Holds p → Holds q) :=
   let hc := holds_cond q Zc hp
@@ -898,26 +898,26 @@ theorem holds_imp {p : Term} (q : Term) (hp : Typing [] p TN) :
     | .inl h0 => .inl ⟨h0, h h0⟩
     | .inr hm => .inr ⟨hm, .refl _⟩)⟩
 
-/-- Rocq: `Dialectica.typing_pi1`. -/
+/-- Rocq: `Analysis.Dialectica.typing_pi1`. -/
 theorem typing_pi1 {A B : Ty} {M : Term} (h : Typing [] M (TPr A B)) : Typing [] (pi1 A B M) A :=
   .app _ _ _ _ (.P1 _ _) h
 
-/-- Rocq: `Dialectica.typing_pi2`. -/
+/-- Rocq: `Analysis.Dialectica.typing_pi2`. -/
 theorem typing_pi2 {A B : Ty} {M : Term} (h : Typing [] M (TPr A B)) : Typing [] (pi2 A B M) B :=
   .app _ _ _ _ (.P2 _ _) h
 
-/-- Rocq: `Dialectica.Ns_cons`. -/
+/-- Rocq: `Analysis.Dialectica.Ns_cons`. -/
 theorem Ns_cons {z : Term} {ns : Nat → Term} (hz : Typing [] z TN) (hn : Ns ns) : Ns (prepend [z] ns)
   | 0 => hz
   | j + 1 => hn j
 
 /-! The clauses of the interpretation. -/
 
-/-- Rocq: `Dialectica.D_bot`. -/
+/-- Rocq: `Analysis.Dialectica.D_bot`. -/
 theorem D_bot (x y : Term) (ns : Nat → Term) : ¬ Dsem .bot x y ns := fun h =>
   not_holds (m := 0) (.refl _) h
 
-/-- Rocq: `Dialectica.D_eq`. -/
+/-- Rocq: `Analysis.Dialectica.D_eq`. -/
 theorem D_eq (s t : ATerm) (x y : Term) {ns : Nat → Term} (hn : Ns ns) :
     Dsem (.eq s t) x y ns ↔ ∃ m, Star (tsub ns (tr s)) (num m) ∧ Star (tsub ns (tr t)) (num m) := by
   unfold Dsem
@@ -936,7 +936,7 @@ theorem D_eq (s t : ATerm) (x y : Term) {ns : Nat → Term} (hn : Ns ns) :
     rw [Ed.2 rfl] at hd
     exact hd
 
-/-- Rocq: `Dialectica.D_and`. -/
+/-- Rocq: `Analysis.Dialectica.D_and`. -/
 theorem D_and (A B : Form) {x y : Term} {ns : Nat → Term} (h : DT (.conj A B) x y ns) :
     Dsem (.conj A B) x y ns ↔
       Dsem A (pi1 (wty A) (wty B) x) (pi1 (cty A) (cty B) y) ns ∧
@@ -948,7 +948,7 @@ theorem D_and (A B : Form) {x y : Term} {ns : Nat → Term} (h : DT (.conj A B) 
   exact holds_addT (dia_typing ⟨typing_pi1 hx, typing_pi1 hy, hn⟩)
     (dia_typing ⟨typing_pi2 hx, typing_pi2 hy, hn⟩)
 
-/-- Rocq: `Dialectica.D_or`. -/
+/-- Rocq: `Analysis.Dialectica.D_or`. -/
 theorem D_or (A B : Form) {x y : Term} {ns : Nat → Term} (h : DT (.disj A B) x y ns) :
     Dsem (.disj A B) x y ns ↔
       (Holds (pi1 TN (TPr (wty A) (wty B)) x) ∧
@@ -961,7 +961,7 @@ theorem D_or (A B : Form) {x y : Term} {ns : Nat → Term} (h : DT (.disj A B) x
   rw [tsub_dsub, tsub_dsub]
   exact holds_cond _ _ (typing_pi1 hx)
 
-/-- Rocq: `Dialectica.D_imp`. -/
+/-- Rocq: `Analysis.Dialectica.D_imp`. -/
 theorem D_imp (A B : Form) {x y : Term} {ns : Nat → Term} (h : DT (.imp A B) x y ns) :
     Dsem (.imp A B) x y ns ↔
       (Dsem A (pi1 (wty A) (cty B) y)
@@ -976,7 +976,7 @@ theorem D_imp (A B : Form) {x y : Term} {ns : Nat → Term} (h : DT (.imp A B) x
   exact holds_imp _ (dia_typing ⟨typing_pi1 hy,
     .app _ _ _ _ (.app _ _ _ _ (typing_pi2 hx) (typing_pi1 hy)) (typing_pi2 hy), hn⟩)
 
-/-- Rocq: `Dialectica.D_all`. -/
+/-- Rocq: `Analysis.Dialectica.D_all`. -/
 theorem D_all (A : Form) (x y : Term) (ns : Nat → Term) :
     Dsem (.all A) x y ns ↔
       Dsem A (app TN x (pi1 TN (cty A) y)) (pi2 TN (cty A) y) (prepend [pi1 TN (cty A) y] ns) := by
@@ -996,7 +996,7 @@ theorem D_all (A : Form) (x y : Term) (ns : Nat → Term) :
   show Holds (tsub _ (tsub _ (dia A))) ↔ _
   rw [e]
 
-/-- Rocq: `Dialectica.D_ex`. -/
+/-- Rocq: `Analysis.Dialectica.D_ex`. -/
 theorem D_ex (A : Form) (x y : Term) (ns : Nat → Term) :
     Dsem (.ex A) x y ns ↔ Dsem A (pi2 TN (wty A) x) y (prepend [pi1 TN (wty A) x] ns) := by
   have e : tsub (dsub y x ns) (tsub (dsub (var 0) (pi2 TN (wty A) (var 1))
@@ -1022,7 +1022,7 @@ theorem tsub_nvars_tr (y x : Term) (ns : Nat → Term) (σ : Nat → ATerm) (s :
   rfl
 
 /-- Substituting in the formula is substituting in the number variables.
-Rocq: `Dialectica.dia_subst`. -/
+Rocq: `Analysis.Dialectica.dia_subst`. -/
 theorem dia_subst : ∀ (A : Form) (σ : Nat → ATerm) (y x : Term) (ns : Nat → Term),
     tsub (dsub y x ns) (dia (fsubst σ A)) = tsub (dsub y x (fun j => tsub ns (tr (σ j)))) (dia A)
   | .eq s t, σ, y, x, ns => congrArg₂ eqT (tsub_nvars_tr y x ns σ s) (tsub_nvars_tr y x ns σ t)
@@ -1099,17 +1099,17 @@ theorem dia_subst : ∀ (A : Form) (σ : Nat → ATerm) (y x : Term) (ns : Nat �
       rw [tr_asubst, tsub_comp]
       rfl
 
-/-- Rocq: `Dialectica.D_subst`. -/
+/-- Rocq: `Analysis.Dialectica.D_subst`. -/
 theorem D_subst (A : Form) (σ : Nat → ATerm) (x y : Term) (ns : Nat → Term) :
     Dsem (fsubst σ A) x y ns ↔ Dsem A x y (fun j => tsub ns (tr (σ j))) := by
   unfold Dsem
   rw [dia_subst]
 
-/-- Rocq: `Dialectica.D_shift`. -/
+/-- Rocq: `Analysis.Dialectica.D_shift`. -/
 theorem D_shift (A : Form) (x y : Term) (ns : Nat → Term) :
     Dsem (fshift A) x y ns ↔ Dsem A x y (fun j => ns (j + 1)) := D_subst A _ x y ns
 
-/-- Rocq: `Dialectica.D_sub1`. -/
+/-- Rocq: `Analysis.Dialectica.D_sub1`. -/
 theorem D_sub1 (A : Form) (t : ATerm) (x y : Term) (ns : Nat → Term) :
     Dsem (sub1 A t) x y ns ↔ Dsem A x y (prepend [tsub ns (tr t)] ns) :=
   (D_subst A _ x y ns).trans (Dsem_ext A x y (fun | 0 => rfl | _ + 1 => rfl))
@@ -1126,19 +1126,19 @@ theorem length_map' {α β : Type} (f : α → β) : ∀ l : List α, (l.map f).
   | [] => rfl
   | _ :: l => congrArg (· + 1) (length_map' f l)
 
-/-- Rocq: `Dialectica.hctx`. -/
+/-- Rocq: `Analysis.Dialectica.hctx`. -/
 def hctx (Γ : List Form) : Nat → Ty := prepend (Γ.map wty) TN0
-/-- Rocq: `Dialectica.sctx`. -/
+/-- Rocq: `Analysis.Dialectica.sctx`. -/
 def sctx (A : Form) (Γ : List Form) : Nat → Ty := prepend (cty A :: Γ.map wty) TN0
 
-/-- Rocq: `Dialectica.XT`. -/
+/-- Rocq: `Analysis.Dialectica.XT`. -/
 def XT (Γ : List Form) (xs : List Term) : Prop := Forall2 (fun x B => Typing [] x (wty B)) xs Γ
 
-/-- Rocq: `Dialectica.Hyps`. -/
+/-- Rocq: `Analysis.Dialectica.Hyps`. -/
 def Hyps (Γ : List Form) (xs : List Term) (ys : Nat → Term) (ns : Nat → Term) : Prop :=
   ∀ i B, List.nthError Γ i = some B → Dsem B (nthD xs i Zc) (ys i) ns
 
-/-- Rocq: `Dialectica.Real`. -/
+/-- Rocq: `Analysis.Dialectica.Real`. -/
 def Real (Γ : List Form) (A : Form) : Prop :=
   ∃ (t : Term) (s : Nat → Term),
     Wt (hctx Γ) t (wty A) ∧
@@ -1147,11 +1147,11 @@ def Real (Γ : List Form) (A : Form) : Prop :=
       Hyps Γ xs (fun i => tsub (prepend (y :: xs) ns) (s i)) ns →
       Dsem A (tsub (prepend xs ns) t) y ns
 
-/-- Rocq: `Dialectica.XT_length`. -/
+/-- Rocq: `Analysis.Dialectica.XT_length`. -/
 theorem XT_length {Γ : List Form} {xs : List Term} (h : XT Γ xs) : xs.length = Γ.length :=
   Forall2.length_eq h
 
-/-- Rocq: `Dialectica.XT_nth`. -/
+/-- Rocq: `Analysis.Dialectica.XT_nth`. -/
 theorem XT_nth {Γ : List Form} {xs : List Term} (h : XT Γ xs) :
     ∀ {i B}, List.nthError Γ i = some B → Typing [] (nthD xs i Zc) (wty B) := by
   induction h with
@@ -1162,42 +1162,42 @@ theorem XT_nth {Γ : List Form} {xs : List Term} (h : XT Γ xs) :
     | zero => cases hB; exact hx
     | succ i => exact ih hB
 
-/-- Rocq: `Dialectica.XT_map`. -/
+/-- Rocq: `Analysis.Dialectica.XT_map`. -/
 theorem XT_map {Γ : List Form} {xs : List Term} (h : XT Γ xs) :
     Forall2 (fun x T => Typing [] x T) xs (Γ.map wty) := by
   induction h with
   | nil => exact .nil
   | cons hx _ ih => exact .cons hx ih
 
-/-- Rocq: `Dialectica.hctx_typed`. -/
+/-- Rocq: `Analysis.Dialectica.hctx_typed`. -/
 theorem hctx_typed {Γ : List Form} {xs : List Term} {ns : Nat → Term} (h : XT Γ xs) (hn : Ns ns) :
     ∀ i, Typing [] (prepend xs ns i) (hctx Γ i) :=
   prepend_typing (XT_map h) hn
 
-/-- Rocq: `Dialectica.sctx_typed`. -/
+/-- Rocq: `Analysis.Dialectica.sctx_typed`. -/
 theorem sctx_typed {A : Form} {Γ : List Form} {xs : List Term} {y : Term} {ns : Nat → Term}
     (h : XT Γ xs) (hy : Typing [] y (cty A)) (hn : Ns ns) :
     ∀ i, Typing [] (prepend (y :: xs) ns i) (sctx A Γ i)
   | 0 => hy
   | i + 1 => hctx_typed h hn i
 
-/-- Rocq: `Dialectica.hctx_nth`. -/
+/-- Rocq: `Analysis.Dialectica.hctx_nth`. -/
 theorem hctx_nth : ∀ {Γ : List Form} {i : Nat} {B : Form}, List.nthError Γ i = some B → hctx Γ i = wty B
   | _ :: _, 0, _, h => by cases h; rfl
   | _ :: Γ, i + 1, _, h => hctx_nth (Γ := Γ) h
 
-/-- Rocq: `Dialectica.hctx_ge`. -/
+/-- Rocq: `Analysis.Dialectica.hctx_ge`. -/
 theorem hctx_ge (Γ : List Form) {i : Nat} (h : Γ.length ≤ i) : hctx Γ i = TN := by
   unfold hctx
   rw [prepend_ge' _ _ _ (by rw [length_map']; exact h)]
   rfl
 
-/-- Rocq: `Dialectica.inst_t`. -/
+/-- Rocq: `Analysis.Dialectica.inst_t`. -/
 theorem inst_t {Γ : List Form} {t : Term} {T : Ty} {xs : List Term} {ns : Nat → Term}
     (h : Wt (hctx Γ) t T) (hx : XT Γ xs) (hn : Ns ns) : Typing [] (tsub (prepend xs ns) t) T :=
   wt_typing h (hctx_typed hx hn)
 
-/-- Rocq: `Dialectica.inst_s`. -/
+/-- Rocq: `Analysis.Dialectica.inst_s`. -/
 theorem inst_s {A : Form} {Γ : List Form} {s : Term} {T : Ty} {xs : List Term} {y : Term}
     {ns : Nat → Term} (h : Wt (sctx A Γ) s T) (hx : XT Γ xs) (hy : Typing [] y (cty A)) (hn : Ns ns) :
     Typing [] (tsub (prepend (y :: xs) ns) s) T :=
@@ -1205,17 +1205,17 @@ theorem inst_s {A : Form} {Γ : List Form} {s : Term} {T : Ty} {xs : List Term} 
 
 /-! Moving terms between the two kinds of context. -/
 
-/-- Rocq: `Dialectica.shs`. -/
+/-- Rocq: `Analysis.Dialectica.shs`. -/
 def shs : Nat → Term := fun i => var (i + 1)
-/-- Rocq: `Dialectica.ysub`. -/
+/-- Rocq: `Analysis.Dialectica.ysub`. -/
 def ysub (Y : Term) : Nat → Term := prepend [Y] shs
 
-/-- Rocq: `Dialectica.inst_shs`. -/
+/-- Rocq: `Analysis.Dialectica.inst_shs`. -/
 theorem inst_shs (y : Term) (xs : List Term) (ns : Nat → Term) (M : Term) :
     tsub (prepend (y :: xs) ns) (tsub shs M) = tsub (prepend xs ns) M := by
   rw [tsub_comp]; rfl
 
-/-- Rocq: `Dialectica.inst_ysub`. -/
+/-- Rocq: `Analysis.Dialectica.inst_ysub`. -/
 theorem inst_ysub (y : Term) (xs : List Term) (ns : Nat → Term) (Y M : Term) :
     tsub (prepend (y :: xs) ns) (tsub (ysub Y) M) = tsub (prepend (tsub (prepend (y :: xs) ns) Y :: xs) ns) M := by
   rw [tsub_comp]
@@ -1225,80 +1225,80 @@ theorem inst_ysub (y : Term) (xs : List Term) (ns : Nat → Term) (Y M : Term) :
   | 0 => rfl
   | _ + 1 => rfl
 
-/-- Rocq: `Dialectica.wt_shs`. -/
+/-- Rocq: `Analysis.Dialectica.wt_shs`. -/
 theorem wt_shs (A : Form) {Γ : List Form} {M : Term} {T : Ty} (h : Wt (hctx Γ) M T) :
     Wt (sctx A Γ) (tsub shs M) T :=
   wt_tsub h (fun _ => wt_var' rfl)
 
-/-- Rocq: `Dialectica.wt_ysub`. -/
+/-- Rocq: `Analysis.Dialectica.wt_ysub`. -/
 theorem wt_ysub {A A' : Form} {Γ : List Form} {Y M : Term} {T : Ty} (h : Wt (sctx A' Γ) M T)
     (hY : Wt (sctx A Γ) Y (cty A')) : Wt (sctx A Γ) (tsub (ysub Y) M) T :=
   wt_tsub h (fun | 0 => hY | _ + 1 => wt_var' rfl)
 
-/-- Rocq: `Dialectica.Hyps_star`. -/
+/-- Rocq: `Analysis.Dialectica.Hyps_star`. -/
 theorem Hyps_star (Γ : List Form) (xs : List Term) {ys ys' : Nat → Term} (ns : Nat → Term)
     (h : ∀ i, Star (ys i) (ys' i)) : Hyps Γ xs ys ns ↔ Hyps Γ xs ys' ns :=
   ⟨fun hh i B hB => (Dsem_star B (.refl _) (h i) (fun _ => .refl _)).1 (hh i B hB),
    fun hh i B hB => (Dsem_star B (.refl _) (h i) (fun _ => .refl _)).2 (hh i B hB)⟩
 
-/-- Rocq: `Dialectica.Hyps_ext`. -/
+/-- Rocq: `Analysis.Dialectica.Hyps_ext`. -/
 theorem Hyps_ext (Γ : List Form) (xs : List Term) {ys ys' : Nat → Term} (ns : Nat → Term)
     (h : ∀ i, ys i = ys' i) : Hyps Γ xs ys ns ↔ Hyps Γ xs ys' ns :=
   Hyps_star Γ xs ns (fun i => h i ▸ .refl _)
 
-/-- Default terms of every type. Rocq: `Dialectica.zero`. -/
+/-- Default terms of every type. Rocq: `Analysis.Dialectica.zero`. -/
 def zero : Ty → Term
   | TN => Zc
   | TAr A B => Kt B A (zero B)
   | TPr A B => tpair A B (zero A) (zero B)
 
-/-- Rocq: `Dialectica.wt_zero`. -/
+/-- Rocq: `Analysis.Dialectica.wt_zero`. -/
 theorem wt_zero (Γ : Nat → Ty) : ∀ T, Wt Γ (zero T) T
   | TN => .Z
   | TAr _ B => wt_Kt _ (wt_zero Γ B)
   | TPr A B => wt_tpair (wt_zero Γ A) (wt_zero Γ B)
 
-/-- Rocq: `Dialectica.tsub_zero`. -/
+/-- Rocq: `Analysis.Dialectica.tsub_zero`. -/
 theorem tsub_zero (ρ : Nat → Term) : ∀ T, tsub ρ (zero T) = zero T
   | TN => rfl
   | TAr A B => congrArg (app B (Kc B A)) (tsub_zero ρ B)
   | TPr A B => congrArg₂ (fun a b => app B (app A (Pc A B) a) b) (tsub_zero ρ A) (tsub_zero ρ B)
 
-/-- Rocq: `Dialectica.typing_zero`. -/
+/-- Rocq: `Analysis.Dialectica.typing_zero`. -/
 theorem typing_zero (T : Ty) : Typing [] (zero T) T := by
   have := wt_typing (wt_zero TN0 T) (ρ := fun _ => Zc) (fun _ => .Z)
   rw [tsub_zero] at this
   exact this
 
-/-- Rocq: `Dialectica.zeros`. -/
+/-- Rocq: `Analysis.Dialectica.zeros`. -/
 def zeros (Γ : List Form) : Nat → Term := fun i => zero (cty (nthD Γ i .bot))
 
-/-- Rocq: `Dialectica.nth_error_nth'`. -/
+/-- Rocq: `Analysis.Dialectica.nth_error_nth'`. -/
 theorem nthError_nthD : ∀ {Γ : List Form} {i : Nat} {B : Form}, List.nthError Γ i = some B → nthD Γ i .bot = B
   | _ :: _, 0, _, h => by cases h; rfl
   | _ :: Γ, i + 1, _, h => nthError_nthD (Γ := Γ) h
 
-/-- Rocq: `Dialectica.wt_zeros`. -/
+/-- Rocq: `Analysis.Dialectica.wt_zeros`. -/
 theorem wt_zeros (A : Form) {Γ : List Form} {i : Nat} {B : Form} (h : List.nthError Γ i = some B) :
     Wt (sctx A Γ) (zeros Γ i) (cty B) := by
   unfold zeros; rw [nthError_nthD h]; exact wt_zero _ _
 
 /-- Merging two lists of counterexamples: for each hypothesis, keep the first
 candidate if it refutes the hypothesis, and the second otherwise. This is
-where the matrices must be decidable. Rocq: `Dialectica.merge1`. -/
+where the matrices must be decidable. Rocq: `Analysis.Dialectica.merge1`. -/
 def merge1 (n : Nat) (B : Form) (i : Nat) (a b : Term) : Term :=
   cond (cty B) (tsub (dsub a (var (i + 1)) (fun j => var (n + j + 1))) (dia B)) b a
 
-/-- Rocq: `Dialectica.mergeS`. -/
+/-- Rocq: `Analysis.Dialectica.mergeS`. -/
 def mergeS (Γ : List Form) (a b : Nat → Term) : Nat → Term :=
   fun i => merge1 Γ.length (nthD Γ i .bot) i (a i) (b i)
 
-/-- Rocq: `Dialectica.nth_error_lt`. -/
+/-- Rocq: `Analysis.Dialectica.nth_error_lt`. -/
 theorem nthError_lt {X : Type} : ∀ {l : List X} {i : Nat} {a : X}, List.nthError l i = some a → i < l.length
   | _ :: _, 0, _, _ => Nat.zero_lt_succ _
   | _ :: l, _ + 1, _, h => Nat.succ_lt_succ (nthError_lt (l := l) h)
 
-/-- Rocq: `Dialectica.wt_mergeS`. -/
+/-- Rocq: `Analysis.Dialectica.wt_mergeS`. -/
 theorem wt_mergeS (A : Form) {Γ : List Form} {a b : Nat → Term} {i : Nat} {B : Form}
     (hB : List.nthError Γ i = some B) (ha : Wt (sctx A Γ) (a i) (cty B)) (hb : Wt (sctx A Γ) (b i) (cty B)) :
     Wt (sctx A Γ) (mergeS Γ a b i) (cty B) := by
@@ -1308,7 +1308,7 @@ theorem wt_mergeS (A : Form) {Γ : List Form} {a b : Nat → Term} {i : Nat} {B 
   show hctx Γ (Γ.length + j) = TN
   exact hctx_ge Γ (Nat.le_add_right _ _)
 
-/-- Rocq: `Dialectica.merge_sem`. -/
+/-- Rocq: `Analysis.Dialectica.merge_sem`. -/
 theorem merge_sem {Γ : List Form} {a b : Nat → Term} {xs : List Term} {y : Term} {ns : Nat → Term}
     (hx : XT Γ xs) (hn : Ns ns)
     (ha : ∀ i B, List.nthError Γ i = some B → Typing [] (tsub (prepend (y :: xs) ns) (a i)) (cty B))
@@ -1353,27 +1353,27 @@ theorem merge_sem {Γ : List Form} {a b : Nat → Term} {xs : List Term} {y : Te
       exact absurd ((Dsem_star B (.refl _) (cond_S _ _ _ hm) (fun _ => .refl _)).1 hiz) (not_holds hm)
   exact ⟨fun i B hB => (hboth i B hB).1, fun i B hB => (hboth i B hB).2⟩
 
-/-- Rocq: `Dialectica.Hyps_ext'`. -/
+/-- Rocq: `Analysis.Dialectica.Hyps_ext'`. -/
 theorem Hyps_ext' {Γ : List Form} {xs : List Term} {ys ys' : Nat → Term} {ns : Nat → Term}
     (h : Hyps Γ xs ys ns) (E : ∀ i, ys i = ys' i) : Hyps Γ xs ys' ns :=
   (Hyps_ext Γ xs ns E).1 h
 
-/-- Rocq: `Dialectica.Hyps_red`. -/
+/-- Rocq: `Analysis.Dialectica.Hyps_red`. -/
 theorem Hyps_red {Γ : List Form} {xs : List Term} {ys ys' : Nat → Term} {ns : Nat → Term}
     (h : Hyps Γ xs ys' ns) (E : ∀ i, Star (ys i) (ys' i)) : Hyps Γ xs ys ns :=
   (Hyps_star Γ xs ns E).2 h
 
-/-- Rocq: `Dialectica.Dsem_red`. -/
+/-- Rocq: `Analysis.Dialectica.Dsem_red`. -/
 theorem Dsem_red {A : Form} {x x' y y' : Term} {ns : Nat → Term} (hx : Star x x') (hy : Star y y')
     (h : Dsem A x' y' ns) : Dsem A x y ns :=
   (Dsem_star A hx hy (fun _ => .refl _)).2 h
 
-/-- Rocq: `Dialectica.Dsem_fwd`. -/
+/-- Rocq: `Analysis.Dialectica.Dsem_fwd`. -/
 theorem Dsem_fwd {A : Form} {x x' y y' : Term} {ns : Nat → Term} (hx : Star x x') (hy : Star y y')
     (h : Dsem A x y ns) : Dsem A x' y' ns :=
   (Dsem_star A hx hy (fun _ => .refl _)).1 h
 
-/-- Rocq: `Dialectica.XT_cons`. -/
+/-- Rocq: `Analysis.Dialectica.XT_cons`. -/
 theorem XT_cons {Γ : List Form} {xs : List Term} {A : Form} {x : Term} (hx : Typing [] x (wty A))
     (h : XT Γ xs) : XT (A :: Γ) (x :: xs) :=
   .cons hx h
@@ -1384,7 +1384,7 @@ theorem mem_nthError {A : Form} : ∀ {Γ : List Form}, A ∈ Γ → ∃ p, List
   | _ :: _, .head _ => ⟨0, rfl⟩
   | _ :: _, .tail _ h => let ⟨p, hp⟩ := mem_nthError h; ⟨p + 1, hp⟩
 
-/-- Rocq: `Dialectica.R_hyp`. -/
+/-- Rocq: `Analysis.Dialectica.R_hyp`. -/
 theorem R_hyp {Γ : List Form} {A : Form} (h : A ∈ Γ) : Real Γ A := by
   obtain ⟨p, hp⟩ := mem_nthError h
   refine ⟨var p, fun i => if i = p then var 0 else zeros Γ i, wt_var' (hctx_nth hp), ?_, ?_⟩
@@ -1406,7 +1406,7 @@ theorem R_hyp {Γ : List Form} {A : Form} (h : A ∈ Γ) : Real Γ A := by
     rw [prepend_lt xs ns p Zc (XT_length hx ▸ nthError_lt hp)]
     exact H
 
-/-- Rocq: `Dialectica.R_botE`. -/
+/-- Rocq: `Analysis.Dialectica.R_botE`. -/
 theorem R_botE {Γ : List Form} {A : Form} (h : Real Γ .bot) : Real Γ A := by
   obtain ⟨t, s, _, hs, H⟩ := h
   refine ⟨zero (wty A), fun i => tsub (ysub Zc) (s i), wt_zero _ _,
@@ -1415,7 +1415,7 @@ theorem R_botE {Γ : List Form} {A : Form} (h : Real Γ .bot) : Real Γ A := by
   refine absurd (H xs Zc ns hx .Z hn ?_) (D_bot _ _ _)
   exact Hyps_ext' hh (fun i => inst_ysub y xs ns Zc (s i))
 
-/-- Rocq: `Dialectica.R_andI`. -/
+/-- Rocq: `Analysis.Dialectica.R_andI`. -/
 theorem R_andI {Γ : List Form} {A B : Form} (h1 : Real Γ A) (h2 : Real Γ B) : Real Γ (.conj A B) := by
   obtain ⟨t1, s1, ht1, hs1, H1⟩ := h1
   obtain ⟨t2, s2, ht2, hs2, H2⟩ := h2
@@ -1437,7 +1437,7 @@ theorem R_andI {Γ : List Form} {A B : Form} (h1 : Real Γ A) (h2 : Real Γ B) :
   · refine Dsem_red (star_pi2 _ _ _ _ _ _) (.refl _) ?_
     exact H2 xs _ ns hx (typing_pi2 hy) hn (Hyps_ext' hhb (fun i => inst_ysub y xs ns _ (s2 i)))
 
-/-- Rocq: `Dialectica.R_andE1`. -/
+/-- Rocq: `Analysis.Dialectica.R_andE1`. -/
 theorem R_andE1 {Γ : List Form} {A B : Form} (h : Real Γ (.conj A B)) : Real Γ A := by
   obtain ⟨t, s, ht, hs, H⟩ := h
   refine ⟨pi1 (wty A) (wty B) t, fun i => tsub (ysub (tpair (cty A) (cty B) (var 0) (zero (cty B)))) (s i),
@@ -1451,7 +1451,7 @@ theorem R_andE1 {Γ : List Form} {A B : Form} (h : Real Γ (.conj A B)) : Real �
   have HD' := ((D_and A B ⟨inst_t ht hx hn, hy', hn⟩).1 HD).1
   exact Dsem_fwd (.refl _) (star_pi1 _ _ _ _ _ _) HD'
 
-/-- Rocq: `Dialectica.R_andE2`. -/
+/-- Rocq: `Analysis.Dialectica.R_andE2`. -/
 theorem R_andE2 {Γ : List Form} {A B : Form} (h : Real Γ (.conj A B)) : Real Γ B := by
   obtain ⟨t, s, ht, hs, H⟩ := h
   refine ⟨pi2 (wty A) (wty B) t, fun i => tsub (ysub (tpair (cty A) (cty B) (zero (cty A)) (var 0))) (s i),
@@ -1465,18 +1465,18 @@ theorem R_andE2 {Γ : List Form} {A B : Form} (h : Real Γ (.conj A B)) : Real �
   have HD' := ((D_and A B ⟨inst_t ht hx hn, hy', hn⟩).1 HD).2
   exact Dsem_fwd (.refl _) (star_pi2 _ _ _ _ _ _) HD'
 
-/-- Rocq: `Dialectica.ins0`. -/
+/-- Rocq: `Analysis.Dialectica.ins0`. -/
 theorem ins0 {X : Type} (a : X) (f : Nat → X) : ∀ i, ins 0 a f i = prepend [a] f i
   | 0 => rfl
   | _ + 1 => rfl
 
-/-- Rocq: `Dialectica.inst_ysub_eq`. -/
+/-- Rocq: `Analysis.Dialectica.inst_ysub_eq`. -/
 theorem inst_ysub_eq {y : Term} {xs : List Term} {ns : Nat → Term} {Y Y' : Term} (M : Term)
     (h : tsub (prepend (y :: xs) ns) Y = Y') :
     tsub (prepend (y :: xs) ns) (tsub (ysub Y) M) = tsub (prepend (Y' :: xs) ns) M := by
   rw [inst_ysub, h]
 
-/-- Rocq: `Dialectica.R_orI1`. -/
+/-- Rocq: `Analysis.Dialectica.R_orI1`. -/
 theorem R_orI1 {Γ : List Form} {A B : Form} (h : Real Γ A) : Real Γ (.disj A B) := by
   obtain ⟨t, s, ht, hs, H⟩ := h
   refine ⟨tpair TN (TPr (wty A) (wty B)) Zc (tpair (wty A) (wty B) t (zero (wty B))),
@@ -1493,7 +1493,7 @@ theorem R_orI1 {Γ : List Form} {A B : Form} (h : Real Γ A) : Real Γ (.disj A 
   refine Dsem_red (star_pi1' _ _ (star_pi2 _ _ _ _ _ _)) (.refl _) ?_
   exact H xs _ ns hx (typing_pi1 hy) hn (Hyps_ext' hh (fun i => inst_ysub_eq _ rfl))
 
-/-- Rocq: `Dialectica.R_orI2`. -/
+/-- Rocq: `Analysis.Dialectica.R_orI2`. -/
 theorem R_orI2 {Γ : List Form} {A B : Form} (h : Real Γ B) : Real Γ (.disj A B) := by
   obtain ⟨t, s, ht, hs, H⟩ := h
   refine ⟨tpair TN (TPr (wty A) (wty B)) (num 1) (tpair (wty A) (wty B) (zero (wty A)) t),
@@ -1512,14 +1512,14 @@ theorem R_orI2 {Γ : List Form} {A B : Form} (h : Real Γ B) : Real Γ (.disj A 
   refine Dsem_red (star_pi2' _ _ (star_pi2 _ _ _ _ _ _)) (.refl _) ?_
   exact H xs _ ns hx (typing_pi2 hy) hn (Hyps_ext' hh (fun i => inst_ysub_eq _ rfl))
 
-/-- Rocq: `Dialectica.Hyps_cons`. -/
+/-- Rocq: `Analysis.Dialectica.Hyps_cons`. -/
 theorem Hyps_cons {A : Form} {Γ : List Form} {x : Term} {xs : List Term} {ys : Nat → Term}
     {ns : Nat → Term} (h0 : Dsem A x (ys 0) ns) (h : Hyps Γ xs (fun i => ys (i + 1)) ns) :
     Hyps (A :: Γ) (x :: xs) ys ns
   | 0, _, hB => by cases hB; exact h0
   | i + 1, B, hB => h i B hB
 
-/-- Rocq: `Dialectica.R_impI`. -/
+/-- Rocq: `Analysis.Dialectica.R_impI`. -/
 theorem R_impI {Γ : List Form} {A B : Form} (h : Real (A :: Γ) B) : Real Γ (.imp A B) := by
   obtain ⟨t, s, ht, hs, H⟩ := h
   let FA := TAr (wty A) (wty B)
@@ -1577,7 +1577,7 @@ theorem R_impI {Γ : List Form} {A B : Form} (h : Real (A :: Γ) B) : Real Γ (.
     | 1 => rfl
     | _ + 2 => rfl
 
-/-- Rocq: `Dialectica.R_impE`. -/
+/-- Rocq: `Analysis.Dialectica.R_impE`. -/
 theorem R_impE {Γ : List Form} {A B : Form} (h1 : Real Γ (.imp A B)) (h2 : Real Γ A) : Real Γ B := by
   obtain ⟨t1, s1, ht1, hs1, H1⟩ := h1
   obtain ⟨t2, s2, ht2, hs2, H2⟩ := h2
@@ -1614,10 +1614,10 @@ theorem R_impE {Γ : List Form} {A B : Form} (h1 : Real Γ (.imp A B)) (h2 : Rea
 
 /-! Context maps for a hypothesis added at the front. -/
 
-/-- Rocq: `Dialectica.xsub`. -/
+/-- Rocq: `Analysis.Dialectica.xsub`. -/
 def xsub (X : Term) : Nat → Term := prepend [var 0, tsub shs X] shs
 
-/-- Rocq: `Dialectica.inst_xsub`. -/
+/-- Rocq: `Analysis.Dialectica.inst_xsub`. -/
 theorem inst_xsub (y : Term) (xs : List Term) (ns : Nat → Term) (X M : Term) :
     tsub (prepend (y :: xs) ns) (tsub (xsub X) M) = tsub (prepend (y :: tsub (prepend xs ns) X :: xs) ns) M := by
   rw [tsub_comp]
@@ -1628,12 +1628,12 @@ theorem inst_xsub (y : Term) (xs : List Term) (ns : Nat → Term) (X M : Term) :
   | 1 => exact inst_shs y xs ns X
   | _ + 2 => rfl
 
-/-- Rocq: `Dialectica.wt_xsub`. -/
+/-- Rocq: `Analysis.Dialectica.wt_xsub`. -/
 theorem wt_xsub {C D : Form} {Γ : List Form} {X M : Term} {T : Ty} (h : Wt (sctx C (D :: Γ)) M T)
     (hX : Wt (hctx Γ) X (wty D)) : Wt (sctx C Γ) (tsub (xsub X) M) T :=
   wt_tsub h (fun | 0 => wt_var' rfl | 1 => wt_shs _ hX | _ + 2 => wt_var' rfl)
 
-/-- Rocq: `Dialectica.inst_hsub`. -/
+/-- Rocq: `Analysis.Dialectica.inst_hsub`. -/
 theorem inst_hsub (xs : List Term) (ns : Nat → Term) (X M : Term) :
     tsub (prepend xs ns) (tsub (prepend [X] var) M) = tsub (prepend (tsub (prepend xs ns) X :: xs) ns) M := by
   rw [tsub_comp]
@@ -1643,12 +1643,12 @@ theorem inst_hsub (xs : List Term) (ns : Nat → Term) (X M : Term) :
   | 0 => rfl
   | _ + 1 => rfl
 
-/-- Rocq: `Dialectica.wt_hsub`. -/
+/-- Rocq: `Analysis.Dialectica.wt_hsub`. -/
 theorem wt_hsub {D : Form} {Γ : List Form} {X M : Term} {T : Ty} (h : Wt (hctx (D :: Γ)) M T)
     (hX : Wt (hctx Γ) X (wty D)) : Wt (hctx Γ) (tsub (prepend [X] var) M) T :=
   wt_tsub h (fun | 0 => hX | _ + 1 => wt_var' rfl)
 
-/-- Rocq: `Dialectica.R_orE`. -/
+/-- Rocq: `Analysis.Dialectica.R_orE`. -/
 theorem R_orE {Γ : List Form} {A B C : Form} (h0 : Real Γ (.disj A B)) (h1 : Real (A :: Γ) C)
     (h2 : Real (B :: Γ) C) : Real Γ C := by
   obtain ⟨t0, s0, ht0, hs0, H0⟩ := h0
@@ -1714,7 +1714,7 @@ theorem R_orE {Γ : List Form} {A B C : Form} (h0 : Real Γ (.disj A B)) (h1 : R
 
 /-! Inserting a number variable after the hypotheses. -/
 
-/-- Rocq: `Dialectica.prepend_lt_indep`. -/
+/-- Rocq: `Analysis.Dialectica.prepend_lt_indep`. -/
 theorem prepend_lt_indep {X : Type} : ∀ (xs : List X) (f g : Nat → X) (k : Nat), k < xs.length →
     prepend xs f k = prepend xs g k
   | [], _, _, _, h => absurd h (Nat.not_lt_zero _)
@@ -1738,7 +1738,7 @@ theorem ins_spec {X : Type} (n : Nat) (a : X) (f : Nat → X) (k : Nat) :
     · obtain ⟨j, rfl⟩ := exists_add_of_lt (Nat.lt_of_le_of_ne (Nat.le_of_not_lt h1) (fun e => h2 e.symm))
       exact .inr (.inr ⟨j, rfl, (ite_eq_right h1).trans (ite_eq_right h2)⟩)
 
-/-- Rocq: `Dialectica.ins_prepend`. -/
+/-- Rocq: `Analysis.Dialectica.ins_prepend`. -/
 theorem ins_prepend {X : Type} (xs : List X) (ns : Nat → X) (a : X) (k : Nat) :
     ins xs.length a (prepend xs ns) k = prepend xs (prepend [a] ns) k := by
   rcases ins_spec xs.length a (prepend xs ns) k with ⟨h, e⟩ | ⟨rfl, e⟩ | ⟨j, rfl, e⟩
@@ -1746,7 +1746,7 @@ theorem ins_prepend {X : Type} (xs : List X) (ns : Nat → X) (a : X) (k : Nat) 
   · rw [e]; exact (prepend_ge xs (prepend [a] ns) 0).symm
   · rw [e, prepend_ge]; exact (prepend_ge xs (prepend [a] ns) (j + 1)).symm
 
-/-- Rocq: `Dialectica.tsub_ins`. -/
+/-- Rocq: `Analysis.Dialectica.tsub_ins`. -/
 theorem tsub_ins (ρ : Nat → Term) (n : Nat) (a : Term) (f : Nat → Term) (k : Nat) :
     tsub ρ (ins n a f k) = ins n (tsub ρ a) (fun k => tsub ρ (f k)) k := by
   show tsub ρ (if k < n then f k else if k = n then a else f (Nat.pred k)) =
@@ -1757,14 +1757,14 @@ theorem tsub_ins (ρ : Nat → Term) (n : Nat) (a : Term) (f : Nat → Term) (k 
     · rw [ite_eq_right h1, ite_eq_right h1, ite_eq_left h2, ite_eq_left h2]
     · rw [ite_eq_right h1, ite_eq_right h1, ite_eq_right h2, ite_eq_right h2]
 
-/-- Rocq: `Dialectica.ins_ext`. -/
+/-- Rocq: `Analysis.Dialectica.ins_ext`. -/
 theorem ins_ext {X : Type} (n : Nat) (a : X) {f g : Nat → X} (h : ∀ k, f k = g k) (k : Nat) :
     ins n a f k = ins n a g k := by
   show (if k < n then f k else if k = n then a else f (Nat.pred k)) =
     (if k < n then g k else if k = n then a else g (Nat.pred k))
   rw [h k, h (Nat.pred k)]
 
-/-- Rocq: `Dialectica.wt_ins`. -/
+/-- Rocq: `Analysis.Dialectica.wt_ins`. -/
 theorem wt_ins {Δ Γ : Nat → Ty} {n : Nat} {a : Term} {f : Nat → Term}
     (h1 : ∀ k, k < n → Wt Δ (f k) (Γ k)) (h2 : Wt Δ a (Γ n))
     (h3 : ∀ j, Wt Δ (f (n + j)) (Γ (n + j + 1))) : ∀ k, Wt Δ (ins n a f k) (Γ k) := by
@@ -1774,23 +1774,23 @@ theorem wt_ins {Δ Γ : Nat → Ty} {n : Nat} {a : Term} {f : Nat → Term}
   · rw [e]; exact h2
   · rw [e]; exact h3 j
 
-/-- Rocq: `Dialectica.hctx_shift`. -/
+/-- Rocq: `Analysis.Dialectica.hctx_shift`. -/
 theorem hctx_shift (Γ : List Form) : hctx (Γ.map fshift) = hctx Γ := by
   unfold hctx
   rw [map_map, map_ext (f := fun x => wty (fshift x)) (g := wty) (fun A => wty_subst A shiftSub) Γ]
 
-/-- Rocq: `Dialectica.sctx_shift`. -/
+/-- Rocq: `Analysis.Dialectica.sctx_shift`. -/
 theorem sctx_shift (A : Form) (Γ : List Form) : sctx A (Γ.map fshift) = sctx A Γ := by
   unfold sctx
   rw [map_map, map_ext (f := fun x => wty (fshift x)) (g := wty) (fun A => wty_subst A shiftSub) Γ]
 
-/-- Rocq: `Dialectica.XT_shift`. -/
+/-- Rocq: `Analysis.Dialectica.XT_shift`. -/
 theorem XT_shift {Γ : List Form} {xs : List Term} (h : XT Γ xs) : XT (Γ.map fshift) xs := by
   induction h with
   | nil => exact .nil
   | cons hx _ ih => exact .cons (by show Typing [] _ (wty (fshift _)); rw [fshift, wty_subst]; exact hx) ih
 
-/-- Rocq: `Dialectica.XT_unshift`. -/
+/-- Rocq: `Analysis.Dialectica.XT_unshift`. -/
 theorem XT_unshift : ∀ {Γ : List Form} {xs : List Term}, XT (Γ.map fshift) xs → XT Γ xs
   | [], _, h => by cases h; exact .nil
   | _ :: _, _, h => by
@@ -1801,24 +1801,24 @@ theorem XT_unshift : ∀ {Γ : List Form} {xs : List Term}, XT (Γ.map fshift) x
       rw [wty_subst] at hx'
       exact hx'
 
-/-- Rocq: `Dialectica.nth_error_shift`. -/
+/-- Rocq: `Analysis.Dialectica.nth_error_shift`. -/
 theorem nthError_shift : ∀ {Γ : List Form} {i : Nat} {D : Form}, List.nthError (Γ.map fshift) i = some D →
     ∃ D', D = fshift D' ∧ List.nthError Γ i = some D'
   | _ :: _, 0, _, h => by cases h; exact ⟨_, rfl, rfl⟩
   | _ :: Γ, i + 1, _, h => nthError_shift (Γ := Γ) (i := i) h
 
-/-- Rocq: `Dialectica.nth_error_shift'`. -/
+/-- Rocq: `Analysis.Dialectica.nth_error_shift'`. -/
 theorem nthError_shift' : ∀ {Γ : List Form} {i : Nat} {D : Form}, List.nthError Γ i = some D →
     List.nthError (Γ.map fshift) i = some (fshift D)
   | _ :: _, 0, _, h => by cases h; rfl
   | _ :: Γ, i + 1, _, h => nthError_shift' (Γ := Γ) (i := i) h
 
-/-- Rocq: `Dialectica.D_shift1`. -/
+/-- Rocq: `Analysis.Dialectica.D_shift1`. -/
 theorem D_shift1 (A : Form) (x y z : Term) (ns : Nat → Term) :
     Dsem (fshift A) x y (prepend [z] ns) ↔ Dsem A x y ns :=
   (D_shift A x y _).trans (Dsem_ext A x y (fun _ => rfl))
 
-/-- Rocq: `Dialectica.Ns_star`. -/
+/-- Rocq: `Analysis.Dialectica.Ns_star`. -/
 theorem Ns_star (ns : Nat → Term) {z z' : Term} (h : Star z z') :
     ∀ j, Star (prepend [z] ns j) (prepend [z'] ns j)
   | 0 => h
@@ -1830,7 +1830,7 @@ theorem rem_hctx (Γ : List Form) (k : Nat) : rem Γ.length (hctx Γ) k = hctx �
   · refine (ite_eq_right h).trans ?_
     rw [hctx_ge Γ (Nat.le_succ_of_le (Nat.le_of_not_lt h)), hctx_ge Γ (Nat.le_of_not_lt h)]
 
-/-- Rocq: `Dialectica.R_allI`. -/
+/-- Rocq: `Analysis.Dialectica.R_allI`. -/
 theorem R_allI {Γ : List Form} {A : Form} (h : Real (Γ.map fshift) A) : Real Γ (.all A) := by
   obtain ⟨t, s, ht, hs, H⟩ := h
   rw [hctx_shift] at ht
@@ -1886,12 +1886,12 @@ theorem R_allI {Γ : List Form} {A : Form} (h : Real (Γ.map fshift) A) : Real �
     rw [e2] at hhi'
     exact hhi'
 
-/-- Rocq: `Dialectica.wt_tr_at`. -/
+/-- Rocq: `Analysis.Dialectica.wt_tr_at`. -/
 theorem wt_tr_at {Γ : Nat → Ty} {k : Nat} (h : ∀ j, Γ (k + j) = TN) (t : ATerm) :
     Wt Γ (tsub (fun j => var (k + j)) (tr t)) TN :=
   wt_tsub (wt_tr (Γ := TN0) (fun _ => rfl) t) (fun j => wt_var' (h j))
 
-/-- Rocq: `Dialectica.inst_tr_at`. -/
+/-- Rocq: `Analysis.Dialectica.inst_tr_at`. -/
 theorem inst_tr_at (xs : List Term) (ns : Nat → Term) (t : ATerm) :
     tsub (prepend xs ns) (tsub (fun j => var (xs.length + j)) (tr t)) = tsub ns (tr t) := by
   rw [tsub_comp]
@@ -1906,7 +1906,7 @@ theorem inst_tr_at' (y : Term) (xs : List Term) (ns : Nat → Term) (t : ATerm) 
   intro j
   exact prepend_ge xs ns j
 
-/-- Rocq: `Dialectica.R_allE`. -/
+/-- Rocq: `Analysis.Dialectica.R_allE`. -/
 theorem R_allE {Γ : List Form} {A : Form} (r : ATerm) (h : Real Γ (.all A)) : Real Γ (sub1 A r) := by
   obtain ⟨t, s, ht, hs, H⟩ := h
   have hrt : Wt (hctx Γ) (tsub (fun j => var (Γ.length + j)) (tr r)) TN :=
@@ -1941,7 +1941,7 @@ theorem R_allE {Γ : List Form} {A : Form} (r : ATerm) (h : Real Γ (.all A)) : 
     exact (Dsem_star A (star_app_r _ _ (star_pi1 _ _ _ _ _ _)) (star_pi2 _ _ _ _ _ _)
       (Ns_star ns (star_pi1 _ _ _ _ _ _))).1 HA'
 
-/-- Rocq: `Dialectica.R_exI`. -/
+/-- Rocq: `Analysis.Dialectica.R_exI`. -/
 theorem R_exI {Γ : List Form} {A : Form} (r : ATerm) (h : Real Γ (sub1 A r)) : Real Γ (.ex A) := by
   obtain ⟨t, s, ht, hs, H⟩ := h
   have hrt : Wt (hctx Γ) (tsub (fun j => var (Γ.length + j)) (tr r)) TN :=
@@ -1968,7 +1968,7 @@ theorem R_exI {Γ : List Form} {A : Form} (r : ATerm) (h : Real Γ (sub1 A r)) :
       rw [Ert]; exact star_pi1 _ _ _ _ _ _
     | _ + 1 => exact .refl _
 
-/-- Rocq: `Dialectica.R_exE`. -/
+/-- Rocq: `Analysis.Dialectica.R_exE`. -/
 theorem R_exE {Γ : List Form} {A B : Form} (h0 : Real Γ (.ex A)) (h1 : Real (A :: Γ.map fshift) (fshift B)) :
     Real Γ B := by
   obtain ⟨t0, s0, ht0, hs0, H0⟩ := h0
@@ -2064,26 +2064,26 @@ theorem R_exE {Γ : List Form} {A B : Form} (h0 : Real Γ (.ex A)) (h1 : Real (A
     rw [Eτ] at hsi
     exact hsi
 
-/-- Axioms with trivial realizers. Rocq: `Dialectica.R_axiom`. -/
+/-- Axioms with trivial realizers. Rocq: `Analysis.Dialectica.R_axiom`. -/
 theorem R_axiom (Γ : List Form) {A : Form} (h : ∀ x y ns, DT A x y ns → Dsem A x y ns) : Real Γ A :=
   ⟨zero (wty A), zeros Γ, wt_zero _ _, fun _ _ hB => wt_zeros A hB, fun _ y ns _ hy hn _ => by
     rw [tsub_zero]; exact h _ y ns ⟨typing_zero _, hy, hn⟩⟩
 
-/-- Rocq: `Dialectica.tr_value`. -/
+/-- Rocq: `Analysis.Dialectica.tr_value`. -/
 theorem tr_value {ns : Nat → Term} (t : ATerm) (hn : Ns ns) : ∃ k, Star (tsub ns (tr t)) (num k) :=
   T_eval (typing_tr t hn)
 
-/-- Rocq: `Dialectica.R_refl`. -/
+/-- Rocq: `Analysis.Dialectica.R_refl`. -/
 theorem R_refl (Γ : List Form) (t : ATerm) : Real Γ (.eq t t) :=
   R_axiom Γ fun x y _ ⟨_, _, hn⟩ =>
     (D_eq t t x y hn).2 (let ⟨k, hk⟩ := tr_value t hn; ⟨k, hk, hk⟩)
 
-/-- Rocq: `Dialectica.R_plus0`. -/
+/-- Rocq: `Analysis.Dialectica.R_plus0`. -/
 theorem R_plus0 (Γ : List Form) (t : ATerm) : Real Γ (.eq (.tplus t .tz) t) :=
   R_axiom Γ fun x y _ ⟨_, _, hn⟩ =>
     (D_eq _ t x y hn).2 (let ⟨k, hk⟩ := tr_value t hn; ⟨k, (addT_eval hk (.refl (num 0)) : Star _ (num (k + 0))), hk⟩)
 
-/-- Rocq: `Dialectica.R_plusS`. -/
+/-- Rocq: `Analysis.Dialectica.R_plusS`. -/
 theorem R_plusS (Γ : List Form) (s t : ATerm) : Real Γ (.eq (.tplus s (.ts t)) (.ts (.tplus s t))) :=
   R_axiom Γ fun x y _ ⟨_, _, hn⟩ =>
     (D_eq _ _ x y hn).2
@@ -2092,12 +2092,12 @@ theorem R_plusS (Γ : List Form) (s t : ATerm) : Real Γ (.eq (.tplus s (.ts t))
        ⟨a + b + 1, (addT_eval ha (star_app_r TN Suc hb : Star _ (num (b + 1))) : Star _ (num (a + (b + 1)))),
          (star_app_r TN Suc (addT_eval ha hb) : Star _ (num (a + b + 1)))⟩)
 
-/-- Rocq: `Dialectica.R_mult0`. -/
+/-- Rocq: `Analysis.Dialectica.R_mult0`. -/
 theorem R_mult0 (Γ : List Form) (t : ATerm) : Real Γ (.eq (.tmult t .tz) .tz) :=
   R_axiom Γ fun x y _ ⟨_, _, hn⟩ =>
     (D_eq _ _ x y hn).2 (let ⟨k, hk⟩ := tr_value t hn; ⟨0, (mulT_eval hk (.refl (num 0)) : Star _ (num (k * 0))), .refl _⟩)
 
-/-- Rocq: `Dialectica.R_multS`. -/
+/-- Rocq: `Analysis.Dialectica.R_multS`. -/
 theorem R_multS (Γ : List Form) (s t : ATerm) :
     Real Γ (.eq (.tmult s (.ts t)) (.tplus (.tmult s t) s)) :=
   R_axiom Γ fun x y _ ⟨_, _, hn⟩ =>
@@ -2107,7 +2107,7 @@ theorem R_multS (Γ : List Form) (s t : ATerm) :
        ⟨a * b + a, (mulT_eval ha (star_app_r TN Suc hb : Star _ (num (b + 1))) : Star _ (num (a * (b + 1)))),
          (addT_eval (mulT_eval ha hb) ha : Star _ (num (a * b + a)))⟩)
 
-/-- Rocq: `Dialectica.R_succ_ne`. -/
+/-- Rocq: `Analysis.Dialectica.R_succ_ne`. -/
 theorem R_succ_ne (Γ : List Form) (t : ATerm) : Real Γ (Form.eq (.ts t) .tz).neg :=
   R_axiom Γ fun _ _ ns hT => (D_imp _ _ hT).2 fun HE => by
     obtain ⟨_, _, hn⟩ := hT
@@ -2118,7 +2118,7 @@ theorem R_succ_ne (Γ : List Form) (t : ATerm) : Real Γ (Form.eq (.ts t) .tz).n
     have hk' : Star (tsub ns (tr (.ts t))) (num (k + 1)) := star_app_r TN Suc hk
     exact Nat.noConfusion (star_num_unique hk' h1)
 
-/-- Rocq: `Dialectica.R_succ_inj`. -/
+/-- Rocq: `Analysis.Dialectica.R_succ_inj`. -/
 theorem R_succ_inj {Γ : List Form} {s t : ATerm} (h : Real Γ (.eq (.ts s) (.ts t))) : Real Γ (.eq s t) := by
   obtain ⟨t0, s0, ht, hs, H⟩ := h
   refine ⟨t0, s0, ht, hs, fun xs y ns hx hy hn hh => ?_⟩
@@ -2134,11 +2134,11 @@ theorem R_succ_inj {Γ : List Form} {s t : ATerm} (h : Real Γ (.eq (.ts s) (.ts
   subst e
   exact ⟨a, ha, hb⟩
 
-/-- Rocq: `Dialectica.sctx_cty`. -/
+/-- Rocq: `Analysis.Dialectica.sctx_cty`. -/
 theorem sctx_cty {A A' : Form} (Γ : List Form) (E : cty A = cty A') : sctx A Γ = sctx A' Γ := by
   unfold sctx; rw [E]
 
-/-- Rocq: `Dialectica.R_leib`. -/
+/-- Rocq: `Analysis.Dialectica.R_leib`. -/
 theorem R_leib {Γ : List Form} {A : Form} {a b : ATerm} (h1 : Real Γ (.eq a b)) (h2 : Real Γ (sub1 A a)) :
     Real Γ (sub1 A b) := by
   obtain ⟨t1, s1, _, hs1, H1⟩ := h1
@@ -2161,7 +2161,7 @@ theorem R_leib {Γ : List Form} {A : Form} {a b : ATerm} (h1 : Real Γ (.eq a b)
   exact (Dsem_star A (.refl _) (.refl _) (Ns_star ns ham)).1 HA
 
 /-- Induction: the witness of `∀x A` is defined by the recursor, at the type
-of the witnesses of `A`. Rocq: `Dialectica.R_ind`. -/
+of the witnesses of `A`. Rocq: `Analysis.Dialectica.R_ind`. -/
 theorem R_ind (Γ : List Form) {A : Form} (h0 : Real [] (sub1 A .tz)) (h1 : Real [A] (fsubst sucSub A)) :
     Real Γ (.all A) := by
   obtain ⟨t0, _, ht0, _, H0⟩ := h0
@@ -2267,7 +2267,7 @@ theorem R_ind (Γ : List Form) {A : Form} (h0 : Real [] (sub1 A .tz)) (h1 : Real
 
 /-! ## Consistency -/
 
-/-- Rocq: `Dialectica.HA_sound`. -/
+/-- Rocq: `Analysis.Dialectica.HA_sound`. -/
 theorem HA_sound {Γ : List Form} {A : Form} (h : HA Γ A) : Real Γ A := by
   induction h with
   | hyp _ _ hA => exact R_hyp hA
@@ -2297,14 +2297,14 @@ theorem HA_sound {Γ : List Form} {A : Form} (h : HA Γ A) : Real Γ A := by
 
 /-- A closed proof of `⊥` in Heyting arithmetic would give a closed term of T
 whose matrix `⊥_D` holds; but `⊥_D` is the numeral `1`.
-Rocq: `Dialectica.HA_consistent`. -/
+Rocq: `Analysis.Dialectica.HA_consistent`. -/
 theorem HA_consistent : ¬ HA [] .bot := fun h =>
   let ⟨t, _, _, _, H⟩ := HA_sound h
   D_bot (tsub (prepend [] (fun _ => Zc)) t) Zc (fun _ => Zc)
     (H [] Zc (fun _ => Zc) .nil .Z (fun _ => .Z) (fun i _ hB => by cases i <;> cases hB))
 
 /-- Peano arithmetic is consistent: by the negative translation, a proof of
-`⊥` in PA gives one in HA. Rocq: `Dialectica.PA_consistent`. -/
+`⊥` in PA gives one in HA. Rocq: `Analysis.Dialectica.PA_consistent`. -/
 theorem PA_consistent : ¬ PA [] .bot := fun h => HA_consistent (PA_HA_consistency h)
 
 end ConstructiveOrdinals.Dialectica

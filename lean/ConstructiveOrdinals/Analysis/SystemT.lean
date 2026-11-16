@@ -4,7 +4,7 @@ import ConstructiveOrdinals.Prelude.Index
 /-!
 # An ordinal analysis of Gödel's System T below ε₀
 
-Port of `Ordinal/SystemT.v`.
+Port of `Ordinal/Analysis/SystemT.v`.
 
 Following Tait ("Infinitely long terms of transfinite type", 1965), the
 recursor of System T is replaced by an ω-branching term: `rec C z s t`
@@ -40,7 +40,7 @@ open Ordinal VNotation VForm Index
 
 /-! ## Types and levels -/
 
-/-- Rocq: `SystemT.ty`. -/
+/-- Rocq: `Analysis.SystemT.ty`. -/
 inductive Ty : Type where
   | TN : Ty
   | TAr : Ty → Ty → Ty
@@ -48,12 +48,12 @@ inductive Ty : Type where
 open Ty
 
 /-- Levels start at 1: an ω-redex has level 1, and substituting at any type
-may create one. Rocq: `SystemT.lev`. -/
+may create one. Rocq: `Analysis.SystemT.lev`. -/
 def lev : Ty → Nat
   | TN => 1
   | TAr A B => Nat.max (lev A + 1) (lev B)
 
-/-- Rocq: `SystemT.lev_pos`. -/
+/-- Rocq: `Analysis.SystemT.lev_pos`. -/
 theorem lev_pos : ∀ τ : Ty, 1 ≤ lev τ
   | TN => Nat.le_refl 1
   | TAr _ _ => Nat.le_trans (Nat.succ_le_succ (Nat.zero_le _)) (Nat.le_max_left _ _)
@@ -63,7 +63,7 @@ theorem lev_pos : ∀ τ : Ty, 1 ≤ lev τ
 Applications are annotated with the type `A → B` of the function, so that the
 level of a potential cut can be read off the term. -/
 
-/-- Rocq: `SystemT.iterm`. -/
+/-- Rocq: `Analysis.SystemT.iterm`. -/
 inductive ITerm : Type where
   | ivar : Nat → ITerm
   | ilam : Ty → ITerm → ITerm
@@ -75,7 +75,7 @@ inductive ITerm : Type where
 
 open ITerm
 
-/-- Rocq: `SystemT.lift`. -/
+/-- Rocq: `Analysis.SystemT.lift`. -/
 def lift (c : Nat) : ITerm → ITerm
   | ivar y => ivar (if y < c then y else y + 1)
   | ilam A K => ilam A (lift (c + 1) K)
@@ -84,10 +84,10 @@ def lift (c : Nat) : ITerm → ITerm
   | isucc K => isucc (lift c K)
   | iomega C f => iomega C (fun n => lift c (f n))
 
-/-- Rocq: `SystemT.unshift`. -/
+/-- Rocq: `Analysis.SystemT.unshift`. -/
 def unshift (k y : Nat) : Nat := if y < k then y else y - 1
 
-/-- `subst M k N` replaces the variable `k` of `M` by `N`. Rocq: `SystemT.subst`. -/
+/-- `subst M k N` replaces the variable `k` of `M` by `N`. Rocq: `Analysis.SystemT.subst`. -/
 def subst : ITerm → Nat → ITerm → ITerm
   | ivar y, k, N => if y = k then N else ivar (unshift k y)
   | ilam A K, k, N => ilam A (subst K (k + 1) (lift 0 N))
@@ -96,12 +96,12 @@ def subst : ITerm → Nat → ITerm → ITerm
   | isucc K, k, N => isucc (subst K k N)
   | iomega C f, k, N => iomega C (fun n => subst (f n) k N)
 
-/-- Rocq: `SystemT.inum`. -/
+/-- Rocq: `Analysis.SystemT.inum`. -/
 def inum : Nat → ITerm
   | 0 => izero
   | n + 1 => isucc (inum n)
 
-/-- The head variable of an application spine, if any. Rocq: `SystemT.head_var`. -/
+/-- The head variable of an application spine, if any. Rocq: `Analysis.SystemT.head_var`. -/
 def headVar : ITerm → Option Nat
   | ivar x => some x
   | iapp _ _ M _ => headVar M
@@ -110,13 +110,13 @@ def headVar : ITerm → Option Nat
   | isucc _ => none
   | iomega _ _ => none
 
-/-- Rocq: `SystemT.isvh`. -/
+/-- Rocq: `Analysis.SystemT.isvh`. -/
 def isvh (M : ITerm) : Bool :=
   match headVar M with
   | some _ => true
   | none => false
 
-/-- Rocq: `SystemT.is_om`. -/
+/-- Rocq: `Analysis.SystemT.is_om`. -/
 def isOm : ITerm → Bool
   | iomega _ _ => true
   | ivar _ => false
@@ -128,7 +128,7 @@ def isOm : ITerm → Bool
 /-- An application `M N` at `A → B` is admissible at cut rank `ρ` when `M` has
 a variable head, or it is an ω-term applied to a neutral argument (or
 ω-redexes are allowed, `1 ≤ ρ`), or its level is at most `ρ`.
-Rocq: `SystemT.cut_ok`. -/
+Rocq: `Analysis.SystemT.cut_ok`. -/
 def cutOk (ρ : Nat) (A B : Ty) (M N : ITerm) : Bool :=
   isvh M || (isOm M && (isvh N || Nat.ble 1 ρ)) || Nat.ble (lev (TAr A B)) ρ
 
@@ -137,66 +137,66 @@ def cutOk (ρ : Nat) (A B : Ty) (M N : ITerm) : Bool :=
 Heights are V forms: `V a x` denotes `ω^a + x`. The forms need not be normal:
 `vplus` appends the summands, which denotes ordinal addition. -/
 
-/-- Rocq: `SystemT.vplus`. -/
+/-- Rocq: `Analysis.SystemT.vplus`. -/
 def vplus : VForm → VForm → VForm
   | Z, b => b
   | V e x, b => V e (vplus x b)
 
-/-- Rocq: `SystemT.vexp`. -/
+/-- Rocq: `Analysis.SystemT.vexp`. -/
 def vexp (a : VForm) : VForm := V a Z
-/-- Rocq: `SystemT.vsucc`. -/
+/-- Rocq: `Analysis.SystemT.vsucc`. -/
 def vsucc (a : VForm) : VForm := vplus a (vexp Z)
 
-/-- Rocq: `SystemT.tower`. -/
+/-- Rocq: `Analysis.SystemT.tower`. -/
 def tower : Nat → VForm → VForm
   | 0, a => a
   | k + 1, a => tower k (vexp a)
 
-/-- Rocq: `SystemT.V_eq`. -/
+/-- Rocq: `Analysis.SystemT.V_eq`. -/
 theorem V_eq (a x : VForm) : sz (V a x) ≈ ω ^ sz a + sz x :=
   veblen_onePlus _ (complete a) _ (complete x)
 
-/-- Rocq: `SystemT.vplus_eq`. -/
+/-- Rocq: `Analysis.SystemT.vplus_eq`. -/
 theorem vplus_eq : ∀ a b : VForm, sz (vplus a b) ≈ sz a + sz b
   | Z, b => equiv_symm (zero_add (sz b))
   | V e x, b =>
     equiv_trans (V_eq e _) (equiv_trans (add_congr (equiv_refl _) (vplus_eq x b))
       (equiv_trans (add_assoc _ _ _) (add_congr (equiv_symm (V_eq e x)) (equiv_refl _))))
 
-/-- Rocq: `SystemT.vexp_eq`. -/
+/-- Rocq: `Analysis.SystemT.vexp_eq`. -/
 theorem vexp_eq (a : VForm) : sz (vexp a) ≈ ω ^ sz a := equiv_trans (V_eq a Z) (add_zero _)
 
-/-- Rocq: `SystemT.Z_eq`. -/
+/-- Rocq: `Analysis.SystemT.Z_eq`. -/
 theorem Z_eq : sz Z ≈ 0 := equiv_refl _
 
-/-- Rocq: `SystemT.vsucc_eq`. -/
+/-- Rocq: `Analysis.SystemT.vsucc_eq`. -/
 theorem vsucc_eq (a : VForm) : sz (vsucc a) ≈ succ (sz a) :=
   equiv_trans (vplus_eq _ _) (equiv_trans (add_congr (equiv_refl _) (equiv_trans (vexp_eq Z) (pow_zero ω)))
     (equiv_trans (add_succ _ _) (succ_congruence (add_zero _))))
 
-/-- Rocq: `SystemT.vplus_le1`. -/
+/-- Rocq: `Analysis.SystemT.vplus_le1`. -/
 theorem vplus_le1 (a b : VForm) : sz a ≤ sz (vplus a b) := le_trans (le_add_right _ _) (vplus_eq a b).ge
 
-/-- Rocq: `SystemT.vplus_le2`. -/
+/-- Rocq: `Analysis.SystemT.vplus_le2`. -/
 theorem vplus_le2 (a b : VForm) : sz b ≤ sz (vplus a b) := le_trans (le_add_left _ _) (vplus_eq a b).ge
 
-/-- Rocq: `SystemT.vsucc_lt`. -/
+/-- Rocq: `Analysis.SystemT.vsucc_lt`. -/
 theorem vsucc_lt (a : VForm) : sz a < sz (vsucc a) := lt_of_lt_of_le (succ_lt _) (vsucc_eq a).ge
 
-/-- Rocq: `SystemT.vsucc_least`. -/
+/-- Rocq: `Analysis.SystemT.vsucc_least`. -/
 theorem vsucc_least {a b : VForm} (h : sz a < sz b) : sz (vsucc a) ≤ sz b :=
   le_trans (vsucc_eq a).le (succ_least h)
 
-/-- `ω^c` is closed under addition, for complete `c`. Rocq: `SystemT.below_exp_add`. -/
+/-- `ω^c` is closed under addition, for complete `c`. Rocq: `Analysis.SystemT.below_exp_add`. -/
 theorem below_exp_add (c : VForm) {x y : Ordinal.{0}} (hx : x < ω ^ sz c) (hy : y < ω ^ sz c) :
     x + y < ω ^ sz c :=
   powOmega_additively_closed (complete c) x y hx hy
 
-/-- Rocq: `SystemT.vexp_increasing`. -/
+/-- Rocq: `Analysis.SystemT.vexp_increasing`. -/
 theorem vexp_increasing {a b : VForm} (h : sz a < sz b) : sz (vexp a) < sz (vexp b) :=
   lt_of_le_of_lt (vexp_eq a).le (lt_of_lt_of_le (pow_lt_pow_right omega_gt1 h) (vexp_eq b).ge)
 
-/-- Every V form is below its own power of `ω`. Rocq: `SystemT.VF_shrink`. -/
+/-- Every V form is below its own power of `ω`. Rocq: `Analysis.SystemT.VF_shrink`. -/
 theorem VF_shrink : ∀ x : VForm, sz x < ω ^ sz x
   | Z => pow_pos ω _
   | V a x =>
@@ -205,7 +205,7 @@ theorem VF_shrink : ∀ x : VForm, sz x < ω ^ sz x
         (lt_of_lt_of_le (VF_shrink x) (pow_le_pow_right ω (denote_le2 x a))))
 
 /-- The bound used by the reduction lemmas: `a + b + 1 < ω^c` when
-`a, b < ω^c` and `c > 0`. Rocq: `SystemT.below_exp_sum`. -/
+`a, b < ω^c` and `c > 0`. Rocq: `Analysis.SystemT.below_exp_sum`. -/
 theorem below_exp_sum {a b c : VForm} (ha : sz a < sz (vexp c)) (hb : sz b < sz (vexp c)) (hc : sz Z < sz c) :
     sz (vsucc (vplus a b)) < sz (vexp c) := by
   refine lt_of_le_of_lt (le_trans (vsucc_eq _).le (succ_monotone (vplus_eq a b).le)) ?_
@@ -220,7 +220,7 @@ theorem below_exp_sum {a b c : VForm} (ha : sz a < sz (vexp c)) (hb : sz b < sz 
 cuts all have level at most `ρ`. Premises have strictly smaller heights;
 leaves may have any height. -/
 
-/-- Rocq: `SystemT.D`. -/
+/-- Rocq: `Analysis.SystemT.D`. -/
 inductive D (ρ : Nat) : List Ty → ITerm → Ty → VForm → Prop where
   | var (Γ : List Ty) (x : Nat) (A : Ty) (α : VForm) : List.nthError Γ x = some A → D ρ Γ (ivar x) A α
   | lam (Γ : List Ty) (A : Ty) (M : ITerm) (B : Ty) (β α : VForm) :
@@ -242,7 +242,7 @@ theorem and_true_cases {a b : Bool} (h : (a && b) = true) : a = true ∧ b = tru
 theorem or_true_l {a : Bool} (b : Bool) (h : a = true) : (a || b) = true := by subst h; rfl
 theorem or_true_r (a : Bool) {b : Bool} (h : b = true) : (a || b) = true := by subst h; cases a <;> rfl
 
-/-- Rocq: `SystemT.cut_ok_cases`. -/
+/-- Rocq: `Analysis.SystemT.cut_ok_cases`. -/
 theorem cutOk_cases {ρ : Nat} {A B : Ty} {M N : ITerm} (h : cutOk ρ A B M N = true) :
     isvh M = true ∨ (isOm M = true ∧ (isvh N = true ∨ 1 ≤ ρ)) ∨ lev (TAr A B) ≤ ρ := by
   rcases or_true_cases h with h | h
@@ -254,11 +254,11 @@ theorem cutOk_cases {ρ : Nat} {A B : Ty} {M N : ITerm} (h : cutOk ρ A B M N = 
       · exact .inr (.inl ⟨h1, .inr (Nat.le_of_ble_eq_true h2)⟩)
   · exact .inr (.inr (Nat.le_of_ble_eq_true h))
 
-/-- Rocq: `SystemT.cut_ok_vh`. -/
+/-- Rocq: `Analysis.SystemT.cut_ok_vh`. -/
 theorem cutOk_vh (ρ : Nat) (A B : Ty) {M : ITerm} (N : ITerm) (h : isvh M = true) : cutOk ρ A B M N = true :=
   or_true_l _ (or_true_l _ h)
 
-/-- Rocq: `SystemT.cut_ok_om`. -/
+/-- Rocq: `Analysis.SystemT.cut_ok_om`. -/
 theorem cutOk_om (ρ : Nat) (A B : Ty) {M N : ITerm} (h1 : isOm M = true) (h2 : isvh N = true ∨ 1 ≤ ρ) :
     cutOk ρ A B M N = true := by
   refine or_true_l _ (or_true_r _ ?_)
@@ -267,11 +267,11 @@ theorem cutOk_om (ρ : Nat) (A B : Ty) {M N : ITerm} (h1 : isOm M = true) (h2 : 
   · exact or_true_l _ h2
   · exact or_true_r _ (Nat.ble_eq_true_of_le h2)
 
-/-- Rocq: `SystemT.cut_ok_lev`. -/
+/-- Rocq: `Analysis.SystemT.cut_ok_lev`. -/
 theorem cutOk_lev {ρ : Nat} {A B : Ty} (M N : ITerm) (h : lev (TAr A B) ≤ ρ) : cutOk ρ A B M N = true :=
   or_true_r _ (Nat.ble_eq_true_of_le h)
 
-/-- Rocq: `SystemT.cut_ok_mono`. -/
+/-- Rocq: `Analysis.SystemT.cut_ok_mono`. -/
 theorem cutOk_mono {ρ ρ' : Nat} {A B : Ty} {M N : ITerm} (hr : ρ ≤ ρ') (h : cutOk ρ A B M N = true) :
     cutOk ρ' A B M N = true := by
   rcases cutOk_cases h with h1 | ⟨h1, h2⟩ | h1
@@ -279,7 +279,7 @@ theorem cutOk_mono {ρ ρ' : Nat} {A B : Ty} {M N : ITerm} (hr : ρ ≤ ρ') (h 
   · exact cutOk_om _ _ _ h1 (h2.imp id (fun h => Nat.le_trans h hr))
   · exact cutOk_lev _ _ (Nat.le_trans h1 hr)
 
-/-- Raising the height or the cut rank preserves derivability. Rocq: `SystemT.D_mono`. -/
+/-- Raising the height or the cut rank preserves derivability. Rocq: `Analysis.SystemT.D_mono`. -/
 theorem D_mono {ρ : Nat} {Γ : List Ty} {M : ITerm} {A : Ty} {α : VForm} (h : D ρ Γ M A α) :
     ∀ {ρ' : Nat} {α' : VForm}, ρ ≤ ρ' → sz α ≤ sz α' → D ρ' Γ M A α' := by
   induction h with
@@ -297,14 +297,14 @@ theorem D_mono {ρ : Nat} {Γ : List Ty} {M : ITerm} {A : Ty} {α : VForm} (h : 
     intro ρ' α' hr ha
     exact .omega _ _ _ β _ (fun n => ih n hr (le_refl _)) (fun n => lt_of_lt_of_le (hβ n) ha)
 
-/-- Rocq: `SystemT.D_height`. -/
+/-- Rocq: `Analysis.SystemT.D_height`. -/
 theorem D_height {ρ : Nat} {Γ : List Ty} {M : ITerm} {A : Ty} {α α' : VForm} (h : D ρ Γ M A α)
     (ha : sz α ≤ sz α') : D ρ Γ M A α' :=
   D_mono h (Nat.le_refl ρ) ha
 
 /-! ## Weakening -/
 
-/-- Rocq: `SystemT.head_var_lift`. -/
+/-- Rocq: `Analysis.SystemT.head_var_lift`. -/
 theorem headVar_lift (c : Nat) : ∀ M : ITerm,
     headVar (lift c M) = (headVar M).map (fun y => if y < c then y else y + 1)
   | ivar _ => rfl
@@ -314,11 +314,11 @@ theorem headVar_lift (c : Nat) : ∀ M : ITerm,
   | isucc _ => rfl
   | iomega _ _ => rfl
 
-/-- Rocq: `SystemT.isvh_lift`. -/
+/-- Rocq: `Analysis.SystemT.isvh_lift`. -/
 theorem isvh_lift (c : Nat) (M : ITerm) : isvh (lift c M) = isvh M := by
   unfold isvh; rw [headVar_lift]; cases headVar M <;> rfl
 
-/-- Rocq: `SystemT.is_om_lift`. -/
+/-- Rocq: `Analysis.SystemT.is_om_lift`. -/
 theorem isOm_lift (c : Nat) : ∀ M : ITerm, isOm (lift c M) = isOm M
   | ivar _ => rfl
   | ilam _ _ => rfl
@@ -327,7 +327,7 @@ theorem isOm_lift (c : Nat) : ∀ M : ITerm, isOm (lift c M) = isOm M
   | isucc _ => rfl
   | iomega _ _ => rfl
 
-/-- Rocq: `SystemT.cut_ok_lift`. -/
+/-- Rocq: `Analysis.SystemT.cut_ok_lift`. -/
 theorem cutOk_lift (ρ : Nat) (A B : Ty) (c : Nat) (M N : ITerm) :
     cutOk ρ A B (lift c M) (lift c N) = cutOk ρ A B M N := by
   unfold cutOk; rw [isvh_lift, isvh_lift, isOm_lift]
@@ -338,7 +338,7 @@ theorem nthError_sv {X : Type} : ∀ (Γ1 Γ2 : List X) (a : X) (y : Nat),
   | _ :: _, _, _, 0 => rfl
   | _ :: Γ1, Γ2, a, y + 1 => nthError_sv Γ1 Γ2 a y
 
-/-- Rocq: `SystemT.nth_error_insert`. -/
+/-- Rocq: `Analysis.SystemT.nth_error_insert`. -/
 theorem nthError_insert {X : Type} (Γ1 Γ2 : List X) (a : X) (y : Nat) :
     List.nthError (Γ1 ++ a :: Γ2) (if y < Γ1.length then y else y + 1) = List.nthError (Γ1 ++ Γ2) y := by
   rw [sv_eq]; exact nthError_sv Γ1 Γ2 a y
@@ -352,19 +352,19 @@ theorem nthError_svar {X : Type} : ∀ (Γ1 Γ2 : List X) (a : X) {y z : Nat},
     obtain ⟨z0, h0, rfl⟩ := map_succ_some h
     exact nthError_svar Γ1 Γ2 a h0
 
-/-- Rocq: `SystemT.nth_error_remove`. -/
+/-- Rocq: `Analysis.SystemT.nth_error_remove`. -/
 theorem nthError_remove {X : Type} (Γ1 Γ2 : List X) (a : X) {y : Nat} (h : y ≠ Γ1.length) :
     List.nthError (Γ1 ++ Γ2) (unshift Γ1.length y) = List.nthError (Γ1 ++ a :: Γ2) y := by
   have e := svar_spec Γ1.length y
   rw [ite_eq_right h] at e
   exact nthError_svar Γ1 Γ2 a e
 
-/-- Rocq: `SystemT.nth_error_at`. -/
+/-- Rocq: `Analysis.SystemT.nth_error_at`. -/
 theorem nthError_at {X : Type} : ∀ (Γ1 Γ2 : List X) (a : X), List.nthError (Γ1 ++ a :: Γ2) Γ1.length = some a
   | [], _, _ => rfl
   | _ :: Γ1, Γ2, a => nthError_at Γ1 Γ2 a
 
-/-- Rocq: `SystemT.D_weaken`. -/
+/-- Rocq: `Analysis.SystemT.D_weaken`. -/
 theorem D_weaken {ρ : Nat} {Γ : List Ty} {M : ITerm} {A : Ty} {α : VForm} (h : D ρ Γ M A α) :
     ∀ (Γ1 Γ2 : List Ty) (B : Ty), Γ = Γ1 ++ Γ2 → D ρ (Γ1 ++ B :: Γ2) (lift Γ1.length M) A α := by
   induction h with
@@ -384,7 +384,7 @@ theorem D_weaken {ρ : Nat} {Γ : List Ty} {M : ITerm} {A : Ty} {α : VForm} (h 
   | omega Γ C f β α _ hβ ih =>
     intro Γ1 Γ2 B0 E; exact .omega _ _ _ β _ (fun n => ih n Γ1 Γ2 B0 E) hβ
 
-/-- Rocq: `SystemT.D_weaken0`. -/
+/-- Rocq: `Analysis.SystemT.D_weaken0`. -/
 theorem D_weaken0 {ρ : Nat} {Γ : List Ty} {M : ITerm} {A : Ty} (B : Ty) {α : VForm} (h : D ρ Γ M A α) :
     D ρ (B :: Γ) (lift 0 M) A α :=
   D_weaken h [] Γ B rfl
@@ -394,7 +394,7 @@ theorem D_weaken0 {ρ : Nat} {Γ : List Ty} {M : ITerm} {A : Ty} (B : Ty) {α : 
 The type of a variable-headed spine has level at most that of the head; so
 substituting at `A` creates cuts of level at most `lev A`. -/
 
-/-- Rocq: `SystemT.head_lev`. -/
+/-- Rocq: `Analysis.SystemT.head_lev`. -/
 theorem head_lev {ρ : Nat} {Γ : List Ty} {M : ITerm} {T : Ty} {α : VForm} (h : D ρ Γ M T α) :
     ∀ x A, headVar M = some x → List.nthError Γ x = some A → lev T ≤ lev A := by
   induction h with
@@ -409,7 +409,7 @@ theorem head_lev {ρ : Nat} {Γ : List Ty} {M : ITerm} {T : Ty} {α : VForm} (h 
   | succ => intro _ _ hh; cases hh
   | omega => intro _ _ hh; cases hh
 
-/-- Rocq: `SystemT.head_var_subst`. -/
+/-- Rocq: `Analysis.SystemT.head_var_subst`. -/
 theorem headVar_subst : ∀ (M : ITerm) (k : Nat) (N : ITerm) {y : Nat},
     headVar M = some y → y ≠ k → headVar (subst M k N) = some (unshift k y)
   | ivar x, k, N, y, hh, hy => by
@@ -422,7 +422,7 @@ theorem headVar_subst : ∀ (M : ITerm) (k : Nat) (N : ITerm) {y : Nat},
   | isucc _, _, _, _, hh, _ => nomatch hh
   | iomega _ _, _, _, _, hh, _ => nomatch hh
 
-/-- Rocq: `SystemT.is_om_subst`. -/
+/-- Rocq: `Analysis.SystemT.is_om_subst`. -/
 theorem isOm_subst : ∀ (M : ITerm) (k : Nat) (N : ITerm), isOm M = true → isOm (subst M k N) = true
   | iomega _ _, _, _, _ => rfl
   | ivar _, _, _, h => nomatch h
@@ -434,7 +434,7 @@ theorem isOm_subst : ∀ (M : ITerm) (k : Nat) (N : ITerm), isOm M = true → is
 theorem vplus_lt_vplus (a : VForm) {b c : VForm} (h : sz b < sz c) : sz (vplus a b) < sz (vplus a c) :=
   lt_of_le_of_lt (vplus_eq a b).le (lt_of_lt_of_le (add_lt_add_left _ h) (vplus_eq a c).ge)
 
-/-- Rocq: `SystemT.subst_typed`. -/
+/-- Rocq: `Analysis.SystemT.subst_typed`. -/
 theorem subst_typed {ρ : Nat} {Γ : List Ty} {M : ITerm} {B : Ty} {α : VForm} (h : D ρ Γ M B α) :
     ∀ (Γ1 Γ2 : List Ty) (A : Ty) (N : ITerm) (β : VForm), Γ = Γ1 ++ A :: Γ2 → D ρ (Γ1 ++ Γ2) N A β →
       lev A ≤ ρ → D ρ (Γ1 ++ Γ2) (subst M Γ1.length N) B (vplus β α) := by
@@ -487,7 +487,7 @@ The compatible closure of β-reduction, of the ω-rules (selecting a branch,
 or stripping a successor), and of the commuting conversions for an ω-term
 applied to a neutral argument. -/
 
-/-- Rocq: `SystemT.red`. -/
+/-- Rocq: `Analysis.SystemT.red`. -/
 inductive Red : ITerm → ITerm → Prop where
   | refl (M : ITerm) : Red M M
   | trans (M N P : ITerm) : Red M N → Red N P → Red M P
@@ -509,7 +509,7 @@ inductive Red : ITerm → ITerm → Prop where
 
 /-- `app_red A B M N` reduces the application `M N` at `A → B`: a λ is
 substituted into, and an ω-term applied to an argument absorbs `N` into its
-branches. Rocq: `SystemT.app_red`. -/
+branches. Rocq: `Analysis.SystemT.app_red`. -/
 def appRed (A B : Ty) : ITerm → ITerm → ITerm
   | ilam _ K, N => subst K 0 N
   | iapp A0 B0 M1 K, N =>
@@ -526,7 +526,7 @@ def appRed (A B : Ty) : ITerm → ITerm → ITerm
   | iomega C f, N => iapp A B (iomega C f) N
 
 /-- `omega_red A B C f N` reduces the ω-redex `Ω_C(f) N`: a numeral selects a
-branch, and an ω-term in `N` is commuted outwards. Rocq: `SystemT.omega_red`. -/
+branch, and an ω-term in `N` is commuted outwards. Rocq: `Analysis.SystemT.omega_red`. -/
 def omegaRed (A B C : Ty) : (Nat → ITerm) → ITerm → ITerm
   | f, izero => f 0
   | f, isucc K => omegaRed A B C (fun n => f (n + 1)) K
@@ -554,7 +554,7 @@ def cutRed (A B : Ty) (M' N' : ITerm) : ITerm :=
   | isucc K => appRed A B (isucc K) N'
 
 /-- One pass of cut elimination: cuts of level `ρ+1` are reduced, those of
-lower level are kept. Rocq: `SystemT.elim`. -/
+lower level are kept. Rocq: `Analysis.SystemT.elim`. -/
 def elim (ρ : Nat) : ITerm → ITerm
   | ivar x => ivar x
   | ilam A K => ilam A (elim ρ K)
@@ -565,12 +565,12 @@ def elim (ρ : Nat) : ITerm → ITerm
   | isucc K => isucc (elim ρ K)
   | iomega C f => iomega C (fun n => elim ρ (f n))
 
-/-- Rocq: `SystemT.norm`. -/
+/-- Rocq: `Analysis.SystemT.norm`. -/
 def norm : Nat → ITerm → ITerm
   | 0, M => M
   | r + 1, M => norm r (elim r M)
 
-/-- Rocq: `SystemT.app_red_red`. -/
+/-- Rocq: `Analysis.SystemT.app_red_red`. -/
 theorem appRed_red (A B : Ty) : ∀ M N : ITerm, Red (iapp A B M N) (appRed A B M N)
   | ilam _ _, _ => .beta _ _ _ _ _
   | iapp _ _ M1 _, N =>
@@ -587,7 +587,7 @@ theorem appRed_red (A B : Ty) : ∀ M N : ITerm, Red (iapp A B M N) (appRed A B 
   | isucc _, _ => .refl _
   | iomega _ _, _ => .refl _
 
-/-- Rocq: `SystemT.omega_red_red`. -/
+/-- Rocq: `Analysis.SystemT.omega_red_red`. -/
 theorem omegaRed_red (A B C : Ty) : ∀ (f : Nat → ITerm) (N : ITerm),
     Red (iapp A B (iomega C f) N) (omegaRed A B C f N)
   | _, izero => .om_zero _ _ _ _
@@ -616,7 +616,7 @@ theorem cutRed_red (A B : Ty) (M N : ITerm) : Red (iapp A B M N) (cutRed A B M N
   | izero => exact appRed_red A B _ N
   | isucc K => exact appRed_red A B _ N
 
-/-- Rocq: `SystemT.elim_red`. -/
+/-- Rocq: `Analysis.SystemT.elim_red`. -/
 theorem elim_red (ρ : Nat) : ∀ M : ITerm, Red M (elim ρ M)
   | ivar _ => .refl _
   | ilam A K => .lam _ _ _ (elim_red ρ K)
@@ -630,79 +630,79 @@ theorem elim_red (ρ : Nat) : ∀ M : ITerm, Red M (elim ρ M)
   | isucc K => .succ _ _ (elim_red ρ K)
   | iomega C f => .omega _ _ _ fun n => elim_red ρ (f n)
 
-/-- Rocq: `SystemT.norm_red`. -/
+/-- Rocq: `Analysis.SystemT.norm_red`. -/
 theorem norm_red : ∀ (ρ : Nat) (M : ITerm), Red M (norm ρ M)
   | 0, _ => .refl _
   | ρ + 1, M => .trans _ _ _ (elim_red ρ M) (norm_red ρ _)
 
 /-! ## Inversion and bookkeeping -/
 
-/-- Rocq: `SystemT.inv_var`. -/
+/-- Rocq: `Analysis.SystemT.inv_var`. -/
 theorem inv_var {ρ : Nat} {Γ : List Ty} {x : Nat} {T : Ty} {α : VForm} (h : D ρ Γ (ivar x) T α) :
     List.nthError Γ x = some T := by
   cases h with | var _ _ _ _ hx => exact hx
 
-/-- Rocq: `SystemT.inv_lam`. -/
+/-- Rocq: `Analysis.SystemT.inv_lam`. -/
 theorem inv_lam {ρ : Nat} {Γ : List Ty} {A : Ty} {K : ITerm} {T : Ty} {α : VForm} (h : D ρ Γ (ilam A K) T α) :
     ∃ B β, T = TAr A B ∧ D ρ (A :: Γ) K B β ∧ sz β < sz α := by
   cases h with | lam _ _ _ B β _ hK hβ => exact ⟨B, β, rfl, hK, hβ⟩
 
-/-- Rocq: `SystemT.inv_app`. -/
+/-- Rocq: `Analysis.SystemT.inv_app`. -/
 theorem inv_app {ρ : Nat} {Γ : List Ty} {A B : Ty} {M N : ITerm} {T : Ty} {α : VForm}
     (h : D ρ Γ (iapp A B M N) T α) :
     T = B ∧ ∃ β1 β2, D ρ Γ M (TAr A B) β1 ∧ D ρ Γ N A β2 ∧ sz β1 < sz α ∧ sz β2 < sz α ∧
       cutOk ρ A B M N = true := by
   cases h with | app _ _ _ _ _ β1 β2 _ hM hN hb1 hb2 hc => exact ⟨rfl, β1, β2, hM, hN, hb1, hb2, hc⟩
 
-/-- Rocq: `SystemT.inv_succ`. -/
+/-- Rocq: `Analysis.SystemT.inv_succ`. -/
 theorem inv_succ {ρ : Nat} {Γ : List Ty} {K : ITerm} {T : Ty} {α : VForm} (h : D ρ Γ (isucc K) T α) :
     T = TN ∧ ∃ β, D ρ Γ K TN β ∧ sz β < sz α := by
   cases h with | succ _ _ β _ hK hβ => exact ⟨rfl, β, hK, hβ⟩
 
-/-- Rocq: `SystemT.inv_omega`. -/
+/-- Rocq: `Analysis.SystemT.inv_omega`. -/
 theorem inv_omega {ρ : Nat} {Γ : List Ty} {C : Ty} {f : Nat → ITerm} {T : Ty} {α : VForm}
     (h : D ρ Γ (iomega C f) T α) :
     T = TAr TN C ∧ ∃ β : Nat → VForm, (∀ n, D ρ Γ (f n) C (β n)) ∧ ∀ n, sz (β n) < sz α := by
   cases h with | omega _ _ _ β _ hf hβ => exact ⟨rfl, β, hf, hβ⟩
 
-/-- Rocq: `SystemT.inv_zero`. -/
+/-- Rocq: `Analysis.SystemT.inv_zero`. -/
 theorem inv_zero {ρ : Nat} {Γ : List Ty} {T : Ty} {α : VForm} (h : D ρ Γ izero T α) : T = TN := by
   cases h; rfl
 
-/-- Rocq: `SystemT.lev_dom`. -/
+/-- Rocq: `Analysis.SystemT.lev_dom`. -/
 theorem lev_dom (A B : Ty) : lev A + 1 ≤ lev (TAr A B) := Nat.le_max_left _ _
 
-/-- Rocq: `SystemT.lev_cod`. -/
+/-- Rocq: `Analysis.SystemT.lev_cod`. -/
 theorem lev_cod (A B : Ty) : lev B ≤ lev (TAr A B) := Nat.le_max_right _ _
 
-/-- Rocq: `SystemT.VF_ind`. -/
+/-- Rocq: `Analysis.SystemT.VF_ind`. -/
 theorem VF_ind (P : VForm → Prop) (H : ∀ a, (∀ b, sz b < sz a → P b) → P a) (a : VForm) : P a :=
   (InvImage.wf (fun v : VForm => sz v) lt_wf).induction a H
 
-/-- Rocq: `SystemT.vplus_mono`. -/
+/-- Rocq: `Analysis.SystemT.vplus_mono`. -/
 theorem vplus_mono {a b c d : VForm} (h1 : sz a ≤ sz b) (h2 : sz c ≤ sz d) : sz (vplus a c) ≤ sz (vplus b d) :=
   le_trans (vplus_eq a c).le (le_trans (add_le_add h1 h2) (vplus_eq b d).ge)
 
-/-- Rocq: `SystemT.vsucc_mono`. -/
+/-- Rocq: `Analysis.SystemT.vsucc_mono`. -/
 theorem vsucc_mono {a b : VForm} (h : sz a ≤ sz b) : sz (vsucc a) ≤ sz (vsucc b) :=
   le_trans (vsucc_eq a).le (le_trans (succ_monotone h) (vsucc_eq b).ge)
 
-/-- Rocq: `SystemT.vsucc_plus_le`. -/
+/-- Rocq: `Analysis.SystemT.vsucc_plus_le`. -/
 theorem vsucc_plus_le (a : VForm) {b c : VForm} (h : sz b < sz c) : sz (vsucc (vplus a b)) ≤ sz (vplus a c) :=
   le_trans (vsucc_eq _).le (le_trans (succ_monotone (vplus_eq a b).le)
     (le_trans (add_succ _ _).ge (le_trans (add_le_add (le_refl _) (succ_least h)) (vplus_eq a c).ge)))
 
-/-- Rocq: `SystemT.lt_sum_l`. -/
+/-- Rocq: `Analysis.SystemT.lt_sum_l`. -/
 theorem lt_sum_l (a b : VForm) : sz a < sz (vsucc (vplus a b)) := lt_of_le_of_lt (vplus_le1 a b) (vsucc_lt _)
 
-/-- Rocq: `SystemT.lt_sum_r`. -/
+/-- Rocq: `Analysis.SystemT.lt_sum_r`. -/
 theorem lt_sum_r (a b : VForm) : sz b < sz (vsucc (vplus a b)) := lt_of_le_of_lt (vplus_le2 a b) (vsucc_lt _)
 
-/-- Rocq: `SystemT.lt_sum_r'`. -/
+/-- Rocq: `Analysis.SystemT.lt_sum_r'`. -/
 theorem lt_sum_r' (a : VForm) {b c : VForm} (h : sz c < sz b) : sz c < sz (vsucc (vplus a b)) :=
   lt_trans h (lt_sum_r a b)
 
-/-- `a + b + 1` grows strictly in `b`. Rocq: `SystemT.sum_step`. -/
+/-- `a + b + 1` grows strictly in `b`. Rocq: `Analysis.SystemT.sum_step`. -/
 theorem sum_step (a : VForm) {b c : VForm} (h : sz b < sz c) : sz (vsucc (vplus a b)) < sz (vsucc (vplus a c)) :=
   lt_of_le_of_lt (vsucc_plus_le a h) (vsucc_lt _)
 
@@ -712,7 +712,7 @@ For `M : A → B` and `N : A` of cut rank `ρ`, with `lev (A → B) ≤ ρ+1`,
 `app_red A B M N` has cut rank `ρ` and height `h N + h M + 1`, by transfinite
 induction on the height of `M`. -/
 
-/-- Rocq: `SystemT.app_red_typed`. -/
+/-- Rocq: `Analysis.SystemT.app_red_typed`. -/
 theorem appRed_typed {ρ : Nat} {Γ : List Ty} {A B : Ty} {N : ITerm} {γ2 : VForm} (HN : D ρ Γ N A γ2)
     (Hl : lev (TAr A B) ≤ ρ + 1) :
     ∀ (γ1 : VForm) (M : ITerm), D ρ Γ M (TAr A B) γ1 → D ρ Γ (appRed A B M N) B (vsucc (vplus γ2 γ1)) := by
@@ -767,7 +767,7 @@ At cut rank `0`, an ω-term applied to a normal argument of type `nat` reduces
 to cut rank `0`, with height `h(Ω f) + h N + 1`; by transfinite induction on
 the height of `N`. -/
 
-/-- Rocq: `SystemT.omega_red_typed`. -/
+/-- Rocq: `Analysis.SystemT.omega_red_typed`. -/
 theorem omegaRed_typed (Γ : List Ty) (A B C : Ty) :
     ∀ (γ2 : VForm) (N : ITerm) (f : Nat → ITerm) (γ1 : VForm),
       D 0 Γ (iomega C f) (TAr A B) γ1 → D 0 Γ N A γ2 → D 0 Γ (omegaRed A B C f N) B (vsucc (vplus γ1 γ2)) := by
@@ -833,7 +833,7 @@ theorem cutRed_app (A B : Ty) {M' : ITerm} (N' : ITerm) (h : isOm M' = false) :
   | iomega _ _ => cases h
   | _ => rfl
 
-/-- Rocq: `SystemT.elim_typed`. -/
+/-- Rocq: `Analysis.SystemT.elim_typed`. -/
 theorem elim_typed {ρ : Nat} {Γ : List Ty} {M : ITerm} {T : Ty} {α : VForm} (h : D (ρ + 1) Γ M T α) :
     D ρ Γ (elim ρ M) T (vexp α) ∧ (isvh M = true → isvh (elim ρ M) = true) ∧
       (isOm M = true → isOm (elim ρ M) = true) := by
@@ -886,7 +886,7 @@ theorem elim_typed {ρ : Nat} {Γ : List Ty} {M : ITerm} {T : Ty} {α : VForm} (
       fun h => Bool.noConfusion h, fun _ => rfl⟩
 
 /-- Iterating: cut rank `ρ` and height `α` give a normal derivation of height
-`tower ρ α = ω^ω^...^α`. Rocq: `SystemT.norm_typed`. -/
+`tower ρ α = ω^ω^...^α`. Rocq: `Analysis.SystemT.norm_typed`. -/
 theorem norm_typed : ∀ (ρ : Nat) {Γ : List Ty} {M : ITerm} {T : Ty} {α : VForm},
     D ρ Γ M T α → D 0 Γ (norm ρ M) T (tower ρ α)
   | 0, _, _, _, _, h => h
@@ -894,7 +894,7 @@ theorem norm_typed : ∀ (ρ : Nat) {Γ : List Ty} {M : ITerm} {T : Ty} {α : VF
 
 /-! ## Closed normal terms of type `nat` are numerals -/
 
-/-- Rocq: `SystemT.closed_head`. -/
+/-- Rocq: `Analysis.SystemT.closed_head`. -/
 theorem closed_head {ρ : Nat} {M : ITerm} {T : Ty} {α : VForm} (h : D ρ [] M T α) : headVar M = none := by
   have key : ∀ {Γ : List Ty} {M T α}, D ρ Γ M T α → Γ = [] → headVar M = none := by
     intro Γ M T α h
@@ -904,7 +904,7 @@ theorem closed_head {ρ : Nat} {M : ITerm} {T : Ty} {α : VForm} (h : D ρ [] M 
     | _ => intro _; rfl
   exact key h rfl
 
-/-- Rocq: `SystemT.canonical_nat`. -/
+/-- Rocq: `Analysis.SystemT.canonical_nat`. -/
 theorem canonical_nat {M : ITerm} {α : VForm} (h : D 0 [] M TN α) : ∃ k, M = inum k := by
   have key : ∀ {Γ : List Ty} {M T α}, D 0 Γ M T α → Γ = [] → T = TN → ∃ k, M = inum k := by
     intro Γ M T α h
@@ -931,7 +931,7 @@ theorem canonical_nat {M : ITerm} {α : VForm} (h : D 0 [] M TN α) : ∃ k, M =
 
 /-! ## System T -/
 
-/-- Rocq: `SystemT.term`. The recursor `rec C z s t` is the constructor `recT`,
+/-- Rocq: `Analysis.SystemT.term`. The recursor `rec C z s t` is the constructor `recT`,
 since `Term.rec` is the name of the recursor Lean generates. -/
 inductive Term : Type where
   | var : Nat → Term
@@ -944,7 +944,7 @@ inductive Term : Type where
 
 open Term
 
-/-- Rocq: `SystemT.typing`. -/
+/-- Rocq: `Analysis.SystemT.typing`. -/
 inductive Typing : List Ty → Term → Ty → Prop where
   | var (Γ : List Ty) (x : Nat) (A : Ty) : List.nthError Γ x = some A → Typing Γ (var x) A
   | lam (Γ : List Ty) (A : Ty) (t : Term) (B : Ty) : Typing (A :: Γ) t B → Typing Γ (lam A t) (TAr A B)
@@ -954,12 +954,12 @@ inductive Typing : List Ty → Term → Ty → Prop where
   | recT (Γ : List Ty) (C : Ty) (z s t : Term) : Typing Γ z C → Typing Γ s (TAr TN (TAr C C)) →
       Typing Γ t TN → Typing Γ (recT C z s t) C
 
-/-- The `n`-th unfolding of the recursor: `s (n-1) (... (s 0 z))`. Rocq: `SystemT.iter`. -/
+/-- The `n`-th unfolding of the recursor: `s (n-1) (... (s 0 z))`. Rocq: `Analysis.SystemT.iter`. -/
 def iter (C : Ty) (z s : ITerm) : Nat → ITerm
   | 0 => z
   | n + 1 => iapp C C (iapp TN (TAr C C) s (inum n)) (iter C z s n)
 
-/-- Rocq: `SystemT.tr`. -/
+/-- Rocq: `Analysis.SystemT.tr`. -/
 def tr : Term → ITerm
   | var x => ivar x
   | lam A t => ilam A (tr t)
@@ -968,12 +968,12 @@ def tr : Term → ITerm
   | Term.succ t => isucc (tr t)
   | recT C z s t => iapp TN C (iomega C (iter C (tr z) (tr s))) (tr t)
 
-/-- Rocq: `SystemT.vnat`. -/
+/-- Rocq: `Analysis.SystemT.vnat`. -/
 def vnat : Nat → VForm
   | 0 => Z
   | n + 1 => vsucc (vnat n)
 
-/-- A finite exponent with `h t < ω^(hexp t)` (`h_below`). Rocq: `SystemT.hexp`. -/
+/-- A finite exponent with `h t < ω^(hexp t)` (`h_below`). Rocq: `Analysis.SystemT.hexp`. -/
 def hexp : Term → Nat
   | var _ => 1
   | Term.zero => 1
@@ -982,7 +982,7 @@ def hexp : Term → Nat
   | app _ _ t u => Nat.max (hexp t) (hexp u)
   | recT _ z s t => Nat.max (Nat.max (hexp z) (hexp s) + 1) (hexp t) + 1
 
-/-- The height of the translation. Rocq: `SystemT.h`. -/
+/-- The height of the translation. Rocq: `Analysis.SystemT.h`. -/
 def h : Term → VForm
   | var _ => Z
   | lam _ t => vsucc (h t)
@@ -991,7 +991,7 @@ def h : Term → VForm
   | Term.succ t => vsucc (h t)
   | recT _ z s t => vsucc (vplus (vexp (vnat (Nat.max (hexp z) (hexp s) + 1))) (h t))
 
-/-- The cut rank of the translation. Rocq: `SystemT.tlev`. -/
+/-- The cut rank of the translation. Rocq: `Analysis.SystemT.tlev`. -/
 def tlev : Term → Nat
   | var _ => 1
   | Term.zero => 1
@@ -1000,20 +1000,20 @@ def tlev : Term → Nat
   | app A B t u => Nat.max (lev (TAr A B)) (Nat.max (tlev t) (tlev u))
   | recT C z s t => Nat.max (lev (TAr TN (TAr C C))) (Nat.max (tlev z) (Nat.max (tlev s) (tlev t)))
 
-/-- The ordinal of a term: the height of its normal form. Rocq: `SystemT.ord_of`. -/
+/-- The ordinal of a term: the height of its normal form. Rocq: `Analysis.SystemT.ord_of`. -/
 def ordOf (t : Term) : VForm := tower (tlev t) (h t)
 
-/-- Rocq: `SystemT.ib`. -/
+/-- Rocq: `Analysis.SystemT.ib`. -/
 def ib (hz hs : VForm) : Nat → VForm
   | 0 => hz
   | n + 1 => vsucc (vplus (ib hz hs n) (vplus hs (vnat (n + 1))))
 
-/-- Rocq: `SystemT.inum_typed`. -/
+/-- Rocq: `Analysis.SystemT.inum_typed`. -/
 theorem inum_typed (ρ : Nat) (Γ : List Ty) : ∀ n, D ρ Γ (inum n) TN (vnat n)
   | 0 => .zero _ _
   | n + 1 => .succ _ _ _ _ (inum_typed ρ Γ n) (vsucc_lt _)
 
-/-- Rocq: `SystemT.iter_typed`. -/
+/-- Rocq: `Analysis.SystemT.iter_typed`. -/
 theorem iter_typed {ρ : Nat} {Γ : List Ty} {C : Ty} {z s : ITerm} {hz hs : VForm} (Hz : D ρ Γ z C hz)
     (Hs : D ρ Γ s (TAr TN (TAr C C)) hs) (Hl : lev (TAr TN (TAr C C)) ≤ ρ) :
     ∀ n, D ρ Γ (iter C z s n) C (ib hz hs n)
@@ -1027,27 +1027,27 @@ theorem iter_typed {ρ : Nat} {Γ : List Ty} {C : Ty} {z s : ITerm} {hz hs : VFo
       (iter_typed Hz Hs Hl n) (lt_sum_r _ _) (lt_sum_l _ _)
       (cutOk_lev _ _ (Nat.le_trans (lev_cod _ _) Hl))
 
-/-- Rocq: `SystemT.vnat_eq`. -/
+/-- Rocq: `Analysis.SystemT.vnat_eq`. -/
 theorem vnat_eq : ∀ n, sz (vnat n) ≈ ofNat n
   | 0 => equiv_refl _
   | n + 1 => equiv_trans (vsucc_eq _) (succ_congruence (vnat_eq n))
 
-/-- Rocq: `SystemT.vnat_lt`. -/
+/-- Rocq: `Analysis.SystemT.vnat_lt`. -/
 theorem vnat_lt {m n : Nat} (h : m < n) : sz (vnat m) < sz (vnat n) :=
   lt_of_le_of_lt (vnat_eq m).le (lt_of_lt_of_le (ofNat_increasing h) (vnat_eq n).ge)
 
-/-- Rocq: `SystemT.vnat_le`. -/
+/-- Rocq: `Analysis.SystemT.vnat_le`. -/
 theorem vnat_le {m n : Nat} (h : m ≤ n) : sz (vnat m) ≤ sz (vnat n) :=
   le_trans (vnat_eq m).le (le_trans (ofNat_monotone h) (vnat_eq n).ge)
 
-/-- Rocq: `SystemT.vexp_mono`. -/
+/-- Rocq: `Analysis.SystemT.vexp_mono`. -/
 theorem vexp_mono {a b : VForm} (h : sz a ≤ sz b) : sz (vexp a) ≤ sz (vexp b) :=
   le_trans (vexp_eq a).le (le_trans (pow_le_pow_right ω h) (vexp_eq b).ge)
 
-/-- Rocq: `SystemT.Z_lt_vnat`. -/
+/-- Rocq: `Analysis.SystemT.Z_lt_vnat`. -/
 theorem Z_lt_vnat {n : Nat} (h : 1 ≤ n) : sz Z < sz (vnat n) := vnat_lt (m := 0) h
 
-/-- Rocq: `SystemT.vnat_below`. -/
+/-- Rocq: `Analysis.SystemT.vnat_below`. -/
 theorem vnat_below (K : VForm) (hK : sz Z < sz K) : ∀ n, sz (vnat n) < sz (vexp K)
   | 0 => lt_of_lt_of_le (pow_pos ω _) (vexp_eq K).ge
   | n + 1 =>
@@ -1057,7 +1057,7 @@ theorem vnat_below (K : VForm) (hK : sz Z < sz K) : ∀ n, sz (vnat n) < sz (vex
       (vexp_eq K).ge)
 
 /-- The branches of the ω-term for a recursor are below `ω^K`, as soon as
-`h z` and `h s` are. Rocq: `SystemT.ib_below`. -/
+`h z` and `h s` are. Rocq: `Analysis.SystemT.ib_below`. -/
 theorem ib_below {hz hs K : VForm} (Hz : sz hz < sz (vexp K)) (Hs : sz hs < sz (vexp K)) (Hpos : sz Z < sz K) :
     ∀ n, sz (ib hz hs n) < sz (vexp K)
   | 0 => Hz
@@ -1068,7 +1068,7 @@ theorem ib_below {hz hs K : VForm} (Hz : sz hz < sz (vexp K)) (Hs : sz hs < sz (
           (lt_of_lt_of_le (vnat_below K Hpos _) (vexp_eq K).le)) (vexp_eq K).ge))
       Hpos
 
-/-- Rocq: `SystemT.hexp_pos`. -/
+/-- Rocq: `Analysis.SystemT.hexp_pos`. -/
 theorem hexp_pos : ∀ t : Term, 1 ≤ hexp t
   | var _ => Nat.le_refl 1
   | Term.zero => Nat.le_refl 1
@@ -1077,7 +1077,7 @@ theorem hexp_pos : ∀ t : Term, 1 ≤ hexp t
   | app _ _ t _ => Nat.le_trans (hexp_pos t) (Nat.le_max_left _ _)
   | recT _ _ _ _ => Nat.succ_le_succ (Nat.zero_le _)
 
-/-- Rocq: `SystemT.below_vexp_vnat`. -/
+/-- Rocq: `Analysis.SystemT.below_vexp_vnat`. -/
 theorem below_vexp_vnat {a : VForm} {m n : Nat} (h : sz a < sz (vexp (vnat m))) (hmn : m ≤ n) :
     sz a < sz (vexp (vnat n)) :=
   lt_of_lt_of_le h (vexp_mono (vnat_le hmn))
@@ -1085,7 +1085,7 @@ theorem below_vexp_vnat {a : VForm} {m n : Nat} (h : sz a < sz (vexp (vnat m))) 
 theorem vsucc_below {a K : VForm} (ha : sz a < sz (vexp K)) (hK : sz Z < sz K) : sz (vsucc a) < sz (vexp K) :=
   lt_of_le_of_lt (vsucc_mono (vplus_le1 a Z)) (below_exp_sum ha (lt_of_lt_of_le (pow_pos ω _) (vexp_eq K).ge) hK)
 
-/-- Rocq: `SystemT.h_below`. -/
+/-- Rocq: `Analysis.SystemT.h_below`. -/
 theorem h_below : ∀ t : Term, sz (h t) < sz (vexp (vnat (hexp t)))
   | var _ => lt_of_lt_of_le (pow_pos ω _) (vexp_eq _).ge
   | Term.zero => lt_of_lt_of_le (pow_pos ω _) (vexp_eq _).ge
@@ -1100,24 +1100,24 @@ theorem h_below : ∀ t : Term, sz (h t) < sz (vexp (vnat (hexp t)))
       (below_vexp_vnat (h_below t) (Nat.le_succ_of_le (Nat.le_max_right _ _)))
       (Z_lt_vnat (Nat.succ_le_succ (Nat.zero_le _)))
 
-/-- `ω` as a V form. Rocq: `SystemT.vω`. -/
+/-- `ω` as a V form. Rocq: `Analysis.SystemT.vω`. -/
 def vω : VForm := vexp (vnat 1)
 
-/-- Rocq: `SystemT.vω_eq`. -/
+/-- Rocq: `Analysis.SystemT.vω_eq`. -/
 theorem vω_eq : sz vω ≈ ω :=
   equiv_trans (vexp_eq _) (equiv_trans (pow_congr (equiv_refl ω) (vnat_eq 1)) (pow_one' omega_gt0))
 
-/-- The heights of translations are below `ω^ω`. Rocq: `SystemT.h_below_ω_ω`. -/
+/-- The heights of translations are below `ω^ω`. Rocq: `Analysis.SystemT.h_below_ω_ω`. -/
 theorem h_below_ω_ω (t : Term) : sz (h t) < sz (vexp vω) :=
   lt_of_lt_of_le (h_below t)
     (vexp_mono (le_of_lt (lt_of_le_of_lt (vnat_eq _).le (lt_of_lt_of_le (index_lt ω ⟨hexp t⟩) vω_eq.ge))))
 
-/-- Rocq: `SystemT.tower_increasing`. -/
+/-- Rocq: `Analysis.SystemT.tower_increasing`. -/
 theorem tower_increasing : ∀ (k : Nat) {a b : VForm}, sz a < sz b → sz (tower k a) < sz (tower k b)
   | 0, _, _, h => h
   | k + 1, _, _, h => tower_increasing k (vexp_increasing h)
 
-/-- Rocq: `SystemT.tlev_pos`. -/
+/-- Rocq: `Analysis.SystemT.tlev_pos`. -/
 theorem tlev_pos : ∀ t : Term, 1 ≤ tlev t
   | var _ => Nat.le_refl 1
   | Term.zero => Nat.le_refl 1
@@ -1127,7 +1127,7 @@ theorem tlev_pos : ∀ t : Term, 1 ≤ tlev t
   | recT C _ _ _ => Nat.le_trans (lev_pos (TAr TN (TAr C C))) (Nat.le_max_left _ _)
 
 /-- The translation of a term `t` has cut rank `tlev t` and height `h t`.
-Rocq: `SystemT.tr_typed`. -/
+Rocq: `Analysis.SystemT.tr_typed`. -/
 theorem tr_typed {Γ : List Ty} {t : Term} {A : Ty} (H : Typing Γ t A) : D (tlev t) Γ (tr t) A (h t) := by
   induction H with
   | var Γ x A hx => exact .var _ _ _ _ hx
@@ -1157,19 +1157,19 @@ theorem tr_typed {Γ : List Ty} {t : Term} {A : Ty} (H : Typing Γ t A) : D (tle
 
 /-! ## The ordinal analysis -/
 
-/-- Rocq: `SystemT.T_normalization`. -/
+/-- Rocq: `Analysis.SystemT.T_normalization`. -/
 theorem T_normalization {Γ : List Ty} {t : Term} {A : Ty} (H : Typing Γ t A) :
     D 0 Γ (norm (tlev t) (tr t)) A (ordOf t) ∧ Red (tr t) (norm (tlev t) (tr t)) :=
   ⟨norm_typed _ (tr_typed H), norm_red _ _⟩
 
-/-- Rocq: `SystemT.ord_of_bound`. -/
+/-- Rocq: `Analysis.SystemT.ord_of_bound`. -/
 theorem ordOf_bound (t : Term) : sz (ordOf t) < sz (tower (tlev t + 1) vω) :=
   tower_increasing _ (h_below_ω_ω t)
 
-/-- Rocq: `SystemT.ord_of_below_ε0`. -/
+/-- Rocq: `Analysis.SystemT.ord_of_below_ε0`. -/
 theorem ordOf_below_ε0 (t : Term) : sz (ordOf t) < ε 0 := below_ε₀ _
 
-/-- Every closed term of type `nat` reduces to a numeral. Rocq: `SystemT.T_total`. -/
+/-- Every closed term of type `nat` reduces to a numeral. Rocq: `Analysis.SystemT.T_total`. -/
 theorem T_total {t : Term} (H : Typing [] t TN) :
     ∃ k, norm (tlev t) (tr t) = inum k ∧ Red (tr t) (inum k) := by
   obtain ⟨Hn, Hr⟩ := T_normalization H

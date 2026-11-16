@@ -1,10 +1,10 @@
-import ConstructiveOrdinals.HereditarySubstF
+import ConstructiveOrdinals.Analysis.HereditarySubstF
 import ConstructiveOrdinals.Prelude.Index
 
 /-!
 # Hereditary substitution and normalization for Leivant's predicative System F
 
-Port of `Ordinal/HereditarySubstFNorm.v`.
+Port of `Ordinal/Analysis/HereditarySubstFNorm.v`.
 
 Building on the ordinal type measure of `HereditarySubstF`, this file defines
 hereditary substitution on the normal forms of predicative System F, proves
@@ -49,20 +49,20 @@ theorem tsubst_tvar (Y X : Nat) (T : Typ) : tsubst (tvar Y) X T = substVar (svar
 
 /-! ## Type-level de Bruijn lemmas -/
 
-/-- Rocq: `HereditarySubstFNorm.tshift_tshift`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.tshift_tshift`. -/
 theorem tshift_tshift : ∀ (T : Typ) {X Y : Nat}, X ≤ Y → tshift X (tshift Y T) = tshift (Y + 1) (tshift X T)
   | tvar Z, X, Y, h => by
     rw [tshift_tvar, tshift_tvar, tshift_tvar, tshift_tvar, sv_sv Z h]
   | arrow A B, _, _, h => congrArg₂ arrow (tshift_tshift A h) (tshift_tshift B h)
   | all k U, _, _, h => congrArg (all k) (tshift_tshift U (Nat.succ_le_succ h))
 
-/-- Rocq: `HereditarySubstFNorm.tsubst_tshift`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.tsubst_tshift`. -/
 theorem tsubst_tshift : ∀ (T : Typ) (X : Nat) (U : Typ), tsubst (tshift X T) X U = T
   | tvar Z, X, U => by rw [tshift_tvar, tsubst_tvar, svar_sv]; rfl
   | arrow A B, X, U => congrArg₂ arrow (tsubst_tshift A X U) (tsubst_tshift B X U)
   | all k V, X, U => congrArg (all k) (tsubst_tshift V (X + 1) _)
 
-/-- Shifting below the substituted variable. Rocq: `HereditarySubstFNorm.tshift_tsubst_le`. -/
+/-- Shifting below the substituted variable. Rocq: `Analysis.HereditarySubstFNorm.tshift_tsubst_le`. -/
 theorem tshift_tsubst_le : ∀ (T : Typ) {X Y : Nat} (U : Typ), X ≤ Y →
     tshift X (tsubst T Y U) = tsubst (tshift X T) (Y + 1) (tshift X U)
   | tvar Z, X, Y, U, h => by
@@ -76,7 +76,7 @@ theorem tshift_tsubst_le : ∀ (T : Typ) {X Y : Nat} (U : Typ), X ≤ Y →
       all k (tsubst (tshift (X + 1) V) (Y + 2) (tshift 0 (tshift X U)))
     rw [tshift_tsubst_le V _ (Nat.succ_le_succ h), tshift_tshift U (Nat.zero_le X)]
 
-/-- Shifting above the substituted variable. Rocq: `HereditarySubstFNorm.tshift_tsubst_ge`. -/
+/-- Shifting above the substituted variable. Rocq: `Analysis.HereditarySubstFNorm.tshift_tsubst_ge`. -/
 theorem tshift_tsubst_ge : ∀ (T : Typ) {X Y : Nat} (U : Typ), Y ≤ X →
     tshift X (tsubst T Y U) = tsubst (tshift (X + 1) T) Y (tshift X U)
   | tvar Z, X, Y, U, h => by
@@ -90,7 +90,7 @@ theorem tshift_tsubst_ge : ∀ (T : Typ) {X Y : Nat} (U : Typ), Y ≤ X →
       all k (tsubst (tshift (X + 2) V) (Y + 1) (tshift 0 (tshift X U)))
     rw [tshift_tsubst_ge V _ (Nat.succ_le_succ h), tshift_tshift U (Nat.zero_le X)]
 
-/-- Rocq: `HereditarySubstFNorm.tsubst_tsubst`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.tsubst_tsubst`. -/
 theorem tsubst_tsubst : ∀ (T : Typ) {X Y : Nat} (U V : Typ), X ≤ Y →
     tsubst (tsubst T X U) Y V = tsubst (tsubst T (Y + 1) (tshift X V)) X (tsubst U Y V)
   | tvar Z, X, Y, U, V, h => by
@@ -140,7 +140,7 @@ theorem max_self (a : Nat) : Nat.max a a = a := ite_eq_left (Nat.le_refl a)
 
 theorem max_eq_right {a b : Nat} (h : a ≤ b) : Nat.max a b = b := ite_eq_left h
 
-/-- Rocq: `HereditarySubstFNorm.kinding_cumul`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.kinding_cumul`. -/
 theorem kinding_cumul {Δ : List Kind} {T : Typ} {k : Kind} (h : Kinding Δ T k) :
     ∀ {k'}, k ≤ k' → Kinding Δ T k' := by
   induction h with
@@ -156,7 +156,7 @@ theorem kinding_cumul {Δ : List Kind} {T : Typ} {k : Kind} (h : Kinding Δ T k)
     rw [← max_eq_right h1]
     exact .all _ _ _ _ (ih (Nat.le_trans (Nat.le_max_right _ _) hle))
 
-/-- The least kind of a type, if any. Rocq: `HereditarySubstFNorm.kind_of`. -/
+/-- The least kind of a type, if any. Rocq: `Analysis.HereditarySubstFNorm.kind_of`. -/
 def kindOf : List Kind → Typ → Option Kind
   | Δ, tvar X => List.nthError Δ X
   | Δ, arrow A B =>
@@ -169,7 +169,7 @@ def kindOf : List Kind → Typ → Option Kind
     | some k' => some (Nat.max (k + 1) k')
     | none => none
 
-/-- Rocq: `HereditarySubstFNorm.kind_of_sound`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.kind_of_sound`. -/
 theorem kindOf_sound : ∀ (T : Typ) (Δ : List Kind) (k : Kind), kindOf Δ T = some k → Kinding Δ T k
   | tvar X, Δ, k, h => .var _ _ _ _ h (Nat.le_refl k)
   | arrow A B, Δ, k, h => by
@@ -195,7 +195,7 @@ theorem kindOf_sound : ∀ (T : Typ) (Δ : List Kind) (k : Kind), kindOf Δ T = 
       rw [eU] at h'; cases h'
       exact .all _ _ _ _ (kindOf_sound U _ kU eU)
 
-/-- Rocq: `HereditarySubstFNorm.kind_of_complete`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.kind_of_complete`. -/
 theorem kindOf_complete {Δ : List Kind} {T : Typ} {k : Kind} (h : Kinding Δ T k) :
     ∃ k0, kindOf Δ T = some k0 ∧ k0 ≤ k := by
   induction h with
@@ -223,14 +223,14 @@ theorem nthError_sv {A : Type} : ∀ (Δ1 Δ2 : List A) (a : A) (X : Nat),
   | _ :: _, _, _, 0 => rfl
   | _ :: Δ1, Δ2, a, X + 1 => nthError_sv Δ1 Δ2 a X
 
-/-- Rocq: `HereditarySubstFNorm.nth_error_insert`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.nth_error_insert`. -/
 theorem nthError_insert {A : Type} (Δ1 Δ2 : List A) (a : A) (X : Nat) :
     List.nthError (Δ1 ++ a :: Δ2) (if X < Δ1.length then X else X + 1) = List.nthError (Δ1 ++ Δ2) X := by
   rw [sv_eq]; exact nthError_sv Δ1 Δ2 a X
 
 theorem length_cons_app {A : Type} (a : A) (l1 l2 : List A) : (a :: l1 ++ l2) = a :: (l1 ++ l2) := rfl
 
-/-- Rocq: `HereditarySubstFNorm.kinding_weaken`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.kinding_weaken`. -/
 theorem kinding_weaken {Δ : List Kind} {T : Typ} {k : Kind} (h : Kinding Δ T k) :
     ∀ (Δ1 Δ2 : List Kind) (k0 : Kind), Δ = Δ1 ++ Δ2 → Kinding (Δ1 ++ k0 :: Δ2) (tshift Δ1.length T) k := by
   induction h with
@@ -256,19 +256,19 @@ theorem nthError_svar {A : Type} : ∀ (Δ1 Δ2 : List A) (a : A) {X z : Nat},
     obtain ⟨z0, h0, rfl⟩ := map_succ_some h
     exact nthError_svar Δ1 Δ2 a h0
 
-/-- Rocq: `HereditarySubstFNorm.nth_error_remove`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.nth_error_remove`. -/
 theorem nthError_remove {A : Type} (Δ1 Δ2 : List A) (a : A) {X : Nat} (h : X ≠ Δ1.length) :
     List.nthError (Δ1 ++ Δ2) (if X < Δ1.length then X else X - 1) = List.nthError (Δ1 ++ a :: Δ2) X := by
   have e := svar_spec Δ1.length X
   rw [ite_eq_right h] at e
   exact nthError_svar Δ1 Δ2 a e
 
-/-- Rocq: `HereditarySubstFNorm.nth_error_at`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.nth_error_at`. -/
 theorem nthError_at {A : Type} : ∀ (Δ1 Δ2 : List A) (a : A), List.nthError (Δ1 ++ a :: Δ2) Δ1.length = some a
   | [], _, _ => rfl
   | _ :: Δ1, Δ2, a => nthError_at Δ1 Δ2 a
 
-/-- Rocq: `HereditarySubstFNorm.kinding_subst`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.kinding_subst`. -/
 theorem kinding_subst {Δ : List Kind} {T : Typ} {k' : Kind} (h : Kinding Δ T k') :
     ∀ (Δ1 Δ2 : List Kind) (k : Kind) (C : Typ), Δ = Δ1 ++ k :: Δ2 → Kinding (Δ1 ++ Δ2) C k →
       Kinding (Δ1 ++ Δ2) (tsubst T Δ1.length C) k' := by
@@ -297,12 +297,12 @@ theorem kinding_subst {Δ : List Kind} {T : Typ} {k' : Kind} (h : Kinding Δ T k
 
 mutual
 /-- Normal forms in spine form; type and term variables have separate de
-Bruijn indices. Rocq: `HereditarySubstFNorm.nf`. -/
+Bruijn indices. Rocq: `Analysis.HereditarySubstFNorm.nf`. -/
 inductive Nf : Type where
   | nlam : Typ → Nf → Nf
   | ntlam : Kind → Nf → Nf
   | nne : Nat → Spine → Nf
-/-- Rocq: `HereditarySubstFNorm.spine`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.spine`. -/
 inductive Spine : Type where
   | snil : Spine
   | sapp : Nf → Spine → Spine
@@ -312,68 +312,68 @@ end
 open Nf Spine
 
 mutual
-/-- Rocq: `HereditarySubstFNorm.nsize`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.nsize`. -/
 def nsize : Nf → Nat
   | nlam _ t => nsize t + 1
   | ntlam _ t => nsize t + 1
   | nne _ sp => ssize sp + 1
-/-- Rocq: `HereditarySubstFNorm.ssize`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.ssize`. -/
 def ssize : Spine → Nat
   | snil => 0
   | sapp t sp => nsize t + ssize sp + 1
   | stapp _ sp => ssize sp + 1
 end
 
-/-- Rocq: `HereditarySubstFNorm.sp_app`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.sp_app`. -/
 def spApp : Spine → Spine → Spine
   | snil, sp2 => sp2
   | sapp t sp, sp2 => sapp t (spApp sp sp2)
   | stapp C sp, sp2 => stapp C (spApp sp sp2)
 
 /-- Contexts interleave kinded type variables and typed term variables.
-Rocq: `HereditarySubstFNorm.entry`. -/
+Rocq: `Analysis.HereditarySubstFNorm.entry`. -/
 inductive Entry : Type where
   | EK : Kind → Entry
   | ET : Typ → Entry
 
 open Entry
 
-/-- Rocq: `HereditarySubstFNorm.env`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.env`. -/
 abbrev Env : Type := List Entry
 
-/-- Rocq: `HereditarySubstFNorm.kctx`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.kctx`. -/
 def kctx : Env → List Kind
   | [] => []
   | EK k :: e => k :: kctx e
   | ET _ :: e => kctx e
 
-/-- Rocq: `HereditarySubstFNorm.get_var`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.get_var`. -/
 def getVar : Env → Nat → Option Typ
   | [], _ => none
   | EK _ :: e, x => (getVar e x).map (tshift 0)
   | ET A :: _, 0 => some A
   | ET _ :: e, x + 1 => getVar e x
 
-/-- Rocq: `HereditarySubstFNorm.cntT`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.cntT`. -/
 def cntT : Env → Nat
   | [] => 0
   | EK _ :: e => cntT e
   | ET _ :: e => cntT e + 1
 
-/-- Rocq: `HereditarySubstFNorm.kctx_app`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.kctx_app`. -/
 theorem kctx_app : ∀ e1 e2 : Env, kctx (e1 ++ e2) = kctx e1 ++ kctx e2
   | [], _ => rfl
   | EK k :: e1, e2 => congrArg (k :: ·) (kctx_app e1 e2)
   | ET _ :: e1, e2 => kctx_app e1 e2
 
 mutual
-/-- Rocq: `HereditarySubstFNorm.check`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.check`. -/
 inductive Check : Env → Nf → Typ → Prop where
   | lam (e : Env) (A : Typ) (t : Nf) (B : Typ) : Check (ET A :: e) t B → Check e (nlam A t) (arrow A B)
   | tlam (e : Env) (k : Kind) (t : Nf) (B : Typ) : Check (EK k :: e) t B → Check e (ntlam k t) (all k B)
   | ne (e : Env) (x : Nat) (sp : Spine) (A T : Typ) : getVar e x = some A → SpineTy e A sp T →
       Check e (nne x sp) T
-/-- Rocq: `HereditarySubstFNorm.spine_ty`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.spine_ty`. -/
 inductive SpineTy : Env → Typ → Spine → Typ → Prop where
   | nil (e : Env) (A : Typ) : SpineTy e A snil A
   | app (e : Env) (A B : Typ) (t : Nf) (sp : Spine) (T : Typ) :
@@ -382,7 +382,7 @@ inductive SpineTy : Env → Typ → Spine → Typ → Prop where
       Kinding (kctx e) C k → SpineTy e (tsubst B 0 C) sp T → SpineTy e (all k B) (stapp C sp) T
 end
 
-/-- Rocq: `HereditarySubstFNorm.spine_app`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.spine_app`. -/
 theorem spine_app : ∀ {e : Env} {A : Typ} {sp1 : Spine} {U : Typ}, SpineTy e A sp1 U →
     ∀ {sp2 : Spine} {T : Typ}, SpineTy e U sp2 T → SpineTy e A (spApp sp1 sp2) T
   | _, _, _, _, .nil _ _, _, _, h2 => h2
@@ -392,12 +392,12 @@ theorem spine_app : ∀ {e : Env} {A : Typ} {sp1 : Spine} {U : Typ}, SpineTy e A
 /-! ## Weakening by a term variable -/
 
 mutual
-/-- Rocq: `HereditarySubstFNorm.shift_tm`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.shift_tm`. -/
 def shiftTm (c : Nat) : Nf → Nf
   | nlam A t => nlam A (shiftTm (c + 1) t)
   | ntlam k t => ntlam k (shiftTm c t)
   | nne y sp => nne (if y < c then y else y + 1) (shiftSp c sp)
-/-- Rocq: `HereditarySubstFNorm.shift_sp`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.shift_sp`. -/
 def shiftSp (c : Nat) : Spine → Spine
   | snil => snil
   | sapp t sp => sapp (shiftTm c t) (shiftSp c sp)
@@ -411,13 +411,13 @@ theorem getVar_sv : ∀ (e1 e2 : Env) (A : Typ) (y : Nat),
   | ET _ :: _, _, _, 0 => rfl
   | ET _ :: e1, e2, A, y + 1 => getVar_sv e1 e2 A y
 
-/-- Rocq: `HereditarySubstFNorm.get_var_insert`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.get_var_insert`. -/
 theorem getVar_insert (e1 e2 : Env) (A : Typ) (y : Nat) :
     getVar (e1 ++ ET A :: e2) (if y < cntT e1 then y else y + 1) = getVar (e1 ++ e2) y := by
   rw [sv_eq]; exact getVar_sv e1 e2 A y
 
 mutual
-/-- Rocq: `HereditarySubstFNorm.weaken_tm`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.weaken_tm`. -/
 theorem weaken_tm : ∀ {e : Env} {t : Nf} {T : Typ}, Check e t T →
     ∀ (e1 e2 : Env) (A : Typ), e = e1 ++ e2 → Check (e1 ++ ET A :: e2) (shiftTm (cntT e1) t) T
   | _, _, _, .lam _ A t B h, e1, e2, A0, E => by
@@ -443,25 +443,25 @@ end
 /-! ## Weakening by a type variable -/
 
 mutual
-/-- Rocq: `HereditarySubstFNorm.tshift_tm`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.tshift_tm`. -/
 def tshiftTm (X : Nat) : Nf → Nf
   | nlam A t => nlam (tshift X A) (tshiftTm X t)
   | ntlam k t => ntlam k (tshiftTm (X + 1) t)
   | nne y sp => nne y (tshiftSp X sp)
-/-- Rocq: `HereditarySubstFNorm.tshift_sp`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.tshift_sp`. -/
 def tshiftSp (X : Nat) : Spine → Spine
   | snil => snil
   | sapp t sp => sapp (tshiftTm X t) (tshiftSp X sp)
   | stapp C sp => stapp (tshift X C) (tshiftSp X sp)
 end
 
-/-- Rocq: `HereditarySubstFNorm.shift_env`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.shift_env`. -/
 def shiftEnv : Nat → Env → Env
   | _, [] => []
   | X, EK k :: e => EK k :: shiftEnv (X - 1) e
   | X, ET A :: e => ET (tshift X A) :: shiftEnv X e
 
-/-- Rocq: `HereditarySubstFNorm.kctx_shift_env`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.kctx_shift_env`. -/
 theorem kctx_shiftEnv : ∀ (e : Env) (X : Nat), kctx (shiftEnv X e) = kctx e
   | [], _ => rfl
   | EK k :: e, X => congrArg (k :: ·) (kctx_shiftEnv e (X - 1))
@@ -470,7 +470,7 @@ theorem kctx_shiftEnv : ∀ (e : Env) (X : Nat), kctx (shiftEnv X e) = kctx e
 theorem map_tshift (A : Typ) (n : Nat) : tshift 0 (tshift n A) = tshift (n + 1) (tshift 0 A) :=
   tshift_tshift A (Nat.zero_le n)
 
-/-- Rocq: `HereditarySubstFNorm.get_var_shift_env`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.get_var_shift_env`. -/
 theorem getVar_shiftEnv : ∀ (e1 e2 : Env) (k : Kind) (y : Nat),
     getVar (shiftEnv (kctx e1).length e1 ++ EK k :: e2) y =
       (getVar (e1 ++ e2) y).map (tshift (kctx e1).length)
@@ -488,7 +488,7 @@ theorem getVar_shiftEnv : ∀ (e1 e2 : Env) (k : Kind) (y : Nat),
   | ET _ :: e1, e2, k, y + 1 => getVar_shiftEnv e1 e2 k y
 
 mutual
-/-- Rocq: `HereditarySubstFNorm.weaken_ty`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.weaken_ty`. -/
 theorem weaken_ty : ∀ {e : Env} {t : Nf} {T : Typ}, Check e t T →
     ∀ (e1 e2 : Env) (k : Kind), e = e1 ++ e2 →
       Check (shiftEnv (kctx e1).length e1 ++ EK k :: e2) (tshiftTm (kctx e1).length t)
@@ -522,19 +522,19 @@ end
 /-! ## Type substitution into normal forms -/
 
 mutual
-/-- Rocq: `HereditarySubstFNorm.tsubst_tm`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.tsubst_tm`. -/
 def tsubstTm : Nf → Nat → Typ → Nf
   | nlam A t, X, C => nlam (tsubst A X C) (tsubstTm t X C)
   | ntlam k t, X, C => ntlam k (tsubstTm t (X + 1) (tshift 0 C))
   | nne y sp, X, C => nne y (tsubstSp sp X C)
-/-- Rocq: `HereditarySubstFNorm.tsubst_sp`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.tsubst_sp`. -/
 def tsubstSp : Spine → Nat → Typ → Spine
   | snil, _, _ => snil
   | sapp t sp, X, C => sapp (tsubstTm t X C) (tsubstSp sp X C)
   | stapp D sp, X, C => stapp (tsubst D X C) (tsubstSp sp X C)
 end
 
-/-- Rocq: `HereditarySubstFNorm.env_subst`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.env_subst`. -/
 inductive EnvSubst : Nat → Typ → Env → Env → Prop where
   | here (e : Env) (k : Kind) (C : Typ) : Kinding (kctx e) C k → EnvSubst 0 C (EK k :: e) e
   | var (X : Nat) (C : Typ) (e e' : Env) (A : Typ) : EnvSubst X C e e' →
@@ -542,7 +542,7 @@ inductive EnvSubst : Nat → Typ → Env → Env → Prop where
   | kind (X : Nat) (C : Typ) (e e' : Env) (k : Kind) : EnvSubst X C e e' →
       EnvSubst (X + 1) (tshift 0 C) (EK k :: e) (EK k :: e')
 
-/-- Rocq: `HereditarySubstFNorm.env_subst_get_var`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.env_subst_get_var`. -/
 theorem envSubst_getVar {X : Nat} {C : Typ} {e e' : Env} (h : EnvSubst X C e e') :
     ∀ y, getVar e' y = (getVar e y).map (fun A => tsubst A X C) := by
   induction h with
@@ -565,7 +565,7 @@ theorem envSubst_getVar {X : Nat} {C : Typ} {e e' : Env} (h : EnvSubst X C e e')
     | none => rfl
     | some A => exact congrArg some (tshift_tsubst_le A C (Nat.zero_le X))
 
-/-- Rocq: `HereditarySubstFNorm.env_subst_kctx`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.env_subst_kctx`. -/
 theorem envSubst_kctx {X : Nat} {C : Typ} {e e' : Env} (h : EnvSubst X C e e') :
     ∃ Δ1 Δ2 k, kctx e = Δ1 ++ k :: Δ2 ∧ kctx e' = Δ1 ++ Δ2 ∧ Δ1.length = X ∧ Kinding (kctx e') C k := by
   induction h with
@@ -579,7 +579,7 @@ theorem envSubst_kctx {X : Nat} {C : Typ} {e e' : Env} (h : EnvSubst X C e e') :
     exact kinding_weaken HC [] (Δ1 ++ Δ2) k rfl
 
 mutual
-/-- Rocq: `HereditarySubstFNorm.subst_ty`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.subst_ty`. -/
 theorem subst_ty : ∀ {e : Env} {t : Nf} {T : Typ}, Check e t T →
     ∀ (X : Nat) (C : Typ) (e' : Env), EnvSubst X C e e' → Check e' (tsubstTm t X C) (tsubst T X C)
   | _, _, _, .lam _ A t B h, X, C, e', HS => .lam _ _ _ _ (subst_ty h X C _ (.var _ _ _ _ _ HS))
@@ -611,24 +611,24 @@ does the same in a spine; `CA Δ U u sp` applies `u : U` to the spine `sp`.
 `Δ` is the kind context, used to check the kind of a type argument before
 reducing a type-application redex. -/
 
-/-- Rocq: `HereditarySubstFNorm.call`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.call`. -/
 inductive Call : Type where
   | CH : List Kind → Typ → Nf → Nat → Nf → Call
   | CS : List Kind → Typ → Nf → Nat → Spine → Call
   | CA : List Kind → Typ → Nf → Spine → Call
 
-/-- Rocq: `HereditarySubstFNorm.res`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.res`. -/
 inductive Res : Type where
   | rn : Nf → Res
   | rs : Spine → Res
 
 open Call Res
 
-/-- Rocq: `HereditarySubstFNorm.unshift`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.unshift`. -/
 def unshift (x y : Nat) : Nat := if y < x then y else y - 1
 
 /-- The applications that are not redexes of the expected shape; on
-well-typed input they never occur. Rocq: `HereditarySubstFNorm.stuck`. -/
+well-typed input they never occur. Rocq: `Analysis.HereditarySubstFNorm.stuck`. -/
 def Stuck (Δ : List Kind) (U : Typ) (u : Nf) (sp : Spine) : Prop :=
   match u, sp with
   | nlam _ _, sapp _ _ =>
@@ -647,7 +647,7 @@ def Stuck (Δ : List Kind) (U : Typ) (u : Nf) (sp : Spine) : Prop :=
   | ntlam _ _, snil => False
   | nne _ _, _ => False
 
-/-- Rocq: `HereditarySubstFNorm.HS`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.HS`. -/
 inductive HS : Call → Res → Prop where
   | hs_lam (Δ : List Kind) (U : Typ) (u : Nf) (x : Nat) (A : Typ) (t r : Nf) :
       HS (CH Δ U (shiftTm 0 u) (x + 1) t) (rn r) → HS (CH Δ U u x (nlam A t)) (rn (nlam A r))
@@ -672,7 +672,7 @@ inductive HS : Call → Res → Prop where
       HS (CA Δ (all k B) (ntlam k' b) (stapp C sp)) (rn r)
   | ha_stuck (Δ : List Kind) (U : Typ) (u : Nf) (sp : Spine) : Stuck Δ U u sp → HS (CA Δ U u sp) (rn u)
 
-/-- Rocq: `HereditarySubstFNorm.HS_det`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.HS_det`. -/
 theorem HS_det {c : Call} {r1 : Res} (h : HS c r1) : ∀ {r2 : Res}, HS c r2 → r1 = r2 := by
   induction h with
   | hs_lam _ _ _ _ _ _ _ _ ih =>
@@ -726,7 +726,7 @@ theorem HS_det {c : Call} {r1 : Res} (h : HS c r1) : ∀ {r2 : Res}, HS c r2 →
         exact absurd (Nat.lt_of_lt_of_le hlt hle) (Nat.lt_irrefl _)
     | ha_stuck => rfl
 
-/-- Rocq: `HereditarySubstFNorm.res_ok`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.res_ok`. -/
 def ResOk : Call → Res → Prop
   | CS _ _ _ _ _, rs _ => True
   | CS _ _ _ _ _, rn _ => False
@@ -735,34 +735,34 @@ def ResOk : Call → Res → Prop
   | CA _ _ _ _, rn _ => True
   | CA _ _ _ _, rs _ => False
 
-/-- Rocq: `HereditarySubstFNorm.HS_res_ok`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.HS_res_ok`. -/
 theorem HS_res_ok {c : Call} {r : Res} (h : HS c r) : ResOk c r := by
   cases h <;> trivial
 
 /-! ## The ordinal measure and termination -/
 
-/-- Rocq: `HereditarySubstFNorm.hmeasure`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.hmeasure`. -/
 def hmeasure : Call → Ordinal.{0}
   | CH _ U _ _ t => ω * tord U + ofNat (nsize t)
   | CS _ U _ _ sp => ω * tord U + ofNat (ssize sp)
   | CA _ U _ _ => ω * tord U
 
-/-- Rocq: `HereditarySubstFNorm.add_nat_lt'`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.add_nat_lt'`. -/
 theorem add_nat_lt' (a : Ordinal.{0}) {m n : Nat} (h : m < n) : a + ofNat m < a + ofNat n :=
   add_lt_add_left a (ofNat_increasing h)
 
-/-- Rocq: `HereditarySubstFNorm.below_head`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.below_head`. -/
 theorem below_head (a : Ordinal.{0}) (n : Nat) : a < a + ofNat (n + 1) :=
   lt_of_le_of_lt (le_add_right a (ofNat 0)) (add_nat_lt' a (Nat.zero_lt_succ n))
 
-/-- Rocq: `HereditarySubstFNorm.below_major`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.below_major`. -/
 theorem below_major {a a' : Ordinal.{0}} (d : Nat) (h : a' < a) : ω * a' + ofNat d < ω * a :=
   lt_of_lt_of_le (lex_lt_major 0 d h) (add_zero _).le
 
-/-- Rocq: `HereditarySubstFNorm.below_major'`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.below_major'`. -/
 theorem below_major' {a a' : Ordinal.{0}} (h : a' < a) : ω * a' < ω * a := mul_lt_mul_left omega_gt0 h
 
-/-- Rocq: `HereditarySubstFNorm.tord_shift_measure`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.tord_shift_measure`. -/
 theorem tord_shift_measure (U : Typ) (n : Nat) :
     ω * tord (tshift 0 U) + ofNat n ≈ ω * tord U + ofNat n :=
   add_congr (mul_congr (equiv_refl ω) (tord_tshift U 0)) (equiv_refl _)
@@ -770,7 +770,7 @@ theorem tord_shift_measure (U : Typ) (n : Nat) :
 theorem lt_succ_add_l (a b : Nat) : a < a + b + 1 := Nat.lt_succ_of_le (Nat.le_add_right _ _)
 theorem lt_succ_add_r (a b : Nat) : b < a + b + 1 := Nat.lt_succ_of_le (Nat.le_add_left _ _)
 
-/-- Rocq: `HereditarySubstFNorm.hsub_total`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.hsub_total`. -/
 def hsub_total : (c : Call) → { r // HS c r } :=
   (InvImage.wf hmeasure lt_wf).fix fun c IH =>
     match c with
@@ -849,7 +849,7 @@ theorem getVar_svar : ∀ (e1 e2 : Env) (U0 : Typ) {y z : Nat},
     obtain ⟨z0, h0, rfl⟩ := map_succ_some h
     exact getVar_svar e1 e2 U0 h0
 
-/-- Removing the substituted variable from a context. Rocq: `HereditarySubstFNorm.get_var_remove`. -/
+/-- Removing the substituted variable from a context. Rocq: `Analysis.HereditarySubstFNorm.get_var_remove`. -/
 theorem getVar_remove (e1 e2 : Env) (U0 : Typ) {x y : Nat} (hx : cntT e1 = x) (hxy : x ≠ y) :
     getVar (e1 ++ e2) (unshift x y) = getVar (e1 ++ ET U0 :: e2) y := by
   have e := svar_spec x y
@@ -857,7 +857,7 @@ theorem getVar_remove (e1 e2 : Env) (U0 : Typ) {x y : Nat} (hx : cntT e1 = x) (h
   subst hx
   exact getVar_svar e1 e2 U0 e
 
-/-- Rocq: `HereditarySubstFNorm.post`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.post`. -/
 def Post : Call → Res → Prop
   | CH Δ U u x t, rn r =>
     ∀ e1 e2 U0 T, Δ = kctx (e1 ++ ET U0 :: e2) → cntT e1 = x →
@@ -872,7 +872,7 @@ def Post : Call → Res → Prop
   | CS _ _ _ _ _, rn _ => True
   | CA _ _ _ _, rs _ => True
 
-/-- Rocq: `HereditarySubstFNorm.kctx_remove`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.kctx_remove`. -/
 theorem kctx_remove (e1 e2 : Env) (U0 : Typ) : kctx (e1 ++ ET U0 :: e2) = kctx (e1 ++ e2) := by
   rw [kctx_app, kctx_app]; rfl
 
@@ -895,7 +895,7 @@ theorem not_stuck {e : Env} {U : Typ} {u : Nf} {sp : Spine} {T : Typ} (hu : Chec
         exact Nat.lt_irrefl _ (Nat.lt_of_lt_of_le hlt hk0)
   | ne => exact h
 
-/-- Rocq: `HereditarySubstFNorm.HS_typed`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.HS_typed`. -/
 theorem HS_typed {c : Call} {r : Res} (h : HS c r) : Post c r := by
   induction h with
   | hs_lam Δ U u x A t r _ ih =>
@@ -965,13 +965,13 @@ theorem HS_typed {c : Call} {r : Res} (h : HS c r) : Post c r := by
 
 /-! ## The functions -/
 
-/-- Rocq: `HereditarySubstFNorm.hsub`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.hsub`. -/
 def hsub (Δ : List Kind) (U : Typ) (u : Nf) (x : Nat) (t : Nf) : Nf :=
   match (hsub_total (CH Δ U u x t)).1 with
   | rn r => r
   | rs _ => t
 
-/-- Rocq: `HereditarySubstFNorm.happ`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.happ`. -/
 def happ (Δ : List Kind) (U : Typ) (u : Nf) (sp : Spine) : Nf :=
   match (hsub_total (CA Δ U u sp)).1 with
   | rn r => r
@@ -995,20 +995,20 @@ theorem happ_HS (Δ : List Kind) (U : Typ) (u : Nf) (sp : Spine) : HS (CA Δ U u
   | rs _ => exact (HS_res_ok h).elim
 
 /-- Substituting `u : U` for the innermost variable preserves typing.
-Rocq: `HereditarySubstFNorm.hsub_typed`. -/
+Rocq: `Analysis.HereditarySubstFNorm.hsub_typed`. -/
 theorem hsub_typed {e : Env} {U : Typ} {u t : Nf} {T : Typ} (Ht : Check (ET U :: e) t T) (Hu : Check e u U) :
     Check e (hsub (kctx e) U u 0 t) T :=
   HS_typed (hsub_HS _ _ _ _ _) [] e U T rfl rfl rfl Hu Ht
 
 /-- Applying `u : U` to a well-typed spine preserves typing.
-Rocq: `HereditarySubstFNorm.happ_typed`. -/
+Rocq: `Analysis.HereditarySubstFNorm.happ_typed`. -/
 theorem happ_typed {e : Env} {U : Typ} {u : Nf} {sp : Spine} {T : Typ} (Hu : Check e u U)
     (Hs : SpineTy e U sp T) : Check e (happ (kctx e) U u sp) T :=
   HS_typed (happ_HS _ _ _ _) e T rfl Hu Hs
 
 /-! ## Normalization and consistency -/
 
-/-- Rocq: `HereditarySubstFNorm.term`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.term`. -/
 inductive Term : Type where
   | var : Nat → Term
   | abs : Typ → Term → Term
@@ -1018,7 +1018,7 @@ inductive Term : Type where
 
 open Term
 
-/-- Rocq: `HereditarySubstFNorm.typing`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.typing`. -/
 inductive Typing : Env → Term → Typ → Prop where
   | Var (e : Env) (x : Nat) (T : Typ) : getVar e x = some T → Typing e (var x) T
   | Abs (e : Env) (A : Typ) (t : Term) (B : Typ) : Typing (ET A :: e) t B → Typing e (abs A t) (arrow A B)
@@ -1029,7 +1029,7 @@ inductive Typing : Env → Term → Typ → Prop where
       Typing e (tapp t C) (tsubst B 0 C)
 
 /-- Every well-typed term has a normal form of the same type.
-Rocq: `HereditarySubstFNorm.normalization`. -/
+Rocq: `Analysis.HereditarySubstFNorm.normalization`. -/
 theorem normalization {e : Env} {t : Term} {T : Typ} (h : Typing e t T) : ∃ n, Check e n T := by
   induction h with
   | Var e x T hx => exact ⟨nne x snil, .ne _ _ _ _ _ hx (.nil _ _)⟩
@@ -1044,7 +1044,7 @@ theorem normalization {e : Env} {t : Term} {T : Typ} (h : Typing e t T) : ∃ n,
     exact ⟨_, happ_typed hn (.tapp _ _ _ _ _ _ hk (.nil _ _))⟩
 
 /-- Consistency: the type `∀X:0. X` has no closed inhabitant.
-Rocq: `HereditarySubstFNorm.consistency`. -/
+Rocq: `Analysis.HereditarySubstFNorm.consistency`. -/
 theorem consistency (t : Term) : ¬ Typing [] t (all 0 (tvar 0)) := fun Ht => by
   obtain ⟨n, hn⟩ := normalization Ht
   cases hn with
@@ -1060,7 +1060,7 @@ in that ordinary substitution followed by β-reduction reaches the same normal
 form (`HS_red`). With it, every well-typed term reduces to a normal form of
 the same type (`normalization_red`). -/
 
-/-- Rocq: `HereditarySubstFNorm.shift_term`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.shift_term`. -/
 def shiftTerm (c : Nat) : Term → Term
   | var y => var (if y < c then y else y + 1)
   | abs A t => abs A (shiftTerm (c + 1) t)
@@ -1068,7 +1068,7 @@ def shiftTerm (c : Nat) : Term → Term
   | tabs k t => tabs k (shiftTerm c t)
   | tapp t C => tapp (shiftTerm c t) C
 
-/-- Rocq: `HereditarySubstFNorm.tshift_term`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.tshift_term`. -/
 def tshiftTerm (X : Nat) : Term → Term
   | var y => var y
   | abs A t => abs (tshift X A) (tshiftTerm X t)
@@ -1076,7 +1076,7 @@ def tshiftTerm (X : Nat) : Term → Term
   | tabs k t => tabs k (tshiftTerm (X + 1) t)
   | tapp t C => tapp (tshiftTerm X t) (tshift X C)
 
-/-- Rocq: `HereditarySubstFNorm.tsubst_term`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.tsubst_term`. -/
 def tsubstTerm : Term → Nat → Typ → Term
   | var y, _, _ => var y
   | abs A t, X, C => abs (tsubst A X C) (tsubstTerm t X C)
@@ -1085,7 +1085,7 @@ def tsubstTerm : Term → Nat → Typ → Term
   | tapp t D, X, C => tapp (tsubstTerm t X C) (tsubst D X C)
 
 /-- `subst t x u` substitutes `u` for the term variable `x` in `t`.
-Rocq: `HereditarySubstFNorm.subst`. -/
+Rocq: `Analysis.HereditarySubstFNorm.subst`. -/
 def subst : Term → Nat → Term → Term
   | var y, x, u => if y = x then u else var (unshift x y)
   | abs A t, x, u => abs A (subst t (x + 1) (shiftTerm 0 u))
@@ -1093,7 +1093,7 @@ def subst : Term → Nat → Term → Term
   | tabs k t, x, u => tabs k (subst t x (tshiftTerm 0 u))
   | tapp t C, x, u => tapp (subst t x u) C
 
-/-- Rocq: `HereditarySubstFNorm.red1`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.red1`. -/
 inductive Red1 : Term → Term → Prop where
   | beta (A : Typ) (t u : Term) : Red1 (app (abs A t) u) (subst t 0 u)
   | tbeta (k : Kind) (t : Term) (C : Typ) : Red1 (tapp (tabs k t) C) (tsubstTerm t 0 C)
@@ -1103,83 +1103,83 @@ inductive Red1 : Term → Term → Prop where
   | tabs (k : Kind) (t t' : Term) : Red1 t t' → Red1 (tabs k t) (tabs k t')
   | tapp (t t' : Term) (C : Typ) : Red1 t t' → Red1 (tapp t C) (tapp t' C)
 
-/-- Rocq: `HereditarySubstFNorm.reds`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.reds`. -/
 inductive Reds : Term → Term → Prop where
   | refl (t : Term) : Reds t t
   | step (t t' t'' : Term) : Red1 t t' → Reds t' t'' → Reds t t''
 
-/-- Rocq: `HereditarySubstFNorm.reds_trans`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.reds_trans`. -/
 theorem reds_trans {t t' t'' : Term} (h : Reds t t') (h' : Reds t' t'') : Reds t t'' := by
   induction h with
   | refl => exact h'
   | step _ _ _ h1 _ ih => exact .step _ _ _ h1 (ih h')
 
-/-- Rocq: `HereditarySubstFNorm.reds_one`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.reds_one`. -/
 theorem reds_one {t t' : Term} (h : Red1 t t') : Reds t t' := .step _ _ _ h (.refl _)
 
-/-- Rocq: `HereditarySubstFNorm.reds_abs`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.reds_abs`. -/
 theorem reds_abs (A : Typ) {t t' : Term} (h : Reds t t') : Reds (abs A t) (abs A t') := by
   induction h with
   | refl => exact .refl _
   | step _ _ _ h1 _ ih => exact .step _ _ _ (.abs _ _ _ h1) ih
 
-/-- Rocq: `HereditarySubstFNorm.reds_tabs`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.reds_tabs`. -/
 theorem reds_tabs (k : Kind) {t t' : Term} (h : Reds t t') : Reds (tabs k t) (tabs k t') := by
   induction h with
   | refl => exact .refl _
   | step _ _ _ h1 _ ih => exact .step _ _ _ (.tabs _ _ _ h1) ih
 
-/-- Rocq: `HereditarySubstFNorm.reds_tapp`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.reds_tapp`. -/
 theorem reds_tapp (C : Typ) {t t' : Term} (h : Reds t t') : Reds (tapp t C) (tapp t' C) := by
   induction h with
   | refl => exact .refl _
   | step _ _ _ h1 _ ih => exact .step _ _ _ (.tapp _ _ _ h1) ih
 
-/-- Rocq: `HereditarySubstFNorm.reds_app1`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.reds_app1`. -/
 theorem reds_app1 (u : Term) {t t' : Term} (h : Reds t t') : Reds (app t u) (app t' u) := by
   induction h with
   | refl => exact .refl _
   | step _ _ _ h1 _ ih => exact .step _ _ _ (.app1 _ _ _ h1) ih
 
-/-- Rocq: `HereditarySubstFNorm.reds_app2`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.reds_app2`. -/
 theorem reds_app2 (u : Term) {t t' : Term} (h : Reds t t') : Reds (app u t) (app u t') := by
   induction h with
   | refl => exact .refl _
   | step _ _ _ h1 _ ih => exact .step _ _ _ (.app2 _ _ _ h1) ih
 
-/-- Rocq: `HereditarySubstFNorm.reds_app`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.reds_app`. -/
 theorem reds_app {t t' u u' : Term} (h1 : Reds t t') (h2 : Reds u u') : Reds (app t u) (app t' u') :=
   reds_trans (reds_app1 u h1) (reds_app2 t' h2)
 
 /-! ### Embedding normal forms -/
 
 mutual
-/-- Rocq: `HereditarySubstFNorm.emb`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.emb`. -/
 def emb : Nf → Term
   | nlam A t => abs A (emb t)
   | ntlam k t => tabs k (emb t)
   | nne y sp => embSp (var y) sp
-/-- Rocq: `HereditarySubstFNorm.emb_sp`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.emb_sp`. -/
 def embSp (h : Term) : Spine → Term
   | snil => h
   | sapp t sp => embSp (app h (emb t)) sp
   | stapp C sp => embSp (tapp h C) sp
 end
 
-/-- Rocq: `HereditarySubstFNorm.emb_sp_app`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.emb_sp_app`. -/
 theorem embSp_app : ∀ (sp1 sp2 : Spine) (h : Term), embSp h (spApp sp1 sp2) = embSp (embSp h sp1) sp2
   | snil, _, _ => rfl
   | sapp _ sp, sp2, _ => embSp_app sp sp2 _
   | stapp _ sp, sp2, _ => embSp_app sp sp2 _
 
-/-- Rocq: `HereditarySubstFNorm.reds_emb_sp`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.reds_emb_sp`. -/
 theorem reds_embSp : ∀ (sp : Spine) {h h' : Term}, Reds h h' → Reds (embSp h sp) (embSp h' sp)
   | snil, _, _, H => H
   | sapp _ sp, _, _, H => reds_embSp sp (reds_app1 _ H)
   | stapp C sp, _, _, H => reds_embSp sp (reds_tapp C H)
 
 mutual
-/-- Rocq: `HereditarySubstFNorm.shift_emb`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.shift_emb`. -/
 theorem shift_emb : ∀ (t : Nf) (c : Nat), shiftTerm c (emb t) = emb (shiftTm c t)
   | nlam A t, c => congrArg (abs A) (shift_emb t (c + 1))
   | ntlam k t, c => congrArg (tabs k) (shift_emb t c)
@@ -1195,7 +1195,7 @@ theorem shift_embSp : ∀ (sp : Spine) (c : Nat) (h : Term),
 end
 
 mutual
-/-- Rocq: `HereditarySubstFNorm.tshift_emb`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.tshift_emb`. -/
 theorem tshift_emb : ∀ (t : Nf) (X : Nat), tshiftTerm X (emb t) = emb (tshiftTm X t)
   | nlam _ t, X => congrArg (abs _) (tshift_emb t X)
   | ntlam k t, X => congrArg (tabs k) (tshift_emb t (X + 1))
@@ -1211,7 +1211,7 @@ theorem tshift_embSp : ∀ (sp : Spine) (X : Nat) (h : Term),
 end
 
 mutual
-/-- Rocq: `HereditarySubstFNorm.tsubst_emb`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.tsubst_emb`. -/
 theorem tsubst_emb : ∀ (t : Nf) (X : Nat) (C : Typ), tsubstTerm (emb t) X C = emb (tsubstTm t X C)
   | nlam _ t, X, C => congrArg (abs _) (tsubst_emb t X C)
   | ntlam k t, X, _ => congrArg (tabs k) (tsubst_emb t (X + 1) _)
@@ -1227,13 +1227,13 @@ theorem tsubst_embSp : ∀ (sp : Spine) (X : Nat) (C : Typ) (h : Term),
 end
 
 /-- Substitution into an embedded spine, with the arguments substituted.
-Rocq: `HereditarySubstFNorm.emb_sps`. -/
+Rocq: `Analysis.HereditarySubstFNorm.emb_sps`. -/
 def embSps (h : Term) : Spine → Nat → Term → Term
   | snil, _, _ => h
   | sapp t sp, x, u => embSps (app h (subst (emb t) x u)) sp x u
   | stapp C sp, x, u => embSps (tapp h C) sp x u
 
-/-- Rocq: `HereditarySubstFNorm.subst_emb_sp`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.subst_emb_sp`. -/
 theorem subst_embSp : ∀ (sp : Spine) (h : Term) (x : Nat) (u : Term),
     subst (embSp h sp) x u = embSps (subst h x u) sp x u
   | snil, _, _, _ => rfl
@@ -1242,7 +1242,7 @@ theorem subst_embSp : ∀ (sp : Spine) (h : Term) (x : Nat) (u : Term),
 
 /-! ### Correctness -/
 
-/-- Rocq: `HereditarySubstFNorm.rpost`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.rpost`. -/
 def RPost : Call → Res → Prop
   | CH Δ U u x t, rn r =>
     ∀ e1 e2 U0 T, Δ = kctx (e1 ++ ET U0 :: e2) → cntT e1 = x →
@@ -1258,7 +1258,7 @@ def RPost : Call → Res → Prop
   | CS _ _ _ _ _, rn _ => True
   | CA _ _ _ _, rs _ => True
 
-/-- Rocq: `HereditarySubstFNorm.HS_red`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.HS_red`. -/
 theorem HS_red {c : Call} {r : Res} (h : HS c r) : RPost c r := by
   induction h with
   | hs_lam Δ U u x A t r _ ih =>
@@ -1339,13 +1339,13 @@ theorem HS_red {c : Call} {r : Res} (h : HS c r) : RPost c r := by
     subst HΔ
     exact (not_stuck Hu Hs hs).elim
 
-/-- Rocq: `HereditarySubstFNorm.happ_red`. -/
+/-- Rocq: `Analysis.HereditarySubstFNorm.happ_red`. -/
 theorem happ_red {e : Env} {U : Typ} {u : Nf} {sp : Spine} {T : Typ} (Hu : Check e u U)
     (Hs : SpineTy e U sp T) : Reds (embSp (emb u) sp) (emb (happ (kctx e) U u sp)) :=
   HS_red (happ_HS _ _ _ _) e T rfl Hu Hs
 
 /-- Every well-typed term reduces to a normal form of the same type.
-Rocq: `HereditarySubstFNorm.normalization_red`. -/
+Rocq: `Analysis.HereditarySubstFNorm.normalization_red`. -/
 theorem normalization_red {e : Env} {t : Term} {T : Typ} (h : Typing e t T) :
     ∃ n, Check e n T ∧ Reds t (emb n) := by
   induction h with

@@ -66,3 +66,15 @@ are presentational:
   the same universe as the ordinals.
 - **A renamed function.** `CF_normalize` (Cantor forms) is
   `CantorForm.toCNF`.
+- **Provability.** Rocq's `prov true` and `prov false` are Lean's `PA` and
+  `HA`, which abbreviate `Prov true` and `Prov false`. Some formula
+  constructors print in dot notation, for example `θ.ex.all` for
+  `All (Ex θ)`.
+- **Split and reordered statements.** Rocq's `Cichon.hbn_dec_Pn` is a
+  conjunction of two statements, one about `hbn_dec` and one about
+  `hbn_exp_dec`. Lean proves these as the mutually recursive theorems
+  `hbn_dec_Pn_x` (listed here) and `hbn_dec_Pn_e`. In
+  `OmegaLogic.od_reduce` the hypothesis `rank C.2 = ρ` comes after the
+  derivation `OD n ρ β Δ`. `OmegaLogic.od_elim` takes `ρ'` with
+  `ρ' = ρ + 1` in place of Rocq's `S ρ`. Both are the forms the structural
+  recursion of the proofs needs.

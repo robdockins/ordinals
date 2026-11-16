@@ -1,9 +1,9 @@
-import ConstructiveOrdinals.HereditarySubst
+import ConstructiveOrdinals.Analysis.HereditarySubst
 
 /-!
 # Termination of hereditary substitution for LF
 
-Port of `Ordinal/HereditarySubstLF.v`.
+Port of `Ordinal/Analysis/HereditarySubstLF.v`.
 
 In LF, types contain terms, so hereditary substitution goes into canonical
 types and kinds as well as objects. It is indexed by the simple type `τ`
@@ -28,7 +28,7 @@ open Ordinal HereditarySubst Ty
 
 /-! ## Canonical LF syntax, with de Bruijn indices -/
 
-/-- Rocq: `HereditarySubstLF.head`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.head`. -/
 inductive Head : Type where
   | hvar : Nat → Head
   | hcst : Nat → Head
@@ -36,11 +36,11 @@ inductive Head : Type where
 open Head
 
 mutual
-/-- Objects: `lam M`, or a head applied to a spine. Rocq: `HereditarySubstLF.tm`. -/
+/-- Objects: `lam M`, or a head applied to a spine. Rocq: `Analysis.HereditarySubstLF.tm`. -/
 inductive Tm : Type where
   | tlam : Tm → Tm
   | tapp : Head → TSpine → Tm
-/-- Rocq: `HereditarySubstLF.tspine`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.tspine`. -/
 inductive TSpine : Type where
   | tnil : TSpine
   | tcons : Tm → TSpine → TSpine
@@ -49,12 +49,12 @@ end
 open Tm TSpine
 
 /-- Types: a family constant applied to a spine, or `Πx:A.B`.
-Rocq: `HereditarySubstLF.tp`. -/
+Rocq: `Analysis.HereditarySubstLF.tp`. -/
 inductive Tp : Type where
   | atom : Nat → TSpine → Tp
   | pi : Tp → Tp → Tp
 
-/-- Kinds: `type`, or `Πx:A.K`. Rocq: `HereditarySubstLF.kd`. -/
+/-- Kinds: `type`, or `Πx:A.K`. Rocq: `Analysis.HereditarySubstLF.kd`. -/
 inductive Kd : Type where
   | ktype : Kd
   | kpi : Tp → Kd → Kd
@@ -62,38 +62,38 @@ inductive Kd : Type where
 open Tp Kd
 
 mutual
-/-- Rocq: `HereditarySubstLF.tsize`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.tsize`. -/
 def tsize : Tm → Nat
   | tlam t => tsize t + 1
   | tapp _ sp => tsizeSp sp + 1
-/-- Rocq: `HereditarySubstLF.tsize_sp`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.tsize_sp`. -/
 def tsizeSp : TSpine → Nat
   | tnil => 0
   | tcons t sp => tsize t + tsizeSp sp + 1
 end
 
-/-- Rocq: `HereditarySubstLF.psize`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.psize`. -/
 def psize : Tp → Nat
   | atom _ sp => tsizeSp sp + 1
   | pi A B => psize A + psize B + 1
 
-/-- Rocq: `HereditarySubstLF.ksize`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.ksize`. -/
 def ksize : Kd → Nat
   | ktype => 0
   | kpi A K => psize A + ksize K + 1
 
-/-- The simple-type erasure of a type. Rocq: `HereditarySubstLF.erase`. -/
+/-- The simple-type erasure of a type. Rocq: `Analysis.HereditarySubstLF.erase`. -/
 def erase : Tp → Ty
   | atom _ _ => base
   | pi A B => arr (erase A) (erase B)
 
 mutual
-/-- Rocq: `HereditarySubstLF.tlift`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.tlift`. -/
 def tlift (k : Nat) : Tm → Tm
   | tlam t => tlam (tlift (k + 1) t)
   | tapp (hvar y) sp => tapp (hvar (if y < k then y else y + 1)) (tliftSp k sp)
   | tapp (hcst c) sp => tapp (hcst c) (tliftSp k sp)
-/-- Rocq: `HereditarySubstLF.tlift_sp`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.tlift_sp`. -/
 def tliftSp (k : Nat) : TSpine → TSpine
   | tnil => tnil
   | tcons t sp => tcons (tlift k t) (tliftSp k sp)
@@ -101,7 +101,7 @@ end
 
 /-! ## The graph of hereditary substitution -/
 
-/-- Rocq: `HereditarySubstLF.lcall`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lcall`. -/
 inductive LCall : Type where
   /-- into an object -/
   | LH : Ty → Tm → Nat → Tm → LCall
@@ -114,7 +114,7 @@ inductive LCall : Type where
   /-- application -/
   | LA : Ty → Tm → TSpine → LCall
 
-/-- Rocq: `HereditarySubstLF.lres`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lres`. -/
 inductive LRes : Type where
   | ln : Tm → LRes
   | ls : TSpine → LRes
@@ -123,7 +123,7 @@ inductive LRes : Type where
 
 open LCall
 
-/-- Rocq: `HereditarySubstLF.LHS`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.LHS`. -/
 inductive LHS : LCall → LRes → Prop where
   | lh_lam (τ : Ty) (M : Tm) (x : Nat) (t r : Tm) :
       LHS (LH τ (tlift 0 M) (x + 1) t) (.ln r) → LHS (LH τ M x (tlam t)) (.ln (tlam r))
@@ -154,7 +154,7 @@ inductive LHS : LCall → LRes → Prop where
   | la_app (a b : Ty) (h : Head) (sp0 : TSpine) (N : Tm) (sp : TSpine) :
       LHS (LA (arr a b) (tapp h sp0) (tcons N sp)) (.ln (tapp h sp0))
 
-/-- Rocq: `HereditarySubstLF.LHS_det`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.LHS_det`. -/
 theorem LHS_det {c : LCall} {r1 : LRes} (h : LHS c r1) : ∀ {r2 : LRes}, LHS c r2 → r1 = r2 := by
   induction h with
   | lh_lam _ _ _ _ _ _ ih => intro r2 h2; cases h2 with | lh_lam _ _ _ _ _ h' => cases ih h'; rfl
@@ -201,16 +201,16 @@ def lresKind : LRes → LKind
   | .lt _ => .kt
   | .lk _ => .kk
 
-/-- Rocq: `HereditarySubstLF.lres_ok`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lres_ok`. -/
 def LResOk (c : LCall) (r : LRes) : Prop := lcallKind c = lresKind r
 
-/-- Rocq: `HereditarySubstLF.LHS_res_ok`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.LHS_res_ok`. -/
 theorem LHS_res_ok {c : LCall} {r : LRes} (h : LHS c r) : LResOk c r := by
   cases h <;> rfl
 
 /-! ## The ordinal measure, as for simple types -/
 
-/-- Rocq: `HereditarySubstLF.lmeasure`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lmeasure`. -/
 def lmeasure : LCall → Ordinal.{0}
   | LH τ _ _ t => tyOrd τ + ofNat (tsize t)
   | LS τ _ _ sp => tyOrd τ + ofNat (tsizeSp sp)
@@ -218,7 +218,7 @@ def lmeasure : LCall → Ordinal.{0}
   | LK τ _ _ K => tyOrd τ + ofNat (ksize K)
   | LA τ _ _ => tyOrd τ
 
-/-- Rocq: `HereditarySubstLF.lt_head_measure`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lt_head_measure`. -/
 theorem lt_head_measure (τ : Ty) {k : Nat} (hk : 0 < k) : tyOrd τ < tyOrd τ + ofNat k :=
   lt_of_le_of_lt (le_add_right (tyOrd τ) (ofNat 0)) (add_nat_lt _ hk)
 
@@ -227,7 +227,7 @@ theorem lt_succ_add_r (a b : Nat) : b < a + b + 1 := Nat.lt_succ_of_le (Nat.le_a
 
 /-! ## Termination: the graph is total -/
 
-/-- Rocq: `HereditarySubstLF.lhsub_total`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_total`. -/
 def lhsub_total : (c : LCall) → { r // LHS c r } :=
   (InvImage.wf lmeasure lt_wf).fix fun c IH =>
     match c with
@@ -312,7 +312,7 @@ def lhsub_total : (c : LCall) → { r // LHS c r } :=
 
 /-! ## The functions and their equations -/
 
-/-- Rocq: `HereditarySubstLF.lhsub`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub`. -/
 def lhsub (τ : Ty) (M : Tm) (x : Nat) (t : Tm) : Tm :=
   match (lhsub_total (LH τ M x t)).1 with
   | .ln r => r
@@ -320,7 +320,7 @@ def lhsub (τ : Ty) (M : Tm) (x : Nat) (t : Tm) : Tm :=
   | .lt _ => t
   | .lk _ => t
 
-/-- Rocq: `HereditarySubstLF.lhsub_sp`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_sp`. -/
 def lhsubSp (τ : Ty) (M : Tm) (x : Nat) (sp : TSpine) : TSpine :=
   match (lhsub_total (LS τ M x sp)).1 with
   | .ls r => r
@@ -328,7 +328,7 @@ def lhsubSp (τ : Ty) (M : Tm) (x : Nat) (sp : TSpine) : TSpine :=
   | .lt _ => sp
   | .lk _ => sp
 
-/-- Rocq: `HereditarySubstLF.lhsub_tp`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_tp`. -/
 def lhsubTp (τ : Ty) (M : Tm) (x : Nat) (A : Tp) : Tp :=
   match (lhsub_total (LCall.LT τ M x A)).1 with
   | .lt r => r
@@ -336,7 +336,7 @@ def lhsubTp (τ : Ty) (M : Tm) (x : Nat) (A : Tp) : Tp :=
   | .ls _ => A
   | .lk _ => A
 
-/-- Rocq: `HereditarySubstLF.lhsub_kd`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_kd`. -/
 def lhsubKd (τ : Ty) (M : Tm) (x : Nat) (K : Kd) : Kd :=
   match (lhsub_total (LK τ M x K)).1 with
   | .lk r => r
@@ -344,7 +344,7 @@ def lhsubKd (τ : Ty) (M : Tm) (x : Nat) (K : Kd) : Kd :=
   | .ls _ => K
   | .lt _ => K
 
-/-- Rocq: `HereditarySubstLF.lhapp`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhapp`. -/
 def lhapp (τ : Ty) (M : Tm) (sp : TSpine) : Tm :=
   match (lhsub_total (LA τ M sp)).1 with
   | .ln r => r
@@ -352,32 +352,32 @@ def lhapp (τ : Ty) (M : Tm) (sp : TSpine) : Tm :=
   | .lt _ => M
   | .lk _ => M
 
-/-- Rocq: `HereditarySubstLF.lhsub_spec`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_spec`. -/
 theorem lhsub_spec {τ : Ty} {M : Tm} {x : Nat} {t r : Tm} (h : LHS (LH τ M x t) (.ln r)) :
     lhsub τ M x t = r := by
   unfold lhsub; rw [LHS_det (lhsub_total _).2 h]
 
-/-- Rocq: `HereditarySubstLF.lhsub_sp_spec`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_sp_spec`. -/
 theorem lhsubSp_spec {τ : Ty} {M : Tm} {x : Nat} {sp r : TSpine} (h : LHS (LS τ M x sp) (.ls r)) :
     lhsubSp τ M x sp = r := by
   unfold lhsubSp; rw [LHS_det (lhsub_total _).2 h]
 
-/-- Rocq: `HereditarySubstLF.lhsub_tp_spec`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_tp_spec`. -/
 theorem lhsubTp_spec {τ : Ty} {M : Tm} {x : Nat} {A r : Tp} (h : LHS (LCall.LT τ M x A) (.lt r)) :
     lhsubTp τ M x A = r := by
   unfold lhsubTp; rw [LHS_det (lhsub_total _).2 h]
 
-/-- Rocq: `HereditarySubstLF.lhsub_kd_spec`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_kd_spec`. -/
 theorem lhsubKd_spec {τ : Ty} {M : Tm} {x : Nat} {K r : Kd} (h : LHS (LK τ M x K) (.lk r)) :
     lhsubKd τ M x K = r := by
   unfold lhsubKd; rw [LHS_det (lhsub_total _).2 h]
 
-/-- Rocq: `HereditarySubstLF.lhapp_spec`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhapp_spec`. -/
 theorem lhapp_spec {τ : Ty} {M : Tm} {sp : TSpine} {r : Tm} (h : LHS (LA τ M sp) (.ln r)) :
     lhapp τ M sp = r := by
   unfold lhapp; rw [LHS_det (lhsub_total _).2 h]
 
-/-- Rocq: `HereditarySubstLF.lhsub_LHS`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_LHS`. -/
 theorem lhsub_LHS (τ : Ty) (M : Tm) (x : Nat) (t : Tm) : LHS (LH τ M x t) (.ln (lhsub τ M x t)) := by
   have h := (lhsub_total (LH τ M x t)).2
   unfold lhsub
@@ -386,7 +386,7 @@ theorem lhsub_LHS (τ : Ty) (M : Tm) (x : Nat) (t : Tm) : LHS (LH τ M x t) (.ln
   | ln _ => exact h
   | _ => exact absurd (LHS_res_ok h) (fun e => LKind.noConfusion e)
 
-/-- Rocq: `HereditarySubstLF.lhsub_sp_LHS`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_sp_LHS`. -/
 theorem lhsubSp_LHS (τ : Ty) (M : Tm) (x : Nat) (sp : TSpine) :
     LHS (LS τ M x sp) (.ls (lhsubSp τ M x sp)) := by
   have h := (lhsub_total (LS τ M x sp)).2
@@ -396,7 +396,7 @@ theorem lhsubSp_LHS (τ : Ty) (M : Tm) (x : Nat) (sp : TSpine) :
   | ls _ => exact h
   | _ => exact absurd (LHS_res_ok h) (fun e => LKind.noConfusion e)
 
-/-- Rocq: `HereditarySubstLF.lhsub_tp_LHS`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_tp_LHS`. -/
 theorem lhsubTp_LHS (τ : Ty) (M : Tm) (x : Nat) (A : Tp) : LHS (LCall.LT τ M x A) (.lt (lhsubTp τ M x A)) := by
   have h := (lhsub_total (LCall.LT τ M x A)).2
   unfold lhsubTp
@@ -405,7 +405,7 @@ theorem lhsubTp_LHS (τ : Ty) (M : Tm) (x : Nat) (A : Tp) : LHS (LCall.LT τ M x
   | lt _ => exact h
   | _ => exact absurd (LHS_res_ok h) (fun e => LKind.noConfusion e)
 
-/-- Rocq: `HereditarySubstLF.lhsub_kd_LHS`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_kd_LHS`. -/
 theorem lhsubKd_LHS (τ : Ty) (M : Tm) (x : Nat) (K : Kd) : LHS (LK τ M x K) (.lk (lhsubKd τ M x K)) := by
   have h := (lhsub_total (LK τ M x K)).2
   unfold lhsubKd
@@ -414,7 +414,7 @@ theorem lhsubKd_LHS (τ : Ty) (M : Tm) (x : Nat) (K : Kd) : LHS (LK τ M x K) (.
   | lk _ => exact h
   | _ => exact absurd (LHS_res_ok h) (fun e => LKind.noConfusion e)
 
-/-- Rocq: `HereditarySubstLF.lhapp_LHS`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhapp_LHS`. -/
 theorem lhapp_LHS (τ : Ty) (M : Tm) (sp : TSpine) : LHS (LA τ M sp) (.ln (lhapp τ M sp)) := by
   have h := (lhsub_total (LA τ M sp)).2
   unfold lhapp
@@ -423,58 +423,58 @@ theorem lhapp_LHS (τ : Ty) (M : Tm) (sp : TSpine) : LHS (LA τ M sp) (.ln (lhap
   | ln _ => exact h
   | _ => exact absurd (LHS_res_ok h) (fun e => LKind.noConfusion e)
 
-/-- Rocq: `HereditarySubstLF.lhsub_lam`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_lam`. -/
 theorem lhsub_lam (τ : Ty) (M : Tm) (x : Nat) (t : Tm) :
     lhsub τ M x (tlam t) = tlam (lhsub τ (tlift 0 M) (x + 1) t) :=
   lhsub_spec (.lh_lam _ _ _ _ _ (lhsub_LHS _ _ _ _))
 
-/-- Rocq: `HereditarySubstLF.lhsub_cst`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_cst`. -/
 theorem lhsub_cst (τ : Ty) (M : Tm) (x c : Nat) (sp : TSpine) :
     lhsub τ M x (tapp (hcst c) sp) = tapp (hcst c) (lhsubSp τ M x sp) :=
   lhsub_spec (.lh_cst _ _ _ _ _ _ (lhsubSp_LHS _ _ _ _))
 
-/-- Rocq: `HereditarySubstLF.lhsub_var`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_var`. -/
 theorem lhsub_var (τ : Ty) (M : Tm) {x y : Nat} (sp : TSpine) (h : x ≠ y) :
     lhsub τ M x (tapp (hvar y) sp) = tapp (hvar (unshift x y)) (lhsubSp τ M x sp) :=
   lhsub_spec (.lh_var _ _ _ _ _ _ h (lhsubSp_LHS _ _ _ _))
 
-/-- Rocq: `HereditarySubstLF.lhsub_head`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_head`. -/
 theorem lhsub_head (τ : Ty) (M : Tm) (x : Nat) (sp : TSpine) :
     lhsub τ M x (tapp (hvar x) sp) = lhapp τ M (lhsubSp τ M x sp) :=
   lhsub_spec (.lh_head _ _ _ _ _ _ (lhsubSp_LHS _ _ _ _) (lhapp_LHS _ _ _))
 
-/-- Rocq: `HereditarySubstLF.lhsub_sp_nil`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_sp_nil`. -/
 theorem lhsubSp_nil (τ : Ty) (M : Tm) (x : Nat) : lhsubSp τ M x tnil = tnil :=
   lhsubSp_spec (.ls_nil _ _ _)
 
-/-- Rocq: `HereditarySubstLF.lhsub_sp_cons`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_sp_cons`. -/
 theorem lhsubSp_cons (τ : Ty) (M : Tm) (x : Nat) (t : Tm) (sp : TSpine) :
     lhsubSp τ M x (tcons t sp) = tcons (lhsub τ M x t) (lhsubSp τ M x sp) :=
   lhsubSp_spec (.ls_cons _ _ _ _ _ _ _ (lhsub_LHS _ _ _ _) (lhsubSp_LHS _ _ _ _))
 
-/-- Rocq: `HereditarySubstLF.lhsub_tp_atom`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_tp_atom`. -/
 theorem lhsubTp_atom (τ : Ty) (M : Tm) (x a : Nat) (sp : TSpine) :
     lhsubTp τ M x (atom a sp) = atom a (lhsubSp τ M x sp) :=
   lhsubTp_spec (.lt_atom _ _ _ _ _ _ (lhsubSp_LHS _ _ _ _))
 
-/-- Rocq: `HereditarySubstLF.lhsub_tp_pi`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_tp_pi`. -/
 theorem lhsubTp_pi (τ : Ty) (M : Tm) (x : Nat) (A B : Tp) :
     lhsubTp τ M x (pi A B) = pi (lhsubTp τ M x A) (lhsubTp τ (tlift 0 M) (x + 1) B) :=
   lhsubTp_spec (.lt_pi _ _ _ _ _ _ _ (lhsubTp_LHS _ _ _ _) (lhsubTp_LHS _ _ _ _))
 
-/-- Rocq: `HereditarySubstLF.lhsub_kd_type`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_kd_type`. -/
 theorem lhsubKd_type (τ : Ty) (M : Tm) (x : Nat) : lhsubKd τ M x ktype = ktype :=
   lhsubKd_spec (.lk_type _ _ _)
 
-/-- Rocq: `HereditarySubstLF.lhsub_kd_pi`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhsub_kd_pi`. -/
 theorem lhsubKd_pi (τ : Ty) (M : Tm) (x : Nat) (A : Tp) (K : Kd) :
     lhsubKd τ M x (kpi A K) = kpi (lhsubTp τ M x A) (lhsubKd τ (tlift 0 M) (x + 1) K) :=
   lhsubKd_spec (.lk_pi _ _ _ _ _ _ _ (lhsubTp_LHS _ _ _ _) (lhsubKd_LHS _ _ _ _))
 
-/-- Rocq: `HereditarySubstLF.lhapp_nil`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhapp_nil`. -/
 theorem lhapp_nil (τ : Ty) (M : Tm) : lhapp τ M tnil = M := lhapp_spec (.la_nil _ _)
 
-/-- Rocq: `HereditarySubstLF.lhapp_beta`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lhapp_beta`. -/
 theorem lhapp_beta (a b : Ty) (t N : Tm) (sp : TSpine) :
     lhapp (arr a b) (tlam t) (tcons N sp) = lhapp b (lhsub a N 0 t) sp :=
   lhapp_spec (.la_beta _ _ _ _ _ _ _ (lhsub_LHS _ _ _ _) (lhapp_LHS _ _ _))
@@ -484,7 +484,7 @@ theorem lhapp_beta (a b : Ty) (t N : Tm) (sp : TSpine) :
 Substitution into a type does not change its simple-type erasure, which is
 why the erasure, and not the dependent type, indexes the substitution. -/
 
-/-- Rocq: `HereditarySubstLF.erase_hsub_tp`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.erase_hsub_tp`. -/
 theorem erase_hsub_tp : ∀ (A : Tp) (τ : Ty) (M : Tm) (x : Nat), erase (lhsubTp τ M x A) = erase A
   | atom a sp, τ, M, x => by rw [lhsubTp_atom]; rfl
   | pi A B, τ, M, x => by
@@ -494,7 +494,7 @@ theorem erase_hsub_tp : ∀ (A : Tp) (τ : Ty) (M : Tm) (x : Nat), erase (lhsubT
 
 /-! ## The measure is below `ω · (height + 1)` -/
 
-/-- Rocq: `HereditarySubstLF.lcall_ty`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lcall_ty`. -/
 def lcallTy : LCall → Ty
   | LH τ _ _ _ => τ
   | LS τ _ _ _ => τ
@@ -502,7 +502,7 @@ def lcallTy : LCall → Ty
   | LK τ _ _ _ => τ
   | LA τ _ _ => τ
 
-/-- Rocq: `HereditarySubstLF.lmeasure_bound`. -/
+/-- Rocq: `Analysis.HereditarySubstLF.lmeasure_bound`. -/
 theorem lmeasure_bound (c : LCall) : lmeasure c < ω * ofNat (height (lcallTy c) + 1) := by
   have H : ∀ τ k, tyOrd τ + ofNat k < ω * ofNat (height τ + 1) := fun τ k =>
     lt_of_lt_of_le (add_lt_add_left _ (index_lt ω ⟨k⟩))

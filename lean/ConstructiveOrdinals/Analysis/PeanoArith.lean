@@ -1,7 +1,7 @@
 /-!
 # Peano and Heyting arithmetic, and the negative translation
 
-Port of `Ordinal/PeanoArith.v`.
+Port of `Ordinal/Analysis/PeanoArith.v`.
 
 First-order arithmetic with `0`, `S`, `+` and `·`, formulas built from
 equations with `⊥`, `∧`, `∨`, `→`, `∀` and `∃`, and variables as de Bruijn
@@ -24,7 +24,7 @@ theorem congrArg₂ {α β γ : Type} (f : α → β → γ) {a a' : α} {b b' :
 
 /-! ## Syntax -/
 
-/-- Arithmetic terms. Rocq: `PeanoArith.aterm`. -/
+/-- Arithmetic terms. Rocq: `Analysis.PeanoArith.aterm`. -/
 inductive ATerm : Type where
   | tv : Nat → ATerm
   | tz : ATerm
@@ -32,7 +32,7 @@ inductive ATerm : Type where
   | tplus : ATerm → ATerm → ATerm
   | tmult : ATerm → ATerm → ATerm
 
-/-- Formulas. Rocq: `PeanoArith.form`. -/
+/-- Formulas. Rocq: `Analysis.PeanoArith.form`. -/
 inductive Form : Type where
   | eq : ATerm → ATerm → Form
   | bot : Form
@@ -44,12 +44,12 @@ inductive Form : Type where
 
 open ATerm Form
 
-/-- Rocq: `PeanoArith.Neg`. -/
+/-- Rocq: `Analysis.PeanoArith.Neg`. -/
 def Form.neg (A : Form) : Form := imp A bot
 
 /-! ## Substitution -/
 
-/-- Rocq: `PeanoArith.asubst`. -/
+/-- Rocq: `Analysis.PeanoArith.asubst`. -/
 def asubst (σ : Nat → ATerm) : ATerm → ATerm
   | tv i => σ i
   | tz => tz
@@ -57,15 +57,15 @@ def asubst (σ : Nat → ATerm) : ATerm → ATerm
   | tplus s t => tplus (asubst σ s) (asubst σ t)
   | tmult s t => tmult (asubst σ s) (asubst σ t)
 
-/-- Rocq: `PeanoArith.shift_sub`. -/
+/-- Rocq: `Analysis.PeanoArith.shift_sub`. -/
 def shiftSub : Nat → ATerm := fun i => tv (i + 1)
 
-/-- Rocq: `PeanoArith.up`. -/
+/-- Rocq: `Analysis.PeanoArith.up`. -/
 def up (σ : Nat → ATerm) : Nat → ATerm
   | 0 => tv 0
   | i + 1 => asubst shiftSub (σ i)
 
-/-- Rocq: `PeanoArith.fsubst`. -/
+/-- Rocq: `Analysis.PeanoArith.fsubst`. -/
 def fsubst : (Nat → ATerm) → Form → Form
   | σ, eq s t => eq (asubst σ s) (asubst σ t)
   | _, bot => bot
@@ -76,23 +76,23 @@ def fsubst : (Nat → ATerm) → Form → Form
   | σ, ex A => ex (fsubst (up σ) A)
 termination_by structural _ A => A
 
-/-- Shifting past a new variable. Rocq: `PeanoArith.fshift`. -/
+/-- Shifting past a new variable. Rocq: `Analysis.PeanoArith.fshift`. -/
 def fshift (A : Form) : Form := fsubst shiftSub A
 
-/-- Rocq: `PeanoArith.inst1`. -/
+/-- Rocq: `Analysis.PeanoArith.inst1`. -/
 def inst1 (t : ATerm) : Nat → ATerm
   | 0 => t
   | i + 1 => tv i
 
-/-- Substituting for variable `0`. Rocq: `PeanoArith.sub1`. -/
+/-- Substituting for variable `0`. Rocq: `Analysis.PeanoArith.sub1`. -/
 def sub1 (A : Form) (t : ATerm) : Form := fsubst (inst1 t) A
 
-/-- Replacing variable `0` by its successor. Rocq: `PeanoArith.suc_sub`. -/
+/-- Replacing variable `0` by its successor. Rocq: `Analysis.PeanoArith.suc_sub`. -/
 def sucSub : Nat → ATerm
   | 0 => ts (tv 0)
   | i + 1 => tv (i + 1)
 
-/-- Rocq: `PeanoArith.asubst_ext`. -/
+/-- Rocq: `Analysis.PeanoArith.asubst_ext`. -/
 theorem asubst_ext {σ τ : Nat → ATerm} (h : ∀ i, σ i = τ i) : ∀ t, asubst σ t = asubst τ t
   | tv i => h i
   | tz => rfl
@@ -100,12 +100,12 @@ theorem asubst_ext {σ τ : Nat → ATerm} (h : ∀ i, σ i = τ i) : ∀ t, asu
   | tplus s t => congrArg₂ tplus (asubst_ext h s) (asubst_ext h t)
   | tmult s t => congrArg₂ tmult (asubst_ext h s) (asubst_ext h t)
 
-/-- Rocq: `PeanoArith.up_ext`. -/
+/-- Rocq: `Analysis.PeanoArith.up_ext`. -/
 theorem up_ext {σ τ : Nat → ATerm} (h : ∀ i, σ i = τ i) : ∀ i, up σ i = up τ i
   | 0 => rfl
   | i + 1 => congrArg (asubst shiftSub) (h i)
 
-/-- Rocq: `PeanoArith.fsubst_ext`. -/
+/-- Rocq: `Analysis.PeanoArith.fsubst_ext`. -/
 theorem fsubst_ext : ∀ (A : Form) {σ τ : Nat → ATerm}, (∀ i, σ i = τ i) → fsubst σ A = fsubst τ A
   | eq s t, _, _, h => congrArg₂ eq (asubst_ext h s) (asubst_ext h t)
   | bot, _, _, _ => rfl
@@ -115,7 +115,7 @@ theorem fsubst_ext : ∀ (A : Form) {σ τ : Nat → ATerm}, (∀ i, σ i = τ i
   | all A, _, _, h => congrArg all (fsubst_ext A (up_ext h))
   | ex A, _, _, h => congrArg ex (fsubst_ext A (up_ext h))
 
-/-- Rocq: `PeanoArith.asubst_comp`. -/
+/-- Rocq: `Analysis.PeanoArith.asubst_comp`. -/
 theorem asubst_comp (σ τ : Nat → ATerm) :
     ∀ t, asubst σ (asubst τ t) = asubst (fun i => asubst σ (τ i)) t
   | tv _ => rfl
@@ -124,7 +124,7 @@ theorem asubst_comp (σ τ : Nat → ATerm) :
   | tplus s t => congrArg₂ tplus (asubst_comp σ τ s) (asubst_comp σ τ t)
   | tmult s t => congrArg₂ tmult (asubst_comp σ τ s) (asubst_comp σ τ t)
 
-/-- Rocq: `PeanoArith.asubst_id`. -/
+/-- Rocq: `Analysis.PeanoArith.asubst_id`. -/
 theorem asubst_id : ∀ t, asubst tv t = t
   | tv _ => rfl
   | tz => rfl
@@ -132,7 +132,7 @@ theorem asubst_id : ∀ t, asubst tv t = t
   | tplus s t => congrArg₂ tplus (asubst_id s) (asubst_id t)
   | tmult s t => congrArg₂ tmult (asubst_id s) (asubst_id t)
 
-/-- Rocq: `PeanoArith.up_comp`. -/
+/-- Rocq: `Analysis.PeanoArith.up_comp`. -/
 theorem up_comp (σ τ : Nat → ATerm) :
     ∀ i, asubst (up σ) (up τ i) = up (fun j => asubst σ (τ j)) i
   | 0 => rfl
@@ -141,7 +141,7 @@ theorem up_comp (σ τ : Nat → ATerm) :
     rw [asubst_comp, asubst_comp]
     rfl
 
-/-- Rocq: `PeanoArith.fsubst_comp`. -/
+/-- Rocq: `Analysis.PeanoArith.fsubst_comp`. -/
 theorem fsubst_comp : ∀ (A : Form) (σ τ : Nat → ATerm),
     fsubst σ (fsubst τ A) = fsubst (fun i => asubst σ (τ i)) A
   | eq s t, σ, τ => congrArg₂ eq (asubst_comp σ τ s) (asubst_comp σ τ t)
@@ -152,7 +152,7 @@ theorem fsubst_comp : ∀ (A : Form) (σ τ : Nat → ATerm),
   | all A, σ, τ => congrArg all ((fsubst_comp A (up σ) (up τ)).trans (fsubst_ext A (up_comp σ τ)))
   | ex A, σ, τ => congrArg ex ((fsubst_comp A (up σ) (up τ)).trans (fsubst_ext A (up_comp σ τ)))
 
-/-- Rocq: `PeanoArith.fsubst_id`. -/
+/-- Rocq: `Analysis.PeanoArith.fsubst_id`. -/
 theorem fsubst_id : ∀ (A : Form) {σ : Nat → ATerm}, (∀ i, σ i = tv i) → fsubst σ A = A
   | eq s t, σ, h => by
     show eq (asubst σ s) (asubst σ t) = eq s t
@@ -169,13 +169,13 @@ theorem fsubst_id : ∀ (A : Form) {σ : Nat → ATerm}, (∀ i, σ i = tv i) �
       | i + 1 => by show asubst shiftSub (σ i) = tv (i + 1); rw [h i]; rfl))
 
 /-- Instantiating a shifted quantifier body with the new variable gives back
-the body. Rocq: `PeanoArith.sub1_up_shift`. -/
+the body. Rocq: `Analysis.PeanoArith.sub1_up_shift`. -/
 theorem sub1_up_shift (A : Form) : sub1 (fsubst (up shiftSub) A) (tv 0) = A := by
   unfold sub1
   rw [fsubst_comp]
   exact fsubst_id A (fun | 0 => rfl | _ + 1 => rfl)
 
-/-- Rocq: `PeanoArith.fshift_sub1`. -/
+/-- Rocq: `Analysis.PeanoArith.fshift_sub1`. -/
 theorem fshift_sub1 (A : Form) (t : ATerm) :
     fshift (sub1 A t) = sub1 (fsubst (up shiftSub) A) (asubst shiftSub t) := by
   unfold fshift sub1
@@ -188,7 +188,7 @@ theorem fshift_sub1 (A : Form) (t : ATerm) :
 is `true`. The induction rule has its premises in fixed contexts; with the
 other rules it gives the induction axiom (`induction_axiom`). -/
 
-/-- Rocq: `PeanoArith.prov`. -/
+/-- Rocq: `Analysis.PeanoArith.prov`. -/
 inductive Prov (cl : Bool) : List Form → Form → Prop where
   | hyp (Γ : List Form) (A : Form) : A ∈ Γ → Prov cl Γ A
   | botE (Γ : List Form) (A : Form) : Prov cl Γ bot → Prov cl Γ A
@@ -245,7 +245,7 @@ theorem incl_cons' {α : Type} {a : α} {l l' : List α} (h : ∀ b, b ∈ l →
   | _, .head _ => .head _
   | _, .tail _ hb => .tail _ (h _ hb)
 
-/-- Rocq: `PeanoArith.prov_weaken`. -/
+/-- Rocq: `Analysis.PeanoArith.prov_weaken`. -/
 theorem prov_weaken {cl : Bool} {Γ : List Form} {A : Form} (h : Prov cl Γ A) :
     ∀ Γ' : List Form, (∀ B, B ∈ Γ → B ∈ Γ') → Prov cl Γ' A := by
   induction h with
@@ -276,45 +276,45 @@ theorem prov_weaken {cl : Bool} {Γ : List Form} {A : Form} (h : Prov cl Γ A) :
   | multS Γ s t => exact fun Γ' _ => .multS _ s t
   | ind Γ A h0 h1 _ _ => exact fun Γ' _ => .ind _ _ h0 h1
 
-/-- Rocq: `PeanoArith.hyp0`. -/
+/-- Rocq: `Analysis.PeanoArith.hyp0`. -/
 theorem hyp0 {cl : Bool} {Γ : List Form} {A : Form} : Prov cl (A :: Γ) A := .hyp _ _ (.head _)
 
-/-- Rocq: `PeanoArith.hyp1`. -/
+/-- Rocq: `Analysis.PeanoArith.hyp1`. -/
 theorem hyp1 {cl : Bool} {Γ : List Form} {A B : Form} : Prov cl (B :: A :: Γ) A :=
   .hyp _ _ (.tail _ (.head _))
 
-/-- Rocq: `PeanoArith.hyp2`. -/
+/-- Rocq: `Analysis.PeanoArith.hyp2`. -/
 theorem hyp2 {cl : Bool} {Γ : List Form} {A B C : Form} : Prov cl (C :: B :: A :: Γ) A :=
   .hyp _ _ (.tail _ (.tail _ (.head _)))
 
-/-- Rocq: `PeanoArith.weak1`. -/
+/-- Rocq: `Analysis.PeanoArith.weak1`. -/
 theorem weak1 {cl : Bool} {Γ : List Form} {A B : Form} (h : Prov cl Γ A) : Prov cl (B :: Γ) A :=
   prov_weaken h _ (fun _ hb => .tail _ hb)
 
-/-- Rocq: `PeanoArith.weak2`. -/
+/-- Rocq: `Analysis.PeanoArith.weak2`. -/
 theorem weak2 {cl : Bool} {Γ : List Form} {A B C : Form} (h : Prov cl Γ A) :
     Prov cl (C :: B :: Γ) A :=
   prov_weaken h _ (fun _ hb => .tail _ (.tail _ hb))
 
-/-- Rocq: `PeanoArith.weak3`. -/
+/-- Rocq: `Analysis.PeanoArith.weak3`. -/
 theorem weak3 {cl : Bool} {Γ : List Form} {A B C D : Form} (h : Prov cl Γ A) :
     Prov cl (D :: C :: B :: Γ) A :=
   prov_weaken h _ (fun _ hb => .tail _ (.tail _ (.tail _ hb)))
 
 /-! ### Derivations are closed under substitution -/
 
-/-- Rocq: `PeanoArith.up_shift`. -/
+/-- Rocq: `Analysis.PeanoArith.up_shift`. -/
 theorem up_shift (σ : Nat → ATerm) (i : Nat) :
     asubst (up σ) (shiftSub i) = asubst shiftSub (σ i) := rfl
 
-/-- Rocq: `PeanoArith.fsubst_shift_comm`. -/
+/-- Rocq: `Analysis.PeanoArith.fsubst_shift_comm`. -/
 theorem fsubst_shift_comm (σ : Nat → ATerm) (A : Form) :
     fsubst (up σ) (fshift A) = fshift (fsubst σ A) := by
   unfold fshift
   rw [fsubst_comp, fsubst_comp]
   exact fsubst_ext A (fun _ => rfl)
 
-/-- Rocq: `PeanoArith.fsubst_sub1`. -/
+/-- Rocq: `Analysis.PeanoArith.fsubst_sub1`. -/
 theorem fsubst_sub1 (σ : Nat → ATerm) (A : Form) (t : ATerm) :
     fsubst σ (sub1 A t) = sub1 (fsubst (up σ) A) (asubst σ t) := by
   unfold sub1
@@ -326,7 +326,7 @@ theorem fsubst_sub1 (σ : Nat → ATerm) (A : Form) (t : ATerm) :
   rw [asubst_comp]
   exact ((asubst_ext (τ := tv) (fun _ => rfl) (σ i)).trans (asubst_id _)).symm
 
-/-- Rocq: `PeanoArith.fsubst_suc`. -/
+/-- Rocq: `Analysis.PeanoArith.fsubst_suc`. -/
 theorem fsubst_suc (σ : Nat → ATerm) (A : Form) :
     fsubst (up σ) (fsubst sucSub A) = fsubst sucSub (fsubst (up σ) A) := by
   rw [fsubst_comp, fsubst_comp]
@@ -346,7 +346,7 @@ theorem map_ext {α β : Type} {f g : α → β} (h : ∀ a, f a = g a) : ∀ l 
   | [] => rfl
   | a :: l => congrArg₂ (· :: ·) (h a) (map_ext h l)
 
-/-- Rocq: `PeanoArith.prov_subst`. -/
+/-- Rocq: `Analysis.PeanoArith.prov_subst`. -/
 theorem prov_subst {cl : Bool} {Γ : List Form} {A : Form} (h : Prov cl Γ A) :
     ∀ σ : Nat → ATerm, Prov cl (Γ.map (fsubst σ)) (fsubst σ A) := by
   induction h with
@@ -412,7 +412,7 @@ theorem prov_subst {cl : Bool} {Γ : List Form} {A : Form} (h : Prov cl Γ A) :
 
 /-! ## The induction axiom -/
 
-/-- Rocq: `PeanoArith.induction_axiom`. -/
+/-- Rocq: `Analysis.PeanoArith.induction_axiom`. -/
 theorem induction_axiom (cl : Bool) (Γ : List Form) (A : Form) :
     Prov cl Γ (imp (sub1 A tz) (imp (all (imp A (fsubst sucSub A))) (all A))) := by
   -- Induction on `B := A(0) → ∀x (A x → A (S x)) → A`, with the first two
@@ -460,7 +460,7 @@ theorem induction_axiom (cl : Bool) (Γ : List Form) (A : Form) :
 
 /-! ## The Gödel–Gentzen negative translation -/
 
-/-- Rocq: `PeanoArith.gg`. -/
+/-- Rocq: `Analysis.PeanoArith.gg`. -/
 def gg : Form → Form
   | eq s t => (eq s t).neg.neg
   | bot => bot
@@ -470,7 +470,7 @@ def gg : Form → Form
   | all A => all (gg A)
   | ex A => (all (gg A).neg).neg
 
-/-- Rocq: `PeanoArith.gg_subst`. -/
+/-- Rocq: `Analysis.PeanoArith.gg_subst`. -/
 theorem gg_subst : ∀ (A : Form) (σ : Nat → ATerm), gg (fsubst σ A) = fsubst σ (gg A)
   | eq _ _, _ => rfl
   | bot, _ => rfl
@@ -484,21 +484,21 @@ theorem gg_subst : ∀ (A : Form) (σ : Nat → ATerm), gg (fsubst σ A) = fsubs
     show (all (gg (fsubst (up σ) A)).neg).neg = _
     rw [gg_subst A (up σ)]; rfl
 
-/-- Rocq: `PeanoArith.gg_shift`. -/
+/-- Rocq: `Analysis.PeanoArith.gg_shift`. -/
 theorem gg_shift (Γ : List Form) : (Γ.map fshift).map gg = (Γ.map gg).map fshift := by
   rw [map_map, map_map]
   exact map_ext (fun A => gg_subst A shiftSub) Γ
 
-/-- Rocq: `PeanoArith.dni`. -/
+/-- Rocq: `Analysis.PeanoArith.dni`. -/
 theorem dni {Γ : List Form} {A : Form} (h : HA Γ A) : HA Γ A.neg.neg :=
   .impI _ _ _ (.impE _ _ _ hyp0 (weak1 h))
 
-/-- Rocq: `PeanoArith.tneg`. -/
+/-- Rocq: `Analysis.PeanoArith.tneg`. -/
 theorem tneg (Γ : List Form) (A : Form) : HA Γ (imp A.neg.neg.neg A.neg) :=
   .impI _ _ _ (.impI _ _ _ (.impE _ _ _ hyp1 (.impI _ _ _ (.impE _ _ _ hyp0 hyp1))))
 
 /-- Translated formulas are stable under double negation.
-Rocq: `PeanoArith.gg_stable`. -/
+Rocq: `Analysis.PeanoArith.gg_stable`. -/
 theorem gg_stable : ∀ (A : Form) (Γ : List Form), HA Γ (imp (gg A).neg.neg (gg A))
   | eq s t, Γ => tneg Γ (eq s t).neg
   | bot, _ => .impI _ _ _ (.impE _ _ _ hyp0 (.impI _ _ _ hyp0))
@@ -524,7 +524,7 @@ theorem gg_stable : ∀ (A : Form) (Γ : List Form), HA Γ (imp (gg A).neg.neg (
     exact Hx
   | ex A, Γ => tneg Γ _
 
-/-- Rocq: `PeanoArith.gg_dne`. -/
+/-- Rocq: `Analysis.PeanoArith.gg_dne`. -/
 theorem gg_dne {Γ : List Form} {A : Form} (h : HA Γ (gg A).neg.neg) : HA Γ (gg A) :=
   .impE _ _ _ (gg_stable A Γ) h
 
@@ -532,7 +532,7 @@ theorem incl_swap {α : Type} {a b : α} {l : List α} : ∀ x, x ∈ a :: l →
   | _, .head _ => .head _
   | _, .tail _ h => .tail _ (.tail _ h)
 
-/-- Rocq: `PeanoArith.negative_translation`. -/
+/-- Rocq: `Analysis.PeanoArith.negative_translation`. -/
 theorem negative_translation {Γ : List Form} {A : Form} (h : PA Γ A) : HA (Γ.map gg) (gg A) := by
   induction h with
   | hyp Γ A hA => exact .hyp _ _ (mem_map_of_mem _ hA)
@@ -589,7 +589,7 @@ theorem negative_translation {Γ : List Form} {A : Form} (h : PA Γ A) : HA (Γ.
     · have h := ih1
       rw [gg_subst] at h; exact h
 
-/-- Rocq: `PeanoArith.PA_HA_consistency`. -/
+/-- Rocq: `Analysis.PeanoArith.PA_HA_consistency`. -/
 theorem PA_HA_consistency (h : PA [] bot) : HA [] bot := negative_translation h
 
 end ConstructiveOrdinals.PeanoArith

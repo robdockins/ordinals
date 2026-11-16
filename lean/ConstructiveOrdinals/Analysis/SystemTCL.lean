@@ -4,7 +4,7 @@ import ConstructiveOrdinals.Notation.CantorProduct
 /-!
 # Strong normalization of combinatory System T below ε₀
 
-Port of `Ordinal/SystemTCL.v`.
+Port of `Ordinal/Analysis/SystemTCL.v`.
 
 Gödel's T in combinatory form, with pairs, and the ordinal assignment of
 Howard and Schütte: each term gets a vector of ordinals below ε₀, indexed by
@@ -31,82 +31,82 @@ The vectors hold normal V forms (`VNotation`), with the natural sum `♯`, the
 natural product and `ω ^ ·`, computed on normal forms. On notations these
 satisfy the usual laws constructively (`CantorProduct`). -/
 
-/-- Normal V forms. Rocq: `SystemTCL.ON`. -/
+/-- Normal V forms. Rocq: `Analysis.SystemTCL.ON`. -/
 structure ON : Type where
   /-- The form. -/
   v : VForm
   /-- It is normal. -/
   n : VForm.IsNormal v
 
-/-- Rocq: `SystemTCL.ON_denote`. -/
+/-- Rocq: `Analysis.SystemTCL.ON_denote`. -/
 def ON.denote (x : ON) : Ordinal.{0} := x.v.denote
 
-/-- Rocq: `SystemTCL.ONo`. -/
+/-- Rocq: `Analysis.SystemTCL.ONo`. -/
 instance instSizedON : Sized ON := ⟨ON.denote⟩
 
-/-- Rocq: `SystemTCL.ON_complete`. -/
+/-- Rocq: `Analysis.SystemTCL.ON_complete`. -/
 theorem ON_complete (x : ON) : Complete (sz x) := VForm.complete x.v
 
-/-- Rocq: `SystemTCL.ON_below_ε0`. -/
+/-- Rocq: `Analysis.SystemTCL.ON_below_ε0`. -/
 theorem ON_below_ε0 (x : ON) : sz x < ε 0 := VForm.below_ε₀ x.v
 
-/-- Rocq: `SystemTCL.nadd_ok`. -/
+/-- Rocq: `Analysis.SystemTCL.nadd_ok`. -/
 theorem nadd_ok {a b : VForm} (ha : a.IsNormal) (hb : b.IsNormal) :
     (VForm.nadd a b).denote ≈ a.denote ♯ b.denote ∧ (VForm.nadd a b).IsNormal :=
   let h := VForm.reflects_nadd a.denote a ⟨equiv_refl _, ha⟩ b.denote b ⟨equiv_refl _, hb⟩
   ⟨equiv_symm h.1, h.2⟩
 
-/-- Rocq: `SystemTCL.nmul_ok`. -/
+/-- Rocq: `Analysis.SystemTCL.nmul_ok`. -/
 theorem nmul_ok {a b : VForm} (ha : a.IsNormal) (hb : b.IsNormal) :
     (VForm.nmul a b).denote ≈ nmul a.denote b.denote ∧ (VForm.nmul a b).IsNormal :=
   let h := VForm.reflects_nmul a.denote a ⟨equiv_refl _, ha⟩ b.denote b ⟨equiv_refl _, hb⟩
   ⟨equiv_symm h.1, h.2⟩
 
-/-- Rocq: `SystemTCL.oadd`. -/
+/-- Rocq: `Analysis.SystemTCL.oadd`. -/
 def oadd (x y : ON) : ON := ⟨VForm.nadd x.v y.v, (nadd_ok x.n y.n).2⟩
-/-- Rocq: `SystemTCL.omul`. -/
+/-- Rocq: `Analysis.SystemTCL.omul`. -/
 def omul (x y : ON) : ON := ⟨VForm.nmul x.v y.v, (nmul_ok x.n y.n).2⟩
-/-- Rocq: `SystemTCL.oexp`. -/
+/-- Rocq: `Analysis.SystemTCL.oexp`. -/
 def oexp (x : ON) : ON := ⟨.V x.v .Z, ⟨x.n, trivial, trivial⟩⟩
-/-- Rocq: `SystemTCL.ozero`. -/
+/-- Rocq: `Analysis.SystemTCL.ozero`. -/
 def ozero : ON := ⟨.Z, trivial⟩
-/-- Rocq: `SystemTCL.oone`. -/
+/-- Rocq: `Analysis.SystemTCL.oone`. -/
 def oone : ON := oexp ozero
-/-- Rocq: `SystemTCL.onat`. -/
+/-- Rocq: `Analysis.SystemTCL.onat`. -/
 def onat : Nat → ON
   | 0 => ozero
   | n + 1 => oadd (onat n) oone
-/-- Rocq: `SystemTCL.oomega`. -/
+/-- Rocq: `Analysis.SystemTCL.oomega`. -/
 def oomega : ON := oexp oone
 
 @[inherit_doc] scoped infixr:65 " ⊕' " => oadd
 @[inherit_doc] scoped infixr:70 " ⊗' " => omul
 
-/-- Rocq: `SystemTCL.nmul_le_mor`. -/
+/-- Rocq: `Analysis.SystemTCL.nmul_le_mor`. -/
 theorem nmul_le_mor {x y a b : Ordinal.{0}} (h : x ≤ y) (h' : a ≤ b) : nmul x a ≤ nmul y b :=
   nmul_monotone h h'
 
-/-- Rocq: `SystemTCL.nmul_eq_mor`. -/
+/-- Rocq: `Analysis.SystemTCL.nmul_eq_mor`. -/
 theorem nmul_eq_mor {x y a b : Ordinal.{0}} (h : x ≈ y) (h' : a ≈ b) : nmul x a ≈ nmul y b :=
   nmul_congr h h'
 
-/-- Rocq: `SystemTCL.oadd_eq`. -/
+/-- Rocq: `Analysis.SystemTCL.oadd_eq`. -/
 theorem oadd_eq (x y : ON) : sz (x ⊕' y) ≈ sz x ♯ sz y := (nadd_ok x.n y.n).1
 
-/-- Rocq: `SystemTCL.omul_eq`. -/
+/-- Rocq: `Analysis.SystemTCL.omul_eq`. -/
 theorem omul_eq (x y : ON) : sz (x ⊗' y) ≈ nmul (sz x) (sz y) := (nmul_ok x.n y.n).1
 
-/-- Rocq: `SystemTCL.oexp_eq`. -/
+/-- Rocq: `Analysis.SystemTCL.oexp_eq`. -/
 theorem oexp_eq (x : ON) : sz (oexp x) ≈ ω ^ sz x :=
   equiv_trans (veblen_onePlus _ (VForm.complete x.v) _ zero_complete) (add_zero _)
 
-/-- Rocq: `SystemTCL.ozero_eq`. -/
+/-- Rocq: `Analysis.SystemTCL.ozero_eq`. -/
 theorem ozero_eq : sz ozero ≈ 0 := equiv_refl _
 
-/-- Rocq: `SystemTCL.oone_eq`. -/
+/-- Rocq: `Analysis.SystemTCL.oone_eq`. -/
 theorem oone_eq : sz oone ≈ 1 := equiv_trans (oexp_eq ozero) (pow_zero ω)
 
-/-- Rocq: `SystemTCL.onat_eq`. -/
+/-- Rocq: `Analysis.SystemTCL.onat_eq`. -/
 theorem onat_eq : ∀ n : Nat, sz (onat n) ≈ ofNat n
   | 0 => equiv_refl _
   | n + 1 =>
@@ -114,26 +114,26 @@ theorem onat_eq : ∀ n : Nat, sz (onat n) ≈ ofNat n
       (equiv_trans (nadd_congr (onat_eq n) oone_eq)
         (equiv_trans (nadd_succ2 _ _) (succ_congruence (nadd_zero_r _))))
 
-/-- Rocq: `SystemTCL.oomega_eq`. -/
+/-- Rocq: `Analysis.SystemTCL.oomega_eq`. -/
 theorem oomega_eq : sz oomega ≈ ω :=
   equiv_trans (oexp_eq oone) (equiv_trans (pow_congr (equiv_refl ω) oone_eq) (pow_one' omega_gt0))
 
 /-! The laws of the natural product, on notations. -/
 
-/-- Rocq: `SystemTCL.omul_comm`. -/
+/-- Rocq: `Analysis.SystemTCL.omul_comm`. -/
 theorem omul_comm (x y : ON) : sz (x ⊗' y) ≈ sz (y ⊗' x) :=
   CantorProduct.cantor_nmul_comm VForm.hasCantorDecomposition x.v y.v x.n y.n
 
-/-- Rocq: `SystemTCL.omul_assoc`. -/
+/-- Rocq: `Analysis.SystemTCL.omul_assoc`. -/
 theorem omul_assoc (x y z : ON) : sz ((x ⊗' y) ⊗' z) ≈ sz (x ⊗' (y ⊗' z)) :=
   CantorProduct.cantor_nmul_assoc VForm.hasCantorDecomposition x.v y.v z.v x.n y.n z.n
 
-/-- Rocq: `SystemTCL.omul_distr`. -/
+/-- Rocq: `Analysis.SystemTCL.omul_distr`. -/
 theorem omul_distr (x y z : ON) : sz (x ⊗' (y ⊕' z)) ≈ sz (x ⊗' y) ♯ sz (x ⊗' z) :=
   equiv_trans (CantorProduct.cantor_nmul_nadd_r VForm.hasCantorDecomposition x.v y.v z.v x.n y.n z.n)
     (oadd_eq (x ⊗' y) (x ⊗' z))
 
-/-- Rocq: `SystemTCL.oexp_mul`. -/
+/-- Rocq: `Analysis.SystemTCL.oexp_mul`. -/
 theorem oexp_mul (a b : ON) : sz (oexp a ⊗' oexp b) ≈ sz (oexp (a ⊕' b)) :=
   CantorProduct.cantor_nmul_exp VForm.hasCantorDecomposition a.v b.v a.n b.n
 
@@ -141,51 +141,51 @@ theorem oexp_mul (a b : ON) : sz (oexp a ⊗' oexp b) ≈ sz (oexp (a ⊕' b)) :
 
 `wm w y` is `ω^w ⊗ y`. These are the only products the assignment uses. -/
 
-/-- Rocq: `SystemTCL.wm`. -/
+/-- Rocq: `Analysis.SystemTCL.wm`. -/
 def wm (w y : ON) : ON := oexp w ⊗' y
 
-/-- Rocq: `SystemTCL.wm_eq`. -/
+/-- Rocq: `Analysis.SystemTCL.wm_eq`. -/
 theorem wm_eq (w y : ON) : sz (wm w y) ≈ nmul (ω ^ sz w) (sz y) :=
   equiv_trans (omul_eq _ _) (nmul_congr (oexp_eq w) (equiv_refl _))
 
-/-- Rocq: `SystemTCL.oadd_mono`. -/
+/-- Rocq: `Analysis.SystemTCL.oadd_mono`. -/
 theorem oadd_mono {x x' y y' : ON} (hx : sz x ≤ sz x') (hy : sz y ≤ sz y') :
     sz (x ⊕' y) ≤ sz (x' ⊕' y') :=
   le_trans (oadd_eq x y).le (le_trans (nadd_le_nadd hx hy) (oadd_eq x' y').ge)
 
-/-- Rocq: `SystemTCL.oadd_le1`. -/
+/-- Rocq: `Analysis.SystemTCL.oadd_le1`. -/
 theorem oadd_le1 (x y : ON) : sz x ≤ sz (x ⊕' y) := le_trans (nadd_le1 _ _) (oadd_eq x y).ge
 
-/-- Rocq: `SystemTCL.oadd_le2`. -/
+/-- Rocq: `Analysis.SystemTCL.oadd_le2`. -/
 theorem oadd_le2 (x y : ON) : sz y ≤ sz (x ⊕' y) := le_trans (nadd_le2 _ _) (oadd_eq x y).ge
 
-/-- Rocq: `SystemTCL.oadd_lt1`. -/
+/-- Rocq: `Analysis.SystemTCL.oadd_lt1`. -/
 theorem oadd_lt1 (x y : ON) (h : 0 < sz y) : sz x < sz (x ⊕' y) :=
   lt_of_le_of_lt (nadd_zero_r (sz x)).ge (lt_of_lt_of_le (nadd_increasing2 _ h) (oadd_eq x y).ge)
 
-/-- Rocq: `SystemTCL.oadd_lt2`. -/
+/-- Rocq: `Analysis.SystemTCL.oadd_lt2`. -/
 theorem oadd_lt2 (x y : ON) (h : 0 < sz x) : sz y < sz (x ⊕' y) :=
   lt_of_le_of_lt (nadd_zero_l (sz y)).ge (lt_of_lt_of_le (nadd_increasing1 _ h) (oadd_eq x y).ge)
 
-/-- Rocq: `SystemTCL.oadd_pos1`. -/
+/-- Rocq: `Analysis.SystemTCL.oadd_pos1`. -/
 theorem oadd_pos1 (x y : ON) (h : 0 < sz x) : 0 < sz (x ⊕' y) := lt_of_lt_of_le h (oadd_le1 x y)
 
-/-- Rocq: `SystemTCL.oexp_mono`. -/
+/-- Rocq: `Analysis.SystemTCL.oexp_mono`. -/
 theorem oexp_mono {x y : ON} (h : sz x ≤ sz y) : sz (oexp x) ≤ sz (oexp y) :=
   le_trans (oexp_eq x).le (le_trans (pow_le_pow_right ω h) (oexp_eq y).ge)
 
-/-- Rocq: `SystemTCL.oexp_increasing`. -/
+/-- Rocq: `Analysis.SystemTCL.oexp_increasing`. -/
 theorem oexp_increasing {x y : ON} (h : sz x < sz y) : sz (oexp x) < sz (oexp y) :=
   lt_of_le_of_lt (oexp_eq x).le (lt_of_lt_of_le (pow_lt_pow_right omega_gt1 h) (oexp_eq y).ge)
 
-/-- Rocq: `SystemTCL.oexp_pos`. -/
+/-- Rocq: `Analysis.SystemTCL.oexp_pos`. -/
 theorem oexp_pos (x : ON) : 0 < sz (oexp x) := lt_of_lt_of_le (pow_pos ω _) (oexp_eq x).ge
 
-/-- Rocq: `SystemTCL.oexp_ge`. -/
+/-- Rocq: `Analysis.SystemTCL.oexp_ge`. -/
 theorem oexp_ge (x : ON) : sz x ≤ sz (oexp x) :=
   le_trans (CantorProduct.le_powOmega _) (oexp_eq x).ge
 
-/-- `ω^c` is closed under the natural sum. Rocq: `SystemTCL.below_oexp`. -/
+/-- `ω^c` is closed under the natural sum. Rocq: `Analysis.SystemTCL.below_oexp`. -/
 theorem below_oexp (c : ON) {x y : Ordinal.{0}} (hx : x < sz (oexp c)) (hy : y < sz (oexp c)) :
     x ♯ y < sz (oexp c) :=
   lt_of_lt_of_le
@@ -193,43 +193,43 @@ theorem below_oexp (c : ON) {x y : Ordinal.{0}} (hx : x < sz (oexp c)) (hy : y <
       (lt_of_lt_of_le hy (oexp_eq c).le))
     (oexp_eq c).ge
 
-/-- Rocq: `SystemTCL.wm_mono`. -/
+/-- Rocq: `Analysis.SystemTCL.wm_mono`. -/
 theorem wm_mono {w w' y y' : ON} (hw : sz w ≤ sz w') (hy : sz y ≤ sz y') :
     sz (wm w y) ≤ sz (wm w' y') :=
   le_trans (wm_eq w y).le (le_trans (nmul_monotone (pow_le_pow_right ω hw) hy) (wm_eq w' y').ge)
 
-/-- Rocq: `SystemTCL.wm_increasing`. -/
+/-- Rocq: `Analysis.SystemTCL.wm_increasing`. -/
 theorem wm_increasing (w : ON) {y y' : ON} (hy : sz y < sz y') : sz (wm w y) < sz (wm w y') :=
   lt_of_le_of_lt (wm_eq w y).le
     (lt_of_lt_of_le (nmul_increasing2 hy (pow_pos ω _)) (wm_eq w y').ge)
 
-/-- Rocq: `SystemTCL.wm_ge`. -/
+/-- Rocq: `Analysis.SystemTCL.wm_ge`. -/
 theorem wm_ge (w y : ON) : sz y ≤ sz (wm w y) :=
   le_trans (nmul_one (sz y)).ge
     (le_trans (nmul_comm _ _).le
       (le_trans (nmul_monotone (succ_least (pow_pos ω (sz w))) (le_refl _)) (wm_eq w y).ge))
 
-/-- Rocq: `SystemTCL.wm_pos`. -/
+/-- Rocq: `Analysis.SystemTCL.wm_pos`. -/
 theorem wm_pos (w y : ON) (h : 0 < sz y) : 0 < sz (wm w y) := lt_of_lt_of_le h (wm_ge w y)
 
-/-- Rocq: `SystemTCL.wm_ge_exp`. -/
+/-- Rocq: `Analysis.SystemTCL.wm_ge_exp`. -/
 theorem wm_ge_exp (w y : ON) (h : 0 < sz y) : sz (oexp w) ≤ sz (wm w y) :=
   le_trans (oexp_eq w).le
     (le_trans (nmul_one _).ge (le_trans (nmul_monotone (le_refl _) (succ_least h)) (wm_eq w y).ge))
 
-/-- Rocq: `SystemTCL.wm_add`. -/
+/-- Rocq: `Analysis.SystemTCL.wm_add`. -/
 theorem wm_add (w y z : ON) : sz (wm w (y ⊕' z)) ≈ sz (wm w y) ♯ sz (wm w z) := omul_distr _ _ _
 
-/-- Rocq: `SystemTCL.wm_wm`. -/
+/-- Rocq: `Analysis.SystemTCL.wm_wm`. -/
 theorem wm_wm (a b y : ON) : sz (wm a (wm b y)) ≈ sz (wm (a ⊕' b) y) :=
   equiv_trans (equiv_symm (omul_assoc (oexp a) (oexp b) y))
     (equiv_trans (omul_eq _ _)
       (equiv_trans (nmul_congr (oexp_mul a b) (equiv_refl _)) (equiv_symm (omul_eq _ _))))
 
-/-- Rocq: `SystemTCL.wm_oexp`. -/
+/-- Rocq: `Analysis.SystemTCL.wm_oexp`. -/
 theorem wm_oexp (a b : ON) : sz (wm a (oexp b)) ≈ sz (oexp (a ⊕' b)) := oexp_mul a b
 
-/-- Rocq: `SystemTCL.wm_zero`. -/
+/-- Rocq: `Analysis.SystemTCL.wm_zero`. -/
 theorem wm_zero (y : ON) : sz (wm ozero y) ≈ sz y :=
   equiv_trans (wm_eq ozero y)
     (equiv_trans (nmul_congr (pow_zero ω) (equiv_refl _))
@@ -240,22 +240,22 @@ theorem wm_zero (y : ON) : sz (wm ozero y) ≈ sz y :=
 A finite natural sum of ordinals below `ω^E ⊗ y` is below `ω^L ⊗ y`, when
 `E < L` and `y > 0`: `ω^L ⊗ y ≥ ω^E ⊗ (ω ⊗ y)`. -/
 
-/-- Rocq: `SystemTCL.sumO`. -/
+/-- Rocq: `Analysis.SystemTCL.sumO`. -/
 def sumO : List Ordinal.{0} → Ordinal.{0}
   | [] => 0
   | u :: us => u ♯ sumO us
 
-/-- Rocq: `SystemTCL.orep`. -/
+/-- Rocq: `Analysis.SystemTCL.orep`. -/
 def orep : Nat → ON → ON
   | 0, _ => ozero
   | k + 1, y => orep k y ⊕' y
 
-/-- Rocq: `SystemTCL.wm_orep`. -/
+/-- Rocq: `Analysis.SystemTCL.wm_orep`. -/
 theorem wm_orep : ∀ (k : Nat) (w y : ON), sz (wm w (orep k y)) ≈ nrep k (sz (wm w y))
   | 0, w, _ => equiv_trans (wm_eq w ozero) (nmul_zero _)
   | k + 1, w, y => equiv_trans (wm_add w (orep k y) y) (nadd_congr (wm_orep k w y) (equiv_refl _))
 
-/-- Rocq: `SystemTCL.orep_eq`. -/
+/-- Rocq: `Analysis.SystemTCL.orep_eq`. -/
 theorem orep_eq : ∀ (k : Nat) (y : ON), sz (orep k y) ≈ nmul (ofNat k) (sz y)
   | 0, y => equiv_trans (equiv_symm (nmul_zero (sz y))) (nmul_comm _ _)
   | k + 1, y =>
@@ -272,7 +272,7 @@ theorem orep_eq : ∀ (k : Nat) (y : ON), sz (orep k y) ≈ nmul (ofNat k) (sz y
         (equiv_trans (omul_eq _ _) (equiv_trans (nmul_congr (equiv_refl _) (onat_eq (k + 1)))
           (nmul_comm _ _))))
 
-/-- Rocq: `SystemTCL.orep_below_omega`. -/
+/-- Rocq: `Analysis.SystemTCL.orep_below_omega`. -/
 theorem orep_below_omega (k : Nat) (y : ON) (hy : 0 < sz y) : sz (orep k y) < sz (oomega ⊗' y) :=
   lt_of_le_of_lt (orep_eq k y).le
     (lt_of_lt_of_le (nmul_increasing1 (index_lt ω ⟨k⟩) hy)
@@ -285,7 +285,7 @@ theorem sumO_le_nrep (X : Ordinal.{0}) : ∀ us : List Ordinal.{0}, (∀ u, u �
     le_trans (nadd_comm _ _).le
       (nadd_le_nadd (sumO_le_nrep X us (fun v hv => h v (.tail _ hv))) (h u (.head _)))
 
-/-- Rocq: `SystemTCL.absorb`. -/
+/-- Rocq: `Analysis.SystemTCL.absorb`. -/
 theorem absorb (E L y : ON) (us : List Ordinal.{0}) (hy : 0 < sz y) (hEL : sz E < sz L)
     (hus : ∀ u, u ∈ us → u ≤ sz (wm E y)) : sumO us < sz (wm L y) :=
   lt_of_le_of_lt (sumO_le_nrep _ us hus)
@@ -299,13 +299,13 @@ theorem absorb (E L y : ON) (us : List Ordinal.{0}) (hy : 0 < sz y) (hEL : sz E 
                   (le_trans (succ_congruence (nadd_zero_r _)).le (succ_least hEL)))))
             (le_refl _)))))
 
-/-- Rocq: `SystemTCL.oadd_lt_mono`. -/
+/-- Rocq: `Analysis.SystemTCL.oadd_lt_mono`. -/
 theorem oadd_lt_mono {x x' y y' : ON} (hx : sz x' < sz x) (hy : sz y' ≤ sz y) :
     sz (x' ⊕' y') < sz (x ⊕' y) :=
   lt_of_le_of_lt (oadd_eq _ _).le
     (lt_of_lt_of_le ((nadd_increasing_both _ _ _ _).1 hx hy) (oadd_eq _ _).ge)
 
-/-- Rocq: `SystemTCL.oadd_lt_mono2`. -/
+/-- Rocq: `Analysis.SystemTCL.oadd_lt_mono2`. -/
 theorem oadd_lt_mono2 {x x' y y' : ON} (hx : sz x' ≤ sz x) (hy : sz y' < sz y) :
     sz (x' ⊕' y') < sz (x ⊕' y) :=
   lt_of_le_of_lt (oadd_eq _ _).le
@@ -347,22 +347,22 @@ above `n` the vector of the function, and at level `i ≤ n` the value
 `ω^(box n f g (i+1)) ⊗ (f i ⊕ g i)`. Each level exponentiates the one above
 it, as cut elimination does. -/
 
-/-- Rocq: `SystemTCL.vec`. -/
+/-- Rocq: `Analysis.SystemTCL.vec`. -/
 abbrev vec : Type := Nat → ON
 
-/-- Rocq: `SystemTCL.boxd`. -/
+/-- Rocq: `Analysis.SystemTCL.boxd`. -/
 def boxd (f g : vec) : Nat → Nat → ON
   | i, 0 => wm (f (i + 1)) (f i ⊕' g i)
   | i, d + 1 => wm (boxd f g (i + 1) d) (f i ⊕' g i)
 
-/-- Rocq: `SystemTCL.box`. -/
+/-- Rocq: `Analysis.SystemTCL.box`. -/
 def box (n : Nat) (f g : vec) : vec := fun i => if i ≤ n then boxd f g i (n - i) else f i
 
-/-- Rocq: `SystemTCL.box_hi`. -/
+/-- Rocq: `Analysis.SystemTCL.box_hi`. -/
 theorem box_hi {n : Nat} (f g : vec) {i : Nat} (h : n < i) : box n f g i = f i :=
   ite_eq_right (Nat.not_le_of_gt h)
 
-/-- Rocq: `SystemTCL.box_lo`. -/
+/-- Rocq: `Analysis.SystemTCL.box_lo`. -/
 theorem box_lo {n : Nat} (f g : vec) {i : Nat} (h : i ≤ n) :
     box n f g i = wm (box n f g (i + 1)) (f i ⊕' g i) := by
   show (if i ≤ n then boxd f g i (n - i) else f i) = _
@@ -378,7 +378,7 @@ theorem box_lo {n : Nat} (f g : vec) {i : Nat} (h : i ≤ n) :
     show _ = wm (if i + 1 ≤ n then boxd f g (i + 1) (n - (i + 1)) else f (i + 1)) _
     rw [ite_eq_left (show i + 1 ≤ n from hlt), sub_succ_eq hd]
 
-/-- Downward induction on levels. Rocq: `SystemTCL.down_ind`. -/
+/-- Downward induction on levels. Rocq: `Analysis.SystemTCL.down_ind`. -/
 theorem down_ind (P : Nat → Prop) (m : Nat)
     (H : ∀ i, i ≤ m → (∀ j, i < j → j ≤ m → P j) → P i) : ∀ i, i ≤ m → P i := by
   have key : ∀ d i, i ≤ m → m ≤ i + d → P i := by
@@ -398,22 +398,22 @@ theorem down_ind (P : Nat → Prop) (m : Nat)
   intro i hi
   exact key m i hi (Nat.le_add_left m i)
 
-/-- Rocq: `SystemTCL.box_ge_f`. -/
+/-- Rocq: `Analysis.SystemTCL.box_ge_f`. -/
 theorem box_ge_f (n : Nat) (f g : vec) (i : Nat) : sz (f i) ≤ sz (box n f g i) :=
   match lt_or_le n i with
   | .inl h => by rw [box_hi f g h]
   | .inr h => by rw [box_lo f g h]; exact le_trans (oadd_le1 _ _) (wm_ge _ _)
 
-/-- Rocq: `SystemTCL.box_ge_sum`. -/
+/-- Rocq: `Analysis.SystemTCL.box_ge_sum`. -/
 theorem box_ge_sum {n : Nat} (f g : vec) {i : Nat} (h : i ≤ n) :
     sz (f i ⊕' g i) ≤ sz (box n f g i) := by
   rw [box_lo f g h]; exact wm_ge _ _
 
-/-- Rocq: `SystemTCL.box_pos`. -/
+/-- Rocq: `Analysis.SystemTCL.box_pos`. -/
 theorem box_pos (n : Nat) (f g : vec) (hf : ∀ j, 0 < sz (f j)) (i : Nat) : 0 < sz (box n f g i) :=
   lt_of_lt_of_le (hf i) (box_ge_f n f g i)
 
-/-- Rocq: `SystemTCL.box_mono`. -/
+/-- Rocq: `Analysis.SystemTCL.box_mono`. -/
 theorem box_mono {m n : Nat} {f f' g g' : vec} (hnm : n < m)
     (hf : ∀ j, j ≤ m → sz (f' j) ≤ sz (f j)) (hg : ∀ j, j ≤ n → sz (g' j) ≤ sz (g j)) :
     ∀ i, i ≤ m → sz (box n f' g' i) ≤ sz (box n f g i) := by
@@ -425,13 +425,13 @@ theorem box_mono {m n : Nat} {f f' g g' : vec} (hnm : n < m)
     exact wm_mono (ih (i + 1) (Nat.lt_succ_self i) (Nat.lt_of_le_of_lt h hnm))
       (oadd_mono (hf i hi) (hg i h))
 
-/-- Rocq: `SystemTCL.box_mono_all`. -/
+/-- Rocq: `Analysis.SystemTCL.box_mono_all`. -/
 theorem box_mono_all (n : Nat) {f f' g g' : vec} (hf : ∀ j, sz (f' j) ≤ sz (f j))
     (hg : ∀ j, sz (g' j) ≤ sz (g j)) (i : Nat) : sz (box n f' g' i) ≤ sz (box n f g i) :=
   box_mono (m := n + 1 + i) (Nat.lt_of_lt_of_le (Nat.lt_succ_self n) (Nat.le_add_right _ _))
     (fun j _ => hf j) (fun j _ => hg j) i (Nat.le_add_left _ _)
 
-/-- Rocq: `SystemTCL.box_lt0`. -/
+/-- Rocq: `Analysis.SystemTCL.box_lt0`. -/
 theorem box_lt0 {m n : Nat} {f f' g g' : vec} (hnm : n < m)
     (hf : ∀ j, j ≤ m → sz (f' j) ≤ sz (f j)) (hg : ∀ j, j ≤ n → sz (g' j) ≤ sz (g j))
     (h0 : sz (f' 0) < sz (f 0) ∨ sz (g' 0) < sz (g 0)) :
@@ -443,7 +443,7 @@ theorem box_lt0 {m n : Nat} {f f' g g' : vec} (hnm : n < m)
   | .inl h => exact oadd_lt_mono h (hg 0 (Nat.zero_le n))
   | .inr h => exact oadd_lt_mono2 (hf 0 (Nat.zero_le m)) h
 
-/-- Rocq: `SystemTCL.box_ext`. -/
+/-- Rocq: `Analysis.SystemTCL.box_ext`. -/
 theorem box_ext (n : Nat) {f f' g g' : vec} (i0 : Nat)
     (hf : ∀ j, i0 ≤ j → j ≤ n + 1 → f j = f' j) (hg : ∀ j, i0 ≤ j → j ≤ n → g j = g' j) :
     ∀ i, i0 ≤ i → i ≤ n + 1 → box n f g i = box n f' g' i := by
@@ -456,23 +456,23 @@ theorem box_ext (n : Nat) {f f' g g' : vec} (i0 : Nat)
     rw [box_lo f g h, box_lo f' g' h, ih (k + 1) (Nat.lt_succ_self k) (Nat.succ_le_succ h)
       (Nat.le_succ_of_le hk0), hf k hk0 hk, hg k hk0 h]
 
-/-- Rocq: `SystemTCL.sumO3`. -/
+/-- Rocq: `Analysis.SystemTCL.sumO3`. -/
 theorem sumO3 (a b c : Ordinal.{0}) : sumO [a, b, c] ≈ a ♯ (b ♯ c) :=
   nadd_congr (equiv_refl a) (nadd_congr (equiv_refl b) (nadd_zero_r c))
 
-/-- Rocq: `SystemTCL.le_sumO3`. -/
+/-- Rocq: `Analysis.SystemTCL.le_sumO3`. -/
 theorem le_sumO3 (a b c : Ordinal.{0}) : a ≤ sumO [a, b, c] := nadd_le1 _ _
 
-/-- Regrouping sums. Rocq: `SystemTCL.split_head`. -/
+/-- Regrouping sums. Rocq: `Analysis.SystemTCL.split_head`. -/
 theorem split_head (u a b : Ordinal.{0}) (us : List Ordinal.{0}) (h : u ≤ a ♯ b) :
     sumO (u :: us) ≤ sumO (a :: b :: us) :=
   le_trans (nadd_le_nadd h (le_refl _)) (nadd_assoc a b (sumO us)).ge
 
-/-- Rocq: `SystemTCL.le_sumO4`. -/
+/-- Rocq: `Analysis.SystemTCL.le_sumO4`. -/
 theorem le_sumO4 (a b c d : Ordinal.{0}) : a ♯ (b ♯ (c ♯ d)) ≤ sumO [a, b, c, d] :=
   nadd_le_nadd (le_refl a) (nadd_le_nadd (le_refl b) (nadd_le_nadd (le_refl c) (nadd_zero_r d).ge))
 
-/-- Rocq: `SystemTCL.split_sum3`. -/
+/-- Rocq: `Analysis.SystemTCL.split_sum3`. -/
 theorem split_sum3 (u a b c : Ordinal.{0}) (h : u ≤ (a ♯ b) ♯ c) : u ≤ sumO [a, b, c] :=
   le_trans h (le_trans (nadd_assoc a b c).ge (sumO3 a b c).ge)
 
@@ -493,7 +493,7 @@ is at level `s`, at every level up to `t`. This is Howard's lemma: above `r`
 the vector of `S a b` dominates that of `a b` with room to spare, and below
 `r` the duplicated `d` is paid for by one extra power of ω at each level. -/
 
-/-- Rocq: `SystemTCL.S_decrease`. -/
+/-- Rocq: `Analysis.SystemTCL.S_decrease`. -/
 theorem S_decrease (p q r s t : Nat) (Sv A B D : vec) (hS : ∀ j, 0 < sz (Sv j))
     (_hA : ∀ j, 0 < sz (A j)) (_hB : ∀ j, 0 < sz (B j)) (_hD : ∀ j, 0 < sz (D j))
     (h1 : r < p) (h2 : r < q) (h3 : s ≤ q) (h4 : s < p) (h5 : t ≤ p) :
@@ -601,33 +601,33 @@ theorem S_decrease (p q r s t : Nat) (Sv A B D : vec) (hS : ∀ j, 0 < sz (Sv j)
 `n+1` at level `k+2`, the level of the recursor, and `1` elsewhere; the
 unapplied recursor has `ω` there instead (`gen`). -/
 
-/-- Rocq: `SystemTCL.vspec`. -/
+/-- Rocq: `Analysis.SystemTCL.vspec`. -/
 def vspec (k n : Nat) : vec := fun j => if j = k + 2 then onat (n + 1) else oone
-/-- Rocq: `SystemTCL.gen`. -/
+/-- Rocq: `Analysis.SystemTCL.gen`. -/
 def gen (k : Nat) : vec := fun j => if j = k + 2 then oomega else oone
 
-/-- Rocq: `SystemTCL.oone_pos`. -/
+/-- Rocq: `Analysis.SystemTCL.oone_pos`. -/
 theorem oone_pos : 0 < sz oone := lt_of_lt_of_le (succ_lt 0) oone_eq.ge
 
-/-- Rocq: `SystemTCL.onat_pos`. -/
+/-- Rocq: `Analysis.SystemTCL.onat_pos`. -/
 theorem onat_pos (n : Nat) : 0 < sz (onat (n + 1)) :=
   lt_of_lt_of_le (ofNat_increasing (Nat.zero_lt_succ n)) (onat_eq (n + 1)).ge
 
-/-- Rocq: `SystemTCL.vspec_pos`. -/
+/-- Rocq: `Analysis.SystemTCL.vspec_pos`. -/
 theorem vspec_pos (k n j : Nat) : 0 < sz (vspec k n j) := by
   show 0 < sz (if j = k + 2 then onat (n + 1) else oone)
   by_cases h : j = k + 2
   · rw [ite_eq_left h]; exact onat_pos n
   · rw [ite_eq_right h]; exact oone_pos
 
-/-- Rocq: `SystemTCL.gen_pos`. -/
+/-- Rocq: `Analysis.SystemTCL.gen_pos`. -/
 theorem gen_pos (k j : Nat) : 0 < sz (gen k j) := by
   show 0 < sz (if j = k + 2 then oomega else oone)
   by_cases h : j = k + 2
   · rw [ite_eq_left h]; exact lt_of_lt_of_le omega_gt0 oomega_eq.ge
   · rw [ite_eq_right h]; exact oone_pos
 
-/-- Rocq: `SystemTCL.sumO4`. -/
+/-- Rocq: `Analysis.SystemTCL.sumO4`. -/
 theorem sumO4 (a b c d : Ordinal.{0}) : sumO [a, b, c, d] ≈ a ♯ (b ♯ (c ♯ d)) :=
   nadd_congr (equiv_refl a) (nadd_congr (equiv_refl b) (nadd_congr (equiv_refl c) (nadd_zero_r d)))
 
@@ -638,7 +638,7 @@ theorem oadd3_le (a b c d : ON) : sz (a ⊕' (b ⊕' (c ⊕' d))) ≤ sumO [sz a
 /-- The recursion step `R (n+1) a b ↦ b n (R n a b)`, at a type of level `k`:
 the vector of the redex is larger at every level up to `k`. The extra power
 of ω at level `k+1`, from `n+2` against `n+1`, pays for the extra application
-of `b`. Rocq: `SystemTCL.R_decrease`. -/
+of `b`. Rocq: `Analysis.SystemTCL.R_decrease`. -/
 theorem R_decrease (k n : Nat) (A B Nv : vec) (_hA : ∀ j, 0 < sz (A j)) (_hB : ∀ j, 0 < sz (B j))
     (hN : sz (Nv 0) < sz (oexp (onat (n + 1)))) :
     ∀ i, i ≤ k →
@@ -747,7 +747,7 @@ theorem R_decrease (k n : Nat) (A B Nv : vec) (_hA : ∀ j, 0 < sz (A j)) (_hB :
 Base type `N`, function types and product types. `lev (A × B)` is the larger
 of the two levels. -/
 
-/-- Rocq: `SystemTCL.ty`. -/
+/-- Rocq: `Analysis.SystemTCL.ty`. -/
 inductive Ty : Type where
   | TN : Ty
   | TAr : Ty → Ty → Ty
@@ -756,14 +756,14 @@ inductive Ty : Type where
 
 open Ty
 
-/-- Rocq: `SystemTCL.lev`. -/
+/-- Rocq: `Analysis.SystemTCL.lev`. -/
 def lev : Ty → Nat
   | TN => 0
   | TAr A B => Nat.max (lev A + 1) (lev B)
   | TPr A B => Nat.max (lev A) (lev B)
 
 /-- Terms; applications are annotated with the type of the argument.
-Rocq: `SystemTCL.term`. -/
+Rocq: `Analysis.SystemTCL.term`. -/
 inductive Term : Type where
   | var : Nat → Term
   /-- `K_{A,B} : A → B → A` -/
@@ -784,7 +784,7 @@ inductive Term : Type where
 
 open Term
 
-/-- Rocq: `SystemTCL.typing`. -/
+/-- Rocq: `Analysis.SystemTCL.typing`. -/
 inductive Typing (Γ : List Ty) : Term → Ty → Prop where
   | var (x : Nat) (A : Ty) : List.nthError Γ x = some A → Typing Γ (var x) A
   | K (A B : Ty) : Typing Γ (Kc A B) (TAr A (TAr B A))
@@ -797,7 +797,7 @@ inductive Typing (Γ : List Ty) : Term → Ty → Prop where
   | P2 (A B : Ty) : Typing Γ (P2c A B) (TAr (TPr A B) B)
   | app (A B : Ty) (M N : Term) : Typing Γ M (TAr A B) → Typing Γ N A → Typing Γ (app A M N) B
 
-/-- Rocq: `SystemTCL.num`. -/
+/-- Rocq: `Analysis.SystemTCL.num`. -/
 def num : Nat → Term
   | 0 => Zc
   | n + 1 => app TN Suc (num n)
@@ -819,7 +819,7 @@ def isNumApp : Ty → Term → Option Nat → Option Nat
   | TAr _ _, _, _ => none
   | TPr _ _, _, _ => none
 
-/-- Rocq: `SystemTCL.is_num`. -/
+/-- Rocq: `Analysis.SystemTCL.is_num`. -/
 def isNum : Term → Option Nat
   | Zc => some 0
   | app A M t => isNumApp A M (isNum t)
@@ -832,7 +832,7 @@ def isNum : Term → Option Nat
   | P1c _ _ => none
   | P2c _ _ => none
 
-/-- Rocq: `SystemTCL.is_num_num`. -/
+/-- Rocq: `Analysis.SystemTCL.is_num_num`. -/
 theorem isNum_num : ∀ n, isNum (num n) = some n
   | 0 => rfl
   | n + 1 => by
@@ -855,7 +855,7 @@ theorem isNumApp_spec : ∀ (A : Ty) (M : Term) (o : Option Nat) (n : Nat),
   | TAr _ _, _, _, _, h => nomatch h
   | TPr _ _, _, _, _, h => nomatch h
 
-/-- Rocq: `SystemTCL.is_num_spec`. -/
+/-- Rocq: `Analysis.SystemTCL.is_num_spec`. -/
 theorem isNum_spec : ∀ (t : Term) (n : Nat), isNum t = some n → t = num n
   | Zc, n, h => by cases h; rfl
   | app A M t, n, h => by
@@ -872,7 +872,7 @@ theorem isNum_spec : ∀ (t : Term) (n : Nat), isNum t = some n → t = num n
 
 /-- Reduction. The recursor reduces when its first argument is a numeral, as
 in Howard (1970); every closed term of type `N` still reduces to a numeral
-(`T_value`). Rocq: `SystemTCL.step`. -/
+(`T_value`). Rocq: `Analysis.SystemTCL.step`. -/
 inductive Step : Term → Term → Prop where
   | K (A B X Y : Ty) (a b : Term) : Step (app Y (app X (Kc A B) a) b) a
   | S (A B C X Y W : Ty) (a b c : Term) :
@@ -886,7 +886,7 @@ inductive Step : Term → Term → Prop where
   | l (A : Ty) (M M' N : Term) : Step M M' → Step (app A M N) (app A M' N)
   | r (A : Ty) (M N N' : Term) : Step N N' → Step (app A M N) (app A M N')
 
-/-- Rocq: `SystemTCL.num_normal`. -/
+/-- Rocq: `Analysis.SystemTCL.num_normal`. -/
 theorem num_normal : ∀ (n : Nat) (M : Term), Step (num n) M → False
   | 0, _, h => nomatch h
   | n + 1, _, h => by
@@ -896,13 +896,13 @@ theorem num_normal : ∀ (n : Nat) (M : Term), Step (num n) M → False
 
 /-! ## Typing facts -/
 
-/-- Rocq: `SystemTCL.typing_app`. -/
+/-- Rocq: `Analysis.SystemTCL.typing_app`. -/
 theorem typing_app {Γ : List Ty} {A : Ty} {M N : Term} {T : Ty} (h : Typing Γ (app A M N) T) :
     Typing Γ M (TAr A T) ∧ Typing Γ N A := by
   cases h with
   | app _ _ _ _ h1 h2 => exact ⟨h1, h2⟩
 
-/-- Rocq: `SystemTCL.typing_unique`. -/
+/-- Rocq: `Analysis.SystemTCL.typing_unique`. -/
 theorem typing_unique {Γ : List Ty} {M : Term} {A : Ty} (h : Typing Γ M A) :
     ∀ {B : Ty}, Typing Γ M B → A = B := by
   induction h with
@@ -920,12 +920,12 @@ theorem typing_unique {Γ : List Ty} {M : Term} {A : Ty} (h : Typing Γ M A) :
     cases hB with
     | app _ _ _ _ h1 _ => cases ihM h1; rfl
 
-/-- Rocq: `SystemTCL.typing_num`. -/
+/-- Rocq: `Analysis.SystemTCL.typing_num`. -/
 theorem typing_num (Γ : List Ty) : ∀ n, Typing Γ (num n) TN
   | 0 => .Z
   | n + 1 => .app _ _ _ _ .Suc (typing_num Γ n)
 
-/-- Rocq: `SystemTCL.subject_reduction`. -/
+/-- Rocq: `Analysis.SystemTCL.subject_reduction`. -/
 theorem subject_reduction {Γ : List Ty} {M M' : Term} (h : Step M M') :
     ∀ {A : Ty}, Typing Γ M A → Typing Γ M' A := by
   induction h with
@@ -980,7 +980,7 @@ theorem subject_reduction {Γ : List Ty} {M M' : Term} (h : Step M M') :
 
 /-! ## The ordinal assignment -/
 
-/-- Rocq: `SystemTCL.ones`. -/
+/-- Rocq: `Analysis.SystemTCL.ones`. -/
 def ones : vec := fun _ => oone
 
 /-- The vector of an application, given those of the function and the
@@ -1001,7 +1001,7 @@ def measApp (A : Ty) (M N : Term) (mM mN : vec) : vec :=
   | P2c _ _ => box (lev A) mM mN
   | app _ _ _ => box (lev A) mM mN
 
-/-- Rocq: `SystemTCL.meas`. -/
+/-- Rocq: `Analysis.SystemTCL.meas`. -/
 def meas : Term → vec
   | Rc C => gen (lev C)
   | app A M N => measApp A M N (meas M) (meas N)
@@ -1014,14 +1014,14 @@ def meas : Term → vec
   | P1c _ _ => ones
   | P2c _ _ => ones
 
-/-- Rocq: `SystemTCL.meas_app`. -/
+/-- Rocq: `Analysis.SystemTCL.meas_app`. -/
 theorem meas_app (A : Ty) {M : Term} (N : Term) (h : ∀ C, M ≠ Rc C) :
     meas (app A M N) = box (lev A) (meas M) (meas N) := by
   cases M with
   | Rc C => exact absurd rfl (h C)
   | _ => rfl
 
-/-- Rocq: `SystemTCL.meas_app_nonum`. -/
+/-- Rocq: `Analysis.SystemTCL.meas_app_nonum`. -/
 theorem meas_app_nonum (A : Ty) (M : Term) {N : Term} (h : isNum N = none) :
     meas (app A M N) = box (lev A) (meas M) (meas N) := by
   cases M with
@@ -1032,7 +1032,7 @@ theorem meas_app_nonum (A : Ty) (M : Term) {N : Term} (h : isNum N = none) :
     rw [h]; rfl
   | _ => rfl
 
-/-- Rocq: `SystemTCL.vspec_le_gen`. -/
+/-- Rocq: `Analysis.SystemTCL.vspec_le_gen`. -/
 theorem vspec_le_gen (k n j : Nat) : sz (vspec k n j) ≤ sz (gen k j) := by
   show sz (if j = k + 2 then onat (n + 1) else oone) ≤ sz (if j = k + 2 then oomega else oone)
   by_cases h : j = k + 2
@@ -1041,7 +1041,7 @@ theorem vspec_le_gen (k n j : Nat) : sz (vspec k n j) ≤ sz (gen k j) := by
   · rw [ite_eq_right h, ite_eq_right h]
 
 /-- The vector of a numeral-applied recursor is at most that of the unapplied
-recursor applied to the numeral. Rocq: `SystemTCL.meas_app_le`. -/
+recursor applied to the numeral. Rocq: `Analysis.SystemTCL.meas_app_le`. -/
 theorem meas_app_le (A : Ty) (M N : Term) (j : Nat) :
     sz (meas (app A M N) j) ≤ sz (box (lev A) (meas M) (meas N) j) := by
   cases M with
@@ -1054,10 +1054,10 @@ theorem meas_app_le (A : Ty) (M N : Term) (j : Nat) :
     | none => exact le_refl _
   | _ => exact le_refl _
 
-/-- Rocq: `SystemTCL.ones_pos`. -/
+/-- Rocq: `Analysis.SystemTCL.ones_pos`. -/
 theorem ones_pos (j : Nat) : 0 < sz (ones j) := oone_pos
 
-/-- Rocq: `SystemTCL.meas_pos`. -/
+/-- Rocq: `Analysis.SystemTCL.meas_pos`. -/
 theorem meas_pos : ∀ (M : Term) (j : Nat), 0 < sz (meas M j)
   | Rc C, j => gen_pos _ j
   | app A M N, j => by
@@ -1079,7 +1079,7 @@ theorem meas_pos : ∀ (M : Term) (j : Nat), 0 < sz (meas M j)
   | P1c _ _, _ => oone_pos
   | P2c _ _, _ => oone_pos
 
-/-- Rocq: `SystemTCL.one_lt_oexp_onat`. -/
+/-- Rocq: `Analysis.SystemTCL.one_lt_oexp_onat`. -/
 theorem one_lt_oexp_onat (n : Nat) : sz oone < sz (oexp (onat (n + 1))) :=
   lt_of_le_of_lt oone_eq.le
     (lt_of_le_of_lt (pow_zero ω).ge
@@ -1087,7 +1087,7 @@ theorem one_lt_oexp_onat (n : Nat) : sz oone < sz (oexp (onat (n + 1))) :=
         (lt_of_lt_of_le (ofNat_increasing (Nat.zero_lt_succ n)) (onat_eq (n + 1)).ge))
         (oexp_eq _).ge))
 
-/-- Rocq: `SystemTCL.num_meas`. -/
+/-- Rocq: `Analysis.SystemTCL.num_meas`. -/
 theorem num_meas : ∀ n : Nat, sz (meas (num n) 0) < sz (oexp (onat (n + 1)))
   | 0 => one_lt_oexp_onat 0
   | n + 1 => by
@@ -1105,14 +1105,14 @@ theorem num_meas : ∀ n : Nat, sz (meas (num n) 0) < sz (oexp (onat (n + 1)))
 `decr m f g`: `g` is at most `f` at every level up to `m`, and below it at
 level `0`. -/
 
-/-- Rocq: `SystemTCL.decr`. -/
+/-- Rocq: `Analysis.SystemTCL.decr`. -/
 def Decr (m : Nat) (f g : vec) : Prop := sz (g 0) < sz (f 0) ∧ ∀ i, i ≤ m → sz (g i) ≤ sz (f i)
 
-/-- Rocq: `SystemTCL.decr_of_lt`. -/
+/-- Rocq: `Analysis.SystemTCL.decr_of_lt`. -/
 theorem decr_of_lt {m : Nat} {f g : vec} (h : ∀ i, i ≤ m → sz (g i) < sz (f i)) : Decr m f g :=
   ⟨h 0 (Nat.zero_le m), fun i hi => le_of_lt (h i hi)⟩
 
-/-- Rocq: `SystemTCL.meas_R_num`. -/
+/-- Rocq: `Analysis.SystemTCL.meas_R_num`. -/
 theorem meas_R_num (A C : Ty) {t : Term} {n : Nat} (h : isNum t = some n) :
     meas (app A (Rc C) t) = vspec (lev C) n := by
   show (match isNum t with
@@ -1123,19 +1123,19 @@ theorem meas_R_num (A C : Ty) {t : Term} {n : Nat} (h : isNum t = some n) :
 theorem max_succ_self (k : Nat) : Nat.max (k + 1) k = k + 1 :=
   ite_eq_right (Nat.not_succ_le_self k)
 
-/-- Rocq: `SystemTCL.lev_rec_step`. -/
+/-- Rocq: `Analysis.SystemTCL.lev_rec_step`. -/
 theorem lev_rec_step (C : Ty) : lev (TAr TN (TAr C C)) = lev C + 1 := by
   show Nat.max (0 + 1) (Nat.max (lev C + 1) (lev C)) = lev C + 1
   rw [max_succ_self]
   exact ite_eq_left (Nat.succ_le_succ (Nat.zero_le _))
 
-/-- Rocq: `SystemTCL.step_not_Rc`. -/
+/-- Rocq: `Analysis.SystemTCL.step_not_Rc`. -/
 theorem step_not_Rc (C : Ty) (M : Term) (h : Step (Rc C) M) : False := nomatch h
 
 theorem lt_max_succ (a b : Nat) : a < Nat.max (a + 1) b :=
   Nat.lt_of_lt_of_le (Nat.lt_succ_self a) (Nat.le_max_left _ _)
 
-/-- Rocq: `SystemTCL.step_decreases`. -/
+/-- Rocq: `Analysis.SystemTCL.step_decreases`. -/
 theorem step_decreases {M M' : Term} (h : Step M M') :
     ∀ {Γ : List Ty} {T : Ty}, Typing Γ M T → Decr (lev T) (meas M) (meas M') := by
   induction h with
@@ -1250,10 +1250,10 @@ theorem step_decreases {M M' : Term} (h : Step M M') :
 
 /-! ## Strong normalization -/
 
-/-- Rocq: `SystemTCL.SN`. -/
+/-- Rocq: `Analysis.SystemTCL.SN`. -/
 def SN (M : Term) : Prop := Acc (fun N M => Step M N) M
 
-/-- Rocq: `SystemTCL.typed_SN`. -/
+/-- Rocq: `Analysis.SystemTCL.typed_SN`. -/
 theorem typed_SN {Γ : List Ty} {M : Term} {A : Ty} (h : Typing Γ M A) : SN M := by
   have key : ∀ x : Ordinal.{0}, ∀ (M : Term) (A : Ty), Typing Γ M A → sz (meas M 0) ≤ x → SN M := by
     intro x
@@ -1264,7 +1264,7 @@ theorem typed_SN {Γ : List Ty} {M : Term} {A : Ty} (h : Typing Γ M A) : SN M :
       exact ih _ (lt_of_lt_of_le (step_decreases hs hM).1 hx) M' A (subject_reduction hs hM) (le_refl _)
   exact key _ M A h (le_refl _)
 
-/-- The ordinal of a term is a notation, so below ε₀. Rocq: `SystemTCL.meas_below_ε0`. -/
+/-- The ordinal of a term is a notation, so below ε₀. Rocq: `Analysis.SystemTCL.meas_below_ε0`. -/
 theorem meas_below_ε0 (M : Term) : sz (meas M 0) < ε 0 := ON_below_ε0 _
 
 /-! ## Confluence
@@ -1272,38 +1272,38 @@ theorem meas_below_ε0 (M : Term) : sz (meas M 0) < ε 0 := ON_below_ε0 _
 By Takahashi's method: parallel reduction, and the complete development
 `cd M`, which contracts every redex of `M` at once. -/
 
-/-- Rocq: `SystemTCL.star`. -/
+/-- Rocq: `Analysis.SystemTCL.star`. -/
 inductive Star : Term → Term → Prop where
   | refl (M : Term) : Star M M
   | step (M N P : Term) : Step M N → Star N P → Star M P
 
-/-- Rocq: `SystemTCL.star_trans`. -/
+/-- Rocq: `Analysis.SystemTCL.star_trans`. -/
 theorem star_trans {M N P : Term} (h : Star M N) (h' : Star N P) : Star M P := by
   induction h with
   | refl => exact h'
   | step _ _ _ hs _ ih => exact .step _ _ _ hs (ih h')
 
-/-- Rocq: `SystemTCL.star_one`. -/
+/-- Rocq: `Analysis.SystemTCL.star_one`. -/
 theorem star_one {M N : Term} (h : Step M N) : Star M N := .step _ _ _ h (.refl _)
 
-/-- Rocq: `SystemTCL.star_app_l`. -/
+/-- Rocq: `Analysis.SystemTCL.star_app_l`. -/
 theorem star_app_l (A : Ty) {M M' : Term} (N : Term) (h : Star M M') : Star (app A M N) (app A M' N) := by
   induction h with
   | refl => exact .refl _
   | step _ _ _ hs _ ih => exact .step _ _ _ (.l _ _ _ _ hs) ih
 
-/-- Rocq: `SystemTCL.star_app_r`. -/
+/-- Rocq: `Analysis.SystemTCL.star_app_r`. -/
 theorem star_app_r (A : Ty) (M : Term) {N N' : Term} (h : Star N N') : Star (app A M N) (app A M N') := by
   induction h with
   | refl => exact .refl _
   | step _ _ _ hs _ ih => exact .step _ _ _ (.r _ _ _ _ hs) ih
 
-/-- Rocq: `SystemTCL.star_app`. -/
+/-- Rocq: `Analysis.SystemTCL.star_app`. -/
 theorem star_app (A : Ty) {M M' N N' : Term} (hM : Star M M') (hN : Star N N') :
     Star (app A M N) (app A M' N') :=
   star_trans (star_app_l A N hM) (star_app_r A M' hN)
 
-/-- Rocq: `SystemTCL.par`. -/
+/-- Rocq: `Analysis.SystemTCL.par`. -/
 inductive Par : Term → Term → Prop where
   | refl (M : Term) : Par M M
   | app (A : Ty) (M M' N N' : Term) : Par M M' → Par N N' → Par (app A M N) (app A M' N')
@@ -1321,7 +1321,7 @@ inductive Par : Term → Term → Prop where
   | P2 (A B C D X Y Z : Ty) (a b b' : Term) : Par b b' →
       Par (app X (P2c A B) (app Y (app Z (Pc C D) a) b)) b'
 
-/-- Rocq: `SystemTCL.step_par`. -/
+/-- Rocq: `Analysis.SystemTCL.step_par`. -/
 theorem step_par {M N : Term} (h : Step M N) : Par M N := by
   induction h with
   | K => exact .K _ _ _ _ _ _ _ (.refl _)
@@ -1333,7 +1333,7 @@ theorem step_par {M N : Term} (h : Step M N) : Par M N := by
   | l _ _ _ _ _ ih => exact .app _ _ _ _ _ ih (.refl _)
   | r _ _ _ _ _ ih => exact .app _ _ _ _ _ (.refl _) ih
 
-/-- Rocq: `SystemTCL.par_star`. -/
+/-- Rocq: `Analysis.SystemTCL.par_star`. -/
 theorem par_star {M N : Term} (h : Par M N) : Star M N := by
   induction h with
   | refl => exact .refl _
@@ -1349,7 +1349,7 @@ theorem par_star {M N : Term} (h : Par M N) : Star M N := by
 
 /-- The complete development, which contracts every redex at once. Every case
 is spelled out, since a wildcard would make it depend on `propext`.
-Rocq: `SystemTCL.cd`. -/
+Rocq: `Analysis.SystemTCL.cd`. -/
 def cd : Term → Term
   | var i => var i
   | Kc A B => Kc A B
@@ -1469,10 +1469,10 @@ def cd : Term → Term
     | Rc _ => app W cF cc
     | Pc _ _ => app W cF cc
 
-/-- Rocq: `SystemTCL.is_pair`. -/
+/-- Rocq: `Analysis.SystemTCL.is_pair`. -/
 def IsPair (c : Term) : Prop := ∃ Y Z C D a b, c = app Y (app Z (Pc C D) a) b
 
-/-- Rocq: `SystemTCL.pair_dec`. -/
+/-- Rocq: `Analysis.SystemTCL.pair_dec`. -/
 theorem pair_dec (c : Term) : IsPair c ∨ ¬ IsPair c := by
   cases c with
   | app Y G b =>
@@ -1484,7 +1484,7 @@ theorem pair_dec (c : Term) : IsPair c ∨ ¬ IsPair c := by
     | _ => exact .inr fun ⟨_, _, _, _, _, _, h⟩ => by cases h
   | _ => exact .inr fun ⟨_, _, _, _, _, _, h⟩ => by cases h
 
-/-- Rocq: `SystemTCL.cd_P1_nopair`. -/
+/-- Rocq: `Analysis.SystemTCL.cd_P1_nopair`. -/
 theorem cd_P1_nopair (W A B : Ty) (c : Term) (hc : ¬ IsPair c) :
     cd (app W (P1c A B) c) = app W (P1c A B) (cd c) := by
   cases c with
@@ -1497,7 +1497,7 @@ theorem cd_P1_nopair (W A B : Ty) (c : Term) (hc : ¬ IsPair c) :
     | _ => rfl
   | _ => rfl
 
-/-- Rocq: `SystemTCL.cd_P2_nopair`. -/
+/-- Rocq: `Analysis.SystemTCL.cd_P2_nopair`. -/
 theorem cd_P2_nopair (W A B : Ty) (c : Term) (hc : ¬ IsPair c) :
     cd (app W (P2c A B) c) = app W (P2c A B) (cd c) := by
   cases c with
@@ -1518,7 +1518,7 @@ local macro "view_default" : tactic => `(tactic| (
   · intro _ _ _ _ _ h; cases h
   · intro ⟨_, _, h⟩; cases h with | inl h => cases h | inr h => cases h))
 
-/-- The shapes of an application, as `cd` sees them. Rocq: `SystemTCL.app_view`. -/
+/-- The shapes of an application, as `cd` sees them. Rocq: `Analysis.SystemTCL.app_view`. -/
 theorem app_view (W : Ty) (F c : Term) :
     (∃ X A B a, F = app X (Kc A B) a) ∨
     (∃ Y X A B C a b, F = app Y (app X (Sc A B C) a) b) ∨
@@ -1591,13 +1591,13 @@ theorem app_view (W : Ty) (F c : Term) :
   | Rc _ => view_default
   | Pc _ _ => view_default
 
-/-- Rocq: `SystemTCL.par_atom`. -/
+/-- Rocq: `Analysis.SystemTCL.par_atom`. -/
 theorem par_atom {M N : Term} (h : Par M N) (hm : ∀ A F c, M ≠ app A F c) : N = M := by
   cases h with
   | refl => rfl
   | _ => exact absurd rfl (hm _ _ _)
 
-/-- Rocq: `SystemTCL.par_num`. -/
+/-- Rocq: `Analysis.SystemTCL.par_num`. -/
 theorem par_num : ∀ (n : Nat) {N : Term}, Par (num n) N → N = num n
   | 0, _, h => par_atom h (fun _ _ _ e => by cases e)
   | n + 1, _, h => by
@@ -1606,21 +1606,21 @@ theorem par_num : ∀ (n : Nat) {N : Term}, Par (num n) N → N = num n
     | app _ _ _ _ _ hs hn =>
       rw [par_atom hs (fun _ _ _ e => by cases e), par_num n hn]; rfl
 
-/-- Rocq: `SystemTCL.par_K1`. -/
+/-- Rocq: `Analysis.SystemTCL.par_K1`. -/
 theorem par_K1 {X A B : Ty} {a N : Term} (h : Par (app X (Kc A B) a) N) :
     ∃ a', N = app X (Kc A B) a' ∧ Par a a' := by
   cases h with
   | refl => exact ⟨a, rfl, .refl _⟩
   | app _ _ _ _ _ hK ha => rw [par_atom hK (fun _ _ _ e => by cases e)]; exact ⟨_, rfl, ha⟩
 
-/-- Rocq: `SystemTCL.par_S1`. -/
+/-- Rocq: `Analysis.SystemTCL.par_S1`. -/
 theorem par_S1 {X A B C : Ty} {a N : Term} (h : Par (app X (Sc A B C) a) N) :
     ∃ a', N = app X (Sc A B C) a' ∧ Par a a' := by
   cases h with
   | refl => exact ⟨a, rfl, .refl _⟩
   | app _ _ _ _ _ hK ha => rw [par_atom hK (fun _ _ _ e => by cases e)]; exact ⟨_, rfl, ha⟩
 
-/-- Rocq: `SystemTCL.par_S2`. -/
+/-- Rocq: `Analysis.SystemTCL.par_S2`. -/
 theorem par_S2 {Y X A B C : Ty} {a b N : Term} (h : Par (app Y (app X (Sc A B C) a) b) N) :
     ∃ a' b', N = app Y (app X (Sc A B C) a') b' ∧ Par a a' ∧ Par b b' := by
   cases h with
@@ -1629,14 +1629,14 @@ theorem par_S2 {Y X A B C : Ty} {a b N : Term} (h : Par (app Y (app X (Sc A B C)
     obtain ⟨a', rfl, ha⟩ := par_S1 hF
     exact ⟨a', _, rfl, ha, hb⟩
 
-/-- Rocq: `SystemTCL.par_R1`. -/
+/-- Rocq: `Analysis.SystemTCL.par_R1`. -/
 theorem par_R1 {X C : Ty} {t N : Term} (h : Par (app X (Rc C) t) N) :
     ∃ t', N = app X (Rc C) t' ∧ Par t t' := by
   cases h with
   | refl => exact ⟨t, rfl, .refl _⟩
   | app _ _ _ _ _ hK ht => rw [par_atom hK (fun _ _ _ e => by cases e)]; exact ⟨_, rfl, ht⟩
 
-/-- Rocq: `SystemTCL.par_R2`. -/
+/-- Rocq: `Analysis.SystemTCL.par_R2`. -/
 theorem par_R2 {Y X C : Ty} {t a N : Term} (h : Par (app Y (app X (Rc C) t) a) N) :
     ∃ t' a', N = app Y (app X (Rc C) t') a' ∧ Par t t' ∧ Par a a' := by
   cases h with
@@ -1645,14 +1645,14 @@ theorem par_R2 {Y X C : Ty} {t a N : Term} (h : Par (app Y (app X (Rc C) t) a) N
     obtain ⟨t', rfl, ht⟩ := par_R1 hF
     exact ⟨t', _, rfl, ht, ha⟩
 
-/-- Rocq: `SystemTCL.par_Pc1`. -/
+/-- Rocq: `Analysis.SystemTCL.par_Pc1`. -/
 theorem par_Pc1 {X A B : Ty} {a N : Term} (h : Par (app X (Pc A B) a) N) :
     ∃ a', N = app X (Pc A B) a' ∧ Par a a' := by
   cases h with
   | refl => exact ⟨a, rfl, .refl _⟩
   | app _ _ _ _ _ hK ha => rw [par_atom hK (fun _ _ _ e => by cases e)]; exact ⟨_, rfl, ha⟩
 
-/-- Rocq: `SystemTCL.par_Pc2`. -/
+/-- Rocq: `Analysis.SystemTCL.par_Pc2`. -/
 theorem par_Pc2 {Y X A B : Ty} {a b N : Term} (h : Par (app Y (app X (Pc A B) a) b) N) :
     ∃ a' b', N = app Y (app X (Pc A B) a') b' ∧ Par a a' ∧ Par b b' := by
   cases h with
@@ -1665,7 +1665,7 @@ theorem cd_num : ∀ n, cd (num n) = num n
   | 0 => rfl
   | n + 1 => by show app TN Suc (cd (num n)) = _; rw [cd_num n]; rfl
 
-/-- Rocq: `SystemTCL.par_self_cd`. -/
+/-- Rocq: `Analysis.SystemTCL.par_self_cd`. -/
 theorem par_self_cd : ∀ M : Term, Par M (cd M)
   | var _ => .refl _
   | Kc _ _ => .refl _
@@ -1714,7 +1714,7 @@ theorem par_self_cd : ∀ M : Term, Par M (cd M)
       rw [e2]; exact .P2 _ _ _ _ _ _ _ _ _ _ hb
     · rw [hcd]; exact .app _ _ _ _ _ ihF ihc
 
-/-- Rocq: `SystemTCL.par_cd`. -/
+/-- Rocq: `Analysis.SystemTCL.par_cd`. -/
 theorem par_cd {M N : Term} (h : Par M N) : Par N (cd M) := by
   induction h with
   | refl M => exact par_self_cd M
@@ -1774,7 +1774,7 @@ theorem par_cd {M N : Term} (h : Par M N) : Par N (cd M) := by
   | P1 _ _ _ _ _ _ _ _ _ _ _ iha => exact iha
   | P2 _ _ _ _ _ _ _ _ _ _ _ ihb => exact ihb
 
-/-- Rocq: `SystemTCL.strip`. -/
+/-- Rocq: `Analysis.SystemTCL.strip`. -/
 theorem strip {M N1 N2 : Term} (h1 : Par M N1) (h2 : Star M N2) : ∃ P, Star N1 P ∧ Par N2 P := by
   induction h2 generalizing N1 with
   | refl => exact ⟨N1, .refl _, h1⟩
@@ -1782,7 +1782,7 @@ theorem strip {M N1 N2 : Term} (h1 : Par M N1) (h2 : Star M N2) : ∃ P, Star N1
     obtain ⟨P, hP1, hP2⟩ := ih (par_cd (step_par hs))
     exact ⟨P, star_trans (par_star (par_cd h1)) hP1, hP2⟩
 
-/-- Rocq: `SystemTCL.confluence`. -/
+/-- Rocq: `Analysis.SystemTCL.confluence`. -/
 theorem confluence {M N1 N2 : Term} (h1 : Star M N1) (h2 : Star M N2) :
     ∃ P, Star N1 P ∧ Star N2 P := by
   induction h1 generalizing N2 with
@@ -1794,10 +1794,10 @@ theorem confluence {M N1 N2 : Term} (h1 : Star M N1) (h2 : Star M N2) :
 
 /-! ## Closed terms of type `N` evaluate to numerals -/
 
-/-- Rocq: `SystemTCL.normal`. -/
+/-- Rocq: `Analysis.SystemTCL.normal`. -/
 def Normal (M : Term) : Prop := ∀ N, ¬ Step M N
 
-/-- Rocq: `SystemTCL.step_or_normal`. -/
+/-- Rocq: `Analysis.SystemTCL.step_or_normal`. -/
 theorem step_or_normal : ∀ M : Term, (∃ N, Step M N) ∨ Normal M
   | var _ => .inr fun _ h => nomatch h
   | Kc _ _ => .inr fun _ h => nomatch h
@@ -1834,7 +1834,7 @@ theorem step_or_normal : ∀ M : Term, (∃ N, Step M N) ∨ Normal M
       | l _ _ _ _ h => exact hF _ h
       | r _ _ _ _ h => exact hc _ h
 
-/-- Rocq: `SystemTCL.SN_normal_form`. -/
+/-- Rocq: `Analysis.SystemTCL.SN_normal_form`. -/
 theorem SN_normal_form {M : Term} (h : SN M) : ∃ N, Star M N ∧ Normal N := by
   induction h with
   | intro M _ ih =>
@@ -1843,21 +1843,21 @@ theorem SN_normal_form {M : Term} (h : SN M) : ∃ N, Star M N ∧ Normal N := b
       exact ⟨N, .step _ _ _ hs hN1, hN2⟩
     · exact ⟨M, .refl _, hn⟩
 
-/-- Rocq: `SystemTCL.star_typing`. -/
+/-- Rocq: `Analysis.SystemTCL.star_typing`. -/
 theorem star_typing {Γ : List Ty} {M N : Term} {A : Ty} (h : Star M N) (ht : Typing Γ M A) :
     Typing Γ N A := by
   induction h with
   | refl => exact ht
   | step _ _ _ hs _ ih => exact ih (subject_reduction hs ht)
 
-/-- Rocq: `SystemTCL.star_normal`. -/
+/-- Rocq: `Analysis.SystemTCL.star_normal`. -/
 theorem star_normal {M N : Term} (hn : Normal M) (h : Star M N) : N = M := by
   cases h with
   | refl => rfl
   | step _ _ _ hs _ => exact (hn _ hs).elim
 
 /-- Closed normal terms are numerals, pairs, or partial applications of
-constants. Rocq: `SystemTCL.value`. -/
+constants. Rocq: `Analysis.SystemTCL.value`. -/
 inductive Value : Term → Prop where
   | numeral (n : Nat) : Value (num n)
   | Suc : Value Suc
@@ -1875,7 +1875,7 @@ inductive Value : Term → Prop where
   | Fst (A B : Ty) : Value (P1c A B)
   | Snd (A B : Ty) : Value (P2c A B)
 
-/-- Rocq: `SystemTCL.value_nat`. -/
+/-- Rocq: `Analysis.SystemTCL.value_nat`. -/
 theorem value_nat {Γ : List Ty} {M : Term} (hv : Value M) (ht : Typing Γ M TN) : ∃ n, M = num n := by
   cases hv with
   | numeral n => exact ⟨n, rfl⟩
@@ -1894,7 +1894,7 @@ theorem value_nat {Γ : List Ty} {M : Term} (hv : Value M) (ht : Typing Γ M TN)
   | Fst => cases ht
   | Snd => cases ht
 
-/-- Rocq: `SystemTCL.value_pair`. -/
+/-- Rocq: `Analysis.SystemTCL.value_pair`. -/
 theorem value_pair {Γ : List Ty} {M : Term} {A B : Ty} (hv : Value M) (ht : Typing Γ M (TPr A B)) :
     ∃ Y X C D a b, M = app Y (app X (Pc C D) a) b := by
   cases hv with
@@ -1914,15 +1914,15 @@ theorem value_pair {Γ : List Ty} {M : Term} {A B : Ty} (hv : Value M) (ht : Typ
   | Fst => cases ht
   | Snd => cases ht
 
-/-- Rocq: `SystemTCL.normal_app_l`. -/
+/-- Rocq: `Analysis.SystemTCL.normal_app_l`. -/
 theorem normal_app_l {A : Ty} {M N : Term} (h : Normal (app A M N)) : Normal M :=
   fun _ hs => h _ (.l _ _ _ _ hs)
 
-/-- Rocq: `SystemTCL.normal_app_r`. -/
+/-- Rocq: `Analysis.SystemTCL.normal_app_r`. -/
 theorem normal_app_r {A : Ty} {M N : Term} (h : Normal (app A M N)) : Normal N :=
   fun _ hs => h _ (.r _ _ _ _ hs)
 
-/-- Rocq: `SystemTCL.closed_normal_value`. -/
+/-- Rocq: `Analysis.SystemTCL.closed_normal_value`. -/
 theorem closed_normal_value {M : Term} {A : Ty} (h : Typing [] M A) (hn : Normal M) : Value M := by
   induction h with
   | var x A hx => cases x <;> cases hx
@@ -1974,7 +1974,7 @@ theorem num_inj' {n m : Nat} (h : num n = num m) : n = m := by
   rw [isNum_num, isNum_num] at h'
   exact Option.some.inj h'
 
-/-- Every closed term of type `N` reduces to a unique numeral. Rocq: `SystemTCL.T_value`. -/
+/-- Every closed term of type `N` reduces to a unique numeral. Rocq: `Analysis.SystemTCL.T_value`. -/
 theorem T_value {M : Term} (h : Typing [] M TN) : ∃ n, Star M (num n) ∧ ∀ m, Star M (num m) → m = n := by
   obtain ⟨N, hMN, hN⟩ := SN_normal_form (typed_SN h)
   have hNt := star_typing hMN h
