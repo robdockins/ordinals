@@ -15,7 +15,9 @@ the control, and the control may be raised from `n` to `m ≤ H_γ(n)` at the
 cost of adding `γ` to the height (`OD.up`).
 
 Bounded formulas (the class `DP`) are decided by evaluation; a true one is an
-axiom, and the ω-rule never applies to one. Cut elimination costs one
+axiom, and the ω-rule never applies to one. An atom `X t` has no truth value;
+the identity axiom `X t, ¬X t'` with `t` and `t'` of equal value (`OD.xax`) is
+its only rule, and a cut on an `X`-atom has rank one. Cut elimination costs one
 exponential `α ↦ ω^α` per cut rank (`od_elim`), and a derivation of a Σ₁
 sequent without cuts of positive rank, at height `α` and control `n`, has
 witnesses below `H_α(n)` (`od_bounding`).
@@ -29,6 +31,8 @@ Lean notes:
 - `sform` is `SForm`, `kind` is `Kind`; the constructors of `OD` are
   `OD.ax`, `OD.conj`, …, `OD.up`.
 - Rocq rewrites with `↔` lemmas; here they are applied with `.1`/`.2`.
+- `od_reduce` takes `rank C.2 = ρ` after the derivation, as its structural
+  recursion needs.
 -/
 
 namespace ConstructiveOrdinals.OmegaLogic
@@ -81,6 +85,7 @@ def sat : (Nat → Nat) → Form → Prop
   | ρ, imp A B => sat ρ A → sat ρ B
   | ρ, all A => ∀ x, sat (scons x ρ) A
   | ρ, ex A => ∃ x, sat (scons x ρ) A
+  | _, px _ => False
 
 /-- Rocq: `Analysis.OmegaLogic.num`. -/
 def num : Nat → ATerm
@@ -120,6 +125,7 @@ theorem sat_ext : ∀ (A : Form) {ρ ρ' : Nat → Nat}, (∀ i, ρ i = ρ' i) �
       fun f x => (sat_ext A (scons_ext h x)).2 (f x)⟩
   | ex A, _, _, h => ⟨fun ⟨x, hx⟩ => ⟨x, (sat_ext A (scons_ext h x)).1 hx⟩,
       fun ⟨x, hx⟩ => ⟨x, (sat_ext A (scons_ext h x)).2 hx⟩⟩
+  | px _, _, _, _ => Iff.rfl
 
 /-- Rocq: `Analysis.OmegaLogic.teval_asubst`. -/
 theorem teval_asubst (ρ : Nat → Nat) (σ : Nat → ATerm) :
@@ -160,6 +166,7 @@ theorem sat_fsubst : ∀ (A : Form) (ρ : Nat → Nat) (σ : Nat → ATerm),
   | ex A, ρ, σ =>
     ⟨fun ⟨x, hx⟩ => ⟨x, (sat_ext A (up_env ρ σ x)).1 ((sat_fsubst A (scons x ρ) (up σ)).1 hx)⟩,
      fun ⟨x, hx⟩ => ⟨x, (sat_fsubst A (scons x ρ) (up σ)).2 ((sat_ext A (up_env ρ σ x)).2 hx)⟩⟩
+  | px _, _, _ => Iff.rfl
 
 theorem inst1_env (ρ : Nat → Nat) (t : ATerm) : ∀ i, teval ρ (inst1 t i) = scons (teval ρ t) ρ i
   | 0 => rfl
@@ -232,12 +239,14 @@ def guardShape : Form → Bool
   | ex (imp _ _) => false
   | ex (all _) => false
   | ex (ex _) => false
+  | ex (px _) => false
   | .eq _ _ => false
   | bot => false
   | conj _ _ => false
   | disj _ _ => false
   | imp _ _ => false
   | all _ => false
+  | px _ => false
 
 /-- The bound `v` of a guard `∃d. z + d = v`. -/
 def guardBound : Form → ATerm
@@ -248,12 +257,14 @@ def guardBound : Form → ATerm
   | ex (imp _ _) => tz
   | ex (all _) => tz
   | ex (ex _) => tz
+  | ex (px _) => tz
   | .eq _ _ => tz
   | bot => tz
   | conj _ _ => tz
   | disj _ _ => tz
   | imp _ _ => tz
   | all _ => tz
+  | px _ => tz
 
 /-- A guard whose bound mentions neither `z` nor `d`. -/
 def isGuard (G : Form) : Bool := guardShape G && !occ 0 (guardBound G) && !occ 1 (guardBound G)
@@ -271,6 +282,7 @@ def bexShape : Form → Bool
   | imp _ _ => false
   | all _ => false
   | ex _ => false
+  | px _ => false
 
 /-- The terms `u` and `v` of `u + d = v`. -/
 def bexU : Form → ATerm
@@ -285,6 +297,7 @@ def bexU : Form → ATerm
   | imp _ _ => tz
   | all _ => tz
   | ex _ => tz
+  | px _ => tz
 
 def bexV : Form → ATerm
   | .eq _ v => v
@@ -294,6 +307,7 @@ def bexV : Form → ATerm
   | imp _ _ => tz
   | all _ => tz
   | ex _ => tz
+  | px _ => tz
 
 /-- The body of a bounded existential, with the side conditions. -/
 def isDEx (A : Form) : Bool := bexShape A && !occ 0 (bexU A) && !occ 0 (bexV A)
@@ -308,6 +322,7 @@ def isD : Form → Bool
   | imp A B => isD A && isD B
   | all A => isDAll A
   | ex A => isDEx A
+  | px _ => false
 /-- The body of a bounded universal. -/
 def isDAll : Form → Bool
   | .eq _ _ => false
@@ -317,6 +332,7 @@ def isDAll : Form → Bool
   | imp G B => isGuard G && isD B
   | all _ => false
   | ex _ => false
+  | px _ => false
 end
 
 theorem isTv_eq : ∀ {k : Nat} {t : ATerm}, isTv k t = true → t = tv k
@@ -343,12 +359,14 @@ theorem guard_eq : ∀ {G : Form}, guardShape G = true → G = ex (.eq (tplus (t
   | ex (imp _ _), h => Bool.noConfusion h
   | ex (all _), h => Bool.noConfusion h
   | ex (ex _), h => Bool.noConfusion h
+  | ex (px _), h => Bool.noConfusion h
   | .eq _ _, h => Bool.noConfusion h
   | bot, h => Bool.noConfusion h
   | conj _ _, h => Bool.noConfusion h
   | disj _ _, h => Bool.noConfusion h
   | imp _ _, h => Bool.noConfusion h
   | all _, h => Bool.noConfusion h
+  | px _, h => Bool.noConfusion h
 
 theorem bex_eq : ∀ {A : Form}, bexShape A = true → A = .eq (tplus (bexU A) (tv 0)) (bexV A)
   | .eq (tplus _ b) _, h => by rw [isTv_eq h]; rfl
@@ -362,6 +380,7 @@ theorem bex_eq : ∀ {A : Form}, bexShape A = true → A = .eq (tplus (bexU A) (
   | imp _ _, h => Bool.noConfusion h
   | all _, h => Bool.noConfusion h
   | ex _, h => Bool.noConfusion h
+  | px _, h => Bool.noConfusion h
 
 theorem not_true {b : Bool} (h : (!b) = true) : b = false := by
   cases b
@@ -397,6 +416,7 @@ theorem isD_DP : ∀ {A : Form}, isD A = true → DP A
     obtain ⟨h1, h2⟩ := and_true_split h12
     rw [bex_eq h1]
     exact .bex _ _ (not_true h2) (not_true h3)
+  | px _, h => Bool.noConfusion h
 theorem isDAll_DP : ∀ {A : Form}, isDAll A = true → DP (all A)
   | .eq _ _, h => Bool.noConfusion h
   | bot, h => Bool.noConfusion h
@@ -410,6 +430,7 @@ theorem isDAll_DP : ∀ {A : Form}, isDAll A = true → DP (all A)
     exact .ball _ _ (not_true hg2) (not_true hg3) (isD_DP hb)
   | all _, h => Bool.noConfusion h
   | ex _, h => Bool.noConfusion h
+  | px _, h => Bool.noConfusion h
 end
 
 /-! ## Substitution preserves boundedness -/
@@ -527,12 +548,14 @@ theorem isGuard_fsubst (σ : Nat → ATerm) : ∀ G : Form, isGuard (fsubst (up 
   | ex (imp _ _) => rfl
   | ex (all _) => rfl
   | ex (ex _) => rfl
+  | ex (px _) => rfl
   | .eq _ _ => rfl
   | bot => rfl
   | conj _ _ => rfl
   | disj _ _ => rfl
   | imp _ _ => rfl
   | all _ => rfl
+  | px _ => rfl
 
 theorem bexShape_shift (s v : ATerm) : bexShape (.eq (asubst shiftSub s) v) = false := by
   cases s with
@@ -560,6 +583,7 @@ theorem isDEx_fsubst (σ : Nat → ATerm) : ∀ A : Form, isDEx (fsubst (up σ) 
   | imp _ _ => rfl
   | all _ => rfl
   | ex _ => rfl
+  | px _ => rfl
 
 mutual
 /-- Rocq: `Analysis.OmegaLogic.isD_fsubst_eq`. -/
@@ -571,6 +595,7 @@ theorem isD_fsubst_eq : ∀ (A : Form) (σ : Nat → ATerm), isD (fsubst σ A) =
   | imp A B, σ => congrArg₂ (· && ·) (isD_fsubst_eq A σ) (isD_fsubst_eq B σ)
   | all A, σ => isDAll_fsubst A σ
   | ex A, σ => isDEx_fsubst σ A
+  | px _, _ => rfl
 theorem isDAll_fsubst : ∀ (A : Form) (σ : Nat → ATerm), isDAll (fsubst (up σ) A) = isDAll A
   | .eq _ _, _ => rfl
   | bot, _ => rfl
@@ -579,6 +604,7 @@ theorem isDAll_fsubst : ∀ (A : Form) (σ : Nat → ATerm), isDAll (fsubst (up 
   | imp G B, σ => congrArg₂ (· && ·) (isGuard_fsubst σ G) (isD_fsubst_eq B (up σ))
   | all _, _ => rfl
   | ex _, _ => rfl
+  | px _, _ => rfl
 end
 
 /-- Rocq: `Analysis.OmegaLogic.DP_fsubst`. -/
@@ -692,6 +718,7 @@ def deval : (Nat → Nat) → Form → Bool
   | ρ, imp A B => !deval ρ A || deval ρ B
   | ρ, all A => devalAll ρ A
   | ρ, ex A => (bexShape A && Nat.ble (teval (scons 0 ρ) (bexU A)) (teval (scons 0 ρ) (bexV A)))
+  | _, px _ => false
 /-- The bounded universal, by search below its bound. -/
 def devalAll : (Nat → Nat) → Form → Bool
   | ρ, imp G B => guardShape G && fall (teval (scons 0 (scons 0 ρ)) (guardBound G)) (fun z => deval (scons z ρ) B)
@@ -701,6 +728,7 @@ def devalAll : (Nat → Nat) → Form → Bool
   | _, disj _ _ => false
   | _, all _ => false
   | _, ex _ => false
+  | _, px _ => false
 end
 
 /-- Rocq: `Analysis.OmegaLogic.teval_occ`. -/
@@ -868,6 +896,8 @@ def kindof : SForm → Kind
   | (false, all A) => .exis false A
   | (true, ex A) => .exis true A
   | (false, ex A) => .univ false A
+  | (true, px _) => .atom
+  | (false, px _) => .atom
 
 /-- Rocq: `Analysis.OmegaLogic.kind_conj_neg`. -/
 theorem kind_conj_neg : ∀ {s s1 s2 : SForm}, kindof s = .conj s1 s2 → kindof (sneg s) = .disj (sneg s1) (sneg s2)
@@ -885,6 +915,8 @@ theorem kind_conj_neg : ∀ {s s1 s2 : SForm}, kindof s = .conj s1 s2 → kindof
   | (false, all _), _, _, h => Kind.noConfusion h
   | (true, ex _), _, _, h => Kind.noConfusion h
   | (false, ex _), _, _, h => Kind.noConfusion h
+  | (true, px _), _, _, h => Kind.noConfusion h
+  | (false, px _), _, _, h => Kind.noConfusion h
 
 /-- Rocq: `Analysis.OmegaLogic.kind_disj_neg`. -/
 theorem kind_disj_neg : ∀ {s s1 s2 : SForm}, kindof s = .disj s1 s2 → kindof (sneg s) = .conj (sneg s1) (sneg s2)
@@ -902,6 +934,8 @@ theorem kind_disj_neg : ∀ {s s1 s2 : SForm}, kindof s = .disj s1 s2 → kindof
   | (false, all _), _, _, h => Kind.noConfusion h
   | (true, ex _), _, _, h => Kind.noConfusion h
   | (false, ex _), _, _, h => Kind.noConfusion h
+  | (true, px _), _, _, h => Kind.noConfusion h
+  | (false, px _), _, _, h => Kind.noConfusion h
 
 /-- Rocq: `Analysis.OmegaLogic.kind_univ_neg`. -/
 theorem kind_univ_neg : ∀ {s : SForm} {b : Bool} {A : Form}, kindof s = .univ b A → kindof (sneg s) = .exis (!b) A
@@ -919,6 +953,8 @@ theorem kind_univ_neg : ∀ {s : SForm} {b : Bool} {A : Form}, kindof s = .univ 
   | (false, imp _ _), _, _, h => Kind.noConfusion h
   | (false, all _), _, _, h => Kind.noConfusion h
   | (true, ex _), _, _, h => Kind.noConfusion h
+  | (true, px _), _, _, h => Kind.noConfusion h
+  | (false, px _), _, _, h => Kind.noConfusion h
 
 /-- Rocq: `Analysis.OmegaLogic.kind_exis_neg`. -/
 theorem kind_exis_neg : ∀ {s : SForm} {b : Bool} {A : Form}, kindof s = .exis b A → kindof (sneg s) = .univ (!b) A
@@ -936,6 +972,8 @@ theorem kind_exis_neg : ∀ {s : SForm} {b : Bool} {A : Form}, kindof s = .exis 
   | (false, imp _ _), _, _, h => Kind.noConfusion h
   | (true, all _), _, _, h => Kind.noConfusion h
   | (false, ex _), _, _, h => Kind.noConfusion h
+  | (true, px _), _, _, h => Kind.noConfusion h
+  | (false, px _), _, _, h => Kind.noConfusion h
 
 /-- Rocq: `Analysis.OmegaLogic.inst_sneg`. -/
 theorem inst_sneg (b : Bool) (A : Form) (i : Nat) : sneg (inst b A i) = inst (!b) A i := rfl
@@ -957,6 +995,8 @@ theorem isD_conj : ∀ {s s1 s2 : SForm}, kindof s = .conj s1 s2 → isD s.2 = t
   | (false, all _), _, _, h, _ => Kind.noConfusion h
   | (true, ex _), _, _, h, _ => Kind.noConfusion h
   | (false, ex _), _, _, h, _ => Kind.noConfusion h
+  | (true, px _), _, _, h, _ => Kind.noConfusion h
+  | (false, px _), _, _, h, _ => Kind.noConfusion h
 
 /-- Rocq: `Analysis.OmegaLogic.isD_disj`. -/
 theorem isD_disj : ∀ {s s1 s2 : SForm}, kindof s = .disj s1 s2 → isD s.2 = true →
@@ -975,6 +1015,8 @@ theorem isD_disj : ∀ {s s1 s2 : SForm}, kindof s = .disj s1 s2 → isD s.2 = t
   | (false, all _), _, _, h, _ => Kind.noConfusion h
   | (true, ex _), _, _, h, _ => Kind.noConfusion h
   | (false, ex _), _, _, h, _ => Kind.noConfusion h
+  | (true, px _), _, _, h, _ => Kind.noConfusion h
+  | (false, px _), _, _, h, _ => Kind.noConfusion h
 
 theorem isD_of_all : ∀ {A : Form}, isD (all A) = true → isD A = true
   | imp G B, h => by
@@ -1037,6 +1079,7 @@ def rank : Form → Nat
   | imp A B => if isD (imp A B) = true then 0 else Nat.max (rank A) (rank B) + 1
   | all A => if isD (all A) = true then 0 else rank A + 1
   | ex A => if isD (ex A) = true then 0 else rank A + 1
+  | px _ => 1
 
 /-- Rocq: `Analysis.OmegaLogic.rank_D`. -/
 theorem rank_D : ∀ {A : Form}, isD A = true → rank A = 0
@@ -1047,6 +1090,7 @@ theorem rank_D : ∀ {A : Form}, isD A = true → rank A = 0
   | imp _ _, h => ite_eq_left h
   | all _, h => ite_eq_left h
   | ex _, h => ite_eq_left h
+  | px _, h => Bool.noConfusion h
 
 theorem rank_ndD {X : Form} {k : Nat} (h : isD X = false) : (if isD X = true then 0 else k) = k :=
   ite_eq_right (fun e => Bool.noConfusion (e.symm.trans h))
@@ -1075,6 +1119,7 @@ theorem rank_0_D : ∀ {A : Form}, rank A = 0 → isD A = true
     cases e : isD (ex A)
     · rw [show rank (ex A) = _ from rank_ndD e] at h; exact Nat.noConfusion h
     · rfl
+  | px _, h => Nat.noConfusion h
 
 /-- Rocq: `Analysis.OmegaLogic.rank_fsubst`. -/
 theorem rank_fsubst : ∀ (A : Form) (σ : Nat → ATerm), rank (fsubst σ A) = rank A
@@ -1095,6 +1140,7 @@ theorem rank_fsubst : ∀ (A : Form) (σ : Nat → ATerm), rank (fsubst σ A) = 
   | ex A, σ => by
     show (if isD (fsubst σ (ex A)) = true then 0 else rank (fsubst (up σ) A) + 1) = _
     rw [isD_fsubst_eq, rank_fsubst A (up σ)]; rfl
+  | px _, _ => rfl
 
 theorem lt_max_succ_l (a b : Nat) : a < Nat.max a b + 1 := Nat.lt_succ_of_le (Nat.le_max_left a b)
 theorem lt_max_succ_r (a b : Nat) : b < Nat.max a b + 1 := Nat.lt_succ_of_le (Nat.le_max_right a b)
@@ -1122,6 +1168,8 @@ theorem rank_conj : ∀ {s s1 s2 : SForm}, kindof s = .conj s1 s2 → isD s.2 = 
   | (false, all _), _, _, h, _ => Kind.noConfusion h
   | (true, ex _), _, _, h, _ => Kind.noConfusion h
   | (false, ex _), _, _, h, _ => Kind.noConfusion h
+  | (true, px _), _, _, h, _ => Kind.noConfusion h
+  | (false, px _), _, _, h, _ => Kind.noConfusion h
 
 /-- Rocq: `Analysis.OmegaLogic.rank_disj`. -/
 theorem rank_disj : ∀ {s s1 s2 : SForm}, kindof s = .disj s1 s2 → isD s.2 = false →
@@ -1146,6 +1194,8 @@ theorem rank_disj : ∀ {s s1 s2 : SForm}, kindof s = .disj s1 s2 → isD s.2 = 
   | (false, all _), _, _, h, _ => Kind.noConfusion h
   | (true, ex _), _, _, h, _ => Kind.noConfusion h
   | (false, ex _), _, _, h, _ => Kind.noConfusion h
+  | (true, px _), _, _, h, _ => Kind.noConfusion h
+  | (false, px _), _, _, h, _ => Kind.noConfusion h
 
 theorem rank_quant {A : Form} {X : Form} (hX : rank X = (if isD X = true then 0 else rank A + 1))
     (hD : isD X = false) (i : Nat) : rank (sub1 A (num i)) < rank X := by
@@ -1170,6 +1220,8 @@ theorem rank_univ : ∀ {s : SForm} {b : Bool} {A : Form} (i : Nat), kindof s = 
   | (false, imp _ _), _, _, _, h, _ => Kind.noConfusion h
   | (false, all _), _, _, _, h, _ => Kind.noConfusion h
   | (true, ex _), _, _, _, h, _ => Kind.noConfusion h
+  | (true, px _), _, _, _, h, _ => Kind.noConfusion h
+  | (false, px _), _, _, _, h, _ => Kind.noConfusion h
 
 /-- Rocq: `Analysis.OmegaLogic.rank_exis`. -/
 theorem rank_exis : ∀ {s : SForm} {b : Bool} {A : Form} (i : Nat), kindof s = .exis b A → isD s.2 = false →
@@ -1188,13 +1240,15 @@ theorem rank_exis : ∀ {s : SForm} {b : Bool} {A : Form} (i : Nat), kindof s = 
   | (false, imp _ _), _, _, _, h, _ => Kind.noConfusion h
   | (true, all _), _, _, _, h, _ => Kind.noConfusion h
   | (false, ex _), _, _, _, h, _ => Kind.noConfusion h
+  | (true, px _), _, _, _, h, _ => Kind.noConfusion h
+  | (false, px _), _, _, _, h, _ => Kind.noConfusion h
 
-/-- Rocq: `Analysis.OmegaLogic.kind_atom_D`. -/
-theorem kind_atom_D : ∀ {s : SForm}, kindof s = .atom → isD s.2 = true
-  | (true, .eq _ _), _ => rfl
-  | (false, .eq _ _), _ => rfl
-  | (true, bot), _ => rfl
-  | (false, bot), _ => rfl
+/-- An atom is a bounded formula or an `X`-atom. Rocq: `Analysis.OmegaLogic.kind_atom_D`. -/
+theorem kind_atom_D : ∀ {s : SForm}, kindof s = .atom → isD s.2 = true ∨ ∃ u, s.2 = px u
+  | (true, .eq _ _), _ => .inl rfl
+  | (false, .eq _ _), _ => .inl rfl
+  | (true, bot), _ => .inl rfl
+  | (false, bot), _ => .inl rfl
   | (true, conj _ _), h => Kind.noConfusion h
   | (false, conj _ _), h => Kind.noConfusion h
   | (true, disj _ _), h => Kind.noConfusion h
@@ -1205,6 +1259,11 @@ theorem kind_atom_D : ∀ {s : SForm}, kindof s = .atom → isD s.2 = true
   | (false, all _), h => Kind.noConfusion h
   | (true, ex _), h => Kind.noConfusion h
   | (false, ex _), h => Kind.noConfusion h
+  | (true, px u), _ => .inr ⟨u, rfl⟩
+  | (false, px u), _ => .inr ⟨u, rfl⟩
+
+/-- Rocq: `Analysis.OmegaLogic.kind_PX`. -/
+theorem kind_PX (b : Bool) (u : ATerm) : kindof (b, px u) = .atom := by cases b <;> rfl
 
 /-! ## False bounded formulas have false components -/
 
@@ -1247,6 +1306,8 @@ theorem dfalse_conj : ∀ {s s1 s2 : SForm}, kindof s = .conj s1 s2 → Dfalse s
   | (false, all _), _, _, h, _ => Kind.noConfusion h
   | (true, ex _), _, _, h, _ => Kind.noConfusion h
   | (false, ex _), _, _, h, _ => Kind.noConfusion h
+  | (true, px _), _, _, h, _ => Kind.noConfusion h
+  | (false, px _), _, _, h, _ => Kind.noConfusion h
 
 theorem not_false {b : Bool} (h : (!b) = false) : b = true := by
   cases b
@@ -1281,6 +1342,8 @@ theorem dfalse_disj : ∀ {s s1 s2 : SForm}, kindof s = .disj s1 s2 → Dfalse s
   | (false, all _), _, _, h, _ => Kind.noConfusion h
   | (true, ex _), _, _, h, _ => Kind.noConfusion h
   | (false, ex _), _, _, h, _ => Kind.noConfusion h
+  | (true, px _), _, _, h, _ => Kind.noConfusion h
+  | (false, px _), _, _, h, _ => Kind.noConfusion h
 
 /-- Rocq: `Analysis.OmegaLogic.dfalse_exis`. -/
 theorem dfalse_exis : ∀ {s : SForm} {b : Bool} {A : Form} (i : Nat), kindof s = .exis b A → Dfalse s →
@@ -1305,6 +1368,8 @@ theorem dfalse_exis : ∀ {s : SForm} {b : Bool} {A : Form} (i : Nat), kindof s 
   | (false, imp _ _), _, _, _, h, _ => Kind.noConfusion h
   | (true, all _), _, _, _, h, _ => Kind.noConfusion h
   | (false, ex _), _, _, _, h, _ => Kind.noConfusion h
+  | (true, px _), _, _, _, h, _ => Kind.noConfusion h
+  | (false, px _), _, _, _, h, _ => Kind.noConfusion h
 
 /-- Rocq: `Analysis.OmegaLogic.dax_not_dfalse`. -/
 theorem dax_not_dfalse {s : SForm} (h1 : Dax s) (h2 : Dfalse s) : False := by
@@ -1322,6 +1387,9 @@ premises, so contraction is built in. -/
 inductive OD : Nat → Nat → VForm → List SForm → Prop
   /-- Rocq: `od_ax`. -/
   | ax (n ρ : Nat) (α : VForm) (Γ : List SForm) (s : SForm) : s ∈ Γ → Dax s → OD n ρ α Γ
+  /-- Rocq: `od_xax`. -/
+  | xax (n ρ : Nat) (α : VForm) (Γ : List SForm) (u v : ATerm) :
+      (true, px u) ∈ Γ → (false, px v) ∈ Γ → teval ρ0 u = teval ρ0 v → OD n ρ α Γ
   /-- Rocq: `od_conj`. -/
   | conj (n ρ : Nat) (α β : VForm) (Γ : List SForm) (s s1 s2 : SForm) :
       s ∈ Γ → kindof s = .conj s1 s2 → OD n ρ β (s1 :: Γ) → OD n ρ β (s2 :: Γ) → Olt n β α → OD n ρ α Γ
@@ -1376,6 +1444,10 @@ theorem od_struct {n ρ : Nat} {α : VForm} {Γ : List SForm} (h : OD n ρ α Γ
   | ax n ρ α Γ s hs hax =>
     intro n' ρ' α' Γ' _ _ _ hΓ
     exact (hΓ s hs).elim (fun h => .ax _ _ _ _ s h hax) (fun hf => absurd hf (dax_not_dfalse hax ·))
+  | xax n ρ α Γ u v hu hv huv =>
+    intro n' ρ' α' Γ' _ _ _ hΓ
+    exact .xax _ _ _ _ u v ((hΓ _ hu).elim id (fun hf => absurd hf.1 (fun h => Bool.noConfusion h)))
+      ((hΓ _ hv).elim id (fun hf => absurd hf.1 (fun h => Bool.noConfusion h))) huv
   | conj n ρ α β Γ s s1 s2 hs hk _ _ hlt ih1 ih2 =>
     intro n' ρ' α' Γ' hn hρ hα hΓ
     have hβ : Reach n β α' := reach_trans (olt_reach hlt) hα
@@ -1460,6 +1532,11 @@ theorem incl_dup {a : SForm} {L : List SForm} : ∀ y, y ∈ a :: a :: L → y �
   | _, .head _ => .head _
   | _, .tail _ h => h
 
+/-- Rocq: `Analysis.OmegaLogic.xax_keep`. -/
+theorem xax_keep (s : SForm) {Γ Δ : List SForm} (H : ∀ y, y ∈ Δ → y = s ∨ y ∈ Γ) (hk : kindof s ≠ .atom)
+    {b : Bool} {u : ATerm} (hin : (b, px u) ∈ Δ) : (b, px u) ∈ Γ :=
+  (H _ hin).elim (fun e => absurd (e ▸ kind_PX b u) hk) id
+
 /-- Rocq: `Analysis.OmegaLogic.od_inv_conj`. -/
 theorem od_inv_conj {n ρ : Nat} {α : VForm} {Δ : List SForm} (h : OD n ρ α Δ) :
     ∀ (s s1 s2 sj : SForm) (Γ : List SForm), kindof s = .conj s1 s2 → isD s.2 = false → (sj = s1 ∨ sj = s2) →
@@ -1470,6 +1547,10 @@ theorem od_inv_conj {n ρ : Nat} {α : VForm} {Δ : List SForm} (h : OD n ρ α 
     cases hΔ x hx with
     | inl e => subst e; exact absurd (hax.1.symm.trans hDs) (fun h => Bool.noConfusion h)
     | inr hin => exact .ax _ _ _ _ x (.tail _ hin) hax
+  | xax n ρ α Δ u v hu hv huv =>
+    intro s s1 s2 sj Γ hks _ _ hΔ
+    have hk : kindof s ≠ .atom := fun e => Kind.noConfusion (hks.symm.trans e)
+    exact .xax _ _ _ _ u v (.tail _ (xax_keep s hΔ hk hu)) (.tail _ (xax_keep s hΔ hk hv)) huv
   | conj n ρ α β Δ x x1 x2 hx hk _ _ hlt ih1 ih2 =>
     intro s s1 s2 sj Γ hks hDs hsj hΔ
     cases hΔ x hx with
@@ -1543,6 +1624,10 @@ theorem od_inv_univ {n ρ : Nat} {α : VForm} {Δ : List SForm} (h : OD n ρ α 
     cases hΔ x hx with
     | inl e => subst e; exact absurd (hax.1.symm.trans hDs) (fun h => Bool.noConfusion h)
     | inr hin => exact .ax _ _ _ _ x (.tail _ hin) hax
+  | xax n ρ α Δ u v hu hv huv =>
+    intro s b A Γ hks _ hΔ i
+    have hk : kindof s ≠ .atom := fun e => Kind.noConfusion (hks.symm.trans e)
+    exact .xax _ _ _ _ u v (.tail _ (xax_keep s hΔ hk hu)) (.tail _ (xax_keep s hΔ hk hv)) huv
   | conj n ρ α β Δ x x1 x2 hx hk _ _ hlt ih1 ih2 =>
     intro s b A Γ hks hDs hΔ i
     cases hΔ x hx with
@@ -1599,6 +1684,66 @@ theorem od_inv_univ {n ρ : Nat} {α : VForm} {Δ : List SForm} (h : OD n ρ α 
       (max_le' (Nat.le_trans hmh hhh) (Nat.le_trans (Nat.le_max_right n (i + 1)) (hardy_ge hh')))
       (olt_mono (Nat.le_max_left _ _) hlt)
 
+/-- Contraction of an `X`-atom into another with the same value.
+Rocq: `Analysis.OmegaLogic.od_xcontr`. -/
+theorem od_xcontr {n ρ : Nat} {α : VForm} {Δ : List SForm} (h : OD n ρ α Δ) :
+    ∀ (b : Bool) (w w' : ATerm) (Γ : List SForm), (∀ y, y ∈ Δ → y = (b, px w) ∨ y ∈ Γ) →
+      (b, px w') ∈ Γ → teval ρ0 w = teval ρ0 w' → OD n ρ α Γ := by
+  induction h with
+  | ax n ρ α Δ x hx hax =>
+    intro b w w' Γ hΔ _ _
+    cases hΔ x hx with
+    | inl e => subst e; exact absurd hax.1 (fun h => Bool.noConfusion h)
+    | inr hin => exact .ax _ _ _ _ x hin hax
+  | xax n ρ α Δ u v hu hv huv =>
+    intro b w w' Γ hΔ hw' Ew
+    cases hΔ _ hu with
+    | inl e1 =>
+      cases hΔ _ hv with
+      | inl e2 => exact absurd (congrArg Prod.fst (e1.trans e2.symm)) (fun h => Bool.noConfusion h)
+      | inr hv' =>
+        cases e1
+        exact .xax _ _ _ _ w' v hw' hv' (Ew.symm.trans huv)
+    | inr hu' =>
+      cases hΔ _ hv with
+      | inl e2 =>
+        cases e2
+        exact .xax _ _ _ _ u w' hu' hw' (huv.trans Ew)
+      | inr hv' => exact .xax _ _ _ _ u v hu' hv' huv
+  | conj n ρ α β Δ x x1 x2 hx hk _ _ hlt ih1 ih2 =>
+    intro b w w' Γ hΔ hw' Ew
+    cases hΔ x hx with
+    | inl e => subst e; rw [kind_PX] at hk; exact Kind.noConfusion hk
+    | inr hin =>
+      exact .conj _ _ _ β _ x x1 x2 hin hk (ih1 b w w' (x1 :: Γ) (sub_rem_cons _ _ hΔ) (.tail _ hw') Ew)
+        (ih2 b w w' (x2 :: Γ) (sub_rem_cons _ _ hΔ) (.tail _ hw') Ew) hlt
+  | disj n ρ α β Δ x x1 x2 x' hx hk hsel _ hlt ih =>
+    intro b w w' Γ hΔ hw' Ew
+    cases hΔ x hx with
+    | inl e => subst e; rw [kind_PX] at hk; exact Kind.noConfusion hk
+    | inr hin =>
+      exact .disj _ _ _ β _ x x1 x2 x' hin hk hsel (ih b w w' (x' :: Γ) (sub_rem_cons _ _ hΔ) (.tail _ hw') Ew) hlt
+  | univ n ρ α β Δ x b' A hx hk hD _ hlt ih =>
+    intro b w w' Γ hΔ hw' Ew
+    cases hΔ x hx with
+    | inl e => subst e; rw [kind_PX] at hk; exact Kind.noConfusion hk
+    | inr hin =>
+      exact .univ _ _ _ β _ x b' A hin hk hD
+        (fun i => ih i b w w' (inst b' A i :: Γ) (sub_rem_cons _ _ hΔ) (.tail _ hw') Ew) hlt
+  | exis n ρ α β Δ x b' A m hx hk hm _ hlt ih =>
+    intro b w w' Γ hΔ hw' Ew
+    cases hΔ x hx with
+    | inl e => subst e; rw [kind_PX] at hk; exact Kind.noConfusion hk
+    | inr hin =>
+      exact .exis _ _ _ β _ x b' A m hin hk hm (ih b w w' (inst b' A m :: Γ) (sub_rem_cons _ _ hΔ) (.tail _ hw') Ew) hlt
+  | cut n ρ α β Δ x hr _ _ hlt ih1 ih2 =>
+    intro b w w' Γ hΔ hw' Ew
+    exact .cut _ _ _ β _ x hr (ih1 b w w' (x :: Γ) (sub_rem_cons _ _ hΔ) (.tail _ hw') Ew)
+      (ih2 b w w' (sneg x :: Γ) (sub_rem_cons _ _ hΔ) (.tail _ hw') Ew) hlt
+  | up n m ρ α β γ h Δ hnm _ hh hmh hlt ih =>
+    intro b w w' Γ hΔ hw' Ew
+    exact .up _ m _ _ β γ h _ hnm (ih b w w' Γ hΔ hw' Ew) hh hmh hlt
+
 /-! ## Cut elimination -/
 
 /-- Rocq: `Analysis.OmegaLogic.rem_head`. -/
@@ -1606,23 +1751,31 @@ theorem rem_head (C : SForm) (Γ : List SForm) : ∀ y, y ∈ C :: Γ → y = C 
   | _, .head _ => .inl rfl
   | _, .tail _ h => .inr h
 
+/-- Rocq: `Analysis.OmegaLogic.kind_sneg_PX`. -/
+theorem kind_sneg_PX (C : SForm) (w : ATerm) (H : C.2 = px w) : kindof (sneg C) = .atom := by
+  obtain ⟨b, A⟩ := C
+  cases H
+  cases b <;> rfl
+
 /-- Rocq: `Analysis.OmegaLogic.kind_conj_univ_neg`. -/
 theorem kind_conj_univ_neg (C : SForm)
-    (Hkind : (∃ c1 c2, kindof C = .conj c1 c2) ∨ (∃ b A, kindof C = .univ b A)) :
+    (Hkind : (∃ c1 c2, kindof C = .conj c1 c2) ∨ (∃ b A, kindof C = .univ b A) ∨ (∃ w, C.2 = px w)) :
     (∀ x1 x2, kindof (sneg C) ≠ .conj x1 x2) ∧ (∀ b A, kindof (sneg C) ≠ .univ b A) := by
-  rcases Hkind with ⟨c1, c2, H⟩ | ⟨b, A, H⟩
+  rcases Hkind with ⟨c1, c2, H⟩ | ⟨b, A, H⟩ | ⟨w, H⟩
   · rw [kind_conj_neg H]; exact ⟨fun _ _ h => Kind.noConfusion h, fun _ _ h => Kind.noConfusion h⟩
   · rw [kind_univ_neg H]; exact ⟨fun _ _ h => Kind.noConfusion h, fun _ _ h => Kind.noConfusion h⟩
+  · rw [kind_sneg_PX C w H]; exact ⟨fun _ _ h => Kind.noConfusion h, fun _ _ h => Kind.noConfusion h⟩
 
 theorem incl_insert (C x : SForm) (Γ : List SForm) : ∀ y, y ∈ C :: Γ → y ∈ C :: x :: Γ
   | _, .head _ => .head _
   | _, .tail _ h => .tail _ (.tail _ h)
 
-/-- The reduction lemma: a cut on an invertible formula `C` (a conjunction
-or a universal) of maximal rank is removed at the cost of adding the heights.
+/-- The reduction lemma: a cut on `C` of maximal rank, where `C` is
+invertible (a conjunction or a universal) or an `X`-atom, is removed at the
+cost of adding the heights.
 Rocq: `Analysis.OmegaLogic.od_reduce`. -/
 theorem od_reduce {ρ : Nat} {C : SForm} (HDC : isD C.2 = false)
-    (Hkind : (∃ c1 c2, kindof C = .conj c1 c2) ∨ (∃ b A, kindof C = .univ b A))
+    (Hkind : (∃ c1 c2, kindof C = .conj c1 c2) ∨ (∃ b A, kindof C = .univ b A) ∨ (∃ w, C.2 = px w))
     {n : Nat} {β : VForm} {Δ : List SForm} (h : OD n ρ β Δ) :
     rank C.2 = ρ → ∀ (n0 : Nat) (α : VForm) (Γ : List SForm), n0 ≤ n → OD n0 ρ α (C :: Γ) →
       (∀ y, y ∈ Δ → y = sneg C ∨ y ∈ Γ) → OD n ρ (vcat α β) Γ := by
@@ -1633,6 +1786,25 @@ theorem od_reduce {ρ : Nat} {C : SForm} (HDC : isD C.2 = false)
     cases hΔ x hx with
     | inl e => subst e; exact absurd (hax.1.symm.trans HDC) (fun h => Bool.noConfusion h)
     | inr hin => exact .ax _ _ _ _ x hin hax
+  | xax n ρ β Δ u v hu hv huv =>
+    intro _ n0 α Γ hn0 HC hΔ
+    cases hΔ _ hu with
+    | inl e1 =>
+      cases hΔ _ hv with
+      | inl e2 => exact absurd (congrArg Prod.fst (e1.trans e2.symm)) (fun h => Bool.noConfusion h)
+      | inr hv' =>
+        have EC : C = (false, px u) := by rw [← sneg_sneg C, ← e1]; rfl
+        subst EC
+        exact od_struct (od_xcontr HC false u v Γ (rem_head _ Γ) hv' huv) _ _ _ _ hn0 (Nat.le_refl _)
+          (reach_prefix _ α β) (sub_mod_incl (fun _ h => h))
+    | inr hu' =>
+      cases hΔ _ hv with
+      | inl e2 =>
+        have EC : C = (true, px v) := by rw [← sneg_sneg C, ← e2]; rfl
+        subst EC
+        exact od_struct (od_xcontr HC true v u Γ (rem_head _ Γ) hu' huv.symm) _ _ _ _ hn0 (Nat.le_refl _)
+          (reach_prefix _ α β) (sub_mod_incl (fun _ h => h))
+      | inr hv' => exact .xax _ _ _ _ u v hu' hv' huv
   | conj n ρ β βp Δ x x1 x2 hx hk _ _ hlt ih1 ih2 =>
     intro HrC n0 α Γ hn0 HC hΔ
     cases hΔ x hx with
@@ -1649,7 +1821,7 @@ theorem od_reduce {ρ : Nat} {C : SForm} (HDC : isD C.2 = false)
     | inr hin => exact .disj _ _ _ (vcat α βp) _ x x1 x2 x' hin hk hsel IH' (olt_vcat α hlt)
     | inl e =>
       subst e
-      rcases Hkind with ⟨c1, c2, HkC⟩ | ⟨b, A, HkC⟩
+      rcases Hkind with ⟨c1, c2, HkC⟩ | ⟨b, A, HkC⟩ | ⟨w, Hw⟩
       · rw [kind_conj_neg HkC] at hk
         injection hk with e1 e2
         have Hcj : ∃ cj, (cj = c1 ∨ cj = c2) ∧ x' = sneg cj :=
@@ -1661,6 +1833,7 @@ theorem od_reduce {ρ : Nat} {C : SForm} (HDC : isD C.2 = false)
         · exact od_struct (od_inv_conj HC C c1 c2 cj Γ HkC HDC hcj (rem_head C Γ)) _ _ _ _ hn0 (Nat.le_refl _)
             (reach_prefix _ α βp) (sub_mod_incl (fun _ h => h))
       · rw [kind_univ_neg HkC] at hk; exact Kind.noConfusion hk
+      · rw [kind_sneg_PX C w Hw] at hk; exact Kind.noConfusion hk
   | univ n ρ β βp Δ x b A hx hk hD _ hlt ih =>
     intro HrC n0 α Γ hn0 HC hΔ
     cases hΔ x hx with
@@ -1677,7 +1850,7 @@ theorem od_reduce {ρ : Nat} {C : SForm} (HDC : isD C.2 = false)
     | inr hin => exact .exis _ _ _ (vcat α βp) _ x b A m hin hk hm IH' (olt_vcat α hlt)
     | inl e =>
       subst e
-      rcases Hkind with ⟨c1, c2, HkC⟩ | ⟨b', A', HkC⟩
+      rcases Hkind with ⟨c1, c2, HkC⟩ | ⟨b', A', HkC⟩ | ⟨w, Hw⟩
       · rw [kind_conj_neg HkC] at hk; exact Kind.noConfusion hk
       · rw [kind_univ_neg HkC] at hk
         injection hk with e1 e2
@@ -1687,6 +1860,7 @@ theorem od_reduce {ρ : Nat} {C : SForm} (HDC : isD C.2 = false)
         · rw [← HrC]; exact rank_univ m HkC HDC
         · exact od_struct (od_inv_univ HC C b' A' Γ HkC HDC (rem_head C Γ) m) _ _ _ _
             (max_le' hn0 hm) (Nat.le_refl _) (reach_prefix _ α βp) (sub_mod_incl (fun _ h => h))
+      · rw [kind_sneg_PX C w Hw] at hk; exact Kind.noConfusion hk
   | cut n ρ β βp Δ x hr _ _ hlt ih1 ih2 =>
     intro HrC n0 α Γ hn0 HC hΔ
     exact .cut _ _ _ (vcat α βp) _ x hr
@@ -1704,6 +1878,7 @@ theorem od_elim {n ρ' : Nat} {α : VForm} {Γ : List SForm} (h : OD n ρ' α Γ
     ∀ ρ, ρ' = ρ + 1 → 1 ≤ ρ → 3 ≤ n → OD n ρ (V α Z) Γ := by
   induction h with
   | ax n _ α Γ x hx hax => intro _ _ _ _; exact .ax _ _ _ _ x hx hax
+  | xax n _ α Γ u v hu hv huv => intro _ _ _ _; exact .xax _ _ _ _ u v hu hv huv
   | conj n _ α β Γ x x1 x2 hx hk _ _ hlt ih1 ih2 =>
     intro ρ E hρ hn
     exact .conj _ _ _ (V β Z) _ x x1 x2 hx hk (ih1 ρ E hρ hn) (ih2 ρ E hρ hn)
@@ -1738,7 +1913,11 @@ theorem od_elim {n ρ' : Nat} {α : VForm} {Γ : List SForm} (h : OD n ρ' α Γ
       have H2' := od_height H2 Hexp
       refine od_height ?_ (olt_reach (olt_two hn Hα1))
       cases hk : kindof x with
-      | atom => exact absurd (kind_atom_D hk) (fun h => Bool.noConfusion (h.symm.trans HDx))
+      | atom =>
+        rcases kind_atom_D hk with h | ⟨w, hw⟩
+        · exact absurd h (fun h => Bool.noConfusion (h.symm.trans HDx))
+        · exact od_reduce HDx (.inr (.inr ⟨w, hw⟩)) H2' Hrx n (V α1 Z) Γ (Nat.le_refl _) H1'
+            (fun y hy => (rem_head _ Γ y hy).elim .inl .inr)
       | conj x1 x2 =>
         exact od_reduce HDx (.inl ⟨x1, x2, hk⟩) H2' Hrx n (V α1 Z) Γ (Nat.le_refl _) H1'
           (fun y hy => (rem_head _ Γ y hy).elim .inl .inr)
@@ -1746,10 +1925,10 @@ theorem od_elim {n ρ' : Nat} {α : VForm} {Γ : List SForm} (h : OD n ρ' α Γ
         exact od_reduce (C := sneg x) HDx (.inl ⟨_, _, kind_disj_neg hk⟩) H1' Hrx n (V α1 Z) Γ (Nat.le_refl _) H2'
           (fun y hy => (rem_head _ Γ y hy).elim (fun e => .inl (e.trans (sneg_sneg x).symm)) .inr)
       | univ b A =>
-        exact od_reduce HDx (.inr ⟨b, A, hk⟩) H2' Hrx n (V α1 Z) Γ (Nat.le_refl _) H1'
+        exact od_reduce HDx (.inr (.inl ⟨b, A, hk⟩)) H2' Hrx n (V α1 Z) Γ (Nat.le_refl _) H1'
           (fun y hy => (rem_head _ Γ y hy).elim .inl .inr)
       | exis b A =>
-        exact od_reduce (C := sneg x) HDx (.inr ⟨_, _, kind_exis_neg hk⟩) H1' Hrx n (V α1 Z) Γ (Nat.le_refl _) H2'
+        exact od_reduce (C := sneg x) HDx (.inr (.inl ⟨_, _, kind_exis_neg hk⟩)) H1' Hrx n (V α1 Z) Γ (Nat.le_refl _) H2'
           (fun y hy => (rem_head _ Γ y hy).elim (fun e => .inl (e.trans (sneg_sneg x).symm)) .inr)
   | up n m _ α β γ h Γ hnm _ hh hmh hlt ih =>
     intro ρ E hρ hn
@@ -1792,6 +1971,7 @@ def isS : Form → Bool
   | disj A B => isD (disj A B)
   | imp A B => isD (imp A B)
   | all A => isD (all A)
+  | px u => isD (px u)
 
 /-- Rocq: `Analysis.OmegaLogic.isS_iff`. -/
 theorem isS_iff (A : Form) : isS A = true ↔ isD A = true ∨ ∃ B, A = ex B ∧ isS B = true := by
@@ -1807,6 +1987,7 @@ theorem isS_iff (A : Form) : isS A = true ↔ isD A = true ∨ ∃ B, A = ex B �
   | disj _ _ => exact ⟨.inl, fun h => h.elim id (fun ⟨_, e, _⟩ => Form.noConfusion e)⟩
   | imp _ _ => exact ⟨.inl, fun h => h.elim id (fun ⟨_, e, _⟩ => Form.noConfusion e)⟩
   | all _ => exact ⟨.inl, fun h => h.elim id (fun ⟨_, e, _⟩ => Form.noConfusion e)⟩
+  | px _ => exact ⟨.inl, fun h => h.elim id (fun ⟨_, e, _⟩ => Form.noConfusion e)⟩
 
 /-- Rocq: `Analysis.OmegaLogic.isS_fsubst`. -/
 theorem isS_fsubst : ∀ (A : Form) (σ : Nat → ATerm), isS A = true → isS (fsubst σ A) = true
@@ -1820,6 +2001,7 @@ theorem isS_fsubst : ∀ (A : Form) (σ : Nat → ATerm), isS A = true → isS (
   | disj A B, σ, h => isD_fsubst (disj A B) σ h
   | imp A B, σ, h => isD_fsubst (imp A B) σ h
   | all A, σ, h => isD_fsubst (all A) σ h
+  | px u, σ, h => isD_fsubst (px u) σ h
 
 /-- Rocq: `Analysis.OmegaLogic.sigf`. -/
 def Sigf (s : SForm) : Prop := (s.1 = true ∧ isS s.2 = true) ∨ isD s.2 = true
@@ -1833,6 +2015,7 @@ def tb (B : Nat) : (Nat → Nat) → Form → Prop
   | ρ, disj A C => if isD (disj A C) = true then deval ρ (disj A C) = true else False
   | ρ, imp A C => if isD (imp A C) = true then deval ρ (imp A C) = true else False
   | ρ, all A => if isD (all A) = true then deval ρ (all A) = true else False
+  | ρ, px u => if isD (px u) = true then deval ρ (px u) = true else False
 
 /-- The non-bounded case of `tb`. -/
 def tbMatch (B : Nat) (ρ : Nat → Nat) : Form → Prop
@@ -1843,6 +2026,7 @@ def tbMatch (B : Nat) (ρ : Nat → Nat) : Form → Prop
   | disj _ _ => False
   | imp _ _ => False
   | all _ => False
+  | px _ => False
 
 /-- Rocq: `Analysis.OmegaLogic.tb_eq`. -/
 theorem tb_eq (B : Nat) (ρ : Nat → Nat) (A : Form) :
@@ -1876,7 +2060,7 @@ theorem tb_mono {B B' : Nat} (hB : B ≤ B') : ∀ (A : Form) (ρ : Nat → Nat)
     rcases tb_D_cases h with ⟨hd, hv⟩ | ⟨hd, ⟨m, hm, ht⟩⟩
     · exact tb_of_D hd hv
     · exact tb_of_match hd ⟨m, Nat.lt_of_lt_of_le hm hB, ih _ ht⟩
-  | eq | bot | conj | disj | imp | all =>
+  | eq | bot | conj | disj | imp | all | px =>
     intro ρ h
     rcases tb_D_cases h with ⟨hd, hv⟩ | ⟨_, hm⟩
     · exact tb_of_D hd hv
@@ -1891,7 +2075,7 @@ theorem tb_ext (B : Nat) : ∀ (A : Form) {ρ ρ' : Nat → Nat}, (∀ i, ρ i =
     rcases tb_D_cases h with ⟨hd, hv⟩ | ⟨hd, ⟨m, hm, ht⟩⟩
     · exact tb_of_D hd ((deval_ext _ hd E).symm.trans hv)
     · exact tb_of_match hd ⟨m, hm, ih (scons_ext E m) ht⟩
-  | eq | bot | conj | disj | imp | all =>
+  | eq | bot | conj | disj | imp | all | px =>
     intro ρ ρ' E h
     rcases tb_D_cases h with ⟨hd, hv⟩ | ⟨_, hm⟩
     · exact tb_of_D hd ((deval_ext _ hd E).symm.trans hv)
@@ -1908,7 +2092,7 @@ theorem tb_fsubst (B : Nat) : ∀ (A : Form) (ρ : Nat → Nat) (σ : Nat → AT
     · have hd' := isD_fsubst_back _ σ hd
       exact tb_of_D hd' ((deval_fsubst _ σ ρ hd').symm.trans hv)
     · exact tb_of_match ((isD_fsubst_eq _ σ).symm.trans hd) ⟨m, hm, tb_ext B A (up_env ρ σ m) (ih _ _ ht)⟩
-  | eq | bot | conj | disj | imp | all =>
+  | eq | bot | conj | disj | imp | all | px =>
     intro ρ σ h
     rcases tb_D_cases h with ⟨hd, hv⟩ | ⟨_, hm⟩
     · have hd' := isD_fsubst_back _ σ hd
@@ -1961,6 +2145,11 @@ theorem od_bounding {n ρ : Nat} {α : VForm} {Γ : List SForm} (h : OD n ρ α 
     ρ ≤ 1 → (∀ s, s ∈ Γ → Sigf s) → ∀ h, Hardy α n h → ∃ s, s ∈ Γ ∧ Tbs h s := by
   induction h with
   | ax n ρ α Γ s hs hax => intro _ _ hα _; exact ⟨s, hs, Tbs_dax _ s hax⟩
+  | xax n ρ α Γ u v hu _ _ =>
+    intro _ hΓ _ _
+    rcases hΓ _ hu with ⟨_, h⟩ | h
+    · exact (Bool.noConfusion h : False).elim
+    · exact (Bool.noConfusion h : False).elim
   | conj n ρ α β Γ s s1 s2 hs hk _ _ hlt ih1 ih2 =>
     intro hρ hΓ hα Hα
     cases hD : isD s.2 with

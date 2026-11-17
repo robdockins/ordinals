@@ -82,6 +82,7 @@ MODULES = {
     "Analysis.Embedding": "Analysis/Embedding.lean",
     "Analysis.GoodsteinIndependence": "Analysis/GoodsteinIndependence.lean",
     "Analysis.GoodsteinFormula": "Analysis/GoodsteinFormula.lean",
+    "Analysis.ProvableTI": "Analysis/ProvableTI.lean",
 }
 
 STATUSES = {"ported", "merged", "dropped"}

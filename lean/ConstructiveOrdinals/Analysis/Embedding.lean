@@ -407,6 +407,7 @@ def fsize : Form → Nat
   | imp A B => fsize A + fsize B + 1
   | all A => fsize A + 1
   | ex A => fsize A + 1
+  | px _ => 0
 
 /-- Rocq: `Analysis.Embedding.teq`. -/
 def Teq (τ1 τ2 : Nat → ATerm) : Prop := ∀ i ρ, teval ρ (τ1 i) = teval ρ (τ2 i)
@@ -516,6 +517,11 @@ theorem od_id : ∀ (B : Form) {τ1 τ2 : Nat → ATerm} {n ρ : Nat} {Γ : List
       unfold inst
       rw [sub1_up_comp, sub1_up_comp]
       exact ih (teq_inst i hτ) (.tail _ (.head _)) (.head _)
+  | px u =>
+    intro τ1 τ2 n ρ Γ hτ h1 h2
+    refine .xax _ _ _ _ (asubst τ2 u) (asubst τ1 u) h2 h1 ?_
+    rw [teval_asubst, teval_asubst]
+    exact teval_ext (fun i => (hτ i ρ0).symm) u
 
 /-! ## Bounded quantifiers have small counterexamples -/
 
@@ -528,12 +534,14 @@ def dbound : Form → Nat
   | all (disj _ _) => 0
   | all (all _) => 0
   | all (ex _) => 0
+  | all (px _) => 0
   | ex A => teval (scons 0 ρ0) (bexV A)
   | .eq _ _ => 0
   | bot => 0
   | conj _ _ => 0
   | disj _ _ => 0
   | imp _ _ => 0
+  | px _ => 0
 
 /-- Rocq: `Analysis.Embedding.fall_false`. -/
 theorem fall_false : ∀ (b : Nat) (f : Nat → Bool), fall b f = false → ∃ z, z ≤ b ∧ f z = false
@@ -716,6 +724,7 @@ theorem fsize_fsubst : ∀ (A : Form) (σ : Nat → ATerm), fsize (fsubst σ A) 
   | imp A B, σ => by show fsize (fsubst σ A) + fsize (fsubst σ B) + 1 = _; rw [fsize_fsubst A, fsize_fsubst B]; rfl
   | all A, σ => by show fsize (fsubst (up σ) A) + 1 = _; rw [fsize_fsubst A]; rfl
   | ex A, σ => by show fsize (fsubst (up σ) A) + 1 = _; rw [fsize_fsubst A]; rfl
+  | px _, _ => rfl
 
 /-- The identity sequent for an instance. Rocq: `Analysis.Embedding.od_id_inst`. -/
 theorem od_id_inst {n ρ k : Nat} (σ : Nat → Nat) (A : Form) {Γ : List SForm} (hk : 1 ≤ k) (hn : 2 * fsize A < n)

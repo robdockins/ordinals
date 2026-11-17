@@ -53,3 +53,4 @@ import ConstructiveOrdinals.Analysis.OmegaLogic
 import ConstructiveOrdinals.Analysis.Embedding
 import ConstructiveOrdinals.Analysis.GoodsteinIndependence
 import ConstructiveOrdinals.Analysis.GoodsteinFormula
+import ConstructiveOrdinals.Analysis.ProvableTI

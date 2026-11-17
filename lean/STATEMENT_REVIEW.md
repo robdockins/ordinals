@@ -79,7 +79,7 @@ are presentational:
   `ρ' = ρ + 1` in place of Rocq's `S ρ`. Both are the forms the structural
   recursion of the proofs needs.
 
-464 statements.
+470 statements.
 
 ## Defs
 
@@ -7379,7 +7379,8 @@ OmegaLogic.od_reduce
        OmegaLogic.rank (snd C) = ρ ->
        OmegaLogic.isD (snd C) = false ->
        (exists c1 c2 : OmegaLogic.sform, OmegaLogic.kindof C = OmegaLogic.KConj c1 c2) \/
-       (exists (b : bool) (A : PeanoArith.form), OmegaLogic.kindof C = OmegaLogic.KUniv b A) ->
+       (exists (b : bool) (A : PeanoArith.form), OmegaLogic.kindof C = OmegaLogic.KUniv b A) \/
+       (exists w : PeanoArith.aterm, snd C = PeanoArith.PX w) ->
        forall (n : nat) (β : VNotation.VForm) (Δ : list OmegaLogic.sform),
        OmegaLogic.OD n ρ β Δ ->
        forall (n0 : nat) (α : VNotation.VForm) (Γ : list (bool * PeanoArith.form)),
@@ -7393,7 +7394,7 @@ Lean:
 @OmegaLogic.od_reduce : ∀ {ρ : Nat} {C : OmegaLogic.SForm},
   OmegaLogic.isD C.snd = false →
     ((∃ c1 c2, OmegaLogic.kindof C = OmegaLogic.Kind.conj c1 c2) ∨
-        ∃ b A, OmegaLogic.kindof C = OmegaLogic.Kind.univ b A) →
+        (∃ b A, OmegaLogic.kindof C = OmegaLogic.Kind.univ b A) ∨ ∃ w, C.snd = PeanoArith.Form.px w) →
       ∀ {n : Nat} {β : VNotation.VForm} {Δ : List OmegaLogic.SForm},
         OmegaLogic.OD n ρ β Δ →
           OmegaLogic.rank C.snd = ρ →
@@ -7656,4 +7657,124 @@ GoodsteinFormula.goodstein_independent
 Lean:
 ```
 GoodsteinFormula.goodstein_independent : ¬PeanoArith.PA [] GoodsteinFormula.goodsteinSentence
+```
+
+## Analysis.ProvableTI
+
+### `below_no_descent`
+
+Rocq:
+```
+ProvableTI.below_no_descent
+     : forall (P : nat -> nat -> Prop) (L : Defs.Ord) (f : nat -> nat),
+       ProvableTI.below P L (f 0) -> (forall i : nat, P (f (S i)) (f i)) -> False
+```
+Lean:
+```
+ProvableTI.below_no_descent : ∀ (P : Nat → Nat → Prop) (L : Ordinal) (f : Nat → Nat),
+  ProvableTI.below P L (f 0) → (∀ (i : Nat), P (f (i + 1)) (f i)) → False
+```
+
+### `below_Acc_EM`
+
+Rocq:
+```
+ProvableTI.below_Acc_EM
+     : forall P : nat -> nat -> Prop,
+       ClassicalFacts.excluded_middle ->
+       forall (L : Defs.Ord) (x : nat), ProvableTI.below P L x -> Acc P x
+```
+Lean:
+```
+ProvableTI.below_Acc_EM : ∀ (P : Nat → Nat → Prop),
+  ExcludedMiddle → ∀ (L : Ordinal) (x : Nat), ProvableTI.below P L x → Acc P x
+```
+
+### `below_wf_ord_EM`
+
+Rocq:
+```
+ProvableTI.below_wf_ord_EM
+     : forall P : nat -> nat -> Prop,
+       ClassicalFacts.excluded_middle ->
+       forall (L : Defs.Ord) (x : nat) (Hx : Acc P x),
+       ProvableTI.below P L x -> Defs.ord_le (WellFounded.mk_wf_ord nat P x Hx) L
+```
+Lean:
+```
+ProvableTI.below_wf_ord_EM : ∀ (P : Nat → Nat → Prop),
+  ExcludedMiddle → ∀ (L : Ordinal) (x : Nat) (hx : Acc P x), ProvableTI.below P L x → mkWfOrd P x hx ≤ L
+```
+
+### `od_TI_bound`
+
+Rocq:
+```
+ProvableTI.od_TI_bound
+     : forall Q : PeanoArith.form,
+       OmegaLogic.isD Q = true ->
+       forall (n ρ : nat) (α : VNotation.VForm) (Γ : list OmegaLogic.sform),
+       OmegaLogic.OD n ρ α Γ ->
+       ρ <= 1 ->
+       (forall s : OmegaLogic.sform, List.In s Γ -> ProvableTI.cls Q s) ->
+       forall γ : Defs.Ord,
+       (forall u : PeanoArith.aterm,
+        List.In (false, PeanoArith.PX u) Γ -> ProvableTI.B Q γ (OmegaLogic.teval OmegaLogic.ρ0 u)) ->
+       (forall s : OmegaLogic.sform,
+        List.In s Γ ->
+        ProvableTI.spos s -> ~ ProvableTI.ssem (ProvableTI.B Q (ProvableTI.Bd γ α)) s) ->
+       False
+```
+Lean:
+```
+ProvableTI.od_TI_bound : ∀ (Q : PeanoArith.Form),
+  OmegaLogic.isD Q = true →
+    ∀ {n ρ : Nat} {α : VNotation.VForm} {Γ : List OmegaLogic.SForm},
+      OmegaLogic.OD n ρ α Γ →
+        ρ ≤ 1 →
+          (∀ (s : OmegaLogic.SForm), s ∈ Γ → ProvableTI.Cls Q s) →
+            ∀ (γ : Ordinal),
+              (∀ (u : PeanoArith.ATerm),
+                  (false, PeanoArith.Form.px u) ∈ Γ → ProvableTI.B Q γ (OmegaLogic.teval OmegaLogic.ρ0 u)) →
+                (∀ (s : OmegaLogic.SForm),
+                    s ∈ Γ → ProvableTI.Spos s → ¬ProvableTI.Ssem (ProvableTI.B Q (ProvableTI.Bd γ α)) s) →
+                  False
+```
+
+### `PA_TI_bound`
+
+Rocq:
+```
+ProvableTI.PA_TI_bound
+     : forall R : PeanoArith.form,
+       OmegaLogic.isD R = true ->
+       PeanoArith.prov true nil (ProvableTI.TI R) ->
+       exists L : Defs.Ord,
+         Defs.ord_lt L (Fixpoints.ε Operators.zeroOrd) /\
+         (forall x : nat, ProvableTI.below (ProvableTI.prec R) L x)
+```
+Lean:
+```
+ProvableTI.PA_TI_bound : ∀ (R : PeanoArith.Form),
+  OmegaLogic.isD R = true →
+    PeanoArith.PA [] (ProvableTI.TI R) → ∃ L, L < ε 0 ∧ ∀ (x : Nat), ProvableTI.below (ProvableTI.prec R) L x
+```
+
+### `PA_TI_wf_EM`
+
+Rocq:
+```
+ProvableTI.PA_TI_wf_EM
+     : ClassicalFacts.excluded_middle ->
+       forall R : PeanoArith.form,
+       OmegaLogic.isD R = true ->
+       PeanoArith.prov true nil (ProvableTI.TI R) ->
+       exists Hwf : well_founded (ProvableTI.prec R),
+         Defs.ord_lt (WellFounded.wf_ord (ProvableTI.prec R) Hwf) (Fixpoints.ε Operators.zeroOrd)
+```
+Lean:
+```
+ProvableTI.PA_TI_wf_EM : ExcludedMiddle →
+  ∀ (R : PeanoArith.Form),
+    OmegaLogic.isD R = true → PeanoArith.PA [] (ProvableTI.TI R) → ∃ Hwf, wfOrd (ProvableTI.prec R) Hwf < ε 0
 ```

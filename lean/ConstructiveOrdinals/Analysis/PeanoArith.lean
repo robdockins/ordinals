@@ -4,8 +4,11 @@
 Port of `Ordinal/Analysis/PeanoArith.v`.
 
 First-order arithmetic with `0`, `S`, `+` and `·`, formulas built from
-equations with `⊥`, `∧`, `∨`, `→`, `∀` and `∃`, and variables as de Bruijn
-indices. The proof system is natural deduction with hypotheses in a list;
+equations and atoms `X t` with `⊥`, `∧`, `∨`, `→`, `∀` and `∃`, and variables
+as de Bruijn indices. `X` is a unary predicate variable with no axioms: the
+theory is `PA(X)`, which proves its instances of the induction schema for
+formulas mentioning `X`, and so can state transfinite induction `TI(≺, X)` as
+a single sentence. The proof system is natural deduction with hypotheses in a list;
 Peano arithmetic adds double-negation elimination to Heyting arithmetic.
 The Gödel–Gentzen negative translation embeds Peano arithmetic in Heyting
 arithmetic (`negative_translation`), so a proof of `⊥` in PA gives one in
@@ -41,6 +44,8 @@ inductive Form : Type where
   | imp : Form → Form → Form
   | all : Form → Form
   | ex : Form → Form
+  /-- Rocq: `PX`. -/
+  | px : ATerm → Form
 
 open ATerm Form
 
@@ -74,6 +79,7 @@ def fsubst : (Nat → ATerm) → Form → Form
   | σ, imp A B => imp (fsubst σ A) (fsubst σ B)
   | σ, all A => all (fsubst (up σ) A)
   | σ, ex A => ex (fsubst (up σ) A)
+  | σ, px t => px (asubst σ t)
 termination_by structural _ A => A
 
 /-- Shifting past a new variable. Rocq: `Analysis.PeanoArith.fshift`. -/
@@ -114,6 +120,7 @@ theorem fsubst_ext : ∀ (A : Form) {σ τ : Nat → ATerm}, (∀ i, σ i = τ i
   | imp A B, _, _, h => congrArg₂ imp (fsubst_ext A h) (fsubst_ext B h)
   | all A, _, _, h => congrArg all (fsubst_ext A (up_ext h))
   | ex A, _, _, h => congrArg ex (fsubst_ext A (up_ext h))
+  | px t, _, _, h => congrArg px (asubst_ext h t)
 
 /-- Rocq: `Analysis.PeanoArith.asubst_comp`. -/
 theorem asubst_comp (σ τ : Nat → ATerm) :
@@ -151,6 +158,7 @@ theorem fsubst_comp : ∀ (A : Form) (σ τ : Nat → ATerm),
   | imp A B, σ, τ => congrArg₂ imp (fsubst_comp A σ τ) (fsubst_comp B σ τ)
   | all A, σ, τ => congrArg all ((fsubst_comp A (up σ) (up τ)).trans (fsubst_ext A (up_comp σ τ)))
   | ex A, σ, τ => congrArg ex ((fsubst_comp A (up σ) (up τ)).trans (fsubst_ext A (up_comp σ τ)))
+  | px t, σ, τ => congrArg px (asubst_comp σ τ t)
 
 /-- Rocq: `Analysis.PeanoArith.fsubst_id`. -/
 theorem fsubst_id : ∀ (A : Form) {σ : Nat → ATerm}, (∀ i, σ i = tv i) → fsubst σ A = A
@@ -167,6 +175,9 @@ theorem fsubst_id : ∀ (A : Form) {σ : Nat → ATerm}, (∀ i, σ i = tv i) �
   | ex A, σ, h => congrArg ex (fsubst_id A (σ := up σ) (fun
       | 0 => rfl
       | i + 1 => by show asubst shiftSub (σ i) = tv (i + 1); rw [h i]; rfl))
+  | px t, σ, h => by
+    show px (asubst σ t) = px t
+    rw [asubst_ext h t, asubst_id]
 
 /-- Instantiating a shifted quantifier body with the new variable gives back
 the body. Rocq: `Analysis.PeanoArith.sub1_up_shift`. -/
@@ -469,6 +480,7 @@ def gg : Form → Form
   | imp A B => imp (gg A) (gg B)
   | all A => all (gg A)
   | ex A => (all (gg A).neg).neg
+  | px t => (px t).neg.neg
 
 /-- Rocq: `Analysis.PeanoArith.gg_subst`. -/
 theorem gg_subst : ∀ (A : Form) (σ : Nat → ATerm), gg (fsubst σ A) = fsubst σ (gg A)
@@ -483,6 +495,7 @@ theorem gg_subst : ∀ (A : Form) (σ : Nat → ATerm), gg (fsubst σ A) = fsubs
   | ex A, σ => by
     show (all (gg (fsubst (up σ) A)).neg).neg = _
     rw [gg_subst A (up σ)]; rfl
+  | px _, _ => rfl
 
 /-- Rocq: `Analysis.PeanoArith.gg_shift`. -/
 theorem gg_shift (Γ : List Form) : (Γ.map fshift).map gg = (Γ.map gg).map fshift := by
@@ -523,6 +536,7 @@ theorem gg_stable : ∀ (A : Form) (Γ : List Form), HA Γ (imp (gg A).neg.neg (
     rw [sub1_up_shift] at Hx
     exact Hx
   | ex A, Γ => tneg Γ _
+  | px t, Γ => tneg Γ (px t).neg
 
 /-- Rocq: `Analysis.PeanoArith.gg_dne`. -/
 theorem gg_dne {Γ : List Form} {A : Form} (h : HA Γ (gg A).neg.neg) : HA Γ (gg A) :=

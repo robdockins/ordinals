@@ -21,6 +21,9 @@ numeral value, which decides the matrices (needed for contraction) and drives
 the recursor in the induction rule. `T_value` rests on strong normalization,
 which `SystemTCL` proves by an ordinal assignment below ε₀.
 
+The predicate variable `X` of `PeanoArith` is read as the empty set: its
+atoms are interpreted like `⊥`.
+
 Lean notes:
 
 - Rocq's `nth` with a default is `nthD`, and `Forall2` is `Forall2`, both
@@ -714,6 +717,7 @@ def wty : Form → Ty
   | .imp A B => TPr (TAr (wty A) (wty B)) (TAr (wty A) (TAr (cty B) (cty A)))
   | .all A => TAr TN (wty A)
   | .ex A => TPr TN (wty A)
+  | .px _ => TN
 /-- Rocq: `Analysis.Dialectica.cty`. -/
 def cty : Form → Ty
   | .eq _ _ => TN
@@ -723,6 +727,7 @@ def cty : Form → Ty
   | .imp A B => TPr (wty A) (cty B)
   | .all A => TPr TN (cty A)
   | .ex A => cty A
+  | .px _ => TN
 end
 
 /-- Rocq: `Analysis.Dialectica.wty_cty_subst`. -/
@@ -749,6 +754,7 @@ theorem wty_cty_subst : ∀ (A : Form) (σ : Nat → ATerm), wty (fsubst σ A) =
     show TPr _ _ = _ ∧ _ = _
     rw [(wty_cty_subst A (up σ)).1]
     exact ⟨rfl, (wty_cty_subst A (up σ)).2⟩
+  | .px _, _ => ⟨rfl, rfl⟩
 
 /-- Rocq: `Analysis.Dialectica.wty_subst`. -/
 theorem wty_subst (A : Form) (σ : Nat → ATerm) : wty (fsubst σ A) = wty A := (wty_cty_subst A σ).1
@@ -792,6 +798,7 @@ def dia : Form → Term
       (prepend [pi1 TN (cty A) (var 0)] nvars)) (dia A)
   | .ex A =>
     tsub (dsub (var 0) (pi2 TN (wty A) (var 1)) (prepend [pi1 TN (wty A) (var 1)] nvars)) (dia A)
+  | .px _ => num 1
 
 /-- Rocq: `Analysis.Dialectica.dctx`. -/
 def dctx (A : Form) : Nat → Ty := dsub (cty A) (wty A) TN0
@@ -827,6 +834,7 @@ theorem wt_dia : ∀ A : Form, Wt (dctx A) (dia A) TN
       (fun | 0 => wt_pi1 (wt_var' rfl) | _ + 1 => wt_var' rfl))
   | .ex A => wt_tsub (wt_dia A) (wt_dsub (wt_var' rfl) (wt_pi2 (wt_var' rfl))
       (fun | 0 => wt_pi1 (wt_var' rfl) | _ + 1 => wt_var' rfl))
+  | .px _ => .app _ _ _ _ .Suc .Z
 
 /-! ## Truth of the matrix on closed instances -/
 
@@ -1098,6 +1106,7 @@ theorem dia_subst : ∀ (A : Form) (σ : Nat → ATerm) (y x : Term) (ns : Nat �
       show tsub _ (tr (asubst shiftSub (σ k))) = _
       rw [tr_asubst, tsub_comp]
       rfl
+  | .px _, _, _, _, _ => rfl
 
 /-- Rocq: `Analysis.Dialectica.D_subst`. -/
 theorem D_subst (A : Form) (σ : Nat → ATerm) (x y : Term) (ns : Nat → Term) :

@@ -113,9 +113,10 @@ repository root) and `coqc` on the path. CI
 | `Analysis/Embedding.v` | `Analysis/Embedding.lean` | done |
 | `Analysis/GoodsteinIndependence.v` | `Analysis/GoodsteinIndependence.lean` | done |
 | `Analysis/GoodsteinFormula.v` | `Analysis/GoodsteinFormula.lean` | done |
+| `Analysis/ProvableTI.v` | `Analysis/ProvableTI.lean` | done |
 
-The port is complete. Of the 3,779 Rocq declarations outside `Countable.v`:
-- 3,737 are ported;
+The port is complete. Of the 3,847 Rocq declarations outside `Countable.v`:
+- 3,805 are ported;
 - 22 are merged into an equivalent declaration (mostly the binary-number
   embeddings, which coincide with `ofNat`, helpers of `GrimmT3.v` that have
   an equivalent elsewhere, the list-splitting function of
@@ -132,7 +133,7 @@ The port is complete. Of the 3,779 Rocq declarations outside `Countable.v`:
 `scripts/port_overrides.csv` gives a reason for each merge and drop. No
 declaration depends on any axiom, and the build has no warnings.
 
-`STATEMENT_REVIEW.md` sets the statements of 464 headline results beside their
+`STATEMENT_REVIEW.md` sets the statements of 470 headline results beside their
 Rocq originals: every Rocq `Theorem`, plus the reflection, notation and
 order-type theorems. Both sides are printed by the provers themselves. The
 review found no mathematical discrepancies, and its introduction lists the
@@ -218,6 +219,9 @@ Deliberate differences from Rocq (statements are otherwise transliterated):
     `m_j` (`inv_moduli`), and `crt` takes that invertibility as its
     hypothesis. `gs` and `bumpi` are on `Nat`, so the conversions from
     `N` disappear.
+  - `ProvableTI` writes out the propositional steps that Rocq proves with
+    `tauto`, and takes the variables of Rocq's `Bounding` section as
+    explicit arguments.
 - Theorems stated in a Rocq `Section` take exactly the hypotheses Rocq's
   `Check` reports after the section is closed. `Hypothesis EM` becomes an
   explicit `(em : ExcludedMiddle)` argument.
