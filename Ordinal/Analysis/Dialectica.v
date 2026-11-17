@@ -24,7 +24,10 @@ Open Scope nat_scope.
     term of type [N] has a unique numeral value, which decides the
     matrices (needed for contraction) and drives the recursor in the
     induction rule.  [T_value] rests on strong normalization, which
-    [SystemTCL] proves by an ordinal assignment below ε₀. *)
+    [SystemTCL] proves by an ordinal assignment below ε₀.
+
+    The predicate variable [X] of [PeanoArith] is read as the empty set:
+    its atoms are interpreted like [⊥]. *)
 
 (** ** Terms with free variables
 
@@ -487,6 +490,7 @@ Fixpoint wty (A:form) : ty :=
   | Imp A B => TPr (TAr (wty A) (wty B)) (TAr (wty A) (TAr (cty B) (cty A)))
   | All A => TAr TN (wty A)
   | Ex A => TPr TN (wty A)
+  | PX _ => TN
   end
 with cty (A:form) : ty :=
   match A with
@@ -497,6 +501,7 @@ with cty (A:form) : ty :=
   | Imp A B => TPr (wty A) (cty B)
   | All A => TPr TN (cty A)
   | Ex A => cty A
+  | PX _ => TN
   end.
 
 Lemma wty_cty_subst A : forall σ, wty (fsubst σ A) = wty A /\ cty (fsubst σ A) = cty A.
@@ -542,6 +547,7 @@ Fixpoint dia (A:form) : term :=
                  (prepend [pi1 TN (cty A) (var 0)] nvars)) (dia A)
   | Ex A =>
       tsub (dsub (var 0) (pi2 TN (wty A) (var 1)) (prepend [pi1 TN (wty A) (var 1)] nvars)) (dia A)
+  | PX _ => num 1
   end.
 
 Definition dctx (A:form) : nat -> ty := dsub (cty A) (wty A) TN0.
@@ -567,6 +573,7 @@ Proof.
   - apply wt_cond; [| |constructor]; (eapply wt_tsub; [eauto|]); intros [|[|j]]; simpl; wtac.
   - eapply wt_tsub; [eauto|]. intros [|[|[|j]]]; simpl; wtac.
   - eapply wt_tsub; [eauto|]. intros [|[|[|j]]]; simpl; wtac.
+  - repeat constructor.
 Qed.
 
 (** ** Truth of the matrix on closed instances *)
@@ -711,6 +718,7 @@ Proof.
     rewrite tr_asubst, tsub_comp. reflexivity.
   - rewrite !tsub_dsub, IHA. apply tsub_ext. intros [|[|[|j]]]; auto. simpl.
     rewrite tr_asubst, tsub_comp. reflexivity.
+  - reflexivity.
 Qed.
 
 Lemma D_subst A σ x y ns :

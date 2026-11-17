@@ -352,6 +352,7 @@ Fixpoint fsize (A:form) : nat :=
   | Eq _ _ | Bot => 0
   | And A B | Or A B | Imp A B => S (fsize A + fsize B)
   | All A | Ex A => S (fsize A)
+  | PX _ => 0
   end.
 
 Definition teq (τ1 τ2:nat -> aterm) : Prop := forall i ρ, teval ρ (τ1 i) = teval ρ (τ2 i).
@@ -386,7 +387,7 @@ Qed.
 Theorem od_id B : forall τ1 τ2 n ρ Γ, teq τ1 τ2 ->
   In (false, fsubst τ1 B) Γ -> In (true, fsubst τ2 B) Γ -> OD n ρ (fin (2 * fsize B)) Γ.
 Proof.
-  induction B as [s t| |B1 IH1 B2 IH2|B1 IH1 B2 IH2|B1 IH1 B2 IH2|B IH|B IH];
+  induction B as [s t| |B1 IH1 B2 IH2|B1 IH1 B2 IH2|B1 IH1 B2 IH2|B IH|B IH|u];
     intros τ1 τ2 n ρ Γ Hτ H1 H2;
     match goal with |- OD _ _ (fin (2 * fsize ?B0)) _ =>
       destruct (isD B0) eqn:HD; [apply (od_id_D B0 τ1 τ2); assumption|] end.
@@ -449,6 +450,9 @@ Proof.
     apply od_height with (fin (2 * fsize B)); [|apply reach_fin; simpl; lia].
     unfold inst. rewrite !sub1_up_comp.
     apply (IH _ _ _ _ _ (teq_inst τ1 τ2 i Hτ)); [right; left; reflexivity | left; reflexivity].
+  - (* X *)
+    apply od_xax with (asubst τ2 u) (asubst τ1 u); [exact H2 | exact H1|].
+    rewrite !teval_asubst. apply teval_ext. intro i. symmetry. apply Hτ.
 Qed.
 
 (** ** Bounded quantifiers have small counterexamples *)
@@ -486,7 +490,7 @@ Lemma D_univ_witness s b A : isD (snd s) = true -> kindof s = KUniv b A -> dfals
   exists i, i <= dbound (snd s) /\ dfalse (inst b A i).
 Proof.
   destruct s as [[|] F]; intros HD Hk Hf;
-    destruct F as [| | | | |F|F]; simpl in Hk; try discriminate; injection Hk as <- <-;
+    destruct F as [| | | | |F|F|]; simpl in Hk; try discriminate; injection Hk as <- <-;
     cbn [snd] in HD; apply isD_DP in HD; inversion HD as [| | | | |v B Hv0 Hv1 HB|u v Hu Hv]; subst.
   - destruct Hf as [_ Hf]. simpl in Hf. apply fall_false in Hf as [z [Hz HB']].
     exists z. split; [exact Hz|].

@@ -28,6 +28,7 @@ Ordinal/Analysis/OmegaLogic.v
 Ordinal/Analysis/Embedding.v
 Ordinal/Analysis/GoodsteinIndependence.v
 Ordinal/Analysis/GoodsteinFormula.v
+Ordinal/Analysis/ProvableTI.v
 
 Ordinal/VeblenDefs.v
 Ordinal/VeblenClassical.v

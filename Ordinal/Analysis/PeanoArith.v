@@ -6,8 +6,12 @@ Import ListNotations.
 (** * Peano and Heyting arithmetic, and the negative translation
 
     First-order arithmetic with [0], [S], [+] and [·], formulas built
-    from equations with [⊥], [∧], [∨], [→], [∀] and [∃], and variables as
-    de Bruijn indices.  The proof system is natural deduction with
+    from equations and atoms [X t] with [⊥], [∧], [∨], [→], [∀] and [∃],
+    and variables as de Bruijn indices.  [X] is a unary predicate
+    variable with no axioms: the theory is [PA(X)], which proves its
+    instances of the induction schema for formulas mentioning [X], and
+    so can state transfinite induction [TI(≺, X)] as a single
+    sentence.  The proof system is natural deduction with
     hypotheses in a list; Peano arithmetic adds double-negation
     elimination to Heyting arithmetic.  The Gödel–Gentzen negative
     translation embeds Peano arithmetic in Heyting arithmetic
@@ -30,7 +34,8 @@ Inductive form : Set :=
 | Or : form -> form -> form
 | Imp : form -> form -> form
 | All : form -> form
-| Ex : form -> form.
+| Ex : form -> form
+| PX : aterm -> form.
 
 Definition Neg (A:form) : form := Imp A Bot.
 
@@ -59,6 +64,7 @@ Fixpoint fsubst (σ:nat -> aterm) (A:form) : form :=
   | Imp A B => Imp (fsubst σ A) (fsubst σ B)
   | All A => All (fsubst (up σ) A)
   | Ex A => Ex (fsubst (up σ) A)
+  | PX t => PX (asubst σ t)
   end.
 
 (** Shifting past a new variable, substituting for variable [0], and
@@ -110,6 +116,7 @@ Proof.
   - rewrite (asubst_ext _ tv), asubst_id; auto.
   - apply IHA. intros [|i]; simpl; auto. rewrite H. reflexivity.
   - apply IHA. intros [|i]; simpl; auto. rewrite H. reflexivity.
+  - rewrite (asubst_ext _ tv), asubst_id; auto.
 Qed.
 
 (** Instantiating a shifted quantifier body with the new variable gives
@@ -311,6 +318,7 @@ Fixpoint gg (A:form) : form :=
   | Imp A B => Imp (gg A) (gg B)
   | All A => All (gg A)
   | Ex A => Neg (All (Neg (gg A)))
+  | PX t => Neg (Neg (PX t))
   end.
 
 Lemma gg_subst A : forall σ, gg (fsubst σ A) = fsubst σ (gg A).

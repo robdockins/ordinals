@@ -26,9 +26,12 @@ Local Open Scope nat_scope.
     Bounded formulas (the class [DP]: equations, the connectives, and
     the bounded quantifiers [∀z ≤ v] and [∃d. u + d = v]) are decided by
     evaluation; a true one is an axiom, and the ω-rule never applies to
-    one.  With these conventions the cut elimination of Schütte and Tait
-    goes through, each level of cuts costing an exponential [α ↦ ω^α]
-    of the height ([od_elim]).  A derivation without cuts of rank
+    one.  An atom [X t] has no truth value; the identity axiom
+    [X t, ¬X t'] with [t] and [t'] of equal value ([od_xax]) is its only
+    rule, and a cut on an [X]-atom has rank one.  With these conventions
+    the cut elimination of Schütte and Tait goes through, each level of
+    cuts costing an exponential [α ↦ ω^α] of the height ([od_elim]).  A
+    derivation without cuts of rank
     above zero of a Σ₁ sequent at height [α] and control [n] has
     witnesses below [H_α(n)] ([od_bounding]). *)
 
@@ -55,6 +58,7 @@ Fixpoint sat (ρ:nat -> nat) (A:form) : Prop :=
   | Imp A B => sat ρ A -> sat ρ B
   | All A => forall x, sat (scons x ρ) A
   | Ex A => exists x, sat (scons x ρ) A
+  | PX _ => False
   end.
 
 Fixpoint num (n:nat) : aterm :=
@@ -68,7 +72,7 @@ Proof. intro H. induction t; simpl; auto. Qed.
 
 Lemma sat_ext A : forall ρ ρ', (forall i, ρ i = ρ' i) -> (sat ρ A <-> sat ρ' A).
 Proof.
-  induction A as [s t| |A IHA B IHB|A IHA B IHB|A IHA B IHB|A IHA|A IHA];
+  induction A as [s t| |A IHA B IHB|A IHA B IHB|A IHA B IHB|A IHA|A IHA|u];
     intros ρ ρ' H; simpl.
   - rewrite (teval_ext ρ ρ' s H), (teval_ext ρ ρ' t H). reflexivity.
   - reflexivity.
@@ -77,6 +81,7 @@ Proof.
   - rewrite (IHA ρ ρ' H), (IHB ρ ρ' H). reflexivity.
   - split; intros Hx x; specialize (Hx x); revert Hx; apply IHA; intros [|i]; simpl; auto.
   - split; intros [x Hx]; exists x; revert Hx; apply IHA; intros [|i]; simpl; auto.
+  - reflexivity.
 Qed.
 
 Lemma teval_asubst ρ σ t : teval ρ (asubst σ t) = teval (fun i => teval ρ (σ i)) t.
@@ -87,7 +92,7 @@ Proof. rewrite teval_asubst. apply teval_ext. intro i. reflexivity. Qed.
 
 Lemma sat_fsubst A : forall ρ σ, sat ρ (fsubst σ A) <-> sat (fun i => teval ρ (σ i)) A.
 Proof.
-  induction A as [s t| |A IHA B IHB|A IHA B IHB|A IHA B IHB|A IHA|A IHA];
+  induction A as [s t| |A IHA B IHB|A IHA B IHB|A IHA B IHB|A IHA|A IHA|u];
     intros ρ σ; simpl.
   - rewrite !teval_asubst. reflexivity.
   - reflexivity.
@@ -100,6 +105,7 @@ Proof.
   - split; intros [x Hx]; exists x; revert Hx.
     + rewrite IHA. apply sat_ext. intros [|i]; simpl; [reflexivity | first [apply teval_shift | symmetry; apply teval_shift]].
     + rewrite IHA. apply sat_ext. intros [|i]; simpl; [reflexivity | first [apply teval_shift | symmetry; apply teval_shift]].
+  - reflexivity.
 Qed.
 
 Lemma sat_sub1 ρ A t : sat ρ (sub1 A t) <-> sat (scons (teval ρ t) ρ) A.
@@ -158,27 +164,28 @@ Qed.
 Lemma isD_DP : forall A, isD A = true -> DP A.
 Proof.
   fix IH 1. intros A H.
-  destruct A as [s t| |A B|A B|A B|A|A].
+  destruct A as [s t| |A B|A B|A B|A|A|u].
   - constructor.
   - constructor.
   - simpl in H. apply andb_prop in H as [H1 H2]. constructor; [apply IH; exact H1 | apply IH; exact H2].
   - simpl in H. apply andb_prop in H as [H1 H2]. constructor; [apply IH; exact H1 | apply IH; exact H2].
   - simpl in H. apply andb_prop in H as [H1 H2]. constructor; [apply IH; exact H1 | apply IH; exact H2].
-  - destruct A as [| | | |G B| |]; try discriminate.
-    destruct G as [| | | | | |E]; try discriminate.
-    destruct E as [w v| | | | | |]; try discriminate.
+  - destruct A as [| | | |G B| | |]; try discriminate.
+    destruct G as [| | | | | |E|]; try discriminate.
+    destruct E as [w v| | | | | | |]; try discriminate.
     destruct w as [| | |a b|]; try discriminate.
     destruct a as [[|[|i]]| | | |]; try discriminate.
     destruct b as [[|i]| | | |]; try discriminate.
     simpl in H. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
     apply negb_true_iff in H1. apply negb_true_iff in H2.
     constructor; [exact H1 | exact H2 | apply IH; exact H3].
-  - destruct A as [w v| | | | | |]; try discriminate.
+  - destruct A as [w v| | | | | | |]; try discriminate.
     destruct w as [| | |u b|]; try discriminate.
     destruct b as [[|i]| | | |]; try discriminate.
     simpl in H. apply andb_prop in H as [H1 H2].
     apply negb_true_iff in H1. apply negb_true_iff in H2.
     constructor; assumption.
+  - discriminate.
 Qed.
 
 Lemma occ_asubst k τ t : occ k (asubst τ t) = true -> exists i, occ i t = true /\ occ k (τ i) = true.
@@ -363,25 +370,25 @@ Definition kindof (s:sform) : kind :=
 
 Lemma kind_conj_neg s s1 s2 : kindof s = KConj s1 s2 -> kindof (sneg s) = KDisj (sneg s1) (sneg s2).
 Proof.
-  destruct s as [[|] [| |A B|A B|A B|A|A]]; simpl; intro H; try discriminate;
+  destruct s as [[|] [| |A B|A B|A B|A|A|u]]; simpl; intro H; try discriminate;
     injection H; intros; subst; reflexivity.
 Qed.
 
 Lemma kind_disj_neg s s1 s2 : kindof s = KDisj s1 s2 -> kindof (sneg s) = KConj (sneg s1) (sneg s2).
 Proof.
-  destruct s as [[|] [| |A B|A B|A B|A|A]]; simpl; intro H; try discriminate;
+  destruct s as [[|] [| |A B|A B|A B|A|A|u]]; simpl; intro H; try discriminate;
     injection H; intros; subst; reflexivity.
 Qed.
 
 Lemma kind_univ_neg s b A : kindof s = KUniv b A -> kindof (sneg s) = KExis (negb b) A.
 Proof.
-  destruct s as [[|] [| |A' B|A' B|A' B|A'|A']]; simpl; intro H; try discriminate;
+  destruct s as [[|] [| |A' B|A' B|A' B|A'|A'|u]]; simpl; intro H; try discriminate;
     injection H; intros; subst; reflexivity.
 Qed.
 
 Lemma kind_exis_neg s b A : kindof s = KExis b A -> kindof (sneg s) = KUniv (negb b) A.
 Proof.
-  destruct s as [[|] [| |A' B|A' B|A' B|A'|A']]; simpl; intro H; try discriminate;
+  destruct s as [[|] [| |A' B|A' B|A' B|A'|A'|u]]; simpl; intro H; try discriminate;
     injection H; intros; subst; reflexivity.
 Qed.
 
@@ -392,14 +399,14 @@ Proof. reflexivity. Qed.
 Lemma isD_conj s s1 s2 : kindof s = KConj s1 s2 -> isD (snd s) = true ->
   isD (snd s1) = true /\ isD (snd s2) = true.
 Proof.
-  destruct s as [[|] [| |A B|A B|A B|A|A]]; simpl; intros H HD; try discriminate;
+  destruct s as [[|] [| |A B|A B|A B|A|A|u]]; simpl; intros H HD; try discriminate;
     injection H; intros; subst; simpl; apply andb_prop; exact HD.
 Qed.
 
 Lemma isD_disj s s1 s2 : kindof s = KDisj s1 s2 -> isD (snd s) = true ->
   isD (snd s1) = true /\ isD (snd s2) = true.
 Proof.
-  destruct s as [[|] [| |A B|A B|A B|A|A]]; simpl; intros H HD; try discriminate;
+  destruct s as [[|] [| |A B|A B|A B|A|A|u]]; simpl; intros H HD; try discriminate;
     injection H; intros; subst; simpl; apply andb_prop; exact HD.
 Qed.
 
@@ -469,15 +476,15 @@ Qed.
 Lemma isD_fsubst_back : forall A σ, isD (fsubst σ A) = true -> isD A = true.
 Proof.
   fix IH 1. intros A σ H.
-  destruct A as [s t| |A B|A B|A B|A|A].
+  destruct A as [s t| |A B|A B|A B|A|A|u].
   - reflexivity.
   - reflexivity.
   - simpl in *. apply andb_prop in H as [H1 H2]. rewrite (IH A σ H1), (IH B σ H2). reflexivity.
   - simpl in *. apply andb_prop in H as [H1 H2]. rewrite (IH A σ H1), (IH B σ H2). reflexivity.
   - simpl in *. apply andb_prop in H as [H1 H2]. rewrite (IH A σ H1), (IH B σ H2). reflexivity.
-  - destruct A as [| | | |G B| |]; try discriminate.
-    destruct G as [| | | | | |E]; try discriminate.
-    destruct E as [w v| | | | | |]; try discriminate.
+  - destruct A as [| | | |G B| | |]; try discriminate.
+    destruct G as [| | | | | |E|]; try discriminate.
+    destruct E as [w v| | | | | | |]; try discriminate.
     simpl in H.
     destruct (asubst (up (up σ)) w) as [| | |a b|] eqn:Ew; try discriminate.
     destruct a as [[|[|i]]| | | |]; try discriminate.
@@ -486,7 +493,7 @@ Proof.
     apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
     apply negb_true_iff in H1. apply negb_true_iff in H2.
     simpl. rewrite (occ_up0_back _ _ H1), (occ_up1_back _ _ H2), (IH B (up σ) H3). reflexivity.
-  - destruct A as [w v| | | | | |]; try discriminate.
+  - destruct A as [w v| | | | | | |]; try discriminate.
     simpl in H.
     destruct (asubst (up σ) w) as [| | |a b|] eqn:Ew; try discriminate.
     destruct b as [[|i]| | | |]; try discriminate.
@@ -495,6 +502,7 @@ Proof.
     apply andb_prop in H as [H1 H2].
     apply negb_true_iff in H1. apply negb_true_iff in H2.
     simpl. rewrite (occ_up0_back _ _ H1), (occ_up0_back _ _ H2). reflexivity.
+  - discriminate.
 Qed.
 
 Lemma isD_fsubst_eq A σ : isD (fsubst σ A) = isD A.
@@ -534,11 +542,12 @@ Fixpoint rank (A:form) : nat :=
   match A with
   | And A B | Or A B | Imp A B => S (Nat.max (rank A) (rank B))
   | All A | Ex A => S (rank A)
+  | PX _ => 1
   | _ => 0
   end.
 
 Lemma rank_D A : isD A = true -> rank A = 0.
-Proof. intro H. destruct A; cbn [rank]; rewrite H; reflexivity. Qed.
+Proof. intro H. destruct A; cbn [rank]; try rewrite H; try reflexivity; discriminate. Qed.
 
 Lemma rank_0_D A : rank A = 0 -> isD A = true.
 Proof.
@@ -548,7 +557,7 @@ Qed.
 
 Lemma rank_fsubst A : forall σ, rank (fsubst σ A) = rank A.
 Proof.
-  induction A as [s t| |A IHA B IHB|A IHA B IHB|A IHA B IHB|A IHA|A IHA]; intro σ.
+  induction A as [s t| |A IHA B IHB|A IHA B IHB|A IHA B IHB|A IHA|A IHA|u]; intro σ.
   - assert (E := isD_fsubst_eq (Eq s t) σ). cbn [fsubst] in E |- *. cbn [rank]. try rewrite E. reflexivity.
   - assert (E := isD_fsubst_eq (Bot) σ). cbn [fsubst] in E |- *. cbn [rank]. try rewrite E. reflexivity.
   - assert (E := isD_fsubst_eq (And A B) σ). cbn [fsubst] in E |- *. cbn [rank]. try rewrite E. rewrite IHA, IHB. reflexivity.
@@ -556,40 +565,45 @@ Proof.
   - assert (E := isD_fsubst_eq (Imp A B) σ). cbn [fsubst] in E |- *. cbn [rank]. try rewrite E. rewrite IHA, IHB. reflexivity.
   - assert (E := isD_fsubst_eq (All A) σ). cbn [fsubst] in E |- *. cbn [rank]. try rewrite E. rewrite IHA. reflexivity.
   - assert (E := isD_fsubst_eq (Ex A) σ). cbn [fsubst] in E |- *. cbn [rank]. try rewrite E. rewrite IHA. reflexivity.
+  - reflexivity.
 Qed.
 
 Lemma rank_conj s s1 s2 : kindof s = KConj s1 s2 -> isD (snd s) = false ->
   rank (snd s1) < rank (snd s) /\ rank (snd s2) < rank (snd s).
 Proof.
-  destruct s as [[|] [| |A B|A B|A B|A|A]]; simpl; intros H HD; try discriminate;
+  destruct s as [[|] [| |A B|A B|A B|A|A|u]]; simpl; intros H HD; try discriminate;
     injection H; intros; subst; simpl; rewrite HD; lia.
 Qed.
 
 Lemma rank_disj s s1 s2 : kindof s = KDisj s1 s2 -> isD (snd s) = false ->
   rank (snd s1) < rank (snd s) /\ rank (snd s2) < rank (snd s).
 Proof.
-  destruct s as [[|] [| |A B|A B|A B|A|A]]; simpl; intros H HD; try discriminate;
+  destruct s as [[|] [| |A B|A B|A B|A|A|u]]; simpl; intros H HD; try discriminate;
     injection H; intros; subst; simpl; rewrite HD; lia.
 Qed.
 
 Lemma rank_univ s b A i : kindof s = KUniv b A -> isD (snd s) = false ->
   rank (snd (inst b A i)) < rank (snd s).
 Proof.
-  destruct s as [[|] [| |A' B|A' B|A' B|A'|A']]; simpl; intros H HD; try discriminate;
+  destruct s as [[|] [| |A' B|A' B|A' B|A'|A'|u]]; simpl; intros H HD; try discriminate;
     injection H; intros; subst; unfold sub1; rewrite rank_fsubst; simpl; rewrite HD; lia.
 Qed.
 
 Lemma rank_exis s b A i : kindof s = KExis b A -> isD (snd s) = false ->
   rank (snd (inst b A i)) < rank (snd s).
 Proof.
-  destruct s as [[|] [| |A' B|A' B|A' B|A'|A']]; simpl; intros H HD; try discriminate;
+  destruct s as [[|] [| |A' B|A' B|A' B|A'|A'|u]]; simpl; intros H HD; try discriminate;
     injection H; intros; subst; unfold sub1; rewrite rank_fsubst; simpl; rewrite HD; lia.
 Qed.
 
-Lemma kind_atom_D s : kindof s = KAtom -> isD (snd s) = true.
+(** An atom is a bounded formula or an [X]-atom. *)
+Lemma kind_atom_D s : kindof s = KAtom -> isD (snd s) = true \/ exists u, snd s = PX u.
 Proof.
-  destruct s as [[|] [| |A B|A B|A B|A|A]]; simpl; intro H; try discriminate; reflexivity.
+  destruct s as [[|] [| |A B|A B|A B|A|A|u]]; simpl; intro H; try discriminate; eauto.
 Qed.
+
+Lemma kind_PX b u : kindof (b, PX u) = KAtom.
+Proof. destruct b; reflexivity. Qed.
 
 (** ** False bounded formulas have false components *)
 
@@ -597,7 +611,7 @@ Lemma dfalse_conj s s1 s2 : kindof s = KConj s1 s2 -> dfalse s -> dfalse s1 \/ d
 Proof.
   intros Hk [HD Hv]. destruct (isD_conj s s1 s2 Hk HD) as [H1 H2].
   revert Hk HD Hv H1 H2. unfold dfalse.
-  destruct s as [[|] [| |A B|A B|A B|A|A]]; simpl; intros Hk HD Hv H1 H2; try discriminate;
+  destruct s as [[|] [| |A B|A B|A B|A|A|u]]; simpl; intros Hk HD Hv H1 H2; try discriminate;
     injection Hk; intros; subst; simpl in *.
   - destruct (deval ρ0 A); simpl in Hv; auto.
   - destruct (deval ρ0 A); simpl in Hv; auto.
@@ -608,7 +622,7 @@ Lemma dfalse_disj s s1 s2 : kindof s = KDisj s1 s2 -> dfalse s -> dfalse s1 /\ d
 Proof.
   intros Hk [HD Hv]. destruct (isD_disj s s1 s2 Hk HD) as [H1 H2].
   revert Hk HD Hv H1 H2. unfold dfalse.
-  destruct s as [[|] [| |A B|A B|A B|A|A]]; simpl; intros Hk HD Hv H1 H2; try discriminate;
+  destruct s as [[|] [| |A B|A B|A B|A|A|u]]; simpl; intros Hk HD Hv H1 H2; try discriminate;
     injection Hk; intros; subst; simpl in *.
   - destruct (deval ρ0 A), (deval ρ0 B); simpl in Hv; try discriminate; auto.
   - destruct (deval ρ0 A), (deval ρ0 B); simpl in Hv; try discriminate; auto.
@@ -618,7 +632,7 @@ Qed.
 Lemma dfalse_exis s b A i : kindof s = KExis b A -> dfalse s -> dfalse (inst b A i).
 Proof.
   unfold dfalse, inst.
-  destruct s as [[|] [| |A' B|A' B|A' B|A'|A']]; simpl; intros Hk [HD Hv]; try discriminate;
+  destruct s as [[|] [| |A' B|A' B|A' B|A'|A'|u]]; simpl; intros Hk [HD Hv]; try discriminate;
     injection Hk; intros; subst; simpl.
   - assert (Hi : isD (sub1 A (num i)) = true) by (apply isD_quant_inst; right; exact HD).
     split; [exact Hi|]. apply deval_false; [exact Hi|].
@@ -643,6 +657,8 @@ Qed.
 Inductive OD : nat -> nat -> VForm -> list sform -> Prop :=
 | od_ax n ρ α Γ s :
     In s Γ -> dax s -> OD n ρ α Γ
+| od_xax n ρ α Γ u v :
+    In (true, PX u) Γ -> In (false, PX v) Γ -> teval ρ0 u = teval ρ0 v -> OD n ρ α Γ
 | od_conj n ρ α β Γ s s1 s2 :
     In s Γ -> kindof s = KConj s1 s2 ->
     OD n ρ β (s1 :: Γ) -> OD n ρ β (s2 :: Γ) -> olt n β α -> OD n ρ α Γ
@@ -680,6 +696,7 @@ Theorem od_struct n ρ α Γ : OD n ρ α Γ ->
   forall n' ρ' α' Γ', n <= n' -> ρ <= ρ' -> reach n α α' -> sub_mod Γ Γ' -> OD n' ρ' α' Γ'.
 Proof.
   induction 1 as [n ρ α Γ s Hs Hax
+                 |n ρ α Γ u v Hu Hv Huv
                  |n ρ α β Γ s s1 s2 Hs Hk _ IH1 _ IH2 Hlt
                  |n ρ α β Γ s s1 s2 s' Hs Hk Hs' _ IH Hlt
                  |n ρ α β Γ s b A Hs Hk HD _ IH Hlt
@@ -689,6 +706,9 @@ Proof.
     intros n' ρ' α' Γ' Hn Hρ Hα HΓ.
   - destruct (HΓ s Hs) as [Hs'|Hf]; [|exfalso; exact (dax_not_dfalse s Hax Hf)].
     apply od_ax with s; assumption.
+  - apply od_xax with u v; [| |exact Huv].
+    + destruct (HΓ _ Hu) as [H|[H _]]; [exact H | discriminate].
+    + destruct (HΓ _ Hv) as [H|[H _]]; [exact H | discriminate].
   - assert (Hβ : reach n β α') by (eapply reach_trans; [apply olt_reach; exact Hlt | exact Hα]).
     destruct (HΓ s Hs) as [Hs'|Hf].
     + apply od_conj with β s s1 s2; auto.
@@ -746,11 +766,19 @@ Lemma sub_rem_cons (x s:sform) (Γ Δ:list sform) : (forall y, In y Δ -> y = s 
   forall y, In y (x :: Δ) -> y = s \/ In y (x :: Γ).
 Proof. intros H y [<-|Hy]; [right; left; reflexivity | destruct (H y Hy); [left|right; right]; auto]. Qed.
 
+Lemma xax_keep (s:sform) (Γ Δ:list sform) b u : (forall y, In y Δ -> y = s \/ In y Γ) ->
+  kindof s <> KAtom -> In (b, PX u) Δ -> In (b, PX u) Γ.
+Proof.
+  intros H Hk Hin. destruct (H _ Hin) as [E|E]; [|exact E].
+  exfalso. apply Hk. rewrite <- E. apply kind_PX.
+Qed.
+
 Lemma od_inv_conj n ρ α Δ : OD n ρ α Δ ->
   forall s s1 s2 sj Γ, kindof s = KConj s1 s2 -> isD (snd s) = false -> (sj = s1 \/ sj = s2) ->
   (forall y, In y Δ -> y = s \/ In y Γ) -> OD n ρ α (sj :: Γ).
 Proof.
   induction 1 as [n ρ α Δ x Hx Hax
+                 |n ρ α Δ u v Hu Hv Huv
                  |n ρ α β Δ x x1 x2 Hx Hk _ IH1 _ IH2 Hlt
                  |n ρ α β Δ x x1 x2 x' Hx Hk Hsel _ IH Hlt
                  |n ρ α β Δ x b A Hx Hk HD _ IH Hlt
@@ -761,6 +789,8 @@ Proof.
   - destruct (HΔ x Hx) as [->|Hx'].
     + exfalso. destruct Hax as [Hax _]. rewrite Hax in HDs. discriminate.
     + apply od_ax with x; [right; exact Hx' | exact Hax].
+  - apply od_xax with u v; [right | right | exact Huv];
+      (eapply xax_keep; [exact HΔ | rewrite Hks; discriminate | eassumption]).
   - destruct (HΔ x Hx) as [->|Hx'].
     + rewrite Hks in Hk. injection Hk as <- <-.
       assert (H1 := IH1 s s1 s2 sj (s1 :: Γ) Hks HDs Hsj (sub_rem_cons _ _ _ _ HΔ)).
@@ -806,6 +836,7 @@ Lemma od_inv_univ n ρ α Δ : OD n ρ α Δ ->
   (forall y, In y Δ -> y = s \/ In y Γ) -> forall i, OD (Nat.max n (S i)) ρ α (inst b A i :: Γ).
 Proof.
   induction 1 as [n ρ α Δ x Hx Hax
+                 |n ρ α Δ u v Hu Hv Huv
                  |n ρ α β Δ x x1 x2 Hx Hk _ IH1 _ IH2 Hlt
                  |n ρ α β Δ x x1 x2 x' Hx Hk Hsel _ IH Hlt
                  |n ρ α β Δ x b' A' Hx Hk HD _ IH Hlt
@@ -816,6 +847,8 @@ Proof.
   - destruct (HΔ x Hx) as [->|Hx'].
     + exfalso. destruct Hax as [Hax _]. rewrite Hax in HDs. discriminate.
     + apply od_ax with x; [right; exact Hx' | exact Hax].
+  - apply od_xax with u v; [right | right | exact Huv];
+      (eapply xax_keep; [exact HΔ | rewrite Hks; discriminate | eassumption]).
   - destruct (HΔ x Hx) as [->|Hx'].
     + rewrite Hks in Hk. discriminate.
     + apply od_conj with β x x1 x2; [right; exact Hx' | exact Hk | | | apply olt_mono with n; [lia | exact Hlt]].
@@ -857,25 +890,74 @@ Proof.
     + apply olt_mono with n; [lia | exact Hlt].
 Qed.
 
+(** Contraction of an [X]-atom into another with the same value. *)
+Lemma od_xcontr n ρ α Δ : OD n ρ α Δ ->
+  forall b w w' Γ, (forall y, In y Δ -> y = (b, PX w) \/ In y Γ) -> In (b, PX w') Γ ->
+  teval ρ0 w = teval ρ0 w' -> OD n ρ α Γ.
+Proof.
+  induction 1 as [n ρ α Δ x Hx Hax
+                 |n ρ α Δ u v Hu Hv Huv
+                 |n ρ α β Δ x x1 x2 Hx Hk _ IH1 _ IH2 Hlt
+                 |n ρ α β Δ x x1 x2 x' Hx Hk Hsel _ IH Hlt
+                 |n ρ α β Δ x b' A' Hx Hk HD _ IH Hlt
+                 |n ρ α β Δ x b' A' m Hx Hk Hm _ IH Hlt
+                 |n ρ α β Δ x Hr _ IH1 _ IH2 Hlt
+                 |n m ρ α β γ h Δ Hnm _ IH Hh Hmh Hlt];
+    intros b w w' Γ HΔ Hw' Ew.
+  - destruct (HΔ x Hx) as [->|Hx'].
+    + exfalso. destruct Hax as [Hax _]. discriminate.
+    + apply od_ax with x; assumption.
+  - destruct (HΔ _ Hu) as [E|Hu']; destruct (HΔ _ Hv) as [E'|Hv'].
+    + rewrite <- E' in E. discriminate.
+    + injection E as <- <-. apply od_xax with w' v; [exact Hw' | exact Hv' | lia].
+    + injection E' as <- <-. apply od_xax with u w'; [exact Hu' | exact Hw' | lia].
+    + apply od_xax with u v; assumption.
+  - assert (Hk' : kindof x <> KAtom) by (rewrite Hk; discriminate).
+    destruct (HΔ x Hx) as [->|Hx']; [exfalso; apply Hk'; apply kind_PX|].
+    apply od_conj with β x x1 x2; [exact Hx' | exact Hk | | | exact Hlt].
+    + apply (IH1 b w w' (x1 :: Γ)); [apply sub_rem_cons; exact HΔ | right; exact Hw' | exact Ew].
+    + apply (IH2 b w w' (x2 :: Γ)); [apply sub_rem_cons; exact HΔ | right; exact Hw' | exact Ew].
+  - assert (Hk' : kindof x <> KAtom) by (rewrite Hk; discriminate).
+    destruct (HΔ x Hx) as [->|Hx']; [exfalso; apply Hk'; apply kind_PX|].
+    apply od_disj with β x x1 x2 x'; [exact Hx' | exact Hk | exact Hsel | | exact Hlt].
+    apply (IH b w w' (x' :: Γ)); [apply sub_rem_cons; exact HΔ | right; exact Hw' | exact Ew].
+  - assert (Hk' : kindof x <> KAtom) by (rewrite Hk; discriminate).
+    destruct (HΔ x Hx) as [->|Hx']; [exfalso; apply Hk'; apply kind_PX|].
+    apply od_univ with β x b' A'; [exact Hx' | exact Hk | exact HD | | exact Hlt].
+    intro i. apply (IH i b w w' (inst b' A' i :: Γ)); [apply sub_rem_cons; exact HΔ | right; exact Hw' | exact Ew].
+  - assert (Hk' : kindof x <> KAtom) by (rewrite Hk; discriminate).
+    destruct (HΔ x Hx) as [->|Hx']; [exfalso; apply Hk'; apply kind_PX|].
+    apply od_exis with β x b' A' m; [exact Hx' | exact Hk | exact Hm | | exact Hlt].
+    apply (IH b w w' (inst b' A' m :: Γ)); [apply sub_rem_cons; exact HΔ | right; exact Hw' | exact Ew].
+  - apply od_cut with β x; [exact Hr | | | exact Hlt].
+    + apply (IH1 b w w' (x :: Γ)); [apply sub_rem_cons; exact HΔ | right; exact Hw' | exact Ew].
+    + apply (IH2 b w w' (sneg x :: Γ)); [apply sub_rem_cons; exact HΔ | right; exact Hw' | exact Ew].
+  - apply od_up with m β γ h; auto. apply (IH b w w' Γ HΔ Hw' Ew).
+Qed.
+
 (** ** Cut elimination *)
 
 Lemma rem_head (C:sform) (Γ:list sform) : forall y, In y (C :: Γ) -> y = C \/ In y Γ.
 Proof. intros y [<-|Hy]; [left; reflexivity | right; exact Hy]. Qed.
 
+Lemma kind_sneg_PX C w : snd C = PX w -> kindof (sneg C) = KAtom.
+Proof. destruct C as [[|] A]; simpl; intros ->; reflexivity. Qed.
+
 Lemma kind_conj_univ_neg C :
-  (exists c1 c2, kindof C = KConj c1 c2) \/ (exists b A, kindof C = KUniv b A) ->
+  (exists c1 c2, kindof C = KConj c1 c2) \/ (exists b A, kindof C = KUniv b A) \/ (exists w, snd C = PX w) ->
   (forall x1 x2, kindof (sneg C) <> KConj x1 x2) /\ (forall b A, kindof (sneg C) <> KUniv b A).
 Proof.
-  intros [[c1 [c2 H]]|[b [A H]]].
+  intros [[c1 [c2 H]]|[[b [A H]]|[w H]]].
   - apply kind_conj_neg in H. rewrite H. split; intros; discriminate.
   - apply kind_univ_neg in H. rewrite H. split; intros; discriminate.
+  - rewrite (kind_sneg_PX C w H). split; intros; discriminate.
 Qed.
 
 (** The reduction lemma: a cut on [C] of maximal rank [ρ], where [C] is
-    invertible (a conjunction or a universal), is removed at the cost of
-    adding the heights. *)
+    invertible (a conjunction or a universal) or an [X]-atom, is removed
+    at the cost of adding the heights. *)
 Theorem od_reduce ρ C : rank (snd C) = ρ -> isD (snd C) = false ->
-  (exists c1 c2, kindof C = KConj c1 c2) \/ (exists b A, kindof C = KUniv b A) ->
+  (exists c1 c2, kindof C = KConj c1 c2) \/ (exists b A, kindof C = KUniv b A) \/ (exists w, snd C = PX w) ->
   forall n β Δ, OD n ρ β Δ ->
   forall n0 α Γ, n0 <= n -> OD n0 ρ α (C :: Γ) ->
   (forall y, In y Δ -> y = sneg C \/ In y Γ) -> OD n ρ (vcat α β) Γ.
@@ -883,6 +965,7 @@ Proof.
   intros HrC HDC Hkind. destruct (kind_conj_univ_neg C Hkind) as [HnC HnU].
   subst ρ. intros n β Δ HD. remember (rank (snd C)) as ρ' eqn:Eρ. revert Eρ.
   induction HD as [n ρ' β Δ x Hx Hax
+                  |n ρ' β Δ u v Hu Hv Huv
                  |n ρ' β βp Δ x x1 x2 Hx Hk _ IH1 _ IH2 Hlt
                  |n ρ' β βp Δ x x1 x2 x' Hx Hk Hsel _ IH Hlt
                  |n ρ' β βp Δ x b A Hx Hk HD _ IH Hlt
@@ -893,6 +976,15 @@ Proof.
   - destruct (HΔ x Hx) as [->|Hin].
     + exfalso. destruct Hax as [Hax _]. simpl in Hax. rewrite Hax in HDC. discriminate.
     + apply od_ax with x; assumption.
+  - destruct (HΔ _ Hu) as [E|Hu']; destruct (HΔ _ Hv) as [E'|Hv'].
+    + rewrite <- E' in E. discriminate.
+    + assert (EC : C = (false, PX u)) by (rewrite <- (sneg_sneg C), <- E; reflexivity). subst C.
+      eapply od_struct; [apply (od_xcontr _ _ _ _ HC false u v Γ (rem_head _ Γ) Hv' Huv) | exact Hn0 | lia
+                         | apply reach_prefix | apply sub_mod_incl, incl_refl].
+    + assert (EC : C = (true, PX v)) by (rewrite <- (sneg_sneg C), <- E'; reflexivity). subst C.
+      eapply od_struct; [apply (od_xcontr _ _ _ _ HC true v u Γ (rem_head _ Γ) Hu' (eq_sym Huv)) | exact Hn0 | lia
+                         | apply reach_prefix | apply sub_mod_incl, incl_refl].
+    + apply od_xax with u v; assumption.
   - destruct (HΔ x Hx) as [->|Hin]; [exfalso; exact (HnC x1 x2 Hk)|].
     apply od_conj with (vcat α βp) x x1 x2; [exact Hin | exact Hk | | | apply olt_vcat; exact Hlt].
     + apply (IH1 eq_refl n0 α (x1 :: Γ) Hn0); [|apply sub_rem_cons; exact HΔ].
@@ -903,8 +995,9 @@ Proof.
     { apply (IH eq_refl n0 α (x' :: Γ) Hn0); [|apply sub_rem_cons; exact HΔ].
       eapply od_weaken; [exact HC|]. intros y [<-|Hy]; [left|right; right]; auto. }
     destruct (HΔ x Hx) as [->|Hin].
-    + destruct Hkind as [[c1 [c2 HkC]]|[b [A HkC]]].
+    + destruct Hkind as [[c1 [c2 HkC]]|[[b [A HkC]]|[w HkC]]].
       2:{ apply kind_univ_neg in HkC. rewrite HkC in Hk. discriminate. }
+      2:{ rewrite (kind_sneg_PX C w HkC) in Hk. discriminate. }
       assert (HkC' := kind_conj_neg C c1 c2 HkC). rewrite HkC' in Hk.
       injection Hk as <- <-.
       assert (Hcj : exists cj, (cj = c1 \/ cj = c2) /\ x' = sneg cj).
@@ -925,8 +1018,9 @@ Proof.
     { apply (IH eq_refl n0 α (inst b A m :: Γ) Hn0); [|apply sub_rem_cons; exact HΔ].
       eapply od_weaken; [exact HC|]. intros y [<-|Hy]; [left|right; right]; auto. }
     destruct (HΔ x Hx) as [->|Hin].
-    + destruct Hkind as [[c1 [c2 HkC]]|[b' [A' HkC]]].
+    + destruct Hkind as [[c1 [c2 HkC]]|[[b' [A' HkC]]|[w HkC]]].
       { apply kind_conj_neg in HkC. rewrite HkC in Hk. discriminate. }
+      2:{ rewrite (kind_sneg_PX C w HkC) in Hk. discriminate. }
       assert (HkC' := kind_univ_neg C b' A' HkC). rewrite HkC' in Hk.
       injection Hk as <- <-.
       apply od_cut with (vcat α βp) (inst b' A' m); [| | | apply olt_vcat; exact Hlt].
@@ -952,6 +1046,7 @@ Theorem od_elim n ρ α Γ : OD n (S ρ) α Γ -> 1 <= ρ -> 3 <= n -> OD n ρ (
 Proof.
   intros H Hρ. remember (S ρ) as ρ' eqn:E. revert E.
   induction H as [n ρ' α Γ x Hx Hax
+                 |n ρ' α Γ u v Hu Hv Huv
                  |n ρ' α β Γ x x1 x2 Hx Hk _ IH1 _ IH2 Hlt
                  |n ρ' α β Γ x x1 x2 x' Hx Hk Hsel _ IH Hlt
                  |n ρ' α β Γ x b A Hx Hk HD _ IH Hlt
@@ -960,6 +1055,7 @@ Proof.
                  |n m ρ' α β γ h Γ Hnm _ IH Hh Hmh Hlt];
     intros E Hn; subst ρ'.
   - apply od_ax with x; assumption.
+  - apply od_xax with u v; assumption.
   - apply od_conj with (V β Z) x x1 x2; auto. apply olt_exp; [lia | exact Hlt].
   - apply od_disj with (V β Z) x x1 x2 x'; auto. apply olt_exp; [lia | exact Hlt].
   - apply od_univ with (fun i => V (β i) Z) x b A; auto.
@@ -976,7 +1072,10 @@ Proof.
       assert (Hexp : reach n (V β Z) (V α1 Z)) by (apply reach_exp_mono; [lia | exact Hβ]).
       apply od_height with (vcat (V α1 Z) (V α1 Z)); [|apply olt_reach; apply olt_two; assumption].
       destruct (kindof x) as [|x1 x2|x1 x2|b A|b A] eqn:Hk.
-      * apply kind_atom_D in Hk. rewrite Hk in HDx. discriminate.
+      * destruct (kind_atom_D x Hk) as [HD'|[w Hw]]; [rewrite HD' in HDx; discriminate|].
+        refine (od_reduce ρ x Hrx HDx (or_intror (or_intror (ex_intro _ w Hw))) n (V α1 Z) (sneg x :: Γ) _
+          n (V α1 Z) Γ (le_n n) _ _); [apply od_height with (V β Z); assumption | apply od_height with (V β Z); assumption|].
+        intros y [<-|Hy]; [left|right]; auto.
       * refine (od_reduce ρ x Hrx HDx (or_introl (ex_intro _ x1 (ex_intro _ x2 Hk))) n (V α1 Z) (sneg x :: Γ) _
           n (V α1 Z) Γ (le_n n) _ _); [apply od_height with (V β Z); assumption | apply od_height with (V β Z); assumption|].
         intros y [<-|Hy]; [left|right]; auto.
@@ -984,11 +1083,11 @@ Proof.
         refine (od_reduce ρ (sneg x) Hrx HDx (or_introl (ex_intro _ _ (ex_intro _ _ Hk'))) n (V α1 Z) (x :: Γ) _
           n (V α1 Z) Γ (le_n n) _ _); [apply od_height with (V β Z); assumption | apply od_height with (V β Z); assumption|].
         intros y [<-|Hy]; [left; rewrite sneg_sneg; reflexivity|right; exact Hy].
-      * refine (od_reduce ρ x Hrx HDx (or_intror (ex_intro _ b (ex_intro _ A Hk))) n (V α1 Z) (sneg x :: Γ) _
+      * refine (od_reduce ρ x Hrx HDx (or_intror (or_introl (ex_intro _ b (ex_intro _ A Hk)))) n (V α1 Z) (sneg x :: Γ) _
           n (V α1 Z) Γ (le_n n) _ _); [apply od_height with (V β Z); assumption | apply od_height with (V β Z); assumption|].
         intros y [<-|Hy]; [left|right]; auto.
       * assert (Hk' := kind_exis_neg x b A Hk).
-        refine (od_reduce ρ (sneg x) Hrx HDx (or_intror (ex_intro _ _ (ex_intro _ _ Hk'))) n (V α1 Z) (x :: Γ) _
+        refine (od_reduce ρ (sneg x) Hrx HDx (or_intror (or_introl (ex_intro _ _ (ex_intro _ _ Hk')))) n (V α1 Z) (x :: Γ) _
           n (V α1 Z) Γ (le_n n) _ _); [apply od_height with (V β Z); assumption | apply od_height with (V β Z); assumption|].
         intros y [<-|Hy]; [left; rewrite sneg_sneg; reflexivity|right; exact Hy].
   - assert (Hm3 : 3 <= m) by lia.
@@ -1028,7 +1127,7 @@ Fixpoint isS (A:form) : bool :=
 Lemma isS_iff A : isS A = true <-> isD A = true \/ exists B, A = Ex B /\ isS B = true.
 Proof.
   split.
-  - destruct A as [s t| |A B|A B|A B|A|A]; cbn [isS]; rewrite orb_true_iff;
+  - destruct A as [s t| |A B|A B|A B|A|A|u]; cbn [isS]; rewrite orb_true_iff;
       intros [H|H]; auto; try discriminate.
     right. exists A. auto.
   - intros [H|[B [-> H]]]; [destruct A; cbn [isS]; rewrite H; reflexivity|].
@@ -1037,7 +1136,7 @@ Qed.
 
 Lemma isS_fsubst A : forall σ, isS A = true -> isS (fsubst σ A) = true.
 Proof.
-  induction A as [s t| |A IHA B IHB|A IHA B IHB|A IHA B IHB|A IHA|A IHA]; intros σ H;
+  induction A as [s t| |A IHA B IHB|A IHA B IHB|A IHA B IHB|A IHA|A IHA|u]; intros σ H;
     apply isS_iff in H as [H|[B' [E H]]]; apply isS_iff;
     try (left; apply isD_fsubst; exact H); try discriminate.
   injection E as <-. right. exists (fsubst (up σ) A). split; [reflexivity | apply IHA; exact H].
@@ -1054,14 +1153,14 @@ Definition Tbs (B:nat) (s:sform) : Prop :=
 
 Lemma tb_mono B B' A : forall ρ, B <= B' -> tb B ρ A -> tb B' ρ A.
 Proof.
-  induction A as [s t| |A IHA C IHC|A IHA C IHC|A IHA C IHC|A IHA|A IHA]; intros ρ HB H;
+  induction A as [s t| |A IHA C IHC|A IHA C IHC|A IHA C IHC|A IHA|A IHA|u]; intros ρ HB H;
     cbn [tb] in *; destruct (isD _); auto.
   destruct H as [m [Hm H]]. exists m. split; [lia | apply IHA; assumption].
 Qed.
 
 Lemma tb_ext B A : forall ρ ρ', (forall i, ρ i = ρ' i) -> tb B ρ A -> tb B ρ' A.
 Proof.
-  induction A as [s t| |A IHA C IHC|A IHA C IHC|A IHA C IHC|A IHA|A IHA]; intros ρ ρ' E H;
+  induction A as [s t| |A IHA C IHC|A IHA C IHC|A IHA C IHC|A IHA|A IHA|u]; intros ρ ρ' E H;
     cbn [tb] in *; destruct (isD _) eqn:ED;
     try (rewrite <- (deval_ext _ ρ ρ' ED E); exact H); auto.
   destruct H as [m [Hm H]]. exists m. split; [exact Hm|].
@@ -1075,7 +1174,7 @@ Proof. destruct A; reflexivity. Qed.
 
 Lemma tb_fsubst B A : forall ρ σ, tb B ρ (fsubst σ A) -> tb B (fun i => teval ρ (σ i)) A.
 Proof.
-  induction A as [s t| |A IHA C IHC|A IHA C IHC|A IHA C IHC|A IHA|A IHA]; intros ρ σ H;
+  induction A as [s t| |A IHA C IHC|A IHA C IHC|A IHA C IHC|A IHA|A IHA|u]; intros ρ σ H;
     rewrite tb_eq in H |- *; rewrite isD_fsubst_eq in H;
     destruct (isD _) eqn:ED; try (rewrite <- deval_fsubst by exact ED; exact H);
     cbn [fsubst] in H; auto.
@@ -1112,6 +1211,7 @@ Theorem od_bounding n ρ α Γ : OD n ρ α Γ -> ρ <= 1 ->
   (forall s, In s Γ -> sigf s) -> forall h, hardy α n h -> exists s, In s Γ /\ Tbs h s.
 Proof.
   induction 1 as [n ρ α Γ s Hs Hax
+                 |n ρ α Γ u v Hu Hv Huv
                  |n ρ α β Γ s s1 s2 Hs Hk _ IH1 _ IH2 Hlt
                  |n ρ α β Γ s s1 s2 s' Hs Hk Hsel _ IH Hlt
                  |n ρ α β Γ s b A Hs Hk HD _ IH Hlt
@@ -1120,6 +1220,7 @@ Proof.
                  |n m ρ α β γ h Γ Hnm _ IH Hh Hmh Hlt];
     intros Hρ HΓ hα Hα.
   - exists s. split; [exact Hs | apply Tbs_dax; exact Hax].
+  - exfalso. destruct (HΓ _ Hu) as [[_ H]|H]; discriminate.
   - destruct (isD (snd s)) eqn:HD.
     + destruct (dax_dec s HD) as [Hax|Hf]; [exists s; split; [exact Hs | apply Tbs_dax; exact Hax]|].
       destruct (hardy_exists β n) as [hβ Hβ].
