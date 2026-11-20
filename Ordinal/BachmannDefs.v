@@ -1923,3 +1923,557 @@ Proof.
   - reflexivity.
   - apply zero_complete.
 Qed.
+
+(** ** Associativity of addition, up to φ
+
+Tree addition is not syntactically associative, but it is associative
+up to the family-respecting order @bsub@ in both directions, and hence
+up to φ.  This is needed to shift the step theorems to an arbitrary
+base: the components of β + (γ + δ) must be compared with those of
+(β + γ) + δ. *)
+
+Lemma bsub_trans x y z : bsub x y -> bsub y z -> bsub x z.
+Proof.
+  revert y z.
+  induction x as [A g Hg C h Hh]; intros [B g' D h'] [E g'' F h''].
+  simpl. intros [Hxy1 Hxy2] [Hyz1 Hyz2]. split.
+  - intro a. destruct (Hxy1 a) as [b Hb]. destruct (Hyz1 b) as [e He].
+    exists e. eapply Hg; eauto.
+  - intro c. destruct (Hxy2 c) as [d Hd]. destruct (Hyz2 d) as [e He].
+    exists e. intro ξ. eapply Hh; eauto.
+Qed.
+
+Lemma bsub_intro x y :
+  (forall a, exists b, bsub (bsmallSz x a) (bsmallSz y b)) ->
+  (forall c, exists d, forall ξ, bsub (bbigSz x c ξ) (bbigSz y d ξ)) ->
+  bsub x y.
+Proof.
+  destruct x; destruct y; simpl; auto.
+Qed.
+
+(** The children of x + y: those of x, and x + (children of y). *)
+Lemma badd_small_cases x y a :
+  (exists a', bsmallSz (badd x y) a = bsmallSz x a') \/
+  (exists b, bsmallSz (badd x y) a = badd x (bsmallSz y b)).
+Proof.
+  destruct x as [A g C h]; destruct y as [B k D l]; destruct a as [a0|b0].
+  - left; exists a0; reflexivity.
+  - right; exists b0; reflexivity.
+Qed.
+
+Lemma badd_big_cases x y c :
+  (exists c', forall ξ, bbigSz (badd x y) c ξ = bbigSz x c' ξ) \/
+  (exists d, forall ξ, bbigSz (badd x y) c ξ = badd x (bbigSz y d ξ)).
+Proof.
+  destruct x as [A g C h]; destruct y as [B k D l]; destruct c as [c0|d0].
+  - left; exists c0; reflexivity.
+  - right; exists d0; reflexivity.
+Qed.
+
+Lemma badd_small_l x y a' : exists a, bsmallSz (badd x y) a = bsmallSz x a'.
+Proof. destruct x as [A g C h]; destruct y as [B k D l]; exists (inl a'); reflexivity. Qed.
+
+Lemma badd_small_r x y b : exists a, bsmallSz (badd x y) a = badd x (bsmallSz y b).
+Proof. destruct x as [A g C h]; destruct y as [B k D l]; exists (inr b); reflexivity. Qed.
+
+Lemma badd_big_l x y c' : exists c, forall ξ, bbigSz (badd x y) c ξ = bbigSz x c' ξ.
+Proof. destruct x as [A g C h]; destruct y as [B k D l]; exists (inl c'); reflexivity. Qed.
+
+Lemma badd_big_r x y d : exists c, forall ξ, bbigSz (badd x y) c ξ = badd x (bbigSz y d ξ).
+Proof. destruct x as [A g C h]; destruct y as [B k D l]; exists (inr d); reflexivity. Qed.
+
+Lemma badd_assoc_1 α β : forall γ,
+  bsub (badd (badd α β) γ) (badd α (badd β γ)).
+Proof.
+  intro γ.
+  induction γ as [G g Hg D h Hh].
+  apply bsub_intro.
+  - intro s.
+    destruct (badd_small_cases (badd α β) (bnode G g D h) s) as [[s' Hs]|[b Hs]]; rewrite Hs.
+    + destruct (badd_small_cases α β s') as [[a Ha]|[b Hb]]; rewrite Ha || rewrite Hb.
+      * destruct (badd_small_l α (badd β (bnode G g D h)) a) as [t Ht].
+        exists t. rewrite Ht. apply bsub_refl.
+      * destruct (badd_small_l β (bnode G g D h) b) as [u Hu].
+        destruct (badd_small_r α (badd β (bnode G g D h)) u) as [t Ht].
+        exists t. rewrite Ht, Hu. apply bsub_refl.
+    + destruct (badd_small_r β (bnode G g D h) b) as [u Hu].
+      destruct (badd_small_r α (badd β (bnode G g D h)) u) as [t Ht].
+      exists t. rewrite Ht, Hu. apply Hg.
+  - intro c.
+    destruct (badd_big_cases (badd α β) (bnode G g D h) c) as [[c' Hc]|[d Hc]].
+    + destruct (badd_big_cases α β c') as [[e He]|[e He]].
+      * destruct (badd_big_l α (badd β (bnode G g D h)) e) as [t Ht].
+        exists t. intro ξ. rewrite Hc, He, Ht. apply bsub_refl.
+      * destruct (badd_big_l β (bnode G g D h) e) as [u Hu].
+        destruct (badd_big_r α (badd β (bnode G g D h)) u) as [t Ht].
+        exists t. intro ξ. rewrite Hc, He, Ht, Hu. apply bsub_refl.
+    + destruct (badd_big_r β (bnode G g D h) d) as [u Hu].
+      destruct (badd_big_r α (badd β (bnode G g D h)) u) as [t Ht].
+      exists t. intro ξ. rewrite Hc, Ht, Hu. apply Hh.
+Qed.
+
+Lemma badd_assoc_2 α β : forall γ,
+  bsub (badd α (badd β γ)) (badd (badd α β) γ).
+Proof.
+  intro γ.
+  induction γ as [G g Hg D h Hh].
+  apply bsub_intro.
+  - intro s.
+    destruct (badd_small_cases α (badd β (bnode G g D h)) s) as [[a Ha]|[u Hu]]; rewrite Ha || rewrite Hu.
+    + destruct (badd_small_l α β a) as [v Hv].
+      destruct (badd_small_l (badd α β) (bnode G g D h) v) as [t Ht].
+      exists t. rewrite Ht, Hv. apply bsub_refl.
+    + destruct (badd_small_cases β (bnode G g D h) u) as [[b Hb]|[b Hb]]; rewrite Hb.
+      * destruct (badd_small_r α β b) as [v Hv].
+        destruct (badd_small_l (badd α β) (bnode G g D h) v) as [t Ht].
+        exists t. rewrite Ht, Hv. apply bsub_refl.
+      * destruct (badd_small_r (badd α β) (bnode G g D h) b) as [t Ht].
+        exists t. rewrite Ht. apply Hg.
+  - intro c.
+    destruct (badd_big_cases α (badd β (bnode G g D h)) c) as [[e He]|[u Hu]].
+    + destruct (badd_big_l α β e) as [v Hv].
+      destruct (badd_big_l (badd α β) (bnode G g D h) v) as [t Ht].
+      exists t. intro ξ. rewrite He, Ht, Hv. apply bsub_refl.
+    + destruct (badd_big_cases β (bnode G g D h) u) as [[e He]|[d Hd]].
+      * destruct (badd_big_r α β e) as [v Hv].
+        destruct (badd_big_l (badd α β) (bnode G g D h) v) as [t Ht].
+        exists t. intro ξ. rewrite Hu, He, Ht, Hv. apply bsub_refl.
+      * destruct (badd_big_r (badd α β) (bnode G g D h) d) as [t Ht].
+        exists t. intro ξ. rewrite Hu, Hd, Ht. apply Hh.
+Qed.
+
+(** *** Monotonicity of the arithmetic in the order @bsub@ *)
+
+Lemma bsub_badd_l x x' : bsub x x' -> forall y, bsub (badd x y) (badd x' y).
+Proof.
+  intros H y.
+  induction y as [B g Hg D h Hh].
+  rewrite (badd_eq x (bnode B g D h)), (badd_eq x' (bnode B g D h)).
+  apply bsub_blub; auto.
+  unfold baddR; simpl; split.
+  - intro b. exists b. apply Hg.
+  - intro d. exists d. intro ξ. apply Hh.
+Qed.
+
+Lemma bsub_badd_r x : forall y y', bsub y y' -> bsub (badd x y) (badd x y').
+Proof.
+  intro y.
+  induction y as [B g Hg D h Hh]; intros [B' g' D' h'] H.
+  rewrite (badd_eq x (bnode B g D h)), (badd_eq x (bnode B' g' D' h')).
+  apply bsub_blub; [ apply bsub_refl | ].
+  unfold baddR; simpl in *.
+  destruct H as [H1 H2]; split.
+  - intro b. destruct (H1 b) as [b' Hb]. exists b'. apply Hg; auto.
+  - intro d. destruct (H2 d) as [d' Hd]. exists d'. intro ξ. apply Hh; auto.
+Qed.
+
+Lemma bsub_bmul_r x : forall y y', bsub y y' -> bsub (bmul x y) (bmul x y').
+Proof.
+  intro y.
+  induction y as [B g Hg D h Hh]; intros y' H.
+  rewrite (bmul_eq x (bnode B g D h)), (bmul_eq x y').
+  apply bsub_blub.
+  - unfold bmulS. apply bsub_bsup. intro b.
+    destruct (bsub_small _ _ H b) as [b' Hb].
+    exists b'. apply bsub_badd_l. apply Hg. exact Hb.
+  - unfold bmulB; simpl. split; [ intros [] | ].
+    intro d. destruct (bsub_big _ _ H d) as [d' Hd].
+    exists d'. intro ξ. apply Hh. apply Hd.
+Qed.
+
+Lemma bsub_bmul_l x x' : bsub x x' -> forall y, bsub (bmul x y) (bmul x' y).
+Proof.
+  intros H y.
+  induction y as [B g Hg D h Hh].
+  rewrite (bmul_eq x (bnode B g D h)), (bmul_eq x' (bnode B g D h)).
+  apply bsub_blub.
+  - unfold bmulS. apply bsub_bsup. intro b.
+    exists b.
+    eapply bsub_trans; [ apply bsub_badd_l, Hg | apply bsub_badd_r, H ].
+  - unfold bmulB; simpl. split; [ intros [] | ].
+    intro d. exists d. intro ξ. apply Hh.
+Qed.
+
+Lemma bsub_bexpΩ : forall y y', bsub y y' -> bsub (bexpΩ y) (bexpΩ y').
+Proof.
+  intro y.
+  induction y as [B g Hg D h Hh]; intros y' H.
+  rewrite (bexpΩ_eq (bnode B g D h)), (bexpΩ_eq y').
+  apply bsub_blub; [ apply bsub_refl | apply bsub_blub ].
+  - unfold bexpS. apply bsub_bsup. intro b.
+    destruct (bsub_small _ _ H b) as [b' Hb].
+    exists b'. apply bsub_bmul_l. apply Hg. exact Hb.
+  - unfold bexpB; simpl. split; [ intros [] | ].
+    intro d. destruct (bsub_big _ _ H d) as [d' Hd].
+    exists d'. intro ξ. apply Hh. apply Hd.
+Qed.
+
+Lemma bsub_embed : forall ξ ξ', ξ ≤ ξ' -> bsub (embed ξ) (embed ξ').
+Proof.
+  induction ξ as [X k Hk]; intros [X' k'] H; simpl.
+  split; [ | intros [] ].
+  intro a. destruct (ord_le_subord _ _ H a) as [b Hb].
+  exists b. apply Hk. exact Hb.
+Qed.
+
+(** *** The invariant @bfam@: every Ω-family is @bsub@-monotone *)
+
+Fixpoint bfam (x:BOrd) : Prop :=
+  match x with
+  | bnode A g C h =>
+    (forall a, bfam (g a)) /\
+    (forall c ξ, bfam (h c ξ)) /\
+    (forall c ξ ξ', ξ ≤ ξ' -> bsub (h c ξ) (h c ξ'))
+  end.
+
+Lemma bfam_bmono f (Hf : forall x y, x ≤ y -> f x ≤ f y) : forall x, bfam x -> bmono f x.
+Proof.
+  induction x as [A g Hg C h Hh]; simpl.
+  intros [H1 [H2 H3]].
+  split; [ | split ]; auto.
+  intros c ξ ξ' H.
+  apply bach_mono_index; auto.
+Qed.
+
+Lemma bfam_small x : bfam x -> forall a, bfam (bsmallSz x a).
+Proof. destruct x; simpl; intuition. Qed.
+
+Lemma bfam_big x : bfam x -> forall c ξ, bfam (bbigSz x c ξ).
+Proof. destruct x; simpl; intuition. Qed.
+
+Lemma bfam_fam x : bfam x -> forall c ξ ξ', ξ ≤ ξ' -> bsub (bbigSz x c ξ) (bbigSz x c ξ').
+Proof. destruct x; simpl; intuition. Qed.
+
+Lemma bfam_blub x y : bfam x -> bfam y -> bfam (blub x y).
+Proof.
+  destruct x as [A g C h]; destruct y as [B g' D h']; simpl.
+  intros [H1 [H2 H3]] [H1' [H2' H3']].
+  split; [ | split ].
+  - intros [a|b]; auto.
+  - intros [c|d] ξ; auto.
+  - intros [c|d]; [ apply H3 | apply H3' ].
+Qed.
+
+Lemma bfam_bsup {I:Type} (F:I -> BOrd) : (forall i, bfam (F i)) -> bfam (bsup F).
+Proof.
+  intro H; simpl.
+  split; [ | split ].
+  - intros [i a]. apply bfam_small; auto.
+  - intros [i c] ξ. apply bfam_big; auto.
+  - intros [i c] ξ ξ' Hξ. apply bfam_fam; auto.
+Qed.
+
+Lemma bfam_bzero : bfam bzero.
+Proof. simpl; split; [ intros [] | split; intros [] ]. Qed.
+
+Lemma bfam_bsucc x : bfam x -> bfam (bsucc x).
+Proof. intro H; simpl; split; [ auto | split; intros [] ]. Qed.
+
+Lemma bfam_embed ξ : bfam (embed ξ).
+Proof. induction ξ as [X k Hk]; simpl; split; [ auto | split; intros [] ]. Qed.
+
+Lemma bfam_Ω : bfam bOmega.
+Proof.
+  simpl; split; [ intros [] | split ].
+  - intros _ ξ; apply bfam_embed.
+  - intros _ ξ ξ' H; apply bsub_embed; auto.
+Qed.
+
+Lemma bfam_badd x y : bfam x -> bfam y -> bfam (badd x y).
+Proof.
+  intro Hx.
+  induction y as [B g Hg D h Hh]; intro Hy.
+  destruct Hy as [Hy1 [Hy2 Hy3]].
+  rewrite (badd_eq x (bnode B g D h)).
+  apply bfam_blub; auto.
+  unfold baddR; simpl.
+  split; [ | split ].
+  - intro b. apply Hg; auto.
+  - intros d ξ. apply Hh; auto.
+  - intros d ξ ξ' H. apply bsub_badd_r; auto.
+Qed.
+
+Lemma bfam_bmul x y : bfam x -> bfam y -> bfam (bmul x y).
+Proof.
+  intro Hx.
+  induction y as [B g Hg D h Hh]; intro Hy.
+  destruct Hy as [Hy1 [Hy2 Hy3]].
+  rewrite (bmul_eq x (bnode B g D h)).
+  apply bfam_blub.
+  - unfold bmulS. apply bfam_bsup. intro b.
+    apply bfam_badd; auto.
+  - unfold bmulB; simpl.
+    split; [ intros [] | split ].
+    + intros d ξ. apply Hh; auto.
+    + intros d ξ ξ' H. apply bsub_bmul_r; auto.
+Qed.
+
+Lemma bfam_bexpΩ y : bfam y -> bfam (bexpΩ y).
+Proof.
+  induction y as [B g Hg D h Hh]; intro Hy.
+  destruct Hy as [Hy1 [Hy2 Hy3]].
+  rewrite (bexpΩ_eq (bnode B g D h)).
+  apply bfam_blub; [ apply bfam_bsucc, bfam_bzero | apply bfam_blub ].
+  - unfold bexpS. apply bfam_bsup. intro b.
+    apply bfam_bmul; auto using bfam_Ω.
+  - unfold bexpB; simpl.
+    split; [ intros [] | split ].
+    + intros d ξ. apply Hh; auto.
+    + intros d ξ ξ' H. apply bsub_bexpΩ; auto.
+Qed.
+
+Lemma bfam_btower n : bfam (btower n).
+Proof.
+  induction n.
+  - change (bfam (bsucc bOmega)). apply bfam_bsucc, bfam_Ω.
+  - change (bfam (bexpΩ (btower n))). apply bfam_bexpΩ; auto.
+Qed.
+
+Lemma bfam_bεΩ1 : bfam bεΩ1.
+Proof.
+  simpl; split; [ apply bfam_btower | split; intros [] ].
+Qed.
+
+(** Trees that are @bsub@-equivalent have the same φ. *)
+Lemma bach_bsub_eq f (Hf : forall x y, x ≤ y -> f x ≤ f y) x y :
+  bsub x y -> bsub y x -> bfam x -> bfam y -> forall z, bach f x z ≈ bach f y z.
+Proof.
+  intros Hxy Hyx Hx Hy z; split;
+    apply bach_mono_index; auto; apply bfam_bmono; auto.
+Qed.
+
+Theorem bach_badd_assoc f (Hf : forall x y, x ≤ y -> f x ≤ f y) α β γ :
+  bfam α -> bfam β -> bfam γ ->
+  forall z, bach f (badd α (badd β γ)) z ≈ bach f (badd (badd α β) γ) z.
+Proof.
+  intros Hα Hβ Hγ.
+  apply bach_bsub_eq; auto using badd_assoc_1, badd_assoc_2, bfam_badd.
+Qed.
+
+(** ** Ω-multiples over an arbitrary base
+
+Generalizing @bach_Ωtimes_rep@: if β represents G, then β + Ω·ξ
+represents the second Schütte column over G.  The components of
+β + Ω·ξ are those of β, those of each β + Ω·ξ_i, and the diagonals
+ζ ↦ φ_{β+(Ω·ξ_i+ζ)}(0); the last are identified, via associativity,
+with the Veblen step over β + Ω·ξ_i. *)
+
+Lemma fixOrd_ext_eq F F' a : (forall x, F x = F' x) -> fixOrd F a ≈ fixOrd F' a.
+Proof.
+  intro H.
+  assert (Hiter : forall n, iter_f F a n = iter_f F' a n).
+  { induction n; simpl; auto. rewrite IHn. apply H. }
+  unfold fixOrd. apply sup_ord_eq_morphism; intro n.
+  rewrite Hiter. reflexivity.
+Qed.
+
+Lemma badd_Ω_big T : exists c, forall ζ, bbigSz (badd T bOmega) c ζ = badd T (embed ζ).
+Proof.
+  destruct T. exists (inr tt). intro; reflexivity.
+Qed.
+
+Lemma S2_fix0 G (HG : normal_function G) a ξ y :
+  complete a -> complete ξ -> complete y -> a < ξ ->
+  S2 G a (S2 G ξ y) ≤ S2 G ξ y.
+Proof.
+  intros Ha Hξ Hy Haξ.
+  transitivity (schutte_column (S2 G a) 0 (S2 G ξ y) 0).
+  - rewrite schutte_column0.
+    apply normal_monotone; [ apply schutte_column_normal; auto using complete_2 | ].
+    apply addOrd_le1.
+  - apply schutte_column_fixpoint; auto using complete_2, zero_complete, lt_0_2.
+Qed.
+
+Lemma S2_value_cases G (HG : normal_function G) ξ y :
+  complete ξ -> complete y ->
+  S2 G ξ y ≈ G y \/ S2 G ξ y ≈ G (S2 G ξ y).
+Proof.
+  intros Hξ Hy.
+  destruct ξ as [X k].
+  assert (Hξ' := Hξ). destruct Hξ' as [_ [[[x0]|Hn] Hkc]].
+  - right.
+    assert (Hv : complete (S2 G (ord X k) y)).
+    { apply normal_complete; [ apply schutte_column_normal; auto using complete_2 | auto ]. }
+    split.
+    + apply normal_inflationary; auto.
+    + transitivity (G (k x0 + S2 G (ord X k) y)).
+      { apply normal_monotone; auto. apply addOrd_le2. }
+      transitivity (S2 G (k x0) (S2 G (ord X k) y)).
+      { apply schutte_column_le_f. apply normal_monotone; auto. }
+      apply S2_fix0; auto. apply (index_lt (ord X k) x0).
+  - left. split.
+    + eapply ord_le_trans;
+        [ apply (proj1 (schutte_column_succ G 1 (ord X k) y HG complete_1 Hξ Hy)) | ].
+      apply lub_least; [ reflexivity | ].
+      apply sup_least; intro i. elim (Hn (inhabits i)).
+    + transitivity (G (ord X k + y)).
+      { apply normal_monotone; auto. apply addOrd_le2. }
+      apply schutte_column_le_f. apply normal_monotone; auto.
+Qed.
+
+Lemma bcomp_shift_bmulΩ_forall f β X (k:X -> Ord) (P:(Ord -> Ord) -> Prop) :
+  (forall g g', (forall x, g x = g' x) -> P g -> P g') ->
+  (forall kk, P (bcomp f β kk)) ->
+  (forall b kk, P (bcomp f (badd β (bmul bOmega (embed (k b)))) kk)) ->
+  (forall b, P (fun ζ => bach f (badd β (badd (bmul bOmega (embed (k b))) (embed ζ))) 0)) ->
+  forall kk, P (bcomp f (badd β (bmul bOmega (embed (ord X k)))) kk).
+Proof.
+  intros Pext H1 H2 H3 [s|c].
+  - destruct (badd_small_cases β (bmul bOmega (embed (ord X k))) s) as [[a Ha]|[m Hm]].
+    + apply (Pext (bcomp f β (inl a))); [ | apply H1 ].
+      intro x.
+      change (bach f (bsmallSz β a) x =
+              bach f (bsmallSz (badd β (bmul bOmega (embed (ord X k)))) s) x).
+      rewrite Ha. reflexivity.
+    + destruct m as [[b m']|[]].
+      change (bsmallSz (badd β (bmul bOmega (embed (ord X k)))) s =
+              badd β (bsmallSz (badd (bmul bOmega (embed (k b))) bOmega) m')) in Hm.
+      destruct (badd_small_cases (bmul bOmega (embed (k b))) bOmega m') as [[a'' Ha'']|[[] _]].
+      destruct (badd_small_r β (bmul bOmega (embed (k b))) a'') as [t Ht].
+      apply (Pext (bcomp f (badd β (bmul bOmega (embed (k b)))) (inl t))); [ | apply H2 ].
+      intro x.
+      change (bach f (bsmallSz (badd β (bmul bOmega (embed (k b)))) t) x =
+              bach f (bsmallSz (badd β (bmul bOmega (embed (ord X k)))) s) x).
+      rewrite Ht, Hm, Ha''. reflexivity.
+  - destruct (badd_big_cases β (bmul bOmega (embed (ord X k))) c) as [[c' Hc]|[m Hm]].
+    + apply (Pext (bcomp f β (inr c'))); [ | apply H1 ].
+      intro x.
+      change (bach f (bbigSz β c' x) 0 =
+              bach f (bbigSz (badd β (bmul bOmega (embed (ord X k)))) c x) 0).
+      rewrite Hc. reflexivity.
+    + destruct m as [[b m']|[]].
+      assert (Hm' : forall ξ, bbigSz (badd β (bmul bOmega (embed (ord X k)))) c ξ =
+                              badd β (bbigSz (badd (bmul bOmega (embed (k b))) bOmega) m' ξ))
+        by exact Hm.
+      destruct (badd_big_cases (bmul bOmega (embed (k b))) bOmega m') as [[e He]|[d Hd]].
+      * destruct (badd_big_r β (bmul bOmega (embed (k b))) e) as [t Ht].
+        apply (Pext (bcomp f (badd β (bmul bOmega (embed (k b)))) (inr t))); [ | apply H2 ].
+        intro x.
+        change (bach f (bbigSz (badd β (bmul bOmega (embed (k b)))) t x) 0 =
+                bach f (bbigSz (badd β (bmul bOmega (embed (ord X k)))) c x) 0).
+        rewrite Ht, Hm', He. reflexivity.
+      * apply (Pext (fun ζ => bach f (badd β (badd (bmul bOmega (embed (k b))) (embed ζ))) 0));
+          [ | apply H3 ].
+        intro x.
+        change (bach f (badd β (badd (bmul bOmega (embed (k b))) (embed x))) 0 =
+                bach f (bbigSz (badd β (bmul bOmega (embed (ord X k)))) c x) 0).
+        rewrite Hm', Hd. reflexivity.
+Qed.
+
+Theorem bach_shift_Ωtimes_rep f (Hf : forall x y, x ≤ y -> f x ≤ f y) β G :
+  bfam β -> BRep f β G ->
+  forall ξ, complete ξ -> BRep f (badd β (bmul bOmega (embed ξ))) (S2 G ξ).
+Proof.
+  intros Hβ HR.
+  assert (HR' := HR). destruct HR' as [HG [Hrep Hcl]].
+  assert (HGm : forall x y, x ≤ y -> G x ≤ G y) by (apply normal_monotone; auto).
+  assert (Hbm : bmono f β) by (apply bfam_bmono; auto).
+  assert (HMfam : forall ξ, bfam (bmul bOmega (embed ξ))).
+  { intro. apply bfam_bmul; auto using bfam_Ω, bfam_embed. }
+  assert (Hmono : forall ξ, bmono f (badd β (bmul bOmega (embed ξ)))).
+  { intro. apply bfam_bmono; auto. apply bfam_badd; auto. }
+  induction ξ as [X k Hk]; intro Hξ.
+  assert (Hξ' := Hξ). destruct Hξ' as [_ [_ Hkc]].
+  assert (HS : normal_function (S2 G (ord X k))).
+  { apply schutte_column_normal; auto using complete_2. }
+  assert (HIH : forall b, BRep f (badd β (bmul bOmega (embed (k b)))) (S2 G (k b))).
+  { intro b. apply Hk; auto. }
+  assert (Hplus : forall b ζ, complete ζ ->
+             BRep f (badd (badd β (bmul bOmega (embed (k b)))) (embed ζ)) (veblen (S2 G (k b)) ζ)).
+  { intros b ζ Hζ. apply bach_veblen_step; auto. }
+  assert (Hdiag : forall b x, complete x ->
+             bach f (badd β (badd (bmul bOmega (embed (k b))) (embed x))) 0 ≈
+             schutte_column (S2 G (k b)) 1 x 0).
+  { intros b x Hx.
+    transitivity (bach f (badd (badd β (bmul bOmega (embed (k b)))) (embed x)) 0).
+    { apply bach_badd_assoc; auto using bfam_embed. }
+    transitivity (veblen (S2 G (k b)) x 0).
+    { apply (Hplus b x Hx); apply zero_complete. }
+    symmetry. apply schutte_column_veblen; auto using zero_complete.
+    apply schutte_column_normal; auto using complete_2. }
+  assert (Hdmono : forall b x y, x ≤ y ->
+             bach f (badd β (badd (bmul bOmega (embed (k b))) (embed x))) 0 ≤
+             bach f (badd β (badd (bmul bOmega (embed (k b))) (embed y))) 0).
+  { intros b x y Hxy. apply bach_mono_index; auto.
+    - apply bsub_badd_r, bsub_badd_r, bsub_embed; auto.
+    - apply bfam_bmono; auto. apply bfam_badd; auto. apply bfam_badd; auto using bfam_embed. }
+  assert (Hcomp : forall kk y, complete y ->
+             bcomp f (badd β (bmul bOmega (embed (ord X k)))) kk (S2 G (ord X k) y)
+             ≤ S2 G (ord X k) y).
+  { intros kk y Hy.
+    assert (Hv : complete (S2 G (ord X k) y)) by (apply normal_complete; auto).
+    apply (bcomp_shift_bmulΩ_forall f β X k (fun g => g (S2 G (ord X k) y) ≤ S2 G (ord X k) y)).
+    - intros g g' Hgg' H. rewrite <- Hgg'. exact H.
+    - intro kk'.
+      destruct (S2_value_cases G HG (ord X k) y Hξ Hy) as [H|H].
+      + transitivity (bcomp f β kk' (G y)).
+        { apply bmono_bcomp; auto. apply (proj1 H). }
+        transitivity (G y); [ apply Hcl; auto | apply (proj2 H) ].
+      + transitivity (bcomp f β kk' (G (S2 G (ord X k) y))).
+        { apply bmono_bcomp; auto. apply (proj1 H). }
+        transitivity (G (S2 G (ord X k) y)); [ apply Hcl; auto | apply (proj2 H) ].
+    - intros b kk'.
+      assert (HSb : normal_function (S2 G (k b))).
+      { apply schutte_column_normal; auto using complete_2. }
+      transitivity (bcomp f (badd β (bmul bOmega (embed (k b)))) kk'
+                          (S2 G (k b) (S2 G (ord X k) y))).
+      { apply bmono_bcomp; auto. apply normal_inflationary; auto. }
+      transitivity (S2 G (k b) (S2 G (ord X k) y)).
+      { apply (HIH b); auto. }
+      apply S2_fix0; auto. apply (index_lt (ord X k) b).
+    - intro b.
+      transitivity (schutte_column (S2 G (k b)) 1 (S2 G (ord X k) y) 0).
+      + apply (proj1 (Hdiag b _ Hv)).
+      + apply schutte_column_fixpoint; auto using complete_2, complete_1, succ_lt.
+        apply (index_lt (ord X k) b). }
+  split; [ exact HS | split; [ | exact Hcomp ] ].
+  induction y as [Y h Hy]; intro Hyc.
+  assert (Hyc' := Hyc). destruct Hyc' as [_ [_ Hhc]].
+  assert (Hs : limOrd (fun j => bach f (badd β (bmul bOmega (embed (ord X k)))) (ord Y h j)) ≈
+               limOrd (fun j => S2 G (ord X k) (ord Y h j))).
+  { apply lim_eq_mor; intro j; apply Hy; auto. }
+  assert (Hsc : complete (limOrd (fun j => S2 G (ord X k) (ord Y h j)))).
+  { apply lim_normal_complete; auto. }
+  split.
+  - apply bach_le_comp.
+    + transitivity (G (ord Y h)).
+      { transitivity (bach f β (ord Y h)); [ apply f_le_bach | apply (proj1 (Hrep _ Hyc)) ]. }
+      transitivity (G (ord X k + ord Y h)); [ apply HGm, addOrd_le2 | ].
+      apply schutte_column_le_f; auto.
+    + intro kk.
+      apply fixOrd_least; [ apply (bmono_bcomp f Hf _ (Hmono _)) | | apply Hcomp; auto ].
+      eapply ord_le_trans; [ apply (proj1 Hs) | ].
+      apply limit_least; intro j.
+      apply normal_increasing; auto.
+      apply (index_lt (ord Y h) j).
+  - eapply ord_le_trans;
+      [ apply (proj1 (schutte_column_succ G 1 (ord X k) (ord Y h) HG complete_1 Hξ Hyc)) | ].
+    apply lub_least.
+    + transitivity (bach f β (ord Y h)); [ apply (proj2 (Hrep _ Hyc)) | ].
+      apply bach_mono_index; auto.
+      rewrite (badd_eq β (bmul bOmega (embed (ord X k)))). apply bsub_blub_l.
+    + apply sup_least; intro b.
+      assert (HN1 : normal_function (fun δ => schutte_column (S2 G (k b)) 1 δ 0)).
+      { apply schutte_column_normal_arg; auto using complete_1.
+        apply schutte_column_normal; auto using complete_2. }
+      destruct (badd_Ω_big (bmul bOmega (embed (k b)))) as [c Hc].
+      destruct (badd_big_r β (bmul bOmega (embed (ord X k))) (inl (existT _ b c))) as [t Ht].
+      eapply ord_le_trans;
+        [ | apply (bach_comp_le f (badd β (bmul bOmega (embed (ord X k)))) (ord Y h) (inr t)) ].
+      assert (Heq : forall x,
+                 (fun ζ => bach f (badd β (badd (bmul bOmega (embed (k b))) (embed ζ))) 0) x =
+                 bcomp f (badd β (bmul bOmega (embed (ord X k)))) (inr t) x).
+      { intro x.
+        change (bach f (badd β (badd (bmul bOmega (embed (k b))) (embed x))) 0 =
+                bach f (bbigSz (badd β (bmul bOmega (embed (ord X k)))) t x) 0).
+        rewrite (Ht x).
+        change (bach f (badd β (badd (bmul bOmega (embed (k b))) (embed x))) 0 =
+                bach f (badd β (bbigSz (badd (bmul bOmega (embed (k b))) bOmega) c x)) 0).
+        rewrite (Hc x). reflexivity. }
+      eapply ord_le_trans; [ | apply (proj1 (fixOrd_ext_eq _ _ _ Heq)) ].
+      apply (proj2 (fixOrd_eq_func_complete
+                      (fun ζ => bach f (badd β (badd (bmul bOmega (embed (k b))) (embed ζ))) 0)
+                      (fun δ => schutte_column (S2 G (k b)) 1 δ 0) _ _
+                      (Hdiag b) (Hdmono b)
+                      (normal_monotone _ HN1) (normal_complete _ HN1) Hs Hsc)).
+Qed.
