@@ -11,6 +11,9 @@ From Ordinal Require Import Fixpoints.
 From Ordinal Require Import VeblenDefs.
 From Ordinal Require Import VeblenCon.
 From Ordinal Require Import VeblenFacts.
+From Ordinal Require Import AckermannTower.
+From Ordinal Require Import SchutteColumn.
+From Ordinal Require Import SchutteColumnFacts.
 
 Open Scope ord_scope.
 
@@ -1632,4 +1635,291 @@ Qed.
 Example bach_Ωmul1_Γ : forall y, complete y -> bach powOmega (bOmegaMul 1) y ≈ Γ y.
 Proof.
   apply (proj2 (bach_Ωmul_rep powOmega powOmega_normal 1)).
+Qed.
+
+(** ** Multiples of Ω: φ_{Ω·ξ} is ternary Veblen
+
+The tree @bmul bOmega (embed ξ)@ merges, via @bsup@, the children of
+the trees Ω·ξ_i + Ω.  Its components are therefore the components of
+each Ω·ξ_i together with each diagonal ζ ↦ φ_{Ω·ξ_i+ζ}(0).  We show
+that it represents the third column of Schütte's Klammersymbols,
+@schutte_column f 2 ξ@, i.e., the ternary Veblen function φ(ξ,0,·),
+for all complete ξ (including limits), and deduce that φ_{Ω²}
+enumerates the fixpoints of ξ ↦ φ(ξ,0,0).
+*)
+
+Lemma bmono_small f x : bmono f x -> forall a, bmono f (bsmallSz x a).
+Proof. destruct x; simpl; intuition. Qed.
+
+Lemma bmono_big f x : bmono f x -> forall c ξ, bmono f (bbigSz x c ξ).
+Proof. destruct x; simpl; intuition. Qed.
+
+Lemma bmono_diag f x : bmono f x ->
+  forall c ξ ξ', ξ ≤ ξ' -> bach f (bbigSz x c ξ) 0 ≤ bach f (bbigSz x c ξ') 0.
+Proof. destruct x; simpl; intuition. Qed.
+
+Lemma bmono_bsup f {I:Type} (F:I -> BOrd) : (forall i, bmono f (F i)) -> bmono f (bsup F).
+Proof.
+  intro H; simpl.
+  split; [ | split ].
+  - intros [i a]. apply bmono_small; auto.
+  - intros [i c] ξ. apply bmono_big; auto.
+  - intros [i c] ξ ξ' Hξ. apply bmono_diag; auto.
+Qed.
+
+Lemma bmono_bmulΩ f (Hf : forall x y, x ≤ y -> f x ≤ f y) :
+  forall ξ, bmono f (bmul bOmega (embed ξ)).
+Proof.
+  induction ξ as [X k Hk].
+  rewrite (bmul_eq bOmega (embed (ord X k))).
+  apply bmono_blub.
+  - unfold bmulS. apply bmono_bsup. intro a.
+    apply bmono_badd_Ω; auto. apply (Hk a).
+  - unfold bmulB; simpl. split; [ intros [] | split; intros [] ].
+Qed.
+
+Lemma bsub_small x y : bsub x y -> forall a, exists b, bsub (bsmallSz x a) (bsmallSz y b).
+Proof. destruct x; destruct y; simpl; intuition. Qed.
+
+Lemma bsub_big x y : bsub x y ->
+  forall c, exists d, forall ξ, bsub (bbigSz x c ξ) (bbigSz y d ξ).
+Proof. destruct x; destruct y; simpl; intuition. Qed.
+
+Lemma bsub_bsup {I J:Type} (F:I -> BOrd) (F':J -> BOrd) :
+  (forall i, exists j, bsub (F i) (F' j)) -> bsub (bsup F) (bsup F').
+Proof.
+  intro H; simpl; split.
+  - intros [i a].
+    destruct (H i) as [j Hj].
+    destruct (bsub_small _ _ Hj a) as [b Hb].
+    exists (existT _ j b). exact Hb.
+  - intros [i c].
+    destruct (H i) as [j Hj].
+    destruct (bsub_big _ _ Hj c) as [d Hd].
+    exists (existT _ j d). exact Hd.
+Qed.
+
+Lemma bsub_blub x x' y y' : bsub x x' -> bsub y y' -> bsub (blub x y) (blub x' y').
+Proof.
+  destruct x as [A g C h]; destruct x' as [A' g' C' h'];
+    destruct y as [B k D l]; destruct y' as [B' k' D' l']; simpl.
+  intros [Hx1 Hx2] [Hy1 Hy2]; split.
+  - intros [a|b].
+    + destruct (Hx1 a) as [a' Ha]. exists (inl a'). exact Ha.
+    + destruct (Hy1 b) as [b' Hb]. exists (inr b'). exact Hb.
+  - intros [c|d].
+    + destruct (Hx2 c) as [c' Hc]. exists (inl c'). exact Hc.
+    + destruct (Hy2 d) as [d' Hd]. exists (inr d'). exact Hd.
+Qed.
+
+Lemma bsub_badd_embed_l x x' : bsub x x' -> forall ζ, bsub (badd x (embed ζ)) (badd x' (embed ζ)).
+Proof.
+  intros H ζ.
+  induction ζ as [Z m Hm].
+  rewrite (badd_eq x (embed (ord Z m))), (badd_eq x' (embed (ord Z m))).
+  apply bsub_blub; auto.
+  unfold baddR; simpl; split.
+  - intro b. exists b. apply Hm.
+  - intros [].
+Qed.
+
+Lemma bsub_badd_Ω_l x x' : bsub x x' -> bsub (badd x bOmega) (badd x' bOmega).
+Proof.
+  intro H.
+  rewrite (badd_eq x bOmega), (badd_eq x' bOmega).
+  apply bsub_blub; auto.
+  unfold baddR; simpl; split.
+  - intros [].
+  - intros _. exists tt. intro ζ. apply bsub_badd_embed_l; auto.
+Qed.
+
+Lemma bsub_bmulΩ : forall ξ ξ', ξ ≤ ξ' ->
+  bsub (bmul bOmega (embed ξ)) (bmul bOmega (embed ξ')).
+Proof.
+  induction ξ as [X k Hk]; intros [X' k'] H.
+  rewrite (bmul_eq _ (embed (ord X k))), (bmul_eq _ (embed (ord X' k'))).
+  apply bsub_blub.
+  - unfold bmulS. apply bsub_bsup. intro a.
+    destruct (ord_le_subord _ _ H a) as [b Hb].
+    exists b. apply bsub_badd_Ω_l. apply Hk. exact Hb.
+  - unfold bmulB; simpl; split; intros [].
+Qed.
+
+(** Classification of the components of α+Ω and of Ω·ξ. *)
+Lemma bcomp_badd_Ω_forall f T (P:(Ord -> Ord) -> Prop) :
+  (forall k, P (bcomp f T k)) ->
+  P (fun ζ => bach f (badd T (embed ζ)) 0) ->
+  forall k, P (bcomp f (badd T bOmega) k).
+Proof.
+  destruct T as [A g C h].
+  intros H1 H2 [[a|[]]|[c|[]]].
+  - apply (H1 (inl a)).
+  - apply (H1 (inr c)).
+  - apply H2.
+Qed.
+
+Lemma badd_Ω_diag f T :
+  exists k, bcomp f (badd T bOmega) k = (fun ζ => bach f (badd T (embed ζ)) 0).
+Proof.
+  destruct T. exists (inr (inr tt)). reflexivity.
+Qed.
+
+Lemma bcomp_bmulΩ_forall f X (k:X -> Ord) (P:(Ord -> Ord) -> Prop) :
+  (forall b kk, P (bcomp f (badd (bmul bOmega (embed (k b))) bOmega) kk)) ->
+  forall kk, P (bcomp f (bmul bOmega (embed (ord X k))) kk).
+Proof.
+  intro H.
+  intros [[[b a]|[]]|[[b c]|[]]].
+  - apply (H b (inl a)).
+  - apply (H b (inr c)).
+Qed.
+
+Lemma bach_bmulΩ_diag_le f X (k:X -> Ord) (y:Ord) b :
+  fixOrd (fun ζ => bach f (badd (bmul bOmega (embed (k b))) (embed ζ)) 0)
+         (limOrd (fun j => bach f (bmul bOmega (embed (ord X k))) (y j)))
+  ≤ bach f (bmul bOmega (embed (ord X k))) y.
+Proof.
+  destruct (badd_Ω_diag f (bmul bOmega (embed (k b)))) as [kk Hkk].
+  rewrite <- Hkk.
+  destruct kk as [a|c].
+  - exact (bach_comp_le f (bmul bOmega (embed (ord X k))) y (inl (inl (existT _ b a)))).
+  - exact (bach_comp_le f (bmul bOmega (embed (ord X k))) y (inr (inl (existT _ b c)))).
+Qed.
+
+Definition S2 (f:Ord -> Ord) (ξ:Ord) : Ord -> Ord := schutte_column f (succOrd 1) ξ.
+
+Lemma complete_1 : complete 1.
+Proof. apply succ_complete, zero_complete. Qed.
+
+Lemma complete_2 : complete (succOrd 1).
+Proof. apply succ_complete, complete_1. Qed.
+
+Lemma lt_0_2 : 0 < succOrd 1.
+Proof. rewrite ord_lt_unfold. exists tt. apply zero_least. Qed.
+
+Theorem bach_Ωtimes_rep f (Hf : normal_function f) :
+  forall ξ, complete ξ -> BRep f (bmul bOmega (embed ξ)) (S2 f ξ).
+Proof.
+  assert (Hfm : forall x y, x ≤ y -> f x ≤ f y) by (apply normal_monotone; auto).
+  induction ξ as [X k Hk]; intro Hξ.
+  assert (Hξ' := Hξ). destruct Hξ' as [_ [_ Hkc]].
+  assert (HS : normal_function (S2 f (ord X k))).
+  { apply schutte_column_normal; auto using complete_2. }
+  assert (HSk : forall b, normal_function (S2 f (k b))).
+  { intro b. apply schutte_column_normal; auto using complete_2. }
+  assert (HT : bmono f (bmul bOmega (embed (ord X k)))) by (apply bmono_bmulΩ; auto).
+  assert (HTk : forall b, bmono f (bmul bOmega (embed (k b)))) by (intro; apply bmono_bmulΩ; auto).
+  assert (Hplus : forall b ζ, complete ζ ->
+             BRep f (badd (bmul bOmega (embed (k b))) (embed ζ)) (veblen (S2 f (k b)) ζ)).
+  { intros b ζ Hζ. apply bach_veblen_step; auto. }
+  assert (Hdiag : forall b x, complete x ->
+             bach f (badd (bmul bOmega (embed (k b))) (embed x)) 0 ≈
+             schutte_column (S2 f (k b)) 1 x 0).
+  { intros b x Hx.
+    transitivity (veblen (S2 f (k b)) x 0).
+    - apply (Hplus b x Hx); apply zero_complete.
+    - symmetry. apply schutte_column_veblen; auto using zero_complete. }
+  (* every component fixes the values of S2 ξ *)
+  assert (Hcomp : forall kk y, complete y ->
+             bcomp f (bmul bOmega (embed (ord X k))) kk (S2 f (ord X k) y) ≤ S2 f (ord X k) y).
+  { intros kk y Hy.
+    assert (Hv : complete (S2 f (ord X k) y)) by (apply normal_complete; auto).
+    apply (bcomp_bmulΩ_forall f X k (fun g => g (S2 f (ord X k) y) ≤ S2 f (ord X k) y)).
+    intro b.
+    assert (Hfix0 : S2 f (k b) (S2 f (ord X k) y) ≤ S2 f (ord X k) y).
+    { transitivity (schutte_column (S2 f (k b)) 0 (S2 f (ord X k) y) 0).
+      - rewrite schutte_column0. apply normal_monotone; auto. apply addOrd_le1.
+      - apply schutte_column_fixpoint; auto using complete_2, zero_complete, lt_0_2.
+        apply (index_lt (ord X k) b). }
+    apply (bcomp_badd_Ω_forall f (bmul bOmega (embed (k b)))
+             (fun g => g (S2 f (ord X k) y) ≤ S2 f (ord X k) y)).
+    - intro kk'.
+      transitivity (bcomp f (bmul bOmega (embed (k b))) kk' (S2 f (k b) (S2 f (ord X k) y))).
+      { apply bmono_bcomp; auto. apply normal_inflationary; auto. }
+      transitivity (S2 f (k b) (S2 f (ord X k) y)); auto.
+      apply (Hk b (Hkc b)); auto.
+    - transitivity (schutte_column (S2 f (k b)) 1 (S2 f (ord X k) y) 0).
+      + apply (proj1 (Hdiag b _ Hv)).
+      + apply schutte_column_fixpoint; auto using complete_2, complete_1, succ_lt.
+        apply (index_lt (ord X k) b). }
+  split; [ exact HS | split; [ | exact Hcomp ] ].
+  induction y as [Y h Hy]; intro Hyc.
+  assert (Hyc' := Hyc). destruct Hyc' as [_ [_ Hhc]].
+  assert (Hs : limOrd (fun j => bach f (bmul bOmega (embed (ord X k))) (ord Y h j)) ≈
+               limOrd (fun j => S2 f (ord X k) (ord Y h j))).
+  { apply lim_eq_mor; intro j; apply Hy; auto. }
+  assert (Hsc : complete (limOrd (fun j => S2 f (ord X k) (ord Y h j)))).
+  { apply lim_normal_complete; auto. }
+  split.
+  - apply bach_le_comp.
+    + transitivity (f (ord X k + ord Y h)).
+      * apply Hfm, addOrd_le2.
+      * apply schutte_column_le_f; auto.
+    + intro kk.
+      apply fixOrd_least; [ apply (bmono_bcomp f Hfm _ HT) | | apply Hcomp; auto ].
+      eapply ord_le_trans; [ apply (proj1 Hs) | ].
+      apply limit_least; intro j.
+      apply normal_increasing; auto.
+      apply (index_lt (ord Y h) j).
+  - eapply ord_le_trans;
+      [ apply (proj1 (schutte_column_succ f 1 (ord X k) (ord Y h) Hf complete_1 Hξ Hyc)) | ].
+    apply lub_least; [ apply f_le_bach | ].
+    apply sup_least; intro b.
+    eapply ord_le_trans; [ | apply (bach_bmulΩ_diag_le f X k (ord Y h) b) ].
+    assert (HN1 : normal_function (fun δ => schutte_column (S2 f (k b)) 1 δ 0)).
+    { apply schutte_column_normal_arg; auto using complete_1. }
+    apply (proj2 (fixOrd_eq_func_complete
+                    (fun ζ => bach f (badd (bmul bOmega (embed (k b))) (embed ζ)) 0)
+                    (fun δ => schutte_column (S2 f (k b)) 1 δ 0) _ _
+                    (Hdiag b)
+                    (badd_embed_diag_mono f Hfm _ (HTk b))
+                    (normal_monotone _ HN1) (normal_complete _ HN1) Hs Hsc)).
+Qed.
+
+(** φ_{Ω²} enumerates the fixpoints of ξ ↦ φ(ξ,0,0). *)
+Definition bOmegaSq : BOrd := bmul bOmega bOmega.
+
+Theorem bach_Ωsq_rep f (Hf : normal_function f) :
+  BRep f bOmegaSq (enum_fixpoints (fun ξ => S2 f ξ 0)).
+Proof.
+  assert (Hfm : forall x y, x ≤ y -> f x ≤ f y) by (apply normal_monotone; auto).
+  assert (HN : normal_function (fun ξ => S2 f ξ 0)).
+  { apply schutte_column_normal_arg; auto using complete_2. }
+  refine (bach_enum_step f bOmegaSq _ (inr (inr tt)) HN _ _ _ _).
+  - intros [[[[] ?]|[]]|[[[] ?]|[]]] x y Hxy.
+    apply bach_mono_index; auto.
+    + apply bsub_bmulΩ; auto.
+    + apply bmono_bmulΩ; auto.
+  - intros x Hx. apply (bach_Ωtimes_rep f Hf x Hx); apply zero_complete.
+  - intros x Hx.
+    transitivity (f (x + 0)); [ apply Hfm, (proj2 (addOrd_zero_r x)) | ].
+    apply schutte_column_le_f; auto.
+  - intros [[[[] ?]|[]]|[[[] ?]|[]]] y Hy.
+    assert (Hv : complete (enum_fixpoints (fun ξ => S2 f ξ 0) y)).
+    { apply normal_complete; [ apply enum_fixpoints_normal; auto | auto ]. }
+    change (bach f (bmul bOmega (embed (enum_fixpoints (fun ξ => S2 f ξ 0) y))) 0
+            ≤ enum_fixpoints (fun ξ => S2 f ξ 0) y).
+    transitivity (S2 f (enum_fixpoints (fun ξ => S2 f ξ 0) y) 0).
+    + apply (bach_Ωtimes_rep f Hf _ Hv); apply zero_complete.
+    + apply (proj2 (enum_are_fixpoints _ HN y Hy)).
+Qed.
+
+(** With base 1+x, φ_{Ω²}(0) is Ackermann's ordinal, as defined in
+    @AckermannTower@. *)
+Theorem bach_Ωsq_Ackermann : bach (addOrd 1) bOmegaSq 0 ≈ AckermannOrdinal.
+Proof.
+  assert (HN : normal_function (fun ξ => S2 (addOrd 1) ξ 0)).
+  { apply schutte_column_normal_arg; auto using complete_2, onePlus_normal. }
+  transitivity (enum_fixpoints (fun ξ => S2 (addOrd 1) ξ 0) 0).
+  { apply (bach_Ωsq_rep (addOrd 1) onePlus_normal); apply zero_complete. }
+  transitivity (fixOrd (fun ξ => S2 (addOrd 1) ξ 0) 0).
+  { apply enum_fixpoints_zero; auto. }
+  unfold AckermannOrdinal.
+  apply fixOrd_eq_func_complete.
+  - intros x Hx. apply schutte_column_2_ackermann_tower; auto using onePlus_normal, zero_complete.
+  - apply normal_monotone; auto.
+  - intros x y Hxy. apply ackermann_tower_monotone; auto with ord.
+  - apply normal_complete, ackermann_tower_normal_first, onePlus_normal.
+  - reflexivity.
+  - apply zero_complete.
 Qed.
