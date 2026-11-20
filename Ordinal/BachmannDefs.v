@@ -2250,13 +2250,7 @@ Proof.
   apply bach_bsub_eq; auto using badd_assoc_1, badd_assoc_2, bfam_badd.
 Qed.
 
-(** ** Ω-multiples over an arbitrary base
-
-Generalizing @bach_Ωtimes_rep@: if β represents G, then β + Ω·ξ
-represents the second Schütte column over G.  The components of
-β + Ω·ξ are those of β, those of each β + Ω·ξ_i, and the diagonals
-ζ ↦ φ_{β+(Ω·ξ_i+ζ)}(0); the last are identified, via associativity,
-with the Veblen step over β + Ω·ξ_i. *)
+(** ** Auxiliary lemmas for the power theorems *)
 
 Lemma fixOrd_ext_eq F F' a : (forall x, F x = F' x) -> fixOrd F a ≈ fixOrd F' a.
 Proof.
@@ -2266,227 +2260,6 @@ Proof.
   unfold fixOrd. apply sup_ord_eq_morphism; intro n.
   rewrite Hiter. reflexivity.
 Qed.
-
-Lemma badd_Ω_big T : exists c, forall ζ, bbigSz (badd T bOmega) c ζ = badd T (embed ζ).
-Proof.
-  destruct T. exists (inr tt). intro; reflexivity.
-Qed.
-
-Lemma S2_fix0 G (HG : normal_function G) a ξ y :
-  complete a -> complete ξ -> complete y -> a < ξ ->
-  S2 G a (S2 G ξ y) ≤ S2 G ξ y.
-Proof.
-  intros Ha Hξ Hy Haξ.
-  transitivity (schutte_column (S2 G a) 0 (S2 G ξ y) 0).
-  - rewrite schutte_column0.
-    apply normal_monotone; [ apply schutte_column_normal; auto using complete_2 | ].
-    apply addOrd_le1.
-  - apply schutte_column_fixpoint; auto using complete_2, zero_complete, lt_0_2.
-Qed.
-
-Lemma S2_value_cases G (HG : normal_function G) ξ y :
-  complete ξ -> complete y ->
-  S2 G ξ y ≈ G y \/ S2 G ξ y ≈ G (S2 G ξ y).
-Proof.
-  intros Hξ Hy.
-  destruct ξ as [X k].
-  assert (Hξ' := Hξ). destruct Hξ' as [_ [[[x0]|Hn] Hkc]].
-  - right.
-    assert (Hv : complete (S2 G (ord X k) y)).
-    { apply normal_complete; [ apply schutte_column_normal; auto using complete_2 | auto ]. }
-    split.
-    + apply normal_inflationary; auto.
-    + transitivity (G (k x0 + S2 G (ord X k) y)).
-      { apply normal_monotone; auto. apply addOrd_le2. }
-      transitivity (S2 G (k x0) (S2 G (ord X k) y)).
-      { apply schutte_column_le_f. apply normal_monotone; auto. }
-      apply S2_fix0; auto. apply (index_lt (ord X k) x0).
-  - left. split.
-    + eapply ord_le_trans;
-        [ apply (proj1 (schutte_column_succ G 1 (ord X k) y HG complete_1 Hξ Hy)) | ].
-      apply lub_least; [ reflexivity | ].
-      apply sup_least; intro i. elim (Hn (inhabits i)).
-    + transitivity (G (ord X k + y)).
-      { apply normal_monotone; auto. apply addOrd_le2. }
-      apply schutte_column_le_f. apply normal_monotone; auto.
-Qed.
-
-Lemma bcomp_shift_bmulΩ_forall f β X (k:X -> Ord) (P:(Ord -> Ord) -> Prop) :
-  (forall g g', (forall x, g x = g' x) -> P g -> P g') ->
-  (forall kk, P (bcomp f β kk)) ->
-  (forall b kk, P (bcomp f (badd β (bmul bOmega (embed (k b)))) kk)) ->
-  (forall b, P (fun ζ => bach f (badd β (badd (bmul bOmega (embed (k b))) (embed ζ))) 0)) ->
-  forall kk, P (bcomp f (badd β (bmul bOmega (embed (ord X k)))) kk).
-Proof.
-  intros Pext H1 H2 H3 [s|c].
-  - destruct (badd_small_cases β (bmul bOmega (embed (ord X k))) s) as [[a Ha]|[m Hm]].
-    + apply (Pext (bcomp f β (inl a))); [ | apply H1 ].
-      intro x.
-      change (bach f (bsmallSz β a) x =
-              bach f (bsmallSz (badd β (bmul bOmega (embed (ord X k)))) s) x).
-      rewrite Ha. reflexivity.
-    + destruct m as [[b m']|[]].
-      change (bsmallSz (badd β (bmul bOmega (embed (ord X k)))) s =
-              badd β (bsmallSz (badd (bmul bOmega (embed (k b))) bOmega) m')) in Hm.
-      destruct (badd_small_cases (bmul bOmega (embed (k b))) bOmega m') as [[a'' Ha'']|[[] _]].
-      destruct (badd_small_r β (bmul bOmega (embed (k b))) a'') as [t Ht].
-      apply (Pext (bcomp f (badd β (bmul bOmega (embed (k b)))) (inl t))); [ | apply H2 ].
-      intro x.
-      change (bach f (bsmallSz (badd β (bmul bOmega (embed (k b)))) t) x =
-              bach f (bsmallSz (badd β (bmul bOmega (embed (ord X k)))) s) x).
-      rewrite Ht, Hm, Ha''. reflexivity.
-  - destruct (badd_big_cases β (bmul bOmega (embed (ord X k))) c) as [[c' Hc]|[m Hm]].
-    + apply (Pext (bcomp f β (inr c'))); [ | apply H1 ].
-      intro x.
-      change (bach f (bbigSz β c' x) 0 =
-              bach f (bbigSz (badd β (bmul bOmega (embed (ord X k)))) c x) 0).
-      rewrite Hc. reflexivity.
-    + destruct m as [[b m']|[]].
-      assert (Hm' : forall ξ, bbigSz (badd β (bmul bOmega (embed (ord X k)))) c ξ =
-                              badd β (bbigSz (badd (bmul bOmega (embed (k b))) bOmega) m' ξ))
-        by exact Hm.
-      destruct (badd_big_cases (bmul bOmega (embed (k b))) bOmega m') as [[e He]|[d Hd]].
-      * destruct (badd_big_r β (bmul bOmega (embed (k b))) e) as [t Ht].
-        apply (Pext (bcomp f (badd β (bmul bOmega (embed (k b)))) (inr t))); [ | apply H2 ].
-        intro x.
-        change (bach f (bbigSz (badd β (bmul bOmega (embed (k b)))) t x) 0 =
-                bach f (bbigSz (badd β (bmul bOmega (embed (ord X k)))) c x) 0).
-        rewrite Ht, Hm', He. reflexivity.
-      * apply (Pext (fun ζ => bach f (badd β (badd (bmul bOmega (embed (k b))) (embed ζ))) 0));
-          [ | apply H3 ].
-        intro x.
-        change (bach f (badd β (badd (bmul bOmega (embed (k b))) (embed x))) 0 =
-                bach f (bbigSz (badd β (bmul bOmega (embed (ord X k)))) c x) 0).
-        rewrite Hm', Hd. reflexivity.
-Qed.
-
-Theorem bach_shift_Ωtimes_rep f (Hf : forall x y, x ≤ y -> f x ≤ f y) β G :
-  bfam β -> BRep f β G ->
-  forall ξ, complete ξ -> BRep f (badd β (bmul bOmega (embed ξ))) (S2 G ξ).
-Proof.
-  intros Hβ HR.
-  assert (HR' := HR). destruct HR' as [HG [Hrep Hcl]].
-  assert (HGm : forall x y, x ≤ y -> G x ≤ G y) by (apply normal_monotone; auto).
-  assert (Hbm : bmono f β) by (apply bfam_bmono; auto).
-  assert (HMfam : forall ξ, bfam (bmul bOmega (embed ξ))).
-  { intro. apply bfam_bmul; auto using bfam_Ω, bfam_embed. }
-  assert (Hmono : forall ξ, bmono f (badd β (bmul bOmega (embed ξ)))).
-  { intro. apply bfam_bmono; auto. apply bfam_badd; auto. }
-  induction ξ as [X k Hk]; intro Hξ.
-  assert (Hξ' := Hξ). destruct Hξ' as [_ [_ Hkc]].
-  assert (HS : normal_function (S2 G (ord X k))).
-  { apply schutte_column_normal; auto using complete_2. }
-  assert (HIH : forall b, BRep f (badd β (bmul bOmega (embed (k b)))) (S2 G (k b))).
-  { intro b. apply Hk; auto. }
-  assert (Hplus : forall b ζ, complete ζ ->
-             BRep f (badd (badd β (bmul bOmega (embed (k b)))) (embed ζ)) (veblen (S2 G (k b)) ζ)).
-  { intros b ζ Hζ. apply bach_veblen_step; auto. }
-  assert (Hdiag : forall b x, complete x ->
-             bach f (badd β (badd (bmul bOmega (embed (k b))) (embed x))) 0 ≈
-             schutte_column (S2 G (k b)) 1 x 0).
-  { intros b x Hx.
-    transitivity (bach f (badd (badd β (bmul bOmega (embed (k b)))) (embed x)) 0).
-    { apply bach_badd_assoc; auto using bfam_embed. }
-    transitivity (veblen (S2 G (k b)) x 0).
-    { apply (Hplus b x Hx); apply zero_complete. }
-    symmetry. apply schutte_column_veblen; auto using zero_complete.
-    apply schutte_column_normal; auto using complete_2. }
-  assert (Hdmono : forall b x y, x ≤ y ->
-             bach f (badd β (badd (bmul bOmega (embed (k b))) (embed x))) 0 ≤
-             bach f (badd β (badd (bmul bOmega (embed (k b))) (embed y))) 0).
-  { intros b x y Hxy. apply bach_mono_index; auto.
-    - apply bsub_badd_r, bsub_badd_r, bsub_embed; auto.
-    - apply bfam_bmono; auto. apply bfam_badd; auto. apply bfam_badd; auto using bfam_embed. }
-  assert (Hcomp : forall kk y, complete y ->
-             bcomp f (badd β (bmul bOmega (embed (ord X k)))) kk (S2 G (ord X k) y)
-             ≤ S2 G (ord X k) y).
-  { intros kk y Hy.
-    assert (Hv : complete (S2 G (ord X k) y)) by (apply normal_complete; auto).
-    apply (bcomp_shift_bmulΩ_forall f β X k (fun g => g (S2 G (ord X k) y) ≤ S2 G (ord X k) y)).
-    - intros g g' Hgg' H. rewrite <- Hgg'. exact H.
-    - intro kk'.
-      destruct (S2_value_cases G HG (ord X k) y Hξ Hy) as [H|H].
-      + transitivity (bcomp f β kk' (G y)).
-        { apply bmono_bcomp; auto. apply (proj1 H). }
-        transitivity (G y); [ apply Hcl; auto | apply (proj2 H) ].
-      + transitivity (bcomp f β kk' (G (S2 G (ord X k) y))).
-        { apply bmono_bcomp; auto. apply (proj1 H). }
-        transitivity (G (S2 G (ord X k) y)); [ apply Hcl; auto | apply (proj2 H) ].
-    - intros b kk'.
-      assert (HSb : normal_function (S2 G (k b))).
-      { apply schutte_column_normal; auto using complete_2. }
-      transitivity (bcomp f (badd β (bmul bOmega (embed (k b)))) kk'
-                          (S2 G (k b) (S2 G (ord X k) y))).
-      { apply bmono_bcomp; auto. apply normal_inflationary; auto. }
-      transitivity (S2 G (k b) (S2 G (ord X k) y)).
-      { apply (HIH b); auto. }
-      apply S2_fix0; auto. apply (index_lt (ord X k) b).
-    - intro b.
-      transitivity (schutte_column (S2 G (k b)) 1 (S2 G (ord X k) y) 0).
-      + apply (proj1 (Hdiag b _ Hv)).
-      + apply schutte_column_fixpoint; auto using complete_2, complete_1, succ_lt.
-        apply (index_lt (ord X k) b). }
-  split; [ exact HS | split; [ | exact Hcomp ] ].
-  induction y as [Y h Hy]; intro Hyc.
-  assert (Hyc' := Hyc). destruct Hyc' as [_ [_ Hhc]].
-  assert (Hs : limOrd (fun j => bach f (badd β (bmul bOmega (embed (ord X k)))) (ord Y h j)) ≈
-               limOrd (fun j => S2 G (ord X k) (ord Y h j))).
-  { apply lim_eq_mor; intro j; apply Hy; auto. }
-  assert (Hsc : complete (limOrd (fun j => S2 G (ord X k) (ord Y h j)))).
-  { apply lim_normal_complete; auto. }
-  split.
-  - apply bach_le_comp.
-    + transitivity (G (ord Y h)).
-      { transitivity (bach f β (ord Y h)); [ apply f_le_bach | apply (proj1 (Hrep _ Hyc)) ]. }
-      transitivity (G (ord X k + ord Y h)); [ apply HGm, addOrd_le2 | ].
-      apply schutte_column_le_f; auto.
-    + intro kk.
-      apply fixOrd_least; [ apply (bmono_bcomp f Hf _ (Hmono _)) | | apply Hcomp; auto ].
-      eapply ord_le_trans; [ apply (proj1 Hs) | ].
-      apply limit_least; intro j.
-      apply normal_increasing; auto.
-      apply (index_lt (ord Y h) j).
-  - eapply ord_le_trans;
-      [ apply (proj1 (schutte_column_succ G 1 (ord X k) (ord Y h) HG complete_1 Hξ Hyc)) | ].
-    apply lub_least.
-    + transitivity (bach f β (ord Y h)); [ apply (proj2 (Hrep _ Hyc)) | ].
-      apply bach_mono_index; auto.
-      rewrite (badd_eq β (bmul bOmega (embed (ord X k)))). apply bsub_blub_l.
-    + apply sup_least; intro b.
-      assert (HN1 : normal_function (fun δ => schutte_column (S2 G (k b)) 1 δ 0)).
-      { apply schutte_column_normal_arg; auto using complete_1.
-        apply schutte_column_normal; auto using complete_2. }
-      destruct (badd_Ω_big (bmul bOmega (embed (k b)))) as [c Hc].
-      destruct (badd_big_r β (bmul bOmega (embed (ord X k))) (inl (existT _ b c))) as [t Ht].
-      eapply ord_le_trans;
-        [ | apply (bach_comp_le f (badd β (bmul bOmega (embed (ord X k)))) (ord Y h) (inr t)) ].
-      assert (Heq : forall x,
-                 (fun ζ => bach f (badd β (badd (bmul bOmega (embed (k b))) (embed ζ))) 0) x =
-                 bcomp f (badd β (bmul bOmega (embed (ord X k)))) (inr t) x).
-      { intro x.
-        change (bach f (badd β (badd (bmul bOmega (embed (k b))) (embed x))) 0 =
-                bach f (bbigSz (badd β (bmul bOmega (embed (ord X k)))) t x) 0).
-        rewrite (Ht x).
-        change (bach f (badd β (badd (bmul bOmega (embed (k b))) (embed x))) 0 =
-                bach f (badd β (bbigSz (badd (bmul bOmega (embed (k b))) bOmega) c x)) 0).
-        rewrite (Hc x). reflexivity. }
-      eapply ord_le_trans; [ | apply (proj1 (fixOrd_ext_eq _ _ _ Heq)) ].
-      apply (proj2 (fixOrd_eq_func_complete
-                      (fun ζ => bach f (badd β (badd (bmul bOmega (embed (k b))) (embed ζ))) 0)
-                      (fun δ => schutte_column (S2 G (k b)) 1 δ 0) _ _
-                      (Hdiag b) (Hdmono b)
-                      (normal_monotone _ HN1) (normal_complete _ HN1) Hs Hsc)).
-Qed.
-
-(** ** Powers of Ω and the finite Schütte columns
-
-We abstract the proof of @bach_shift_Ωtimes_rep@ over the multiplier.
-Let Q be an index tree with no small children, such that adding any
-of its Ω-family members ζ to a base β' representing G' yields Schütte
-column c over G'.  Then β + Q·ξ represents column c+1 over G.  For
-Q = Ω this is the Veblen step (column 1); for Q·Ω, whose single family
-is ζ ↦ Q·ζ, the hypothesis is the conclusion for Q.  Iterating gives
-β + Ω^(n+1)·ξ ↔ column n+2. *)
 
 Lemma BRep_ext f (Hf : forall x y, x ≤ y -> f x ≤ f y) T G G' :
   bmono f T -> BRep f T G -> normal_function G' ->
@@ -2501,272 +2274,7 @@ Proof.
     transitivity (G y); [ apply Hcl; auto | apply (proj1 (Heq y Hy)) ].
 Qed.
 
-Lemma lt_0_succ c : 0 < succOrd c.
-Proof. rewrite ord_lt_unfold. exists tt. apply zero_least. Qed.
-
-Lemma Scol_fix0 G (HG : normal_function G) c a ξ y :
-  complete c -> complete a -> complete ξ -> complete y -> a < ξ ->
-  schutte_column G (succOrd c) a (schutte_column G (succOrd c) ξ y) ≤ schutte_column G (succOrd c) ξ y.
-Proof.
-  intros Hc Ha Hξ Hy Haξ.
-  transitivity (schutte_column (schutte_column G (succOrd c) a) 0 (schutte_column G (succOrd c) ξ y) 0).
-  - rewrite schutte_column0.
-    apply normal_monotone; [ apply schutte_column_normal; auto using succ_complete | ].
-    apply addOrd_le1.
-  - apply schutte_column_fixpoint; auto using succ_complete, zero_complete, lt_0_succ.
-Qed.
-
-Lemma Scol_value_cases G (HG : normal_function G) c ξ y :
-  complete c -> complete ξ -> complete y ->
-  schutte_column G (succOrd c) ξ y ≈ G y \/
-  schutte_column G (succOrd c) ξ y ≈ G (schutte_column G (succOrd c) ξ y).
-Proof.
-  intros Hc Hξ Hy.
-  destruct ξ as [X k].
-  assert (Hξ' := Hξ). destruct Hξ' as [_ [[[x0]|Hn] Hkc]].
-  - right.
-    assert (Hv : complete (schutte_column G (succOrd c) (ord X k) y)).
-    { apply normal_complete; [ apply schutte_column_normal; auto using succ_complete | auto ]. }
-    split.
-    + apply normal_inflationary; auto.
-    + transitivity (G (k x0 + schutte_column G (succOrd c) (ord X k) y)).
-      { apply normal_monotone; auto. apply addOrd_le2. }
-      transitivity (schutte_column G (succOrd c) (k x0) (schutte_column G (succOrd c) (ord X k) y)).
-      { apply schutte_column_le_f. apply normal_monotone; auto. }
-      apply Scol_fix0; auto. apply (index_lt (ord X k) x0).
-  - left. split.
-    + eapply ord_le_trans;
-        [ apply (proj1 (schutte_column_succ G c (ord X k) y HG Hc Hξ Hy)) | ].
-      apply lub_least; [ reflexivity | ].
-      apply sup_least; intro i. elim (Hn (inhabits i)).
-    + transitivity (G (ord X k + y)).
-      { apply normal_monotone; auto. apply addOrd_le2. }
-      apply schutte_column_le_f. apply normal_monotone; auto.
-Qed.
-
-Lemma bcomp_shift_bmul_forall f β Q X (k:X -> Ord) (P:(Ord -> Ord) -> Prop) :
-  (bsmall Q -> False) ->
-  (forall g g', (forall x, g x = g' x) -> P g -> P g') ->
-  (forall kk, P (bcomp f β kk)) ->
-  (forall b kk, P (bcomp f (badd β (bmul Q (embed (k b)))) kk)) ->
-  (forall b d, P (fun ζ => bach f (badd β (badd (bmul Q (embed (k b))) (bbigSz Q d ζ))) 0)) ->
-  forall kk, P (bcomp f (badd β (bmul Q (embed (ord X k)))) kk).
-Proof.
-  intros HQs Pext H1 H2 H3 [s|c].
-  - destruct (badd_small_cases β (bmul Q (embed (ord X k))) s) as [[a Ha]|[m Hm]].
-    + apply (Pext (bcomp f β (inl a))); [ | apply H1 ].
-      intro x.
-      change (bach f (bsmallSz β a) x =
-              bach f (bsmallSz (badd β (bmul Q (embed (ord X k)))) s) x).
-      rewrite Ha. reflexivity.
-    + destruct m as [[b m']|[]].
-      change (bsmallSz (badd β (bmul Q (embed (ord X k)))) s =
-              badd β (bsmallSz (badd (bmul Q (embed (k b))) Q) m')) in Hm.
-      destruct (badd_small_cases (bmul Q (embed (k b))) Q m') as [[a'' Ha'']|[b'' _]];
-        [ | elim (HQs b'') ].
-      destruct (badd_small_r β (bmul Q (embed (k b))) a'') as [t Ht].
-      apply (Pext (bcomp f (badd β (bmul Q (embed (k b)))) (inl t))); [ | apply H2 ].
-      intro x.
-      change (bach f (bsmallSz (badd β (bmul Q (embed (k b)))) t) x =
-              bach f (bsmallSz (badd β (bmul Q (embed (ord X k)))) s) x).
-      rewrite Ht, Hm, Ha''. reflexivity.
-  - destruct (badd_big_cases β (bmul Q (embed (ord X k))) c) as [[c' Hc]|[m Hm]].
-    + apply (Pext (bcomp f β (inr c'))); [ | apply H1 ].
-      intro x.
-      change (bach f (bbigSz β c' x) 0 =
-              bach f (bbigSz (badd β (bmul Q (embed (ord X k)))) c x) 0).
-      rewrite Hc. reflexivity.
-    + destruct m as [[b m']|[]].
-      assert (Hm' : forall ξ, bbigSz (badd β (bmul Q (embed (ord X k)))) c ξ =
-                              badd β (bbigSz (badd (bmul Q (embed (k b))) Q) m' ξ))
-        by exact Hm.
-      destruct (badd_big_cases (bmul Q (embed (k b))) Q m') as [[e He]|[d Hd]].
-      * destruct (badd_big_r β (bmul Q (embed (k b))) e) as [t Ht].
-        apply (Pext (bcomp f (badd β (bmul Q (embed (k b)))) (inr t))); [ | apply H2 ].
-        intro x.
-        change (bach f (bbigSz (badd β (bmul Q (embed (k b)))) t x) 0 =
-                bach f (bbigSz (badd β (bmul Q (embed (ord X k)))) c x) 0).
-        rewrite Ht, Hm', He. reflexivity.
-      * apply (Pext (fun ζ => bach f (badd β (badd (bmul Q (embed (k b))) (bbigSz Q d ζ))) 0));
-          [ | apply H3 ].
-        intro x.
-        change (bach f (badd β (badd (bmul Q (embed (k b))) (bbigSz Q d x))) 0 =
-                bach f (bbigSz (badd β (bmul Q (embed (ord X k)))) c x) 0).
-        rewrite Hm', Hd. reflexivity.
-Qed.
-
-(** The hypothesis on a multiplier Q: adding a family member of Q to
-    a base representing G' yields column c over G'. *)
-Definition QCol f (Q:BOrd) (c:Ord) : Prop :=
-  forall β' G', bfam β' -> BRep f β' G' ->
-    forall d ζ, complete ζ -> BRep f (badd β' (bbigSz Q d ζ)) (schutte_column G' c ζ).
-
-Theorem bach_power_step f (Hf : forall x y, x ≤ y -> f x ≤ f y) Q c :
-  complete c -> bfam Q -> (bsmall Q -> False) -> bbig Q -> QCol f Q c ->
-  forall β G, bfam β -> BRep f β G ->
-  forall ξ, complete ξ -> BRep f (badd β (bmul Q (embed ξ))) (schutte_column G (succOrd c) ξ).
-Proof.
-  intros Hc HQ HQs d0 HQc β G Hβ HR.
-  assert (HR' := HR). destruct HR' as [HG [Hrep Hcl]].
-  assert (HGm : forall x y, x ≤ y -> G x ≤ G y) by (apply normal_monotone; auto).
-  assert (Hbm : bmono f β) by (apply bfam_bmono; auto).
-  assert (Hc1 : complete (succOrd c)) by (apply succ_complete; auto).
-  assert (HMfam : forall ξ, bfam (bmul Q (embed ξ))).
-  { intro. apply bfam_bmul; auto using bfam_embed. }
-  assert (Hmono : forall ξ, bmono f (badd β (bmul Q (embed ξ)))).
-  { intro. apply bfam_bmono; auto. apply bfam_badd; auto. }
-  induction ξ as [X k Hk]; intro Hξ.
-  assert (Hξ' := Hξ). destruct Hξ' as [_ [_ Hkc]].
-  assert (HS : normal_function (schutte_column G (succOrd c) (ord X k))).
-  { apply schutte_column_normal; auto. }
-  assert (HSk : forall b, normal_function (schutte_column G (succOrd c) (k b))).
-  { intro b. apply schutte_column_normal; auto. }
-  assert (HIH : forall b, BRep f (badd β (bmul Q (embed (k b)))) (schutte_column G (succOrd c) (k b))).
-  { intro b. apply Hk; auto. }
-  assert (Hdiag : forall b d x, complete x ->
-             bach f (badd β (badd (bmul Q (embed (k b))) (bbigSz Q d x))) 0 ≈
-             schutte_column (schutte_column G (succOrd c) (k b)) c x 0).
-  { intros b d x Hx.
-    transitivity (bach f (badd (badd β (bmul Q (embed (k b)))) (bbigSz Q d x)) 0).
-    { apply bach_badd_assoc; auto. apply bfam_big; auto. }
-    apply (HQc _ _ (bfam_badd _ _ Hβ (HMfam _)) (HIH b) d x Hx); apply zero_complete. }
-  assert (Hdmono : forall b d x y, x ≤ y ->
-             bach f (badd β (badd (bmul Q (embed (k b))) (bbigSz Q d x))) 0 ≤
-             bach f (badd β (badd (bmul Q (embed (k b))) (bbigSz Q d y))) 0).
-  { intros b d x y Hxy. apply bach_mono_index; auto.
-    - apply bsub_badd_r, bsub_badd_r. apply bfam_fam; auto.
-    - apply bfam_bmono; auto. apply bfam_badd; auto. apply bfam_badd; auto. apply bfam_big; auto. }
-  assert (Hcomp : forall kk y, complete y ->
-             bcomp f (badd β (bmul Q (embed (ord X k)))) kk (schutte_column G (succOrd c) (ord X k) y)
-             ≤ schutte_column G (succOrd c) (ord X k) y).
-  { intros kk y Hy.
-    assert (Hv : complete (schutte_column G (succOrd c) (ord X k) y)) by (apply normal_complete; auto).
-    apply (bcomp_shift_bmul_forall f β Q X k
-             (fun g => g (schutte_column G (succOrd c) (ord X k) y) ≤ schutte_column G (succOrd c) (ord X k) y));
-      auto.
-    - intros g g' Hgg' H. rewrite <- Hgg'. exact H.
-    - intro kk'.
-      destruct (Scol_value_cases G HG c (ord X k) y Hc Hξ Hy) as [H|H].
-      + transitivity (bcomp f β kk' (G y)).
-        { apply bmono_bcomp; auto. apply (proj1 H). }
-        transitivity (G y); [ apply Hcl; auto | apply (proj2 H) ].
-      + transitivity (bcomp f β kk' (G (schutte_column G (succOrd c) (ord X k) y))).
-        { apply bmono_bcomp; auto. apply (proj1 H). }
-        transitivity (G (schutte_column G (succOrd c) (ord X k) y)); [ apply Hcl; auto | apply (proj2 H) ].
-    - intros b kk'.
-      transitivity (bcomp f (badd β (bmul Q (embed (k b)))) kk'
-                          (schutte_column G (succOrd c) (k b) (schutte_column G (succOrd c) (ord X k) y))).
-      { apply bmono_bcomp; auto. apply normal_inflationary; auto. }
-      transitivity (schutte_column G (succOrd c) (k b) (schutte_column G (succOrd c) (ord X k) y)).
-      { apply (HIH b); auto. }
-      apply Scol_fix0; auto. apply (index_lt (ord X k) b).
-    - intros b d.
-      transitivity (schutte_column (schutte_column G (succOrd c) (k b)) c
-                                   (schutte_column G (succOrd c) (ord X k) y) 0).
-      + apply (proj1 (Hdiag b d _ Hv)).
-      + apply schutte_column_fixpoint; auto using zero_complete, succ_lt.
-        apply (index_lt (ord X k) b). }
-  split; [ exact HS | split; [ | exact Hcomp ] ].
-  induction y as [Y h Hy]; intro Hyc.
-  assert (Hyc' := Hyc). destruct Hyc' as [_ [_ Hhc]].
-  assert (Hs : limOrd (fun j => bach f (badd β (bmul Q (embed (ord X k)))) (ord Y h j)) ≈
-               limOrd (fun j => schutte_column G (succOrd c) (ord X k) (ord Y h j))).
-  { apply lim_eq_mor; intro j; apply Hy; auto. }
-  assert (Hsc : complete (limOrd (fun j => schutte_column G (succOrd c) (ord X k) (ord Y h j)))).
-  { apply lim_normal_complete; auto. }
-  split.
-  - apply bach_le_comp.
-    + transitivity (G (ord Y h)).
-      { transitivity (bach f β (ord Y h)); [ apply f_le_bach | apply (proj1 (Hrep _ Hyc)) ]. }
-      transitivity (G (ord X k + ord Y h)); [ apply HGm, addOrd_le2 | ].
-      apply schutte_column_le_f; auto.
-    + intro kk.
-      apply fixOrd_least; [ apply (bmono_bcomp f Hf _ (Hmono _)) | | apply Hcomp; auto ].
-      eapply ord_le_trans; [ apply (proj1 Hs) | ].
-      apply limit_least; intro j.
-      apply normal_increasing; auto.
-      apply (index_lt (ord Y h) j).
-  - eapply ord_le_trans;
-      [ apply (proj1 (schutte_column_succ G c (ord X k) (ord Y h) HG Hc Hξ Hyc)) | ].
-    apply lub_least.
-    + transitivity (bach f β (ord Y h)); [ apply (proj2 (Hrep _ Hyc)) | ].
-      apply bach_mono_index; auto.
-      rewrite (badd_eq β (bmul Q (embed (ord X k)))). apply bsub_blub_l.
-    + apply sup_least; intro b.
-      assert (HN1 : normal_function (fun δ => schutte_column (schutte_column G (succOrd c) (k b)) c δ 0)).
-      { apply schutte_column_normal_arg; auto. }
-      destruct (badd_big_r (bmul Q (embed (k b))) Q d0) as [cc Hcc].
-      destruct (badd_big_r β (bmul Q (embed (ord X k))) (inl (existT _ b cc))) as [t Ht].
-      eapply ord_le_trans;
-        [ | apply (bach_comp_le f (badd β (bmul Q (embed (ord X k)))) (ord Y h) (inr t)) ].
-      assert (Heq : forall x,
-                 (fun ζ => bach f (badd β (badd (bmul Q (embed (k b))) (bbigSz Q d0 ζ))) 0) x =
-                 bcomp f (badd β (bmul Q (embed (ord X k)))) (inr t) x).
-      { intro x.
-        change (bach f (badd β (badd (bmul Q (embed (k b))) (bbigSz Q d0 x))) 0 =
-                bach f (bbigSz (badd β (bmul Q (embed (ord X k)))) t x) 0).
-        rewrite (Ht x).
-        change (bach f (badd β (badd (bmul Q (embed (k b))) (bbigSz Q d0 x))) 0 =
-                bach f (badd β (bbigSz (badd (bmul Q (embed (k b))) Q) cc x)) 0).
-        rewrite (Hcc x). reflexivity. }
-      eapply ord_le_trans; [ | apply (proj1 (fixOrd_ext_eq _ _ _ Heq)) ].
-      apply (proj2 (fixOrd_eq_func_complete
-                      (fun ζ => bach f (badd β (badd (bmul Q (embed (k b))) (bbigSz Q d0 ζ))) 0)
-                      (fun δ => schutte_column (schutte_column G (succOrd c) (k b)) c δ 0) _ _
-                      (Hdiag b d0) (Hdmono b d0)
-                      (normal_monotone _ HN1) (normal_complete _ HN1) Hs Hsc)).
-Qed.
-
-(** Ω satisfies the hypothesis with column 1 (the Veblen step). *)
-Lemma QCol_Ω f (Hf : forall x y, x ≤ y -> f x ≤ f y) : QCol f bOmega 1.
-Proof.
-  intros β' G' Hβ' HR d ζ Hζ.
-  assert (HG' : normal_function G') by apply HR.
-  apply BRep_ext with (veblen G' ζ); auto.
-  - apply bfam_bmono; auto. apply bfam_badd; auto using bfam_embed.
-  - apply bach_veblen_step; auto. apply bfam_bmono; auto.
-  - apply schutte_column_normal; auto using complete_1.
-  - intros x Hx. symmetry. apply schutte_column_veblen; auto.
-Qed.
-
-(** Ω^(n+1), as iterated products, and its column n+1. *)
-Fixpoint bOmegaPow (n:nat) : BOrd :=
-  match n with
-  | O => bOmega
-  | S n' => bmul (bOmegaPow n') bOmega
-  end.
-
-Lemma bfam_bOmegaPow n : bfam (bOmegaPow n).
-Proof.
-  induction n; [ apply bfam_Ω | ].
-  change (bfam (bmul (bOmegaPow n) bOmega)). apply bfam_bmul; auto using bfam_Ω.
-Qed.
-
-Theorem QCol_bOmegaPow f (Hf : forall x y, x ≤ y -> f x ≤ f y) :
-  forall n, QCol f (bOmegaPow n) (natOrdSize (S n)).
-Proof.
-  induction n as [|n IH].
-  - apply QCol_Ω; auto.
-  - intros β' G' Hβ' HR d ζ Hζ.
-    destruct d as [[[] _]|[]].
-    change (BRep f (badd β' (bmul (bOmegaPow n) (embed ζ)))
-                 (schutte_column G' (succOrd (natOrdSize (S n))) ζ)).
-    apply bach_power_step; auto using natOrdSize_complete, bfam_bOmegaPow.
-    + destruct n; simpl; [ intros [] | intros [[[] _]|[]] ].
-    + destruct n; simpl; [ exact tt | exact (inr tt) ].
-Qed.
-
-(** β + Ω^(n+1)·ξ represents the Schütte column n+2 over the function
-    represented by β. *)
-Corollary bach_Ωpow_times_rep f (Hf : forall x y, x ≤ y -> f x ≤ f y) n β G :
-  bfam β -> BRep f β G -> forall ξ, complete ξ ->
-  BRep f (badd β (bmul (bOmegaPow n) (embed ξ))) (schutte_column G (natOrdSize (S (S n))) ξ).
-Proof.
-  intros Hβ HR ξ Hξ.
-  apply (QCol_bOmegaPow f Hf (S n) β G Hβ HR (inr tt) ξ Hξ).
-Qed.
-
-(** ** The Small Veblen Ordinal *)
+(** Adding to zero does not change φ. *)
 
 Lemma bsub_badd_zero_l1 y : bsub (badd bzero y) y.
 Proof.
@@ -2798,152 +2306,6 @@ Proof.
   intro Hy.
   apply bach_bsub_eq; auto using bsub_badd_zero_l1, bsub_badd_zero_l2.
   apply bfam_badd; auto using bfam_bzero.
-Qed.
-
-(** Ω^ω, presented with one Ω-family per finite power: ζ ↦ ζ, and
-    ζ ↦ Ω^(m+1)·ζ for each m. *)
-Definition bSVO : BOrd :=
-  bnode False (False_rect _) (option nat)
-        (fun o ζ => match o with
-                    | None => embed ζ
-                    | Some m => bmul (bOmegaPow m) (embed ζ)
-                    end).
-
-Definition svo_col (o:option nat) : nat :=
-  match o with
-  | None => 1%nat
-  | Some m => S (S m)
-  end.
-
-Lemma bfam_bSVO : bfam bSVO.
-Proof.
-  simpl. split; [ intros [] | split ].
-  - intros [m|] ξ; simpl.
-    + apply bfam_bmul; auto using bfam_bOmegaPow, bfam_embed.
-    + apply bfam_embed.
-  - intros [m|] ξ ξ' H; simpl.
-    + apply bsub_bmul_r, bsub_embed; auto.
-    + apply bsub_embed; auto.
-Qed.
-
-Theorem bach_SVO f (Hf : normal_function f) : bach f bSVO 0 ≈ schutte_column f ω 1 0.
-Proof.
-  assert (Hfm : forall x y, x ≤ y -> f x ≤ f y) by (apply normal_monotone; auto).
-  assert (HD : forall n, normal_function (fun δ => schutte_column f (natOrdSize n) δ 0)).
-  { intro. apply schutte_column_normal_arg; auto using natOrdSize_complete. }
-  assert (Hdiag : forall o x, complete x ->
-             bach f (bbigSz bSVO o x) 0 ≈ schutte_column f (natOrdSize (svo_col o)) x 0).
-  { intros [m|] x Hx.
-    - change (bach f (bmul (bOmegaPow m) (embed x)) 0 ≈
-              schutte_column f (natOrdSize (S (S m))) x 0).
-      transitivity (bach f (badd bzero (bmul (bOmegaPow m) (embed x))) 0).
-      + symmetry. apply bach_badd_zero_l; auto.
-        apply bfam_bmul; auto using bfam_bOmegaPow, bfam_embed.
-      + apply (bach_Ωpow_times_rep f Hfm m bzero f bfam_bzero (bach_zero_rep f Hf) x Hx).
-        apply zero_complete.
-    - change (bach f (embed x) 0 ≈ schutte_column f 1 x 0).
-      transitivity (veblen f x 0); [ apply bach_embed; auto | ].
-      symmetry. apply schutte_column_veblen; auto using zero_complete. }
-  assert (Hdmono : forall o x y, x ≤ y -> bach f (bbigSz bSVO o x) 0 ≤ bach f (bbigSz bSVO o y) 0).
-  { intros o x y H. apply bach_mono_index; auto.
-    - apply (bfam_fam bSVO bfam_bSVO o x y H).
-    - apply bfam_bmono; auto. apply bfam_big, bfam_bSVO. }
-  assert (Harg0 : forall x, schutte_column f ω 0 x ≈ f x).
-  { intro. apply schutte_column_arg0; auto. }
-  assert (HN0 : normal_function (schutte_column f ω 0)).
-  { apply schutte_column_normal; auto using omega_complete, zero_complete. }
-  assert (Hcol : forall b δ, schutte_column (schutte_column f ω 0) b δ 0 ≈ schutte_column f b δ 0).
-  { intros b δ. split.
-    - apply schutte_column_monotone_func;
-        [ apply normal_monotone; auto | exact Hfm | intro a; apply (proj1 (Harg0 a)) | reflexivity | reflexivity ].
-    - apply schutte_column_monotone_func;
-        [ exact Hfm | apply normal_monotone; auto | intro a; apply (proj2 (Harg0 a)) | reflexivity | reflexivity ]. }
-  assert (HN1 : normal_function (schutte_column f ω 1)).
-  { apply schutte_column_normal; auto using omega_complete, complete_1. }
-  assert (Hs : limOrd (fun j:ordCarrier 0 => bach f bSVO (0 j)) ≈
-               limOrd (fun i:ordCarrier 0 => schutte_column f ω 1 (0 i))).
-  { apply lim_eq_mor; intros []. }
-  assert (Hsc : complete (limOrd (fun i:ordCarrier 0 => schutte_column f ω 1 (0 i)))).
-  { apply lim_normal_complete; auto using zero_complete. }
-  (* W n: the least fixpoint of column n's diagonal above the start *)
-  assert (HW1 : forall o,
-             fixOrd (fun ξ => bach f (bbigSz bSVO o ξ) 0) (limOrd (fun j:ordCarrier 0 => bach f bSVO (0 j)))
-             ≈ fixOrd (fun δ => schutte_column f (natOrdSize (svo_col o)) δ 0)
-                      (limOrd (fun i:ordCarrier 0 => schutte_column f ω 1 (0 i)))).
-  { intro o. apply fixOrd_eq_func_complete; auto.
-    - apply normal_monotone, HD.
-    - apply normal_complete, HD. }
-  assert (HWB : forall o,
-             fixOrd (fun δ => schutte_column f (natOrdSize (svo_col o)) δ 0)
-                    (limOrd (fun i:ordCarrier 0 => schutte_column f ω 1 (0 i)))
-             ≤ bach f bSVO 0).
-  { intro o. eapply ord_le_trans; [ apply (proj2 (HW1 o)) | ].
-    apply (bach_comp_le f bSVO 0 (inr o)). }
-  assert (HWle : forall n,
-             fixOrd (fun δ => schutte_column f (natOrdSize n) δ 0)
-                    (limOrd (fun i:ordCarrier 0 => schutte_column f ω 1 (0 i)))
-             ≤ schutte_column f ω 1 0).
-  { intro n.
-    rewrite (schutte_column_unroll f ω 1 0).
-    eapply ord_le_trans; [ | apply lub_le2 ].
-    eapply ord_le_trans; [ | apply (sup_le _ _ n) ].
-    eapply ord_le_trans; [ | apply (sup_le _ _ tt) ].
-    apply (proj2 (fixOrd_eq_func _ _ _ _ (Hcol (natOrdSize n)) (normal_monotone _ (HD n))
-                    (reflexivity _))). }
-  (* the column-1 fixpoint dominates column 0 and f(1) *)
-  assert (HW1c : complete (fixOrd (fun δ => schutte_column f 1 δ 0)
-                                  (limOrd (fun i:ordCarrier 0 => schutte_column f ω 1 (0 i))))).
-  { apply normal_fix_complete; auto.
-    - apply normal_inflationary, (HD 1%nat).
-    - apply normal_monotone, (HD 1%nat).
-    - apply normal_complete, (HD 1%nat). }
-  assert (HW1fix := normal_fixpoint _ (HD 1%nat) _ Hsc).
-  simpl natOrdSize in HW1fix.
-  assert (Hcol1 : forall z, complete z -> f z ≤ schutte_column f 1 z 0).
-  { intros z Hz. transitivity (f (z + 0)).
-    - apply Hfm, (proj2 (addOrd_zero_r z)).
-    - apply schutte_column_le_f; auto. }
-  split.
-  - rewrite bach_unroll'.
-    apply lub_least.
-    { transitivity (f (1 + 0)); [ apply Hfm, zero_least | apply schutte_column_le_f; auto ]. }
-    apply lub_least; apply sup_least; [ intros [] | intro o ].
-    eapply ord_le_trans; [ apply (proj1 (HW1 o)) | apply HWle ].
-  - rewrite (schutte_column_unroll f ω 1 0).
-    apply lub_least.
-    + eapply ord_le_trans; [ | apply (HWB None) ].
-      change (f (1 + 0) ≤ fixOrd (fun δ => schutte_column f 1 δ 0)
-                                 (limOrd (fun i:ordCarrier 0 => schutte_column f ω 1 (0 i)))).
-      eapply ord_le_trans; [ | apply (proj2 HW1fix) ].
-      eapply ord_le_trans; [ | apply Hcol1; auto ].
-      apply Hfm.
-      transitivity (1:Ord); [ apply (proj1 (addOrd_zero_r 1)) | ].
-      apply succ_least.
-      eapply ord_lt_le_trans; [ | apply (proj2 HW1fix) ].
-      eapply ord_lt_le_trans; [ | apply Hcol1; auto ].
-      apply normal_nonzero; auto.
-    + apply sup_least; intro n. apply sup_least; intros [].
-      eapply ord_le_trans;
-        [ apply (proj1 (fixOrd_eq_func _ _ _ _ (Hcol (natOrdSize n)) (normal_monotone _ (HD n))
-                          (reflexivity _))) | ].
-      destruct n as [|[|m]].
-      * eapply ord_le_trans; [ | apply (HWB None) ].
-        apply fixOrd_least; [ apply normal_monotone, (HD 0%nat) | apply fixOrd_above | ].
-        change (schutte_column f 0
-                  (fixOrd (fun δ => schutte_column f 1 δ 0)
-                          (limOrd (fun i:ordCarrier 0 => schutte_column f ω 1 (0 i)))) 0
-                ≤ fixOrd (fun δ => schutte_column f 1 δ 0)
-                         (limOrd (fun i:ordCarrier 0 => schutte_column f ω 1 (0 i)))).
-        rewrite schutte_column0.
-        eapply ord_le_trans; [ | apply (proj2 HW1fix) ].
-        apply schutte_column_le_f; auto.
-      * apply (HWB None).
-      * apply (HWB (Some m)).
-Qed.
-
-Corollary bach_SVO_SmallVeblen : bach powOmega bSVO 0 ≈ SmallVeblenOrdinal.
-Proof.
-  exact (bach_SVO powOmega powOmega_normal).
 Qed.
 
 (** ** Arbitrary powers of Ω: the full Schütte column
@@ -3327,80 +2689,268 @@ Proof.
                         (normal_monotone _ HNd) (normal_complete _ HNd) Hs Hsc)).
 Qed.
 
-(** ** The Large Veblen Ordinal *)
+(** ** The canonical trees
+
+The power theorem above is stated for @bPow ζ@, which presents Ω^ζ
+by recursion on ζ.  The canonical tree @bexpΩ (embed ζ)@ produced by
+the tree arithmetic has the same components (the small child 0 and
+the families ξ ↦ Ω^(ζ_i)·ξ), merely arranged differently, and the two
+are @bsub@-equivalent; likewise Ω^ζ·1 and Ω^ζ.  We transfer the power
+theorem along such equivalences, and along extensions by components
+that already fix the represented values. *)
 
 Lemma bsub_bPow : forall ζ ζ', ζ ≤ ζ' -> bsub (bPow ζ) (bPow ζ').
 Proof.
   induction ζ as [Z m Hm]; intros [Z' m'] H; simpl.
   split.
-  - intros _. exists tt. exact (bsub_refl bzero).
+  - intros []. exists tt. exact (bsub_refl bzero).
   - intro i. destruct (ord_le_subord _ _ H i) as [j Hj].
     exists j. intro ξ. apply bsub_bmul_l. apply Hm. exact Hj.
 Qed.
 
-(** Ω^Ω, as the Ω-limit of ζ ↦ Ω^ζ·1. *)
-Definition bLVO : BOrd := blimΩ (fun ζ => bmul (bPow ζ) (embed 1)).
+Lemma bsub_bPow_bexpΩ : forall ζ,
+  bsub (bPow ζ) (bexpΩ (embed ζ)) /\ bsub (bexpΩ (embed ζ)) (bPow ζ).
+Proof.
+  induction ζ as [Z m Hm]; split; apply bsub_intro.
+  - intros []. exists (inl tt). exact (bsub_refl bzero).
+  - intro i. exists (inr (inl (existT _ i (inr tt)))). intro ξ.
+    change (bsub (bmul (bPow (m i)) (embed ξ)) (bmul (bexpΩ (embed (m i))) (embed ξ))).
+    apply bsub_bmul_l, (proj1 (Hm i)).
+  - intros [[]|[[i [[[] _]|[]]]|[]]].
+    exists tt. exact (bsub_refl bzero).
+  - intros [[]|[[i [[[] _]|[]]]|[]]].
+    exists i. intro ξ.
+    change (bsub (bmul (bexpΩ (embed (m i))) (embed ξ)) (bmul (bPow (m i)) (embed ξ))).
+    apply bsub_bmul_l, (proj2 (Hm i)).
+Qed.
 
-Theorem bach_LVO f (Hf : normal_function f) :
-  bach f bLVO 0 ≈ fixOrd (fun β => schutte_column f β 1 0) 0.
+Lemma bsub_badd_empty_l x y :
+  (bsmall x -> False) -> (bbig x -> False) ->
+  bsub (badd x y) y /\ bsub y (badd x y).
+Proof.
+  intros Hs Hb.
+  induction y as [B g Hg D h Hh]; split; apply bsub_intro.
+  - intro s.
+    destruct (badd_small_cases x (bnode B g D h) s) as [[a _]|[b Hb']]; [ elim (Hs a) | ].
+    rewrite Hb'. exists b. apply (Hg b).
+  - intro c.
+    destruct (badd_big_cases x (bnode B g D h) c) as [[c' _]|[d Hd]]; [ elim (Hb c') | ].
+    exists d. intro ξ. rewrite Hd. apply (Hh d ξ).
+  - intro b.
+    destruct (badd_small_r x (bnode B g D h) b) as [t Ht].
+    exists t. rewrite Ht. apply (Hg b).
+  - intro d.
+    destruct (badd_big_r x (bnode B g D h) d) as [t Ht].
+    exists t. intro ξ. rewrite Ht. apply (Hh d ξ).
+Qed.
+
+(** P·1 and P are @bsub@-equivalent. *)
+Lemma bsub_bmul_one P : bsub (bmul P (embed 1)) P /\ bsub P (bmul P (embed 1)).
+Proof.
+  assert (HZ := bsub_badd_empty_l (bmul P (embed 0)) P
+                  (fun s => match s with inl (existT _ a _) => a | inr b => b end)
+                  (fun c => match c with inl (existT _ a _) => a | inr b => b end)).
+  destruct HZ as [HZ1 HZ2].
+  split; apply bsub_intro.
+  - intros [[[] s]|[]]. apply (bsub_small _ _ HZ1 s).
+  - intros [[[] c]|[]]. apply (bsub_big _ _ HZ1 c).
+  - intro b. destruct (bsub_small _ _ HZ2 b) as [s Hs].
+    exists (inl (existT _ tt s)). exact Hs.
+  - intro d. destruct (bsub_big _ _ HZ2 d) as [c Hc].
+    exists (inl (existT _ tt c)). exact Hc.
+Qed.
+
+(** Transferring @BRep@ along @bsub@. *)
+Lemma bcomp_bsub f (Hf : forall x y, x ≤ y -> f x ≤ f y) T T' :
+  bsub T' T -> bfam T ->
+  forall k', exists k, forall x, bcomp f T' k' x ≤ bcomp f T k x.
+Proof.
+  intros H HT [a'|c'].
+  - destruct (bsub_small _ _ H a') as [a Ha].
+    exists (inl a). intro x.
+    change (bach f (bsmallSz T' a') x ≤ bach f (bsmallSz T a) x).
+    apply bach_mono_index; auto. apply bfam_bmono; auto. apply bfam_small; auto.
+  - destruct (bsub_big _ _ H c') as [c Hc].
+    exists (inr c). intro x.
+    change (bach f (bbigSz T' c' x) 0 ≤ bach f (bbigSz T c x) 0).
+    apply bach_mono_index; auto. apply bfam_bmono; auto. apply bfam_big; auto.
+Qed.
+
+(** If T ⊑ T' and every component of T' fixes the values of G, then
+    T' represents G whenever T does. *)
+Lemma BRep_extend f (Hf : forall x y, x ≤ y -> f x ≤ f y) T T' G :
+  bsub T T' -> bfam T' -> BRep f T G ->
+  (forall k y, complete y -> bcomp f T' k (G y) ≤ G y) ->
+  BRep f T' G.
+Proof.
+  intros HTT' HT' [HG [Hrep Hcl]] Hcl'.
+  assert (HT'm : bmono f T') by (apply bfam_bmono; auto).
+  split; [ exact HG | split; [ | exact Hcl' ] ].
+  induction y as [Y h Hy]; intro Hyc.
+  assert (Hyc' := Hyc). destruct Hyc' as [_ [_ Hhc]].
+  split.
+  - apply bach_le_comp.
+    + transitivity (bach f T (ord Y h)); [ apply f_le_bach | apply (proj1 (Hrep _ Hyc)) ].
+    + intro k.
+      apply fixOrd_least; [ apply bmono_bcomp; auto | | apply Hcl'; auto ].
+      apply limit_least; intro j.
+      eapply ord_le_lt_trans; [ apply (proj1 (Hy j (Hhc j))) | ].
+      apply normal_increasing; auto. apply (index_lt (ord Y h) j).
+  - transitivity (bach f T (ord Y h)); [ apply (proj2 (Hrep _ Hyc)) | ].
+    apply bach_mono_index; auto.
+Qed.
+
+Lemma BRep_bsub_equiv f (Hf : forall x y, x ≤ y -> f x ≤ f y) T T' G :
+  bsub T T' -> bsub T' T -> bfam T -> bfam T' -> BRep f T G -> BRep f T' G.
+Proof.
+  intros H1 H2 HT HT' HR.
+  apply BRep_extend with T; auto.
+  intros k' y Hy.
+  destruct (bcomp_bsub f Hf T T' H2 HT k') as [k Hk].
+  transitivity (bcomp f T k (G y)); [ apply Hk | ].
+  apply HR; auto.
+Qed.
+
+(** The power theorem for the canonical trees. *)
+Theorem bach_bexpΩ_rep f (Hf : forall x y, x ≤ y -> f x ≤ f y) ζ :
+  complete ζ -> forall β G, bfam β -> BRep f β G ->
+  forall ξ, complete ξ ->
+  BRep f (badd β (bmul (bexpΩ (embed ζ)) (embed ξ))) (schutte_column G (1 + ζ) ξ).
+Proof.
+  intros Hζ β G Hβ HR ξ Hξ.
+  apply BRep_bsub_equiv with (badd β (bmul (bPow ζ) (embed ξ))); auto.
+  - apply bsub_badd_r, bsub_bmul_l, (proj1 (bsub_bPow_bexpΩ ζ)).
+  - apply bsub_badd_r, bsub_bmul_l, (proj2 (bsub_bPow_bexpΩ ζ)).
+  - apply bfam_badd; auto. apply bfam_bmul; auto using bfam_bPow, bfam_embed.
+  - apply bfam_badd; auto. apply bfam_bmul; auto using bfam_bexpΩ, bfam_embed.
+  - apply bach_bPow_rep; auto.
+Qed.
+
+(** φ_{Ω^ζ}(0) is the Schütte column 1+ζ at coefficient 1. *)
+Theorem bach_bexpΩ_zero f (Hf : normal_function f) ζ :
+  complete ζ -> bach f (bexpΩ (embed ζ)) 0 ≈ schutte_column f (1 + ζ) 1 0.
+Proof.
+  intro Hζ.
+  assert (Hfm : forall x y, x ≤ y -> f x ≤ f y) by (apply normal_monotone; auto).
+  assert (HP : bfam (bexpΩ (embed ζ))) by (apply bfam_bexpΩ, bfam_embed).
+  assert (HP1 : bfam (bmul (bexpΩ (embed ζ)) (embed 1))) by (apply bfam_bmul; auto using bfam_embed).
+  transitivity (bach f (bmul (bexpΩ (embed ζ)) (embed 1)) 0).
+  { apply bach_bsub_eq; auto; apply bsub_bmul_one. }
+  transitivity (bach f (badd bzero (bmul (bexpΩ (embed ζ)) (embed 1))) 0).
+  { symmetry. apply bach_badd_zero_l; auto. }
+  apply (bach_bexpΩ_rep f Hfm ζ Hζ bzero f bfam_bzero (bach_zero_rep f Hf) 1 complete_1).
+  apply zero_complete.
+Qed.
+
+(** ** The Small and Large Veblen Ordinals *)
+
+Theorem bach_SVO f (Hf : normal_function f) :
+  bach f (bexpΩ (embed ω)) 0 ≈ schutte_column f ω 1 0.
+Proof.
+  assert (Hfm : forall x y, x ≤ y -> f x ≤ f y) by (apply normal_monotone; auto).
+  transitivity (schutte_column f (1 + ω) 1 0).
+  { apply bach_bexpΩ_zero; auto using omega_complete. }
+  split; apply schutte_column_monotoneβ; auto.
+  - apply limit_onePlus, omega_limit.
+  - apply addOrd_le2.
+Qed.
+
+Corollary bach_SVO_SmallVeblen : bach powOmega (bexpΩ (embed ω)) 0 ≈ SmallVeblenOrdinal.
+Proof.
+  exact (bach_SVO powOmega powOmega_normal).
+Qed.
+
+Lemma LVO_onePlus f (Hf : normal_function f) :
+  fixOrd (fun ζ => schutte_column f (1 + ζ) 1 0) 0 ≈ fixOrd (fun β => schutte_column f β 1 0) 0.
 Proof.
   assert (Hfm : forall x y, x ≤ y -> f x ≤ f y) by (apply normal_monotone; auto).
   assert (HF : normal_function (fun β => schutte_column f β 1 0)) by (apply schutte_column_normalβ; auto).
-  assert (HD : forall ζ, complete ζ ->
-             bach f (bmul (bPow ζ) (embed 1)) 0 ≈ schutte_column f (1 + ζ) 1 0).
-  { intros ζ Hζ.
-    transitivity (bach f (badd bzero (bmul (bPow ζ) (embed 1))) 0).
-    - symmetry. apply bach_badd_zero_l; auto.
-      apply bfam_bmul; auto using bfam_bPow, bfam_embed.
-    - apply (bach_bPow_rep f Hfm ζ Hζ bzero f bfam_bzero (bach_zero_rep f Hf) 1 complete_1).
-      apply zero_complete. }
-  assert (HDmono : forall x y, x ≤ y ->
-             bach f (bmul (bPow x) (embed 1)) 0 ≤ bach f (bmul (bPow y) (embed 1)) 0).
-  { intros x y Hxy. apply bach_mono_index; auto.
-    - apply bsub_bmul_l, bsub_bPow; auto.
-    - apply bfam_bmono; auto. apply bfam_bmul; auto using bfam_bPow, bfam_embed. }
-  assert (HD'mono : forall x y, x ≤ y -> schutte_column f (1 + x) 1 0 ≤ schutte_column f (1 + y) 1 0).
-  { intros x y Hxy. apply schutte_column_monotoneβ; auto.
-    apply addOrd_monotone; auto. reflexivity. }
-  assert (HD'c : forall x, complete x -> complete (schutte_column f (1 + x) 1 0)).
-  { intros x Hx. apply normal_complete; auto using zero_complete.
-    apply schutte_column_normal; auto using onePlus_complete, complete_1. }
-  assert (Hs0 : limOrd (fun j:ordCarrier 0 => bach f bLVO (0 j)) ≈ 0).
-  { split; [ apply limit_least; intros [] | apply zero_least ]. }
-  assert (Z1 : fixOrd (fun ζ => bach f (bmul (bPow ζ) (embed 1)) 0) (limOrd (fun j:ordCarrier 0 => bach f bLVO (0 j)))
-               ≈ fixOrd (fun ζ => schutte_column f (1 + ζ) 1 0) 0).
-  { apply fixOrd_eq_func_complete; auto using zero_complete. }
   assert (HLc : complete (fixOrd (fun β => schutte_column f β 1 0) 0)).
   { apply normal_fix_complete; auto using zero_complete.
     - apply normal_inflationary; auto.
     - apply normal_monotone; auto.
     - apply normal_complete; auto. }
   assert (HLfix := normal_fixpoint _ HF 0 zero_complete).
-  assert (Z2 : fixOrd (fun ζ => schutte_column f (1 + ζ) 1 0) 0 ≈ fixOrd (fun β => schutte_column f β 1 0) 0).
-  { split.
-    - apply fixOrd_least; auto using zero_least.
-      transitivity (schutte_column f (fixOrd (fun β => schutte_column f β 1 0) 0) 1 0).
-      + apply schutte_column_monotoneβ; auto.
-        transitivity (schutte_column f (fixOrd (fun β => schutte_column f β 1 0) 0) 1 0).
-        * apply (onePlus_least_normal (fun β => schutte_column f β 1 0)); auto.
-        * apply (proj2 HLfix).
-      + apply (proj2 HLfix).
-    - apply fixOrd_monotone_func; auto.
-      intro x. apply schutte_column_monotoneβ; auto. apply addOrd_le2. }
   split.
-  - rewrite bach_unroll'.
-    apply lub_least.
-    + transitivity (schutte_column f (fixOrd (fun β => schutte_column f β 1 0) 0) 1 0);
-        [ | apply (proj2 HLfix) ].
-      transitivity (f (1 + 0)); [ apply Hfm, zero_least | apply schutte_column_le_f; auto ].
-    + apply lub_least; apply sup_least; intros [].
-      eapply ord_le_trans; [ apply (proj1 Z1) | apply (proj1 Z2) ].
-  - eapply ord_le_trans; [ apply (proj2 Z2) | ].
-    eapply ord_le_trans; [ apply (proj2 Z1) | ].
-    apply (bach_comp_le f bLVO 0 (inr tt)).
+  - apply fixOrd_least; auto using zero_least.
+    + intros x y Hxy. apply schutte_column_monotoneβ; auto.
+      apply addOrd_monotone; auto. reflexivity.
+    + transitivity (schutte_column f (fixOrd (fun β => schutte_column f β 1 0) 0) 1 0).
+      * apply schutte_column_monotoneβ; auto.
+        transitivity (schutte_column f (fixOrd (fun β => schutte_column f β 1 0) 0) 1 0).
+        -- apply (onePlus_least_normal (fun β => schutte_column f β 1 0)); auto.
+        -- apply (proj2 HLfix).
+      * apply (proj2 HLfix).
+  - apply fixOrd_monotone_func.
+    + intro x. apply schutte_column_monotoneβ; auto. apply addOrd_le2.
+    + intros x y Hxy. apply schutte_column_monotoneβ; auto.
+      apply addOrd_monotone; auto. reflexivity.
 Qed.
 
-Corollary bach_LVO_LargeVeblen : bach powOmega bLVO 0 ≈ LargeVeblenOrdinal.
+(** Ω^Ω is the canonical tree @bexpΩ bOmega@: the small child 0 (from
+    the leading 1) and the single family ζ ↦ Ω^ζ. *)
+Theorem bach_LVO f (Hf : normal_function f) :
+  bach f (bexpΩ bOmega) 0 ≈ fixOrd (fun β => schutte_column f β 1 0) 0.
+Proof.
+  assert (Hfm : forall x y, x ≤ y -> f x ≤ f y) by (apply normal_monotone; auto).
+  assert (HF : normal_function (fun β => schutte_column f β 1 0)) by (apply schutte_column_normalβ; auto).
+  assert (HLc : complete (fixOrd (fun β => schutte_column f β 1 0) 0)).
+  { apply normal_fix_complete; auto using zero_complete.
+    - apply normal_inflationary; auto.
+    - apply normal_monotone; auto.
+    - apply normal_complete; auto. }
+  assert (HLfix := normal_fixpoint _ HF 0 zero_complete).
+  assert (HDmono : forall x y, x ≤ y -> bach f (bexpΩ (embed x)) 0 ≤ bach f (bexpΩ (embed y)) 0).
+  { intros x y Hxy. apply bach_mono_index; auto.
+    - apply bsub_bexpΩ, bsub_embed; auto.
+    - apply bfam_bmono; auto. apply bfam_bexpΩ, bfam_embed. }
+  assert (HD'mono : forall x y, x ≤ y -> schutte_column f (1 + x) 1 0 ≤ schutte_column f (1 + y) 1 0).
+  { intros x y Hxy. apply schutte_column_monotoneβ; auto.
+    apply addOrd_monotone; auto. reflexivity. }
+  assert (HD'c : forall x, complete x -> complete (schutte_column f (1 + x) 1 0)).
+  { intros x Hx. apply normal_complete; auto using zero_complete.
+    apply schutte_column_normal; auto using onePlus_complete, complete_1. }
+  assert (Hs0 : limOrd (fun j:ordCarrier 0 => bach f (bexpΩ bOmega) (0 j)) ≈ 0).
+  { split; [ apply limit_least; intros [] | apply zero_least ]. }
+  assert (Hdiag : fixOrd (fun ζ => bach f (bexpΩ (embed ζ)) 0)
+                         (limOrd (fun j:ordCarrier 0 => bach f (bexpΩ bOmega) (0 j)))
+                  ≈ fixOrd (fun β => schutte_column f β 1 0) 0).
+  { transitivity (fixOrd (fun ζ => schutte_column f (1 + ζ) 1 0) 0).
+    - apply fixOrd_eq_func_complete; auto using zero_complete.
+      intros x Hx. apply bach_bexpΩ_zero; auto.
+    - apply LVO_onePlus; auto. }
+  (* the value L is a fixpoint of f *)
+  assert (HfL : f (fixOrd (fun β => schutte_column f β 1 0) 0) ≤ fixOrd (fun β => schutte_column f β 1 0) 0).
+  { set (L := fixOrd (fun β => schutte_column f β 1 0) 0) in *.
+    assert (HL0 : 0 < L).
+    { eapply ord_lt_le_trans; [ | apply (proj2 HLfix) ].
+      eapply ord_lt_le_trans; [ apply (normal_nonzero f Hf (1 + 0)) | ].
+      apply schutte_column_le_f; auto. }
+    transitivity (f (schutte_column f L 1 0)); [ apply Hfm, (proj1 HLfix) | ].
+    transitivity (schutte_column (schutte_column f L 0) 0 (schutte_column f L 1 0) 0).
+    - rewrite schutte_column0.
+      transitivity (schutte_column f L 0 (schutte_column f L 1 0)).
+      + rewrite schutte_column_arg0; auto. reflexivity.
+      + apply schutte_column_monotone; auto. reflexivity. apply addOrd_le1.
+    - eapply ord_le_trans; [ apply schutte_column_fixpoint; auto using complete_1, zero_complete | ].
+      + rewrite ord_lt_unfold. exists tt. reflexivity.
+      + apply (proj2 HLfix). }
+  split.
+  - apply bach_le_comp.
+    + transitivity (f (fixOrd (fun β => schutte_column f β 1 0) 0)); auto.
+      apply Hfm, zero_least.
+    + intros [[[]|[[[] _]|[]]]|[[]|[[[] _]|[]]]].
+      * apply fixOrd_least; [ apply bmono_bcomp; auto; apply bfam_bmono; auto using bfam_bexpΩ, bfam_Ω | | ].
+        { apply limit_least; intros []. }
+        change (bach f bzero (fixOrd (fun β => schutte_column f β 1 0) 0)
+                ≤ fixOrd (fun β => schutte_column f β 1 0) 0).
+        rewrite bach_bzero. exact HfL.
+      * exact (proj1 Hdiag).
+  - eapply ord_le_trans; [ apply (proj2 Hdiag) | ].
+    apply (bach_comp_le f (bexpΩ bOmega) 0 (inr (inr (inr tt)))).
+Qed.
+
+Corollary bach_LVO_LargeVeblen : bach powOmega (bexpΩ bOmega) 0 ≈ LargeVeblenOrdinal.
 Proof.
   exact (bach_LVO powOmega powOmega_normal).
 Qed.
