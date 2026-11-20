@@ -37,6 +37,7 @@ Ordinal/VeblenFacts.v
 Ordinal/AckermannTower.v
 Ordinal/SchutteColumn.v
 Ordinal/SchutteColumnFacts.v
+Ordinal/BachmannDefs.v
 
 Ordinal/Countable.v
 
