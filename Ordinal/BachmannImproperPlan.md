@@ -190,8 +190,9 @@ such z.  Proof by induction on ⟦X⟧ (blt):
 
 Sub-milestones: (H1) DONE: `addT`, `normX`, `imp_ok`, `addT_nf`,
 `addT_mono` (strict), `normX_nf`, `normX_id`, `ilt_irrefl`, `ilt_asym`,
-`cmpIX_spec`; (H2) generalized
-cover with N-monotonicity; (H3) cofinality; (H4) BachChar by induction;
+`cmpIX_spec`; (H2) DONE: `coverX`
+(components of an `imp_ok` index sandwiched by `imp_ok` notations K' with
+ilt (normX K') (normX X)); (H3) cofinality; (H4) BachChar by induction;
 (H5) generalized offset/enumeration theorem; (H6) BS normalizer
 BN X y → BN (N X) (t ⊕ y) and correctness; then step 5 (matrices).
 Absorption inside exponents stays out of scope (exponents normal).

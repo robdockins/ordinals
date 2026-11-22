@@ -3662,3 +3662,80 @@ Proof.
   destruct r as [|e2 c2 r2]; [ reflexivity | ].
   apply addT_gt; auto. apply Hr.
 Qed.
+
+(** ** Covering the components of an improper index *)
+
+Definition icovX (T0:BIdx) : Prop :=
+  (forall a, exists T, imp_ok T /\ KHI T /\ ilt (normX T) (normX T0) /\
+     bsub (bsmallSz (BI_denote T0) a) (BI_denote T) /\
+     exists a', bsub (BI_denote T) (bsmallSz (BI_denote T0) a')) /\
+  (forall d x, BS_nf x -> HI (BS_denote x) -> exists T, imp_ok T /\ KHI T /\ ilt (normX T) (normX T0) /\
+     bsub (bbigSz (BI_denote T0) d (BS_denote x)) (BI_denote T) /\
+     exists d', bsub (BI_denote T) (bbigSz (BI_denote T0) d' (BS_denote x))).
+
+Lemma imp_ok_KHI_nf e c : BI_nf e -> BS_nf c -> 0 < BS_denote c -> BI_nf (BIC e c BIZ).
+Proof. intros. repeat split; auto. Qed.
+
+Theorem coverX : forall T0, imp_ok T0 -> KHI T0 -> icovX T0.
+Proof.
+  induction T0 as [|e _ c r IHr]; intros HT HK.
+  - split; [ intros [] | intros [] ].
+  - destruct HT as [He [Hc [Hc0 Hr]]].
+    destruct (KHI_cons _ _ _ HK) as [HKe [HKc HKr]].
+    destruct (IHr Hr HKr) as [Sr Fr].
+    assert (HPn : BI_nf (BIC e c BIZ)) by (repeat split; auto).
+    assert (HKP : KHI (BIC e c BIZ)) by (apply KHI_intro; auto using KHI_nil).
+    destruct (cover _ HPn HKP) as [SP FP].
+    assert (HnR := normX_nf r Hr).
+    (* anything below P is below the normal form of P + r *)
+    assert (HPle : forall K, ilt K (BIC e c BIZ) -> ilt K (normX (BIC e c r))).
+    { intros K HKl. simpl. destruct (normX r) as [|e2 c2 r2] eqn:Er.
+      - exact HKl.
+      - eapply ilt_trans; [ exact HKl | ].
+        change (BIC e c BIZ) with (addT e c BIZ).
+        apply addT_mono; auto. constructor. constructor. }
+    assert (Hmono : forall K, imp_ok K -> ilt (normX K) (normX r) ->
+                      ilt (normX (BIC e c K)) (normX (BIC e c r))).
+    { intros K HKo Hl. simpl. apply addT_mono; auto using normX_nf. }
+    unfold icovX.
+    change (BI_denote (BIC e c r)) with
+      (badd (bmul (bexpΩ (BI_denote e)) (embed (BS_denote c))) (BI_denote r)).
+    set (Pt := bmul (bexpΩ (BI_denote e)) (embed (BS_denote c))).
+    change (BI_denote (BIC e c BIZ)) with (badd Pt bzero) in SP, FP.
+    split.
+    + intro a. destruct (badd_small_cases Pt (BI_denote r) a) as [[a' Ea]|[b Eb]]; rewrite ?Ea, ?Eb.
+      * destruct (badd_small_l Pt bzero a') as [k Ek].
+        destruct (SP k) as [T [HTn [HKT [HTl [Hlo [k' Hup]]]]]].
+        rewrite Ek in Hlo.
+        exists T. split; [ apply nf_imp_ok; auto | split; [ exact HKT | split ] ].
+        { rewrite normX_id; auto. }
+        split; [ exact Hlo | ].
+        destruct (badd_small_cases Pt bzero k') as [[a'' E'']|[[] _]].
+        rewrite E'' in Hup.
+        destruct (badd_small_l Pt (BI_denote r) a'') as [t Et].
+        exists t. rewrite Et. exact Hup.
+      * destruct (Sr b) as [K [HKo [HKK [HKl [Hlo [b' Hup]]]]]].
+        exists (BIC e c K). split; [ repeat split; auto | split; [ apply KHI_intro; auto | split ] ].
+        { apply Hmono; auto. }
+        split; [ apply bsub_badd_r; auto | ].
+        destruct (badd_small_r Pt (BI_denote r) b') as [t Et].
+        exists t. rewrite Et. apply bsub_badd_r; auto.
+    + intros d x Hx HIx.
+      destruct (badd_big_cases Pt (BI_denote r) d) as [[d' Ed]|[d' Ed]]; rewrite Ed.
+      * destruct (badd_big_l Pt bzero d') as [k Ek].
+        destruct (FP k x Hx HIx) as [T [HTn [HKT [HTl [Hlo [k' Hup]]]]]].
+        rewrite Ek in Hlo.
+        exists T. split; [ apply nf_imp_ok; auto | split; [ exact HKT | split ] ].
+        { rewrite normX_id; auto. }
+        split; [ exact Hlo | ].
+        destruct (badd_big_cases Pt bzero k') as [[d'' E'']|[[] _]].
+        rewrite E'' in Hup.
+        destruct (badd_big_l Pt (BI_denote r) d'') as [t Et].
+        exists t. rewrite Et. exact Hup.
+      * destruct (Fr d' x Hx HIx) as [K [HKo [HKK [HKl [Hlo [d'' Hup]]]]]].
+        exists (BIC e c K). split; [ repeat split; auto | split; [ apply KHI_intro; auto | split ] ].
+        { apply Hmono; auto. }
+        split; [ apply bsub_badd_r; auto | ].
+        destruct (badd_big_r Pt (BI_denote r) d'') as [t Et].
+        exists t. rewrite Et. apply bsub_badd_r; auto.
+Qed.
