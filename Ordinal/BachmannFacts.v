@@ -473,3 +473,223 @@ Proof.
   - apply bcd_bexpΩ; auto.
   - apply bslt_bexpΩ; auto.
 Qed.
+
+(** ** Interpolation for the common-fixpoint enumerator
+
+Everything below a value @cfe y@ lies below f y, or below a finite
+composition of f and the components ("a word") applied either to 0 or
+to the successor of an earlier value @cfe (y j)@.  The starting points
+lie below @cfe y@, and in the second case there is a component, so
+@cfe y@ is a fixpoint of f and of every component; hence the whole
+composition stays below @cfe y@.  This is the semantic half of
+interpolation for notations built on @bphi@. *)
+
+Section cfe_interp.
+  Variable f : Ord -> Ord.
+  Hypothesis Hf : normal_function f.
+  Variable I : Type.
+  Variable F : I -> Ord -> Ord.
+  Hypothesis HF : forall i, normal_function (F i).
+
+  Fixpoint wev (w:list (option I)) (x:Ord) : Ord :=
+    match w with
+    | [] => x
+    | None :: w' => f (wev w' x)
+    | Some i :: w' => F i (wev w' x)
+    end.
+
+  Lemma wev_monotone w : forall x y, x ≤ y -> wev w x ≤ wev w y.
+  Proof.
+    induction w as [|[i|] w IH]; simpl; auto.
+    - intros. apply normal_monotone; auto.
+    - intros. apply normal_monotone; auto.
+  Qed.
+
+  Lemma wev_complete w : forall x, complete x -> complete (wev w x).
+  Proof.
+    induction w as [|[i|] w IH]; simpl; auto.
+    - intros. apply normal_complete; auto.
+    - intros. apply normal_complete; auto.
+  Qed.
+
+  Lemma wev_continuous w : scott_continuous (wev w).
+  Proof.
+    intros A g a0 Hdir Hc.
+    induction w as [|o w IH]; simpl; [ reflexivity | ].
+    assert (Hdir' : directed A (fun a => wev w (g a))).
+    { intros a1 a2. destruct (Hdir a1 a2) as [a' [H1 H2]].
+      exists a'. split; apply wev_monotone; auto. }
+    assert (Hc' : forall a, complete (wev w (g a))) by (intro; apply wev_complete; auto).
+    destruct o as [i|].
+    - transitivity (F i (supOrd (fun a => wev w (g a)))); [ apply normal_monotone; auto | ].
+      apply (normal_continuous _ (HF i) A _ a0 Hdir' Hc').
+    - transitivity (f (supOrd (fun a => wev w (g a)))); [ apply normal_monotone; auto | ].
+      apply (normal_continuous _ Hf A _ a0 Hdir' Hc').
+  Qed.
+
+  Lemma wev_app w1 w2 x : wev (w1 ++ w2) x = wev w1 (wev w2 x).
+  Proof. induction w1 as [|[i|] w1 IH]; simpl; auto; rewrite IH; auto. Qed.
+
+  Lemma wev_fix w z x : f z ≤ z -> (forall i, F i z ≤ z) -> x ≤ z -> wev w x ≤ z.
+  Proof.
+    intros H1 H2 Hx. induction w as [|[i|] w IH]; simpl; auto.
+    - transitivity (F i z); auto. apply normal_monotone; auto.
+    - transitivity (f z); auto. apply normal_monotone; auto.
+  Qed.
+
+  Definition word (p:(I * list I)%type) : list (option I) :=
+    Some (fst p) :: map Some (snd p) ++ [None].
+
+  Lemma wev_comps L x : wev (map Some L ++ [None]) x = comps f I F L x.
+  Proof. induction L as [|i L IH]; simpl; auto. rewrite IH; auto. Qed.
+
+  Lemma wev_word p x : wev (word p) x = c1 f I F p x.
+  Proof. unfold word, c1. simpl. rewrite wev_comps. reflexivity. Qed.
+
+  Fixpoint iterw (p:(I * list I)%type) (k:nat) : list (option I) :=
+    match k with
+    | O => []
+    | S k' => word p ++ iterw p k'
+    end.
+
+  Lemma wev_iterw p k x : wev (iterw p k) x = iter_f (c1 f I F p) x k.
+  Proof.
+    induction k as [|k IH]; [ reflexivity | ].
+    change (wev (word p ++ iterw p k) x = c1 f I F p (iter_f (c1 f I F p) x k)).
+    rewrite wev_app, IH, wev_word. reflexivity.
+  Qed.
+
+  Definition cstart (y:Ord) (o:option y) : Ord :=
+    match o with
+    | None => 0
+    | Some j => succOrd (cfe f I F (y j))
+    end.
+
+  Theorem cfe_interp (y:Ord) i : complete y -> i < cfe f I F y ->
+    i < f y \/
+    (inhabited I /\ exists (o:option y) (w:list (option I)),
+       i < wev w (cstart y o) /\ cstart y o ≤ cfe f I F y).
+  Proof.
+    intros Hy Hi.
+    rewrite (cfe_unroll f I F y) in Hi.
+    apply sup_lt in Hi. destruct Hi as [[p|] Hi]; simpl in Hi; [ right | left; auto ].
+    split; [ exact (inhabits (fst p)) | ].
+    set (s := limOrd (fun j => cfe f I F (y j))) in *.
+    assert (Hsc : s ≤ cfe f I F y).
+    { transitivity (fixOrd (c1 f I F p) s); [ apply fixOrd_above | ].
+      apply (cfe_ge_term f I F y (Some p)). }
+    unfold fixOrd in Hi. apply sup_lt in Hi. destruct Hi as [k Hk].
+    rewrite <- wev_iterw in Hk.
+    destruct y as [Y h]. destruct Hy as [Hdir [_ Hc]].
+    assert (Hdir' : directed (option (ord Y h)) (cstart (ord Y h))).
+    { intros [j1|] [j2|]; simpl.
+      - destruct (Hdir j1 j2) as [j3 [H1 H2]]. exists (Some j3). simpl.
+        split; apply succ_monotone, cfe_monotone; auto.
+      - exists (Some j1). split; [ reflexivity | apply zero_least ].
+      - exists (Some j2). split; [ apply zero_least | reflexivity ].
+      - exists None. split; reflexivity. }
+    assert (Hcs : forall o, complete (cstart (ord Y h) o)).
+    { intros [j|]; simpl; [ apply succ_complete, cfe_complete; auto | apply zero_complete ]. }
+    assert (Hs : s ≤ supOrd (cstart (ord Y h))).
+    { apply limit_least. intro j.
+      eapply ord_lt_le_trans; [ | apply (sup_le _ _ (Some j)) ].
+      apply succ_lt. }
+    assert (Hk' : i < supOrd (fun o => wev (iterw p k) (cstart (ord Y h) o))).
+    { eapply ord_lt_le_trans; [ exact Hk | ].
+      transitivity (wev (iterw p k) (supOrd (cstart (ord Y h)))); [ apply wev_monotone; auto | ].
+      apply (wev_continuous (iterw p k) _ _ None Hdir' Hcs). }
+    apply sup_lt in Hk'. destruct Hk' as [o Ho].
+    exists o, (iterw p k). split; auto.
+    destruct o as [j|]; simpl; [ | apply zero_least ].
+    apply succ_least. eapply ord_lt_le_trans; [ | exact Hsc ].
+    apply (limit_lt _ (fun j => cfe f I F (ord Y h j)) j).
+  Qed.
+End cfe_interp.
+
+(** The same, for @bphi@: the components of a node are those of
+    @bphi_fam@. *)
+Lemma bphi_interp f (Hf : normal_function f) X y i : bgood f X -> complete y -> i < bphi f X y ->
+  i < f y \/
+  (inhabited (bsmall X + bbig X) /\
+   exists (o:option y) (w:list (option (bsmall X + bbig X))),
+     i < wev f _ (bphi_fam f (bsmallSz X) (bbigSz X)) w
+           (match o with None => 0 | Some j => succOrd (bphi f X (y j)) end) /\
+     match o with None => 0 | Some j => succOrd (bphi f X (y j)) end ≤ bphi f X y).
+Proof.
+  destruct X as [A g C h]. intros HX Hy Hi.
+  exact (cfe_interp f Hf (A + C) (bphi_fam f g h) (bphi_fam_normal' f Hf A g C h HX) y i Hy Hi).
+Qed.
+
+(** Structural inclusion implies the index order. *)
+Lemma bsub_ble : forall x y, bsub x y -> ble x y.
+Proof.
+  induction x as [A g IHg C h IHh]. intros [B g' D h'] [H1 H2].
+  rewrite ble_unfold. intros [a|[c ξ]]; simpl; rewrite blt_unfold.
+  - destruct (H1 a) as [b Hb]. exists (inl b). apply IHg; auto.
+  - destruct (H2 c) as [d Hd]. exists (inr (d, ξ)). apply IHh; auto.
+Qed.
+
+Lemma bsub_child_blt x y i : bsub x (bchild y i) -> blt x y.
+Proof. intro H. apply ble_lt_trans with (bchild y i); [ apply bsub_ble; auto | apply bindex_lt ]. Qed.
+
+(** ** The children of Ω^e·γ *)
+
+Lemma bexpΩ_small_all y t : bsmallSz (bexpΩ y) t = bzero.
+Proof. destruct y as [B g D h]. destruct t as [[]|[[b [[[] _]|[]]]|[]]]; reflexivity. Qed.
+
+Lemma bexpΩ_big_cases y k :
+  (exists q, forall ξ, bbigSz (bexpΩ y) k ξ = bmul (bexpΩ (bsmallSz y q)) (embed ξ)) \/
+  (exists d, forall ξ, bbigSz (bexpΩ y) k ξ = bexpΩ (bbigSz y d ξ)).
+Proof.
+  destruct y as [B g D h].
+  destruct k as [[]|[[b [[[] _]|[]]]|d]].
+  - left. exists b. intro; reflexivity.
+  - right. exists d. intro; reflexivity.
+Qed.
+
+(** The children of E·γ₀ are E·γ + K, for γ < γ₀ and K a child of E. *)
+Lemma mul_small_form E : forall γ0 a, exists γ, γ < γ0 /\ exists k,
+  bsmallSz (bmul E (embed γ0)) a = badd (bmul E (embed γ)) (bsmallSz E k).
+Proof.
+  induction γ0 as [G g IH]. intros [[j s]|[]].
+  change (exists γ, γ < ord G g /\ exists k,
+    bsmallSz (badd (bmul E (embed (g j))) E) s = badd (bmul E (embed γ)) (bsmallSz E k)).
+  destruct (badd_small_cases (bmul E (embed (g j))) E s) as [[a' Ea]|[k Ek]].
+  - rewrite Ea. destruct (IH j a') as [γ [Hγ [k Hk]]]. exists γ. split; [ | exists k; auto ].
+    eapply ord_lt_trans; [ exact Hγ | apply (index_lt (ord G g) j) ].
+  - rewrite Ek. exists (g j). split; [ apply (index_lt (ord G g) j) | exists k; auto ].
+Qed.
+
+Lemma mul_big_form E : forall γ0 d, exists γ, γ < γ0 /\ exists k, forall ξ,
+  bbigSz (bmul E (embed γ0)) d ξ = badd (bmul E (embed γ)) (bbigSz E k ξ).
+Proof.
+  induction γ0 as [G g IH]. intros [[j s]|[]].
+  change (exists γ, γ < ord G g /\ exists k, forall ξ,
+    bbigSz (badd (bmul E (embed (g j))) E) s ξ = badd (bmul E (embed γ)) (bbigSz E k ξ)).
+  destruct (badd_big_cases (bmul E (embed (g j))) E s) as [[a' Ea]|[k Ek]].
+  - destruct (IH j a') as [γ [Hγ [k Hk]]]. exists γ. split.
+    + eapply ord_lt_trans; [ exact Hγ | apply (index_lt (ord G g) j) ].
+    + exists k. intro ξ. rewrite Ea. auto.
+  - exists (g j). split; [ apply (index_lt (ord G g) j) | exists k; intro ξ; rewrite Ek; auto ].
+Qed.
+
+Lemma mul_small_back E (γ0:Ord) (j:γ0) k : exists a,
+  bsmallSz (bmul E (embed γ0)) a = badd (bmul E (embed (γ0 j))) (bsmallSz E k).
+Proof.
+  destruct γ0 as [G g].
+  destruct (badd_small_r (bmul E (embed (g j))) E k) as [s Hs].
+  destruct (bmul_small_r E (embed (ord G g)) j s) as [t Ht].
+  exists t. rewrite Ht. exact Hs.
+Qed.
+
+Lemma mul_big_back E (γ0:Ord) (j:γ0) k : exists d, forall ξ,
+  bbigSz (bmul E (embed γ0)) d ξ = badd (bmul E (embed (γ0 j))) (bbigSz E k ξ).
+Proof.
+  destruct γ0 as [G g].
+  destruct (badd_big_r (bmul E (embed (g j))) E k) as [s Hs].
+  destruct (bmul_big_r E (embed (ord G g)) j s) as [t Ht].
+  exists t. intro ξ. rewrite Ht. apply Hs.
+Qed.
+
+Lemma bsub_mul_zero x : bsub (bmul x (embed 0)) bzero.
+Proof. apply bsub_intro; intros [[[] _]|[]]. Qed.

@@ -144,11 +144,20 @@ column (exactly one step of `schutte_matrix`).
      arguments and coefficient repair; index-level merging and
      absorption, justified by `bequiv` or domination (needs e.g.
      distributivity of `bmul` over `badd` up to `bequiv`, and 0(d)).
-   - 5c. Syntactic fundamental sequences `T[ξ]` matching the families
-     of `⟦T⟧`, and the semantic interpolation lemma for `cfe`/`bphi`
-     (Phase 0(e)).
-   - 5d. Assembly: `has_all_interpolants`, order type ≈ BHO₁,
-     `has_enough_notations` under EM, the natural product.
+   - 5c. DONE. Syntactic fundamental sequences and interpolation.
+     Semantic half (`BachmannFacts.v`): `cfe_interp`/`bphi_interp`;
+     everything below φ_T(u) lies below 1+u, or below a finite word in
+     f and the components applied to 0 or to succ φ_T(u_j). Syntactic
+     half: `cover` gives, for every small child and every Ω-family
+     member at a notation argument of ⟦T⟧, a normal index T' (with
+     T' < T) sandwiched up to `bsub` between that child and another
+     child of the same kind. This replaces exact `T[ξ]` matching:
+     children of Ω^e·c involve arbitrary ordinals γ < c, which are
+     approximated by notations from the coefficient's interpolants.
+     Then `interp_aux` (induction on `blt` of the index tree, then on
+     the argument) gives `BS_has_all_interpolants` and, under EM,
+     `BS_has_enough_notations`. Axiom-free.
+   - 5d. Assembly: order type ≈ BHO₁, the natural product.
    - 5e (optional). Base change: BHO₁ ≈ `BachmannHoward` (powOmega
      base), a tree-level absorption problem.
 
