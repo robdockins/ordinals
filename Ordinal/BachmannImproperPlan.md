@@ -87,7 +87,37 @@ for Schütte matrices.
    `fix_principal` (those fixpoints are additively principal),
    `fix_succ_lt`, `off_max_spec`.  Computed examples included.
    Axiom-free.
-3. One-step absorption theorem (P term, R normal), at notation level.
+3. IN PROGRESS: one-step absorption theorem (P = Ω^e·c normal term,
+   R normal with leading exponent > e; section `absorb` in
+   `Notation/BachmannNotation.v`).
+   - DONE: `absorb_sub` (⊆: common fixpoints for P+R are common
+     fixpoints for R), `absorb_region` (values of φ_{P+R} exceed P's
+     coefficients, via `Kgs_ctx`), and `absorb_enum`:
+     φ_{P+R}(y) = φ_R(t + y) for normal y, with t = `absorb_offset`
+     (= `BS_offset R m`, m = P's largest coefficient).  `absorb_enum`
+     takes the hard direction as the section hypothesis `ABS`:
+     for a notation value z = φ_R(s), z ∈ Fix(R) and Klt z P imply
+     z ∈ Fix(P+R).  The proof uses interpolants of y for the children,
+     so it never needs ABS at non-notation points.
+   - TODO: prove `ABS`, by induction on ⟦R⟧ (`blt`).  First restate it
+     for any notation value w (z = ⟦w⟧), transporting `bfix` along ≈.
+     f and the components of P are handled by `nest` (P ilt R).  For a
+     component K of ⟦R⟧, sandwich it by a normal K' (`cover`, at argument
+     w for families); compare lead(K') with e:
+       * lead(K') > e: absorption instance with smaller R-part.  For
+         small K use `absorb_enum` for K' (IH) at argument w, plus
+         t' < z (OffSpec), t' + z = z (`fix_principal`) and
+         φ_{K'}(z) ≤ z; for families use ABS for K' directly.
+       * lead(K') = e: merge (`bequiv_merge`, coefficient c ⊕ c₂ < z
+         by principality), then as below.
+       * lead(K') < e or K' = 0: N = Ω^e·c + K' is normal and ilt R.
+         Small K: Klt z N, because K' has coefficients
+         ≤ φ_{K'}(0) < φ_{K'}(z) ≤ z (dominance), so `nest` + `zlt_nest`
+         apply.  Families: the argument z sits at the end of K', so only
+         Kend z N holds; `nest_le` gives bleZ z ⟦N⟧ ⟦R⟧ but requires
+         Klt z R, which fails when z equals R's end coefficient (e.g.
+         R = Ω·k with φ_{Ω·k}(0) = k).  Needed: a version of `nest_le`
+         for targets with Kend z R.  This is the remaining obstacle.
 4. Normalizer for indices with normal exponents (merge + absorption,
    bottom-up on summands) and for `BS` terms; correctness.
 5. Transfer to `SchutteMatrix`: extend `Kl_correct` to improper

@@ -3065,3 +3065,149 @@ Proof. reflexivity. Qed.
 Example offset_fix : BS_offset BI_Ω (BN (BIC BI_one (BN BIZ BS_one) BIZ) BZ) =
                      BS_succ (BN (BIC BI_one (BN BIZ BS_one) BIZ) BZ).
 Proof. reflexivity. Qed.
+
+(** * One absorption step
+
+P = Ω^e·c is a normal summand and R a normal index whose leading
+exponent exceeds e.  The index P + R is improper.  Its common
+fixpoints are those of R that lie above the coefficients of P, so
+φ_{P+R}(y) = φ_R(t + y) with t = BS_offset R m, m the largest
+coefficient of P. *)
+
+Definition lead_gt (R:BIdx) (e:BIdx) : Prop :=
+  match R with BIC e' _ _ => ilt e e' | BIZ => False end.
+
+Section absorb.
+  Variables (e:BIdx) (c:BSmall) (R:BIdx).
+  Hypothesis HP : BI_nf (BIC e c BIZ).
+  Hypothesis HR : BI_nf R.
+  Hypothesis HRe : lead_gt R e.
+
+  Let P := BIC e c BIZ.
+  Let X := BIC e c R.
+
+  Lemma R_lead_big : lead_big R.
+  Proof. destruct R as [|e' c' r']; [ contradiction | ]. simpl in *. intro E; subst. inversion HRe. Qed.
+
+  Lemma X_pos : BI_pos X.
+  Proof. destruct HP as [_ [_ [Hc0 _]]]. simpl. split; [ apply BI_nf_pos, HP | split; auto ]. apply BI_nf_pos; auto. Qed.
+
+  Lemma X_inh : inhabited (bsmall (BI_denote X) + bbig (BI_denote X)).
+  Proof. apply BI_inh, HP. Qed.
+
+  (** (⊆) Every common fixpoint for P + R is one for R: R's children
+      sit below P + (R's children). *)
+  Lemma absorb_sub z : complete z -> bfix (addOrd 1) (BI_denote X) z -> bfix (addOrd 1) (BI_denote R) z.
+  Proof.
+    intros Hz [H1 [H2 H3]]. split; [ exact H1 | split ].
+    - intro a. destruct (badd_small_r (bmul (bexpΩ (BI_denote e)) (embed (BS_denote c))) (BI_denote R) a) as [k Hk].
+      eapply ord_le_trans; [ | exact (H2 k) ].
+      apply (proj2 (bphi_mono_index _ (normal_monotone _ onePlus_normal) _ (bfam_small _ (BI_bfam X) k))).
+      change (bsmallSz (badd (bmul (bexpΩ (BI_denote e)) (embed (BS_denote c))) (BI_denote R)) k) with
+        (bsmallSz (BI_denote X) k) in Hk.
+      rewrite Hk. apply bsub_absorb.
+    - intro d. destruct (badd_big_r (bmul (bexpΩ (BI_denote e)) (embed (BS_denote c))) (BI_denote R) d) as [k Hk].
+      eapply ord_le_trans; [ | exact (H3 k) ].
+      apply (proj2 (bphi_mono_index _ (normal_monotone _ onePlus_normal) _ (bfam_big _ (BI_bfam X) k z))).
+      change (bbigSz (badd (bmul (bexpΩ (BI_denote e)) (embed (BS_denote c))) (BI_denote R)) k z) with
+        (bbigSz (BI_denote X) k z). rewrite Hk. apply bsub_absorb.
+  Qed.
+
+  (** The values of φ_{P+R} lie above the coefficients of P, which occur
+      at positions that are not the end. *)
+  Lemma absorb_region y : complete y -> Klt (PHI X y) P.
+  Proof.
+    intro Hy. apply Klt_of_Kge. intros z Hz.
+    assert (HK : Kgs z X).
+    { destruct R as [|e' c' r']; [ contradiction | ]. simpl in Hz |- *.
+      destruct Hz as [H|[H|[]]]; auto. }
+    destruct (Kgs_ctx X X_pos _ HK) as [C [ζ [HC [Hζ [Hzζ Hlt]]]]].
+    apply ord_le_lt_trans with (bphi (addOrd 1) (C ζ) 0).
+    - transitivity ζ; auto. apply (bctx_dom (addOrd 1) onePlus_normal C HC ζ Hζ).
+    - eapply ord_lt_le_trans; [ apply (bphi_strict (addOrd 1) onePlus_normal _ (BI_denote X) Hlt (BI_good X) (BI_bfam X)) | ].
+      apply (proj1 (bphi_mono_index _ (normal_monotone _ onePlus_normal) _ (BI_bfam X))). apply zero_least.
+  Qed.
+
+  Let n0 := S (BI_size P + BI_size P).
+  Definition absorb_max : BSmall := match kmax n0 P with Some k => k | None => BZ end.
+
+  Lemma absorb_max_spec : BS_nf absorb_max /\ Kin absorb_max P /\ Kle (BS_denote absorb_max) P.
+  Proof.
+    assert (H := kmax_spec n0 P HP ltac:(unfold n0; lia)).
+    unfold absorb_max. destruct (kmax n0 P) as [k|]; simpl in H; [ | discriminate ].
+    destruct H as [H1 H2]. split; [ apply (Kin_nf k P H1 HP) | split; auto ].
+  Qed.
+
+  Definition absorb_offset : BSmall := BS_offset R absorb_max.
+
+  (** The hard direction, at notation values: common fixpoints for R above
+      the coefficients of P are common fixpoints for P + R.  Assumed here;
+      see BachmannImproperPlan.md for the status of its proof. *)
+  Hypothesis ABS : forall s, BS_nf s -> Klt (PHI R (BS_denote s)) P ->
+    bfix (addOrd 1) (BI_denote X) (PHI R (BS_denote s)).
+
+  Theorem absorb_enum : forall y, BS_nf y ->
+    PHI X (BS_denote y) ≈ PHI R (BS_denote absorb_offset + BS_denote y).
+  Proof.
+    destruct absorb_max_spec as [Hm [Hmin HmK]].
+    destruct (BS_offset_correct R HR R_lead_big _ Hm) as [Nt [Hmt [Htt Hleast]]].
+    fold absorb_offset in Nt, Hmt, Htt, Hleast.
+    set (t := absorb_offset) in *.
+    assert (Htc := BS_complete t).
+    assert (Hgx := BI_good X). assert (Hgr := BI_good R).
+    intro y. induction y as [y IH] using (size_induction (ord BSmall BS_denote)). intro Hy.
+    assert (HIy := BS_has_all_interpolants y Hy).
+    assert (Hyc := BS_complete y).
+    destruct (BS_add_reflects _ t (conj (ord_eq_refl _) Nt) _ y (conj (ord_eq_refl _) Hy)) as [Es Ns].
+    set (s := BS_add t y) in *.
+    assert (EPs : PHI R (BS_denote s) ≈ PHI R (BS_denote t + BS_denote y))
+      by (apply ord_eq_normal; [ apply BI_normal | symmetry; exact Es ]).
+    assert (Hsc := BS_complete s).
+    rewrite <- EPs. split.
+    - rewrite (bphi_unfold _ (BI_denote X)).
+      apply (cfe_least (addOrd 1) onePlus_normal _ _ (bphi_fam_normal'' _ onePlus_normal _ Hgx)).
+      + transitivity (1 + BS_denote s); [ | apply bphi_ge_f ].
+        apply onePlus_mono. rewrite <- Es. apply addOrd_le2.
+      + apply limit_least. intro j. cbv beta. rewrite <- bphi_unfold.
+        destruct (HI_below _ _ HIy (index_lt _ j)) as [n [Hn [HIn [Hjn Hny]]]].
+        eapply ord_le_lt_trans; [ apply (proj1 (bphi_mono_index _ onePlus_mono _ (BI_bfam X))); exact Hjn | ].
+        rewrite (IH n Hny Hn).
+        eapply ord_lt_le_trans; [ | apply (proj2 EPs) ].
+        apply (normal_increasing _ (BI_normal R)); [ apply addOrd_complete; auto | ].
+        apply addOrd_increasing; auto.
+      + assert (HK : Klt (PHI R (BS_denote s)) P).
+        { apply Kle_lt with (BS_denote absorb_max); auto.
+          eapply ord_lt_le_trans; [ exact Hmt | ].
+          apply (proj1 (bphi_mono_index _ onePlus_mono _ (BI_bfam R))).
+          rewrite <- Es. apply addOrd_le1. }
+        destruct (ABS s Ns HK) as [H1 [H2 H3]].
+        intros [k|k]; cbn [bphi_fam]; split; auto.
+    - set (z := PHI X (BS_denote y)).
+      assert (Hzc : complete z) by (apply BS_complete with (x := BN X y)).
+      assert (Hzfix := absorb_sub z Hzc (bfix_value_full _ onePlus_normal _ _ Hgx X_inh Hyc)).
+      assert (Hreg := absorb_region _ Hyc). fold z in Hreg.
+      assert (Hmz : BS_denote absorb_max < z) by (apply (Kge_lt _ _ P (Kin_Kge _ _ Hmin) Hreg)).
+      assert (Hlz := Hleast z Hzc Hzfix Hmz).
+      assert (Htz : BS_denote t < z) by (eapply ord_lt_le_trans; eauto).
+      assert (Hpr := fix_principal R z _ HR R_lead_big Hzc Hzfix Htz).
+      rewrite (bphi_unfold _ (BI_denote R)).
+      apply (cfe_least (addOrd 1) onePlus_normal _ _ (bphi_fam_normal'' _ onePlus_normal _ Hgr)).
+      + transitivity (1 + z); [ apply onePlus_mono | apply Hzfix ].
+        rewrite <- Es. rewrite <- Hpr. apply addOrd_monotone; [ reflexivity | ].
+        apply normal_inflationary; auto using BI_normal.
+      + apply limit_least. intro j. cbv beta. rewrite <- bphi_unfold.
+        assert (Hj : BS_denote s j < BS_denote t + BS_denote y)
+          by (eapply ord_lt_le_trans; [ apply index_lt | apply (proj2 Es) ]).
+        assert (Hjc : complete (BS_denote s j)) by (apply complete_subord; auto).
+        destruct (addOrd_lt_cases _ _ _ Hj) as [Ha|[j0 Ha]].
+        * eapply ord_lt_le_trans; [ | exact Hlz ]. apply (normal_increasing _ (BI_normal R)); auto.
+        * destruct (HI_below _ _ HIy (index_lt _ j0)) as [n [Hn [HIn [Hjn Hny]]]].
+          apply ord_le_lt_trans with (PHI R (BS_denote t + BS_denote n)).
+          { apply (proj1 (bphi_mono_index _ onePlus_mono _ (BI_bfam R))).
+            rewrite Ha. apply addOrd_monotone; [ reflexivity | exact Hjn ]. }
+          rewrite <- (IH n Hny Hn).
+          apply (normal_increasing _ (BI_normal X)); auto.
+      + destruct Hzfix as [H1 [H2 H3]].
+        intros [k|k]; cbn [bphi_fam]; split; auto.
+  Qed.
+End absorb.
