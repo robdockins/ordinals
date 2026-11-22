@@ -87,7 +87,7 @@ for Schütte matrices.
    `fix_principal` (those fixpoints are additively principal),
    `fix_succ_lt`, `off_max_spec`.  Computed examples included.
    Axiom-free.
-3. IN PROGRESS: one-step absorption theorem (P = Ω^e·c normal term,
+3. DONE: one-step absorption theorem (P = Ω^e·c normal term,
    R normal with leading exponent > e; section `absorb` in
    `Notation/BachmannNotation.v`).
    - DONE: `absorb_sub` (⊆: common fixpoints for P+R are common
@@ -99,7 +99,11 @@ for Schütte matrices.
      for a notation value z = φ_R(s), z ∈ Fix(R) and Klt z P imply
      z ∈ Fix(P+R).  The proof uses interpolants of y for the children,
      so it never needs ABS at non-notation points.
-   - TODO: prove `ABS`, by induction on ⟦R⟧ (`blt`).  First restate it
+   - DONE (`ABS_all`, section `abs_all`): `absorb` is unconditional:
+     φ_{P+R}(y) = φ_R(absorb_offset e c R + y) for normal y.  Helpers:
+     `bfix_eq` (transport along ≈), `Kgs_lt`, `Kend_of_value` (φ_T(0) ≤ z
+     gives Kend z T), `Klt_of_value`.  Axiom-free.  The proof followed
+     the plan below:  First restate it
      for any notation value w (z = ⟦w⟧), transporting `bfix` along ≈.
      f and the components of P are handled by `nest` (P ilt R).  For a
      component K of ⟦R⟧, sandwich it by a normal K' (`cover`, at argument
