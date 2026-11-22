@@ -196,3 +196,29 @@ ilt (normX K') (normX X)); (H3) cofinality; (H4) BachChar by induction;
 (H5) generalized offset/enumeration theorem; (H6) BS normalizer
 BN X y → BN (N X) (t ⊕ y) and correctness; then step 5 (matrices).
 Absorption inside exponents stays out of scope (exponents normal).
+
+### Refined plan for (⇒), i.e. Fix(X) ⊆ Fix(N X)
+
+Induction on X = P + r (P = Ω^e·c), z ∈ Fix(X), T' nf, T' < N(X), Klt z T':
+- N(X) = N(r) (absorbed): Fix(P + r) ⊆ Fix(r) (components of r sit
+  below P + components, `bsub_absorb`, as in `absorb_sub`), then IH on
+  r (a syntactic subterm: use induction on size for this direction).
+- otherwise N(X) = addT e c (N r) has head exponent e; compare T'
+  lexicographically:
+  * T' < P (lower exponent, or exponent e with smaller coefficient):
+    z ∈ Fix(⟦P⟧) because P's children are children of P + r, then
+    `nest` for the normal P.
+  * T' = Ω^e·c + T'' with T'' < N(r) (or the merged analogue):
+    one-step cofinality in r gives a component K of ⟦r⟧ (small, or a
+    family member at an argument ≤ z, which lies in Fix by
+    `bfix_member`/`bfix_bsub`) with T'' ≤ N(K'), K' its cover.  P + K
+    is a component of X, so φ_{P+K} fixes z; by IH (P + K' is
+    blt-smaller) z ∈ Fix(N(P + K')), and with the offset
+    φ_{N(P+K')}(z) ≤ z; then P + T'' ≤ N(P + K') (`addT_mono`), and
+    `nest` or equality finishes.
+- (H3) one-step cofinality: for normal N (= N(r)) and nf T'' < N with
+  Klt z T'', some component of ⟦r⟧ has a cover K' with T'' ≤ N(K').
+  By recursion on r = P' + r' as for N: absorbed tail → recurse into r'
+  (addT e' c' A ≥ A); otherwise lexicographic cases, descending into
+  the exponent e' for lower exponents (families Ω^{e'_a}·ξ, ξ ≤ z),
+  as in `nest`'s proof.  Needs a lemma `addT_ge`: A ≤ addT e c A.
