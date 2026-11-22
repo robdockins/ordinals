@@ -39,6 +39,7 @@ Ordinal/SchutteColumn.v
 Ordinal/SchutteColumnFacts.v
 Ordinal/BachmannDefs.v
 Ordinal/BachmannNormal.v
+Ordinal/BachmannFacts.v
 
 Ordinal/Countable.v
 
@@ -54,3 +55,4 @@ Ordinal/Notation/GrimmT3.v
 Ordinal/Notation/SchutteStack.v
 Ordinal/Notation/SchutteMatrix.v
 Ordinal/Notation/NaturalExpNotation.v
+Ordinal/Notation/BachmannNotation.v
