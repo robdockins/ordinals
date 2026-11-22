@@ -824,3 +824,124 @@ Proof.
   eapply bsub_trans; [ apply bsub_mul_succ | ].
   apply bsub_bmul_r, bsub_embed. apply (Hz 2%nat).
 Qed.
+
+(** ** Merging equal exponents
+
+Improper indices with equal adjacent exponents normalize up to
+@bequiv@: sums of embedded ordinals are embeddings of sums, and
+multiplication distributes over addition on the left. *)
+
+(** The children of a + b are those of a, and a + (children of b). *)
+Lemma bequiv_embed_add : forall b a, bequiv (embed (a + b)) (badd (embed a) (embed b)).
+Proof.
+  induction b as [B k IH]. intros [A g].
+  rewrite addOrd_unfold.
+  split; apply bsub_intro.
+  - intros [x|[i []]].
+    + exists (inl x). apply bsub_refl.
+    + exists (inr i). apply (proj1 (IH i (ord A g))).
+  - intros [].
+  - intros [x|i].
+    + exists (inl x). apply bsub_refl.
+    + exists (inr (existT _ i tt)). apply (proj2 (IH i (ord A g))).
+  - intros [[]|[]].
+Qed.
+
+Lemma bsub_badd_intro A B Z : bsub A Z ->
+  (forall b, exists t, bsub (badd A (bsmallSz B b)) (bsmallSz Z t)) ->
+  (forall d, exists t, forall ξ, bsub (badd A (bbigSz B d ξ)) (bbigSz Z t ξ)) ->
+  bsub (badd A B) Z.
+Proof.
+  intros H1 H2 H3. apply bsub_intro.
+  - intro a. destruct (badd_small_cases A B a) as [[a' E]|[b E]]; rewrite E; auto.
+    apply (bsub_small _ _ H1 a').
+  - intro c. destruct (badd_big_cases A B c) as [[c' E]|[d E]].
+    + destruct (bsub_big _ _ H1 c') as [t Ht]. exists t. intro ξ. rewrite E. auto.
+    + destruct (H3 d) as [t Ht]. exists t. intro ξ. rewrite E. auto.
+Qed.
+
+Lemma bmul_small_cases P Y t : exists q s, bsmallSz (bmul P Y) t = bsmallSz (badd (bmul P (bsmallSz Y q)) P) s.
+Proof. destruct Y as [B g D h]. destruct t as [[q s]|[]]. exists q, s. reflexivity. Qed.
+
+Lemma bmul_big_cases P Y t :
+  (exists q s, forall ξ, bbigSz (bmul P Y) t ξ = bbigSz (badd (bmul P (bsmallSz Y q)) P) s ξ) \/
+  (exists d, forall ξ, bbigSz (bmul P Y) t ξ = bmul P (bbigSz Y d ξ)).
+Proof.
+  destruct Y as [B g D h]. destruct t as [[q s]|d].
+  - left. exists q, s. reflexivity.
+  - right. exists d. reflexivity.
+Qed.
+
+Lemma bsub_bmul_intro P Y Z :
+  (forall q, bsub (badd (bmul P (bsmallSz Y q)) P) Z) ->
+  (forall d, exists t, forall ξ, bsub (bmul P (bbigSz Y d ξ)) (bbigSz Z t ξ)) ->
+  bsub (bmul P Y) Z.
+Proof.
+  intros H1 H2. apply bsub_intro.
+  - intro a. destruct (bmul_small_cases P Y a) as [q [s E]]. rewrite E.
+    apply (bsub_small _ _ (H1 q) s).
+  - intro c. destruct (bmul_big_cases P Y c) as [[q [s E]]|[d E]].
+    + destruct (bsub_big _ _ (H1 q) s) as [t Ht]. exists t. intro ξ. rewrite E. auto.
+    + destruct (H2 d) as [t Ht]. exists t. intro ξ. rewrite E. auto.
+Qed.
+
+Lemma bmul_small_via P Y q W : bsmallSz Y q = W ->
+  forall s, exists t, bsmallSz (bmul P Y) t = bsmallSz (badd (bmul P W) P) s.
+Proof. intros E s. subst W. apply bmul_small_r. Qed.
+
+Lemma bmul_big_via P Y q W : bsmallSz Y q = W ->
+  forall s, exists t, forall ξ, bbigSz (bmul P Y) t ξ = bbigSz (badd (bmul P W) P) s ξ.
+Proof. intros E s. subst W. apply bmul_big_r. Qed.
+
+(** Left distributivity, up to @bequiv@. *)
+Theorem bequiv_bmul_badd P x : forall y, bequiv (bmul P (badd x y)) (badd (bmul P x) (bmul P y)).
+Proof.
+  induction y as [B g IHg D h IHh]. split.
+  - apply bsub_bmul_intro.
+    + intro q. destruct (badd_small_cases x (bnode B g D h) q) as [[a E]|[b E]]; rewrite E.
+      * eapply bsub_trans; [ apply bsub_bmul_step | apply bsub_le_badd ].
+      * eapply bsub_trans; [ apply bsub_badd_l, (proj1 (IHg b)) | ].
+        eapply bsub_trans; [ apply (proj1 (bequiv_badd_assoc _ _ _)) | ].
+        apply bsub_badd_r. apply (bsub_bmul_step P (bnode B g D h) b).
+    + intro d. destruct (badd_big_cases x (bnode B g D h) d) as [[c E]|[d' E]].
+      * destruct (bmul_big_fam P x c) as [t1 E1].
+        destruct (badd_big_l (bmul P x) (bmul P (bnode B g D h)) t1) as [t E2].
+        exists t. intro ξ. rewrite E, E2, E1. apply bsub_refl.
+      * destruct (bmul_big_fam P (bnode B g D h) d') as [t1 E1].
+        destruct (badd_big_r (bmul P x) (bmul P (bnode B g D h)) t1) as [t E2].
+        exists t. intro ξ. rewrite E, E2, E1. apply (proj1 (IHh d' ξ)).
+  - apply bsub_badd_intro.
+    + apply bsub_bmul_r, bsub_le_badd.
+    + intro k. destruct (bmul_small_cases P (bnode B g D h) k) as [q [s E]]. rewrite E.
+      (* P·x + (P·y_q + P) ⊑ P·(x + y_q) + P, a child-container of P·(x+y) *)
+      assert (H : bsub (badd (bmul P x) (badd (bmul P (g q)) P)) (badd (bmul P (badd x (g q))) P)).
+      { eapply bsub_trans; [ apply (proj2 (bequiv_badd_assoc _ _ _)) | ].
+        apply bsub_badd_l, (proj2 (IHg q)). }
+      destruct (badd_small_r (bmul P x) (badd (bmul P (g q)) P) s) as [s1 E1].
+      destruct (bsub_small _ _ H s1) as [s2 H2].
+      destruct (badd_small_r x (bnode B g D h) q) as [q' Eq].
+      destruct (bmul_small_via P _ q' _ Eq s2) as [t Et].
+      exists t. rewrite Et. rewrite E1 in H2. exact H2.
+    + intro k. destruct (bmul_big_cases P (bnode B g D h) k) as [[q [s E]]|[d E]].
+      * assert (H : bsub (badd (bmul P x) (badd (bmul P (g q)) P)) (badd (bmul P (badd x (g q))) P)).
+        { eapply bsub_trans; [ apply (proj2 (bequiv_badd_assoc _ _ _)) | ].
+          apply bsub_badd_l, (proj2 (IHg q)). }
+        destruct (badd_big_r (bmul P x) (badd (bmul P (g q)) P) s) as [s1 E1].
+        destruct (bsub_big _ _ H s1) as [s2 H2].
+        destruct (badd_small_r x (bnode B g D h) q) as [q' Eq].
+        destruct (bmul_big_via P _ q' _ Eq s2) as [t Et].
+        exists t. intro ξ. rewrite Et, E. specialize (H2 ξ). rewrite E1 in H2. exact H2.
+      * destruct (badd_big_r x (bnode B g D h) d) as [d' Ed].
+        destruct (bmul_big_fam P (badd x (bnode B g D h)) d') as [t Et].
+        exists t. intro ξ. rewrite Et, E, Ed. apply (proj2 (IHh d ξ)).
+Qed.
+
+(** Equal exponents merge: Ω^e·c + (Ω^e·c' + r) ≈ Ω^e·(c+c') + r. *)
+Theorem bequiv_merge E c c' r :
+  bequiv (badd (bmul E (embed c)) (badd (bmul E (embed c')) r)) (badd (bmul E (embed (c + c'))) r).
+Proof.
+  eapply bequiv_trans; [ apply bequiv_sym, bequiv_badd_assoc | ].
+  apply bequiv_badd; [ | apply bequiv_refl ].
+  eapply bequiv_trans; [ apply bequiv_sym, bequiv_bmul_badd | ].
+  apply bequiv_bmul; [ apply bequiv_refl | apply bequiv_sym, bequiv_embed_add ].
+Qed.
