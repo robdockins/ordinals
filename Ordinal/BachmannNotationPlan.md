@@ -152,4 +152,20 @@ column (exactly one step of `schutte_matrix`).
    - 5e (optional). Base change: BHO₁ ≈ `BachmannHoward` (powOmega
      base), a tree-level absorption problem.
 
+## Follow-up items
+
+- **Bounding improper notations.** Show every term, proper or not,
+  denotes an ordinal below BHO₁ (analogue of `VForm_bounded` /
+  `VF_LVO`), e.g. `ord BSmall BS_denote ≈ BHO1`; this would also let the
+  normalizer accept improper input. `SchutteMatrix`'s trick (one proper
+  column at the maximum height dominates any matrix,
+  `matrix_E_unreachable`) does not transfer: φ is monotone only in
+  `bsub`, and improper index shapes (e.g. Ω^0·c + Ω) are not
+  `bsub`-below proper ones. Likely route: prove semantically that BHO₁
+  is a common fixpoint of the components of every index tree with
+  coefficients below it. The missing lemma is additive closure of the
+  tower levels in the reachability order (if t and r are z-reachably
+  below Ω^{tower n}, so is t + r), which runs into left addition not
+  preserving reachability. Not needed for 5c/5d.
+
 Each milestone ends in a commit.
