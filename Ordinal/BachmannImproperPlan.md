@@ -222,3 +222,29 @@ Induction on X = P + r (P = Ω^e·c), z ∈ Fix(X), T' nf, T' < N(X), Klt z T':
   (addT e' c' A ≥ A); otherwise lexicographic cases, descending into
   the exponent e' for lower exponents (families Ω^{e'_a}·ξ, ξ ≤ z),
   as in `nest`'s proof.  Needs a lemma `addT_ge`: A ≤ addT e c A.
+
+### Further refinement (after H1/H2)
+
+- (⇒) is better done structurally: `nestX`: for imp_ok X, nf T' with
+  Klt z T' and ilt T' (normX X), zlt z ⟦T'⟧ ⟦X⟧, for any infinite z.
+  Cases: absorbed head → IH on the rest plus `bsub_absorb` (zlt_mono_r);
+  T' below P → `nest` for P, then ⟦P⟧ ⊑ ⟦X⟧; prepend/merge tail cases
+  → IH on the rest and `zlt_shift`, with `bequiv_merge`.  For a merged
+  coefficient c ≤ c₁ < c + c₂ pick a notation d < c₂ with c₁ ≤ c + d
+  (d = c₁ if c₁ < c₂, otherwise from the interpolants of c₂ via
+  `addOrd_lt_cases`).  Then zlt_nest gives the Klt-clause of BachChar
+  at every z ∈ Fix(X).
+- BachChar needs only the Klt-clause: family members at z can be
+  reached by continuity of the (normal) diagonal, approximating z from
+  below by notations x < z (interpolants of z), whose members have all
+  coefficients < z.
+- New circularity: the enumeration step (generalized `absorb_enum`)
+  needs "z ∈ Fix(N X)" at z = φ_X(y), the value of an improper
+  notation.  From nestX we get the Klt-clause there, but turning it
+  into bfix ⟦N X⟧ z needs the families at z, i.e. interpolants of z,
+  which are only known for normal notation values.  Small components
+  of the induction (φ_{K'}(z) ≤ z) also need the enumeration for K'.
+  Likely resolution: one simultaneous induction on ordinal value v
+  proving, for all improper terms with value < v, the enumeration
+  identity and interpolants (with witnesses from the induction).  To be
+  designed before H3–H6 are implemented.
