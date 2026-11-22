@@ -248,3 +248,65 @@ Induction on X = P + r (P = Ω^e·c), z ∈ Fix(X), T' nf, T' < N(X), Klt z T':
   proving, for all improper terms with value < v, the enumeration
   identity and interpolants (with witnesses from the induction).  To be
   designed before H3–H6 are implemented.
+
+## Design pass: breaking the circularity (2026-11-22)
+
+Target (core case; coefficients, arguments and exponents normalized
+bottom-up first, exponents required normal-shaped):
+  E(X): for imp_ok X with nf coefficients and every nf y,
+        φ_X(y) ≈ φ_{N X}(t_X + y),
+so φ_X(y) is (≈) the normal notation normS (BN (N X) (t_X ⊕ y)).
+
+E(X) splits as in `absorb_enum`:
+  (≤) φ_X(y) ≤ φ_N(t + y): cfe_least on X at the target v = φ_N(t+y),
+      which IS a normal notation value.  Needs v ∈ Fix(X), i.e. the (⇐)
+      direction of BachChar at notation values only.  Interpolants of v
+      are available (v normal), so the continuity argument for family
+      members and `coverX` both work.  No circularity here.
+  (≥) φ_N(t + y) ≤ φ_X(y) =: z'.  This is where the circularity was
+      (z' ∈ Fix(N) would need interpolants of z').
+
+Resolution for (≥): avoid z' ∈ Fix(N) entirely.  Since v = φ_N(t+y)
+has interpolants (normal), it suffices to show
+
+  (LB) every nf notation n with ⟦n⟧ < φ_N(t + y) satisfies ⟦n⟧ < z',
+
+by induction on the size of n (and the outer induction on y via
+interpolants of y, as in `absorb_enum`).  For n = φ_{T''}(y''):
+- T'' ≡ N: y'' < t + y.  If y'' < t then φ_N(y'') ≤ m (minimality of t;
+  decidable comparison of notations) and m < z' (region: X's values
+  exceed its absorbed coefficients, `Kgs_lt`).  Otherwise
+  `addOrd_lt_cases` gives y'' ≤ t + y_j, and the outer IH gives
+  φ_N(t + y_j) ≈ φ_X(y_j) < φ_X(y).
+- T'' < N: y'' and the coefficients of T'' are smaller notations below
+  ⟦n⟧ < φ_N(t+y), so by the inner IH they are < z'; hence Klt z' T''.
+  `nestX` (structural, valid at every z') gives zlt z' ⟦T''⟧ ⟦X⟧, and
+  z' ∈ Fix(X), so φ_{T''}(z') ≤ z' and ⟦n⟧ < φ_{T''}(z') ≤ z'.
+- T'' > N: if Klt ⟦n⟧ N then n is a fixpoint of φ_N (as in
+  `fix_test_correct`), so n = φ_N(n) and we are in the first case with
+  y'' := n.  Otherwise n ≤ some coefficient k of N.  If k is not N's end
+  coefficient, k < z' (region for non-end coefficients, after merging:
+  sums of non-end coefficients of X, z' principal).  DELICATE: if k is
+  N's end coefficient k_end and n ≈ k_end, we must still show n < z'
+  (i.e. exclude φ_X(y) = k_end < φ_N(t+y)).  Candidate argument: then
+  n ≈ k_end ≤ φ_N(0), so φ_N(0) collapses onto k_end or exceeds it;
+  compare with `coll_test`'s end-position criterion and show the same
+  collapse happens for X (X's end coefficient sits at the end of X).
+  This sub-case must be settled before implementation.
+
+So the plan is: BachChar (⇐) only at normal notation values (via
+coverX, continuity for families, induction on ⟦X⟧ by blt, using E for
+the smaller components K' to get φ_{K'}(z) ≤ z by the offset), and
+(≥) via (LB) with the structural `nestX`.  Interpolants are only ever
+needed for normal notation values, which we have.
+
+Remaining risks, in order: (1) the end-coefficient collapse sub-case of
+(LB); (2) small components in (⇐) need E for K' at the argument z,
+fine by IH since K' is blt-smaller, but the threshold of K' must lie
+below z (its absorbed coefficients come from X's coefficients and
+approximations, all < z); (3) `nestX`'s merged-coefficient case
+(choice of d, worked out above).
+
+Implementation order: H3 = nestX; H4 = BachChar (⇐) at notation values;
+H5 = offset/minimality for N X with threshold m_X (reuse `BS_offset`);
+H6 = E(X) by (≤) and (LB); H7 = BS normalizer and correctness.
