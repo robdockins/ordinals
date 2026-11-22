@@ -394,3 +394,26 @@ Proof.
     try (intros; apply schutte_column_monotone; auto with ord);
     intro y; apply schutte_column_monotone_full; auto with ord; first [ apply Hb | apply Ha ].
 Qed.
+
+(** ** Reachability through exponents *)
+
+Lemma zlt_bleZ z x y w : zlt z x y -> bleZ z y w -> zlt z x w.
+Proof. intros [D [H1 H2]] H. exists D. split; auto. eapply bleZ_trans; eauto. Qed.
+
+(** If a is z-reachably below b, then Ω^a·z is z-reachable from Ω^b. *)
+Lemma zlt_exp z a b : zlt z a b -> oinf z -> bleZ z (bmul (bexpΩ a) (embed z)) (bexpΩ b).
+Proof.
+  intros [D [H1 H2]] Hz.
+  eapply bleZ_trans; [ apply (bleZ_exp_lt a D H1 z Hz) | apply bleZ_exp; auto ].
+Qed.
+
+(** A value of a node with a component is infinite. *)
+Lemma bphi_value_inf f (Hf : normal_function f) y w :
+  (forall x, x ≤ f x) -> (forall x, complete x -> 1 + x ≤ f x) ->
+  bgood f y -> inhabited (bsmall y + bbig y) -> complete w -> oinf (bphi f y w).
+Proof.
+  intros _ H1 Hg Hi Hw n.
+  apply (fix_onePlus_finite (addOrd 1) onePlus_normal); [ apply bphi_complete; auto | ].
+  transitivity (f (bphi f y w)); [ apply H1, bphi_complete; auto | ].
+  apply bphi_fix_base'; auto.
+Qed.
