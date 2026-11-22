@@ -17,14 +17,17 @@ Files:
 
 ```coq
 Inductive BSmall := BZ | BN : BIdx -> BSmall -> BSmall      (* φ_T(y) *)
-with BIdx := BI : list (BIdx * BSmall) -> BIdx.              (* Ω^e₁·c₁ + … + Ω^eₙ·cₙ *)
+with BIdx := BIZ | BIC : BIdx -> BSmall -> BIdx -> BIdx.    (* Ω^e·c + r *)
 ```
 
-- An index is an Ω-Cantor normal form. Its exponents `eᵢ` are indices
-  and its coefficients `cᵢ` are small ordinals.
-- Its denotation is a canonical `BOrd`: a left-nested `badd` of terms
-  `bmul (bexpΩ ⟦eᵢ⟧) (embed ⟦cᵢ⟧)`.
-- A small notation denotes `⟦BN T y⟧ = bach onePlus ⟦T⟧ ⟦y⟧`.
+- An index is an Ω-Cantor normal form. Its exponents are indices and
+  its coefficients are small ordinals. (Originally a list of pairs; the
+  single-summand constructor avoids nested list fixpoints.)
+- Its denotation is a canonical `BOrd`, right-nested:
+  `⟦Ω^e·c + r⟧ = badd (bmul (bexpΩ ⟦e⟧) (embed ⟦c⟧)) ⟦r⟧`.
+- A small notation denotes `⟦BN T y⟧ = bphi (addOrd 1) ⟦T⟧ ⟦y⟧`, which
+  agrees with `bach (addOrd 1) ⟦T⟧ ⟦y⟧` (`BS_denote_bach`); `bach`'s own
+  values are not known to be complete trees.
 
 **What the existing development gives for free.** Index denotations
 are built only from `embed` of complete values, `badd`, `bmul` and
