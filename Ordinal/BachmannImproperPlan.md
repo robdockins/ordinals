@@ -126,8 +126,24 @@ for Schütte matrices.
          only used at its exponent, its coefficient (where an end
          coefficient ≈ 1 is impossible) and its nonempty tail.
          Remaining work for ABS is assembly along the plan above.
-4. Normalizer for indices with normal exponents (merge + absorption,
-   bottom-up on summands) and for `BS` terms; correctness.
+4. BLOCKED on theory: normalizer for indices with normal exponents.
+   `absorb` only covers absorption at the top (P + R with R normal).
+   A general improper sum needs absorption in non-top positions
+   (exponents 1,2,3; Ω + (1 + Ω)), and that is not a tree identity:
+   Ω + (1 + Ω) is not `bequiv` to Ω·2 (its family member Ω + (1+ξ)
+   exceeds Ω + ξ at finite ξ), although they agree above a threshold.
+   So the rest cannot be normalized before absorbing at the top.
+   - Supported now: merges anywhere (`bequiv`) plus one lower head term
+     over an otherwise normal index (`absorb`).  Too weak for matrices.
+   - Needed: a hereditary absorption theorem for every improper X with
+     normal exponents, Fix(X) = Fix(N(X)) ∩ {z above the absorbed
+     coefficients}, hence φ_X(y) = φ_{N(X)}(t + y) (the offset still
+     appears only at the top; checked by hand on Ω + (c + Ω)).
+     Proof by one induction over all improper X.  The new difficulty
+     is the direction Fix(X) ⊆ Fix(N(X)), trivial for P + R but not in
+     general, since N(X)'s components are not contained in X's tree.
+     Same nature as absorption inside exponents and as bounding
+     improper notations; a solution likely settles all three.
 5. Transfer to `SchutteMatrix`: extend `Kl_correct` to improper
    matrices and normalize via `Kinv`.
 6. (Research) absorption inside exponents.
