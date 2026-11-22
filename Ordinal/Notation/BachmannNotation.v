@@ -3505,3 +3505,160 @@ Proof. reflexivity. Qed.
 Example absorb_offset_eps0_Ω : absorb_offset BIZ (BN BI_Ω BZ) BI_Ω = BS_succ BZ.
 Proof. reflexivity. Qed.
 
+(** * Normal forms of improper index sums *)
+
+Lemma ilt_ieq_false : forall a b, ilt a b -> ieq a b -> False.
+Proof.
+  intros a b H. induction H as [e c r | e c r e' c' r' Hee IH | e c r e' c' r' Hee Hcc | e c r e' c' r' Hee Hcc Hrr IH];
+    intro E; inversion E as [|? ? ? ? ? ? E1 E2 E3]; subst; auto.
+  apply (ord_lt_irreflexive (BS_denote c)). rewrite E2 at 2. auto.
+Qed.
+
+Lemma ilt_irrefl a : ilt a a -> False.
+Proof. intro H. apply (ilt_ieq_false a a H (ieq_refl a)). Qed.
+
+Lemma ilt_asym a b : ilt a b -> ilt b a -> False.
+Proof. intros H1 H2. apply (ilt_irrefl a). eapply ilt_trans; eauto. Qed.
+
+Definition cmpIX (a b:BIdx) : ordering := cmpI (S (BI_size a + BI_size b)) a b.
+
+Lemma cmpIX_spec a b : BI_nf a -> BI_nf b ->
+  (ilt a b -> cmpIX a b = LT) /\ (ieq a b -> cmpIX a b = EQ) /\ (ilt b a -> cmpIX a b = GT).
+Proof.
+  intros Ha Hb. assert (H := proj2 (cmp_correct (S (BI_size a + BI_size b))) a b ltac:(lia) Ha Hb).
+  unfold cmpIX. destruct (cmpI (S (BI_size a + BI_size b)) a b); simpl in H.
+  - split; [ auto | split; intro H'; exfalso ].
+    + apply (ilt_ieq_false a b H H').
+    + eapply ilt_asym; eauto.
+  - split; [ intro H'; exfalso | split; [ auto | intro H'; exfalso ] ].
+    + apply (ilt_ieq_false a b H' H).
+    + apply (ilt_ieq_false b a H'). apply ieq_sym; auto.
+  - split; [ intro H'; exfalso | split; [ intro H'; exfalso | auto ] ].
+    + eapply ilt_asym; eauto.
+    + apply (ilt_ieq_false b a H). apply ieq_sym; auto.
+Qed.
+
+Lemma cmpIX_total a b : BI_nf a -> BI_nf b -> ilt a b \/ ieq a b \/ ilt b a.
+Proof.
+  intros Ha Hb. assert (H := proj2 (cmp_correct (S (BI_size a + BI_size b))) a b ltac:(lia) Ha Hb).
+  destruct (cmpI (S (BI_size a + BI_size b)) a b); simpl in H; auto.
+Qed.
+
+(** Adding a term Ω^e·c in front of a normal index. *)
+Definition addT (e:BIdx) (c:BSmall) (A:BIdx) : BIdx :=
+  match A with
+  | BIZ => BIC e c BIZ
+  | BIC e2 c2 r2 =>
+    match cmpIX e e2 with
+    | LT => A
+    | EQ => BIC e (BS_add c c2) r2
+    | GT => BIC e c A
+    end
+  end.
+
+Fixpoint normX (X:BIdx) : BIdx :=
+  match X with
+  | BIZ => BIZ
+  | BIC e c r => addT e c (normX r)
+  end.
+
+(** Improper indices with normal exponents and positive normal coefficients. *)
+Fixpoint imp_ok (X:BIdx) : Prop :=
+  match X with
+  | BIZ => True
+  | BIC e c r => BI_nf e /\ BS_nf c /\ 0 < BS_denote c /\ imp_ok r
+  end.
+
+Lemma nf_imp_ok X : BI_nf X -> imp_ok X.
+Proof. induction X as [|e _ c r IH]; simpl; auto. intros [He [Hc [Hc0 [Hr _]]]]. auto. Qed.
+
+Section addT.
+  Variables (e:BIdx) (c:BSmall).
+  Hypothesis He : BI_nf e.
+  Hypothesis Hc : BS_nf c.
+  Hypothesis Hc0 : 0 < BS_denote c.
+
+  Lemma addT_lt e2 c2 r2 : BI_nf e2 -> ilt e e2 -> addT e c (BIC e2 c2 r2) = BIC e2 c2 r2.
+  Proof. intros H2 H. unfold addT. rewrite (proj1 (cmpIX_spec e e2 He H2) H). reflexivity. Qed.
+
+  Lemma addT_eq e2 c2 r2 : BI_nf e2 -> ieq e e2 -> addT e c (BIC e2 c2 r2) = BIC e (BS_add c c2) r2.
+  Proof. intros H2 H. unfold addT. rewrite (proj1 (proj2 (cmpIX_spec e e2 He H2)) H). reflexivity. Qed.
+
+  Lemma addT_gt e2 c2 r2 : BI_nf e2 -> ilt e2 e -> addT e c (BIC e2 c2 r2) = BIC e c (BIC e2 c2 r2).
+  Proof. intros H2 H. unfold addT. rewrite (proj2 (proj2 (cmpIX_spec e e2 He H2)) H). reflexivity. Qed.
+
+  Lemma add_reflect c2 : BS_nf c2 -> BS_denote (BS_add c c2) ≈ BS_denote c + BS_denote c2 /\ BS_nf (BS_add c c2).
+  Proof.
+    intro H2. destruct (BS_add_reflects _ c (conj (ord_eq_refl _) Hc) _ c2 (conj (ord_eq_refl _) H2)) as [E N].
+    split; auto. symmetry; auto.
+  Qed.
+
+  Lemma addT_nf A : BI_nf A -> BI_nf (addT e c A).
+  Proof.
+    destruct A as [|e2 c2 r2]; [ intros _; repeat split; auto | ].
+    intro HA. assert (HA' := HA). destruct HA' as [He2 [Hc2 [Hc20 [Hr2 Hl2]]]].
+    destruct (cmpIX_total e e2 He He2) as [H|[H|H]].
+    - rewrite addT_lt; auto.
+    - rewrite addT_eq; auto. destruct (add_reflect c2 Hc2) as [E N].
+      split; [ exact He | split; [ exact N | split; [ | split; [ exact Hr2 | ] ] ] ].
+      + rewrite E. eapply ord_lt_le_trans; [ exact Hc0 | apply addOrd_le1 ].
+      + apply (lead_below_ieq r2 r2 e2 e); auto using ieq_refl, ieq_sym.
+    - rewrite addT_gt; auto. repeat split; auto.
+  Qed.
+
+  (** Ordinal addition is strictly monotone on the right. *)
+  Lemma addT_mono A B : BI_nf A -> BI_nf B -> ilt A B -> ilt (addT e c A) (addT e c B).
+  Proof.
+    intros HA HB Hlt.
+    destruct B as [|eB cB rB]; [ inversion Hlt | ].
+    assert (HB' := HB). destruct HB' as [HeB [HcB [HcB0 _]]].
+    destruct (add_reflect cB HcB) as [EB NB].
+    destruct A as [|eA cA rA].
+    - simpl addT at 1.
+      destruct (cmpIX_total e eB He HeB) as [H|[H|H]].
+      + rewrite addT_lt; auto. apply ilt_exp; auto.
+      + rewrite addT_eq; auto. apply ilt_coef; auto using ieq_refl.
+        rewrite EB. apply ord_le_lt_trans with (BS_denote c + 0); [ apply addOrd_zero_r | ].
+        apply addOrd_increasing; auto.
+      + rewrite addT_gt; auto. apply ilt_tail; auto using ieq_refl; try reflexivity; constructor.
+    - assert (HA' := HA). destruct HA' as [HeA [HcA [HcA0 _]]].
+      destruct (add_reflect cA HcA) as [EA NA].
+      assert (HeAB : ilt eA eB \/ ieq eA eB).
+      { inversion Hlt; subst; auto. }
+      destruct (cmpIX_total e eA He HeA) as [H|[H|H]].
+      + rewrite addT_lt; auto.
+        rewrite addT_lt; auto. destruct HeAB as [H'|H']; [ eapply ilt_trans; eauto | ].
+        apply (ilt_ieq e eA H e eB); auto using ieq_refl.
+      + rewrite addT_eq; auto. destruct HeAB as [H'|H'].
+        * assert (HeB' : ilt e eB) by (apply (ilt_ieq eA eB H' e eB); auto using ieq_refl, ieq_sym).
+          rewrite addT_lt; auto. apply ilt_exp; auto.
+        * assert (HeB' : ieq e eB) by (eapply ieq_trans; eauto).
+          rewrite addT_eq; auto.
+          inversion Hlt as [| ? ? ? ? ? ? Hx | ? ? ? ? ? ? Hx Hc' | ? ? ? ? ? ? Hx Hc' Hr']; subst.
+          -- exfalso. apply (ilt_ieq_false eA eB); auto.
+          -- apply ilt_coef; auto using ieq_refl. rewrite EA, EB. apply addOrd_increasing; auto.
+          -- apply ilt_tail; auto using ieq_refl. rewrite EA, EB. rewrite Hc'. reflexivity.
+      + rewrite addT_gt; auto.
+        destruct (cmpIX_total e eB He HeB) as [H2|[H2|H2]].
+        * rewrite addT_lt; auto. apply ilt_exp; auto.
+        * rewrite addT_eq; auto. apply ilt_coef; auto using ieq_refl.
+          rewrite EB. apply ord_le_lt_trans with (BS_denote c + 0); [ apply addOrd_zero_r | ].
+          apply addOrd_increasing; auto.
+        * rewrite addT_gt; auto. apply ilt_tail; auto using ieq_refl. reflexivity.
+  Qed.
+End addT.
+
+Lemma normX_nf X : imp_ok X -> BI_nf (normX X).
+Proof.
+  induction X as [|e _ c r IH]; simpl; auto.
+  intros [He [Hc [Hc0 Hr]]]. apply addT_nf; auto.
+Qed.
+
+(** On normal indices, normX is the identity. *)
+Lemma normX_id X : BI_nf X -> normX X = X.
+Proof.
+  induction X as [|e _ c r IH]; simpl; auto.
+  intros [He [Hc [Hc0 [Hr Hl]]]]. rewrite IH; auto.
+  destruct r as [|e2 c2 r2]; [ reflexivity | ].
+  apply addT_gt; auto. apply Hr.
+Qed.

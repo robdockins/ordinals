@@ -188,7 +188,9 @@ such z.  Proof by induction on ⟦X⟧ (blt):
 - Normal X is the special case N X = X (gives a Bachmann-rule
   characterization of Fix for normal indices, of independent interest).
 
-Sub-milestones: (H1) N/addT, nf and ieq/ilt lemmas; (H2) generalized
+Sub-milestones: (H1) DONE: `addT`, `normX`, `imp_ok`, `addT_nf`,
+`addT_mono` (strict), `normX_nf`, `normX_id`, `ilt_irrefl`, `ilt_asym`,
+`cmpIX_spec`; (H2) generalized
 cover with N-monotonicity; (H3) cofinality; (H4) BachChar by induction;
 (H5) generalized offset/enumeration theorem; (H6) BS normalizer
 BN X y → BN (N X) (t ⊕ y) and correctness; then step 5 (matrices).
