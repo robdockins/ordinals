@@ -18,8 +18,9 @@ delete the scratch, `make -j4`, commit (one commit per milestone).
 
 DONE: merge identities; offset algorithm; one-step absorption at the top
 (`absorb`, unconditional); `nest_le` generalized; H1 (normal forms of
-improper sums); H2 (`coverX`, without coefficient tracking yet).
-DESIGN COMPLETE (on paper) for hereditary absorption; NEXT: H3 `nestX`.
+improper sums); H2 (`coverX`, without coefficient tracking yet); H3
+`nestX`.  DESIGN COMPLETE (on paper) for hereditary absorption; NEXT:
+H3' (coefficient tracking in `coverX`).
 Out of scope: absorption inside exponents (exponents must be normal).
 
 ## Background facts
@@ -77,7 +78,9 @@ Out of scope: absorption inside exponents (exponents must be normal).
   `cmpIX_total`, `addT_lt/eq/gt`;
 - H2: `icovX`, `coverX`: components of an imp_ok index are sandwiched
   (bsub both ways) between imp_ok notations K' with
-  ilt (normX K') (normX X); P's children reuse `cover`.
+  ilt (normX K') (normX X); P's children reuse `cover`;
+- H3: `nestX` (oinf z, imp_ok X, nf T', Klt z T', ilt T' (normX X) ⇒
+  zlt z ⟦T'⟧ ⟦X⟧), helpers `Klt_smartC`, `ilt_lead`, `merge_bsub`.
 
 ## Final design: hereditary absorption
 
@@ -183,7 +186,7 @@ Ingredients:
 
 ## Implementation order
 
-1. H3 `nestX` (self-contained; design (A)).
+1. H3 `nestX` (self-contained; design (A)). DONE.
 2. H3' tracking in `coverX` (B).
 3. P1/P2 (C) and the absorbed-coefficient bookkeeping (F).
 4. Joint induction (D) + (E).
