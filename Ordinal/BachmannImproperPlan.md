@@ -310,3 +310,93 @@ approximations, all < z); (3) `nestX`'s merged-coefficient case
 Implementation order: H3 = nestX; H4 = BachChar (⇐) at notation values;
 H5 = offset/minimality for N X with threshold m_X (reuse `BS_offset`);
 H6 = E(X) by (≤) and (LB); H7 = BS normalizer and correctness.
+
+## Risks worked out (2026-11-22)
+
+### Risk 1 (end-coefficient case of LB): avoided by dropping (LB)
+
+Better route for (≥): prove that z' := φ_X(y) HAS INTERPOLANTS inside the
+induction, then show z' ∈ Fix(N X) directly and finish as in
+`absorb_enum`.  Interpolants of z' (every i < z' lies in [i, z') for a
+normal notation n) come from the `interp_aux` argument run on X:
+- `bphi_interp`: i < 1 + y, or i < a word in f and the components of
+  ⟦X⟧ applied to 0 or to succ φ_X(y_j);
+- start: y_j ≤ n_j < y (interpolants of y), and φ_X(n_j) is a normal
+  notation value by E(X) at n_j (inner induction on y); BS_succ;
+- small component C ⊑ ⟦K'⟧ ⊑ C' (`coverX`): φ_C(m) ≤ φ_{K'}(m) =
+  φ_{N K'}(t' + m) (E for K', the outer IH, since K' is blt-smaller),
+  a normal notation value, and ≤ φ_{C'}(z') ≤ z';
+- family component: likewise with E(K'_m) at argument 0;
+- f: `BS_onePlus`.
+Every chain value is ≤ z' and is a normal notation value, so it has
+interpolants and supplies witnesses strictly below z'.  With
+interpolants of z', z' ∈ Fix(N X) follows from:
+- small components of ⟦N X⟧ (cover of the normal N X): K' < N X, with
+  Klt z' K', so `nestX` + zlt_nest (z' ∈ Fix(X)) gives φ_{K'}(z') ≤ z';
+- families at z': continuity of the normal diagonal, approximating z'
+  by notations x < z', whose members' covers have all coefficients
+  < z' (same argument).
+For Klt z' K' we need Kend z' (N X): the non-end coefficients of N X are
+< z' and its end coefficient is ≤ z'.  Position lemma (see below):
+every coefficient of N X is a sum of coefficients of X, and a non-end
+one involves a non-end X-coefficient (strictly below z' by `Kgs_lt`)
+or is a merged sum c + c'' with c'' > 0.  Since z' is principal,
+sums stay below z'.  So the end-coefficient collapse never has to be
+excluded: only ≤ is needed at the end, and approximations of the end
+coefficient are strictly below it.
+
+### Risk 2 (small components in (⇐)): fine, with coefficient tracking
+
+For z a normal notation value with f z ≤ z, Kend z X and the Klt-clause
+(φ_{T'}(z) ≤ z for nf T' < N X with Klt z T'):
+- `coverX` must also track coefficients: small covers K' satisfy
+  Klt z K', and family covers at x ≤ z satisfy Kend z K', whenever
+  Kend z X (P kept only at non-end positions, approximations strictly
+  below a coefficient, the argument x at the end).  Extend `coverX`'s
+  statement accordingly.
+- Klt z K' and z principal give Klt z (N K') (merged sums).
+- z ∈ Fix(N K') by the clause (N K' < N X) and `bfix_of_fix`; hence by
+  the offset's minimality φ_{N K'}(t') ≤ z, and t' < z.
+- E(K') (outer IH) at the argument z: φ_{K'}(z) = φ_{N K'}(t' + z)
+  ≤ φ_{N K'}(z) ≤ z, using t' + z = z (z principal, `fix_principal`).
+- Families: approximate z from below by notations x < z (z normal has
+  interpolants) and use continuity of the diagonal; each member's cover
+  K'_x has Klt z K'_x, and z ∈ Fix(K'_x) by the IH (⇐) for K'_x, whose
+  clause is inherited (T' < N K'_x < N X).
+So H4 (⇐) and H6 (E) form ONE induction on ⟦X⟧ (blt), with an inner
+induction on y for E.
+
+### Risk 3 (nestX merged coefficients): settled
+
+Cases for N X = addT e c (N r):
+- absorbed: IH on r, then ⟦r⟧ ⊑ ⟦X⟧ (`bsub_absorb`, `zlt_mono_r`);
+- T' = BIZ: zlt via bpos;
+- T' below P (lower exponent, or coefficient c₁ < c): `nest` for the
+  normal P, then ⟦P⟧ ⊑ ⟦X⟧;
+- prepend, tail (c₁ ≈ c, T'' < N r): IH on r, `zlt_shift`, ieq/bsub to
+  rewrite the head;
+- merged, c ≤ c₁ < c + c₂: choose nf d < c₂ with c₁ ≤ c + d and d < z
+  (d := c₁ if c₁ < c₂, else an interpolant of c₂ above the child given
+  by `addOrd_lt_cases`; decide with `BS_compare`).  Then
+  D' := smartC e d T'' < N r, IH, shift, and ⟦T'⟧ ⊑ Pt + ⟦D'⟧ via
+  `bequiv_merge`/`smartC_bequiv`;
+- merged, tail (c₁ ≈ c + c₂, T'' < r₂): D' := BIC e₂ c₂ T'', same.
+
+### Position lemmas needed (new, tedious but elementary)
+
+(P1) Kgs k X with k not absorbed ⇒ k is strictly below some coefficient
+of N X at a non-end position, or below a merged end coefficient
+c + c'' (c'' > 0); absorbed k ≤ m_X.  Used for Kend v X at
+v = φ_{N X}(t + y) in (≤).
+(P2) every coefficient of N X at a non-end position is a sum of
+X-coefficients including a non-end one; its end coefficient is a sum
+of X-coefficients.  Used for Kend z' (N X) in (≥).
+Both by induction on X along `addT`; the merged coefficient's exponent
+positions are non-end because c + c'' > 1.
+
+### Revised implementation order
+
+H3 nestX; H3' coverX with coefficient tracking; P1/P2;
+H4+H6 joint induction (⇐ at normal values; E with interpolants of z');
+H5 offset for N X with threshold m_X (reuse `BS_offset`, `absorb_max`
+generalized to absorbed coefficients); H7 BS normalizer.
