@@ -113,10 +113,8 @@ column (exactly one step of `schutte_matrix`).
    only under coefficient bounds and must be z-relative throughout,
    like `tower_rel`.
 4. **Base change.** The notations are bounded by
-   `bphi onePlus bεΩ1 0`; `BachmannHoward` uses `powOmega`.
-   Identifying them needs tree-level absorption of Ω + ε_{Ω+1}. State
-   the bound with the onePlus base; treat the identification as an
-   optional separate lemma.
+   `bphi onePlus bεΩ1 0`; `BachmannHoward` uses `powOmega`. (Resolved
+   in 5e by comparing hierarchies, without tree-level absorption.)
 5. **Interpolants need a normalizer and syntactic fundamental
    sequences.** Coefficient merging needs a direct syntactic small
    addition (not via the Cantor decomposition, which would be circular).
@@ -163,8 +161,13 @@ column (exactly one step of `schutte_matrix`).
      notation index `BI_tower n` = Ω+1, Ω^(Ω+1), …; then `cfe_least`),
      and `BS_nmul_reflects` (natural product from `CantorProduct` and
      the interpolants). Axiom-free.
-   - 5e (optional). Base change: BHO₁ ≈ `BachmannHoward` (powOmega
-     base), a tree-level absorption problem.
+   - 5e. DONE. `BHO1_BachmannHoward : BHO₁ ≈ BachmannHoward`, hence
+     `BS_order_type_BH`. No tree-level absorption needed: a comparison
+     lemma for enumerators (`cfe_dom`) gives φ^{1+x}_T ≤ φ^{ω^x}_T
+     (`bphi_base_mono`) and φ^{ω^x}_T ≤ φ^{1+x}_{Ω+T}
+     (`bphi_powOmega_shift`); Ω + tower n is z-reachably below
+     tower (n+2) (`zlt_Ω_tower`), so BHO₁ is closed under the ω^x
+     hierarchy's components and `cfe_least` applies. Axiom-free.
 
 ## Follow-up items
 

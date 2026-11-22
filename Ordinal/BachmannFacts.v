@@ -693,3 +693,134 @@ Qed.
 
 Lemma bsub_mul_zero x : bsub (bmul x (embed 0)) bzero.
 Proof. apply bsub_intro; intros [[[] _]|[]]. Qed.
+
+(** ** Changing the base: comparing two enumerators
+
+@cfe f I F@ lies below @cfe f' J F'@ when f is dominated pointwise by f'
+or by a component of the second family, and every component of the
+first family by one of the second. *)
+
+Section cfe_dom.
+  Variable f : Ord -> Ord.
+  Hypothesis Hf : normal_function f.
+  Variable I : Type.
+  Variable F : I -> Ord -> Ord.
+  Hypothesis HF : forall i, normal_function (F i).
+  Variable f' : Ord -> Ord.
+  Hypothesis Hf' : normal_function f'.
+  Variable J : Type.
+  Variable F' : J -> Ord -> Ord.
+  Hypothesis HF' : forall j, normal_function (F' j).
+
+  Hypothesis H0 : forall x, complete x -> f x ≤ f' x \/ exists j, f x ≤ F' j x.
+  Hypothesis H1 : forall i, exists j, forall x, complete x -> F i x ≤ F' j x.
+  Hypothesis HJ : inhabited J \/ ~ inhabited I.
+
+  Lemma cfe_dom_base y : complete y -> f y ≤ cfe f' J F' y.
+  Proof.
+    intro Hy. destruct (H0 y Hy) as [H|[j H]].
+    - rewrite H. apply cfe_ge_f.
+    - rewrite H. transitivity (F' j (cfe f' J F' y)).
+      + apply normal_monotone; auto. apply cfe_inflationary; auto.
+      + apply cfe_fix_F; auto.
+  Qed.
+
+  Theorem cfe_dom : forall y, complete y -> cfe f I F y ≤ cfe f' J F' y.
+  Proof.
+    destruct HJ as [[j0]|HnI].
+    - induction y as [Y h IH]. intro Hy.
+      assert (Hz : complete (cfe f' J F' (ord Y h))) by (apply cfe_complete; auto).
+      assert (Hfz : f' (cfe f' J F' (ord Y h)) ≤ cfe f' J F' (ord Y h)) by (apply (cfe_fix_f f' Hf' J F' HF' j0); auto).
+      apply (cfe_least f Hf I F HF).
+      + apply cfe_dom_base; auto.
+      + apply limit_least. intro a.
+        assert (Ha : complete (h a)) by (apply (complete_subord (ord Y h)); auto).
+        eapply ord_le_lt_trans; [ apply IH; auto | ].
+        apply (cfe_increasing f' Hf' J F' HF' (or_introl (inhabits j0))); auto.
+        apply (index_lt (ord Y h) a).
+      + intro i. destruct (H1 i) as [j Hj]. split.
+        * rewrite Hj; auto. apply cfe_fix_F; auto.
+        * destruct (H0 _ Hz) as [H|[j' H]]; rewrite H; auto. apply cfe_fix_F; auto.
+    - intros y Hy. rewrite (cfe_unroll f I F y). apply sup_least. intros [p|].
+      + elim HnI. exact (inhabits (fst p)).
+      + apply cfe_dom_base; auto.
+  Qed.
+End cfe_dom.
+
+Lemma bphi_unfold f X : bphi f X = cfe f (bsmall X + bbig X) (bphi_fam f (bsmallSz X) (bbigSz X)).
+Proof. destruct X; reflexivity. Qed.
+
+Lemma bphi_fam_normal'' f (Hf : normal_function f) X : bgood f X ->
+  forall k, normal_function (bphi_fam f (bsmallSz X) (bbigSz X) k).
+Proof. destruct X. apply bphi_fam_normal'; auto. Qed.
+
+Lemma bcd_good f (Hf : normal_function f) T : bcd T -> bgood f T.
+Proof. intros [H1 H2]. apply (bcanon_good f Hf T H1 H2). Qed.
+
+(** φ^{ω^x}_T lies below φ^{1+x}_{Ω+T}: the Ω-family of Ω+T supplies
+    ξ ↦ ω^ξ, and the other children of Ω+T are Ω + (children of T). *)
+Theorem bphi_powOmega_shift : forall T, bcd T -> forall y, complete y ->
+  bphi powOmega T y ≤ bphi (addOrd 1) (badd bOmega T) y.
+Proof.
+  induction T as [A g IHg C h IHh]; intros HT y Hy.
+  rewrite (bphi_unfold powOmega), (bphi_unfold (addOrd 1)).
+  destruct (badd_big_l bOmega (bnode A g C h) tt) as [k0 Hk0].
+  apply (cfe_dom powOmega powOmega_normal _ _ (bphi_fam_normal'' _ powOmega_normal _ (bcd_good _ powOmega_normal _ HT))
+                 (addOrd 1) onePlus_normal _ _
+                 (bphi_fam_normal'' _ onePlus_normal _ (bcd_good _ onePlus_normal _ (bcd_badd _ _ bcd_Ω HT)))); auto.
+  - intros x Hx. right. exists (inr k0). cbn [bphi_fam]. rewrite Hk0.
+    change (expOrd ω x ≤ bphi (addOrd 1) (embed x) 0).
+    rewrite (bphi_onePlus_embed x 0 Hx zero_complete). apply addOrd_le1.
+  - intros [a|c].
+    + destruct (badd_small_r bOmega (bnode A g C h) a) as [k Hk].
+      exists (inl k). intros x Hx. cbn [bphi_fam]. rewrite Hk. apply IHg; auto. apply (bcd_small _ a HT).
+    + destruct (badd_big_r bOmega (bnode A g C h) c) as [k Hk].
+      exists (inr k). intros x Hx. cbn [bphi_fam]. rewrite Hk. apply IHh; auto using zero_complete.
+      apply (bcd_big _ c x HT Hx).
+Qed.
+
+(** φ^{1+x}_T lies below φ^{ω^x}_T. *)
+Theorem bphi_base_mono : forall T, bcd T -> forall y, complete y ->
+  bphi (addOrd 1) T y ≤ bphi powOmega T y.
+Proof.
+  induction T as [A g IHg C h IHh]; intros HT y Hy.
+  rewrite (bphi_unfold (addOrd 1)), (bphi_unfold powOmega).
+  apply (cfe_dom (addOrd 1) onePlus_normal _ _ (bphi_fam_normal'' _ onePlus_normal _ (bcd_good _ onePlus_normal _ HT))
+                 powOmega powOmega_normal _ _
+                 (bphi_fam_normal'' _ powOmega_normal _ (bcd_good _ powOmega_normal _ HT))); auto.
+  - intros x Hx. left. apply onePlus_least_normal; auto. apply powOmega_normal.
+  - intros [a|c]; exists (inl a) || exists (inr c); intros x Hx; simpl.
+    + apply IHg; auto. apply (bcd_small _ a HT).
+    + apply IHh; auto using zero_complete. apply (bcd_big _ c x HT Hx).
+  - destruct HT as [_ [Hd _]]. simpl in Hd. destruct Hd as [H|H]; [ left | right ]; auto.
+Qed.
+
+(** Ω + tower n lies z-reachably below tower (n+2). *)
+Lemma Ω_le_bexp Y (a:bsmall Y) : bsub bOmega (bexpΩ Y).
+Proof.
+  apply bsub_intro; [ intros [] | intros [] ].
+  destruct (bexpΩ_fam_s Y a) as [t Ht]. exists t. intro ξ. rewrite Ht.
+  apply embed_le_mul, bexpΩ_small_zero.
+Qed.
+
+Lemma btower_small n : bsmall (btower n).
+Proof.
+  destruct n as [|n]; [ exact tt | ].
+  simpl. destruct (btower n). exact (inl tt).
+Defined.
+
+Lemma zlt_Ω_tower n z : oinf z -> zlt z (badd bOmega (btower n)) (btower (S (S n))).
+Proof.
+  intro Hz.
+  destruct (tower_rel n z Hz) as [D [H1 H2]].
+  assert (Hl : zlt z (btower n) (btower (S n))) by (exists D; auto).
+  apply zlt_bleZ with (bmul (btower (S n)) (embed z)); [ | apply zlt_exp; auto ].
+  apply zlt_mono_r with (badd bOmega (btower (S n))); [ apply zlt_shift; auto | ].
+  set (X := btower (S n)).
+  apply bsub_trans with (badd X X).
+  { apply bsub_badd_l. apply (Ω_le_bexp (btower n) (btower_small n)). }
+  apply bsub_trans with (badd (bmul X (embed 1)) X).
+  { apply bsub_badd_l. apply bsub_bmul_one. }
+  eapply bsub_trans; [ apply bsub_mul_succ | ].
+  apply bsub_bmul_r, bsub_embed. apply (Hz 2%nat).
+Qed.

@@ -2789,3 +2789,38 @@ Proof.
       apply (proj2 (bphi_mono_index _ (normal_monotone _ onePlus_normal) _ (BI_bfam _))).
       apply bsub_tower.
 Qed.
+
+(** * Base change: BHO₁ is the Bachmann–Howard ordinal
+
+φ^{1+x}_T ≤ φ^{ω^x}_T gives one direction.  For the other, φ^{ω^x}_T ≤
+φ^{1+x}_{Ω+T}, and Ω + tower n lies z-reachably below tower (n+2),
+so BHO₁ is closed under ω^x and every φ^{ω^x}_{tower n}. *)
+
+Theorem BHO1_BachmannHoward : BHO1 ≈ BachmannHoward.
+Proof.
+  split.
+  - apply bphi_base_mono; auto using bcd_bεΩ1, zero_complete.
+  - unfold BachmannHoward.
+    assert (Hg := bcd_good _ powOmega_normal _ bcd_bεΩ1).
+    change (cfe powOmega (nat + False) (bphi_fam powOmega btower (False_rect (Ord -> BOrd))) 0 ≤ BHO1).
+    assert (Hcomp : forall n, bphi powOmega (btower n) BHO1 ≤ BHO1).
+    { intro n. rewrite (bphi_powOmega_shift _ (bcd_btower n) _ BHO1_complete).
+      destruct bεΩ1_good as [Hfam1 Hg1].
+      assert (Hgt : bgood (addOrd 1) (btower (S (S n)))) by (apply (bgood_small _ bεΩ1 (S (S n))); auto).
+      assert (Hft : bfam (btower (S (S n)))) by (apply (bfam_small bεΩ1 Hfam1 (S (S n)))).
+      apply (zlt_nest _ onePlus_normal _ _ (btower (S (S n))) (zlt_Ω_tower n _ BHO1_inf) Hgt Hft BHO1_complete).
+      apply bfix_of_fix; auto using onePlus_normal, BHO1_complete.
+      apply (bphi_fix_small' _ onePlus_normal bεΩ1 (S (S n)) 0 Hg1 zero_complete). }
+    assert (Hpow : powOmega BHO1 ≤ BHO1).
+    { transitivity (bphi powOmega (btower 0) BHO1); [ | apply Hcomp ].
+      transitivity (bphi powOmega bzero BHO1); [ apply (bphi_bzero _ powOmega_normal) | ].
+      apply (proj2 (bphi_mono_index _ (normal_monotone _ powOmega_normal) _ (bfam_btower 0))).
+      apply bsub_bzero_l. }
+    apply (cfe_least powOmega powOmega_normal _ _ (bphi_fam_normal' _ powOmega_normal _ _ _ _ Hg)).
+    + transitivity (powOmega BHO1); auto. apply normal_monotone; [ apply powOmega_normal | apply zero_least ].
+    + apply limit_least. intros [].
+    + intros [n|[]]. split; [ apply Hcomp | exact Hpow ].
+Qed.
+
+Corollary BS_order_type_BH : NFOrd ≈ BachmannHoward.
+Proof. rewrite BS_order_type. apply BHO1_BachmannHoward. Qed.
