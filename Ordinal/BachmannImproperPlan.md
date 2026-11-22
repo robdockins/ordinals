@@ -116,8 +116,12 @@ for Schütte matrices.
          apply.  Families: the argument z sits at the end of K', so only
          Kend z N holds; `nest_le` gives bleZ z ⟦N⟧ ⟦R⟧ but requires
          Klt z R, which fails when z equals R's end coefficient (e.g.
-         R = Ω·k with φ_{Ω·k}(0) = k).  Needed: a version of `nest_le`
-         for targets with Kend z R.  This is the remaining obstacle.
+         R = Ω·k with φ_{Ω·k}(0) = k).  RESOLVED: `nest_le` now only
+         requires Kend z of the target (`Klt_Kend`, `Kend_exp`,
+         `Kend_coef`, `Kend_tail`); the target's coefficient bound was
+         only used at its exponent, its coefficient (where an end
+         coefficient ≈ 1 is impossible) and its nonempty tail.
+         Remaining work for ABS is assembly along the plan above.
 4. Normalizer for indices with normal exponents (merge + absorption,
    bottom-up on summands) and for `BS` terms; correctness.
 5. Transfer to `SchutteMatrix`: extend `Kl_correct` to improper

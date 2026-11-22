@@ -1640,8 +1640,39 @@ Lemma BI_denote_cons e c r :
   BI_denote (BIC e c r) = badd (bmul (bexpΩ (BI_denote e)) (embed (BS_denote c))) (BI_denote r).
 Proof. reflexivity. Qed.
 
+(** The target's coefficients only need to satisfy @Kend@. *)
+Lemma Klt_Kend z T : Klt z T -> Kend z T.
+Proof.
+  induction T as [|e IHe c r IHr]; simpl; auto.
+  intros [He [Hc Hr]]. destruct r as [|e2 c2 r2].
+  - left. split; auto. apply ord_lt_le; auto.
+  - split; auto.
+Qed.
+
+Lemma Kend_exp z e c r : oinf z -> Kend z (BIC e c r) -> Kend z e.
+Proof.
+  intros Hz H. destruct r as [|e2 c2 r2]; simpl in H.
+  - destruct H as [[H _]|[H _]]; auto. apply Klt_Kend; auto.
+  - apply Klt_Kend, H.
+Qed.
+
+Lemma Kend_coef z e' c' r' c : Kend z (BIC e' c' r') -> BS_denote c < BS_denote c' -> 0 < BS_denote c ->
+  Klt z e' /\ BS_denote c < z.
+Proof.
+  intros H Hcc Hc0. destruct r' as [|e2 c2 r2]; simpl in H.
+  - destruct H as [[H1 H2]|[H1 H2]].
+    + split; auto. eapply ord_lt_le_trans; eauto.
+    + exfalso. assert (H1' : BS_denote c < 1) by (eapply ord_lt_le_trans; [ exact Hcc | apply H2 ]).
+      rewrite ord_lt_unfold in H1'. destruct H1' as [u Hle].
+      apply (ord_lt_irreflexive 0). eapply ord_lt_le_trans; [ exact Hc0 | exact Hle ].
+  - destruct H as [H1 [H2 _]]. split; auto. eapply ord_lt_trans; eauto.
+Qed.
+
+Lemma Kend_tail z e' c' r' : r' <> BIZ -> Kend z (BIC e' c' r') -> Kend z r'.
+Proof. intros Hne H. destruct r' as [|e2 c2 r2]; [ tauto | ]. apply H. Qed.
+
 Theorem nest_le z : oinf z -> forall n T, (BI_size T < n)%nat -> BI_nf T -> Kend z T ->
-  (forall T', BI_nf T' -> Klt z T' -> ilt T T' -> bleZ z (BI_denote T) (BI_denote T')) /\
+  (forall T', BI_nf T' -> Kend z T' -> ilt T T' -> bleZ z (BI_denote T) (BI_denote T')) /\
   (forall a, match T with
              | BIZ => True
              | BIC e _ _ => (Klt z e -> zlt z (BI_denote e) a) /\ (Kend z e -> bleZ z (BI_denote e) a)
@@ -1658,7 +1689,7 @@ Proof.
     simpl in Hl. destruct Hrn as [He2 _]. simpl in Hr.
     split.
     - intro HK2. apply (proj1 (nest z Hz (S (BI_size e2)) e2 ltac:(lia) He2 HK2)); auto.
-    - intro HK2. apply (proj1 (IH e2 ltac:(lia) He2 HK2)); auto. }
+    - intro HK2. apply (proj1 (IH e2 ltac:(lia) He2 HK2)); auto. apply Klt_Kend; auto. }
   assert (B : forall a, match T with
                         | BIZ => True
                         | BIC e _ _ => (Klt z e -> zlt z (BI_denote e) a) /\ (Kend z e -> bleZ z (BI_denote e) a)
@@ -1683,16 +1714,16 @@ Proof.
   intros T' HT' HKT' Hlt.
   destruct Hlt as [e' c' r' | e c r e' c' r' Hee | e c r e' c' r' Hee Hcc | e c r e' c' r' Hee Hcc Hrr].
   - apply LZ_sub, bsub_bzero_l.
-  - simpl in Hsz. destruct HKT' as [HKe' _]. destruct HT' as [He' [_ [Hc0' _]]].
+  - simpl in Hsz. assert (HKe' := Kend_exp _ _ _ _ Hz HKT'). destruct HT' as [He' [_ [Hc0' _]]].
     assert (HTe := proj1 HT).
     eapply bleZ_mono_r; [ apply (B (BI_denote e')) | ].
     + split.
       * intro HKe. apply (proj1 (nest z Hz (S (BI_size e)) e ltac:(lia) HTe HKe)); auto.
       * intro HKe. apply (proj1 (IH e ltac:(lia) HTe HKe)); auto.
     + rewrite BI_denote_cons. eapply bsub_trans; [ apply bsub_P_Pz, Hc0' | apply bsub_le_badd ].
-  - simpl in Hsz. destruct HKT' as [HKe' [Hcz' HKr']]. destruct HT as [He [Hc [Hc0 [Hr Hl]]]].
+  - simpl in Hsz. destruct HT as [He [Hc [Hc0 [Hr Hl]]]].
+    destruct (Kend_coef _ _ _ _ _ HKT' Hcc Hc0) as [HKe' Hcz].
     assert (HKe := Klt_ieq z e e' Hee HKe').
-    assert (Hcz : BS_denote c < z) by (eapply ord_lt_trans; eauto).
     assert (Hsub : bsub (bmul (bexpΩ (BI_denote e)) (embed (succOrd (BS_denote c))))
                         (BI_denote (BIC e' c' r'))).
     { rewrite BI_denote_cons. eapply bsub_trans; [ | apply bsub_le_badd ].
@@ -1707,7 +1738,8 @@ Proof.
       rewrite BI_denote_cons. eapply bleZ_mono_r; [ apply bleZ_shift, Hrb | ].
       eapply bsub_trans; [ apply bsub_mul_succ | exact Hsub ].
   - simpl in Hsz. destruct HT as [He [Hc [Hc0 [Hr Hl]]]]. destruct HT' as [_ [_ [_ [Hr' _]]]].
-    destruct HKT' as [_ [_ HKr']].
+    assert (Hne' : r' <> BIZ) by (intro E; subst r'; inversion Hrr).
+    assert (HKr' := Kend_tail _ _ _ _ Hne' HKT').
     assert (Hterm : bsub (bmul (bexpΩ (BI_denote e)) (embed (BS_denote c)))
                          (bmul (bexpΩ (BI_denote e')) (embed (BS_denote c')))).
     { eapply bsub_trans; [ apply bsub_bmul_r, bsub_embed, (proj1 Hcc) | ].
@@ -1999,7 +2031,7 @@ Proof.
         intros m' Em'. injection Em' as <-. split; auto.
         assert (Hne : Tm <> BIZ) by (intro E; subst; inversion HI).
         assert (Hz := BN_inf Tm ym HTm Hne).
-        assert (HB := proj1 (nest_le _ Hz (S (BI_size T)) T ltac:(lia) HT (N1 eq_refl)) Tm HTm HKm HI).
+        assert (HB := proj1 (nest_le _ Hz (S (BI_size T)) T ltac:(lia) HT (N1 eq_refl)) Tm HTm (Klt_Kend _ _ HKm) HI).
         assert (Hi : inhabited (bsmall (BI_denote Tm) + bbig (BI_denote Tm))).
         { destruct Tm as [|e' c' r']; [ tauto | ]. apply BI_inh. apply HTm. }
         exact (bleZ_sound (addOrd 1) onePlus_normal _ _ _ HB (BI_denote Tm) (bsub_refl _) (BI_good Tm)
