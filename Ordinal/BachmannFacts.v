@@ -417,3 +417,59 @@ Proof.
   transitivity (f (bphi f y w)); [ apply H1, bphi_complete; auto | ].
   apply bphi_fix_base'; auto.
 Qed.
+
+(** ** Dominance through strict contexts
+
+A context is a tree with an ordinal hole that is canonical at complete
+arguments and strictly increasing in the structural order @bslt@.
+Along a context, ξ ↦ φ_{C ξ}(0) is strictly increasing, hence at least
+ξ.  Contexts are built from @embed@ by adding on the left, multiplying
+by a positive tree on the left, and exponentiating; together with
+@bsub@-monotonicity this places every coefficient of an index below
+φ_T(0). *)
+
+Definition bctx (C:Ord -> BOrd) : Prop :=
+  (forall ξ, complete ξ -> bcd (C ξ)) /\
+  (forall ξ ξ', complete ξ' -> ξ < ξ' -> bslt (C ξ) (C ξ')).
+
+Theorem bctx_dom f (Hf : normal_function f) C : bctx C -> forall ξ, complete ξ -> ξ ≤ bphi f (C ξ) 0.
+Proof.
+  intros [Hcd Hlt]. induction ξ as [X g IH]; intro Hc.
+  rewrite ord_le_unfold. intro j.
+  assert (Hj : complete (g j)) by (apply (complete_subord (ord X g)); auto).
+  apply ord_le_lt_trans with (bphi f (C (g j)) 0); [ apply IH; auto | ].
+  destruct (Hcd _ Hc) as [H1 H2].
+  destruct (bcanon_good f Hf _ H1 H2) as [Hfam Hgood].
+  apply bphi_strict; auto. apply Hlt; auto. apply (index_lt (ord X g) j).
+Qed.
+
+Lemma bslt_embed ξ ξ' : ξ < ξ' -> bslt (embed ξ) (embed ξ').
+Proof.
+  destruct ξ' as [X k]. intro H. rewrite ord_lt_unfold in H. destruct H as [j Hj].
+  apply (bslt_small (embed ξ) (embed (ord X k)) j).
+  change (bsub (embed ξ) (embed (k j))). apply bsub_embed; auto.
+Qed.
+
+Lemma bctx_embed : bctx embed.
+Proof. split; [ apply bcd_embed | intros; apply bslt_embed; auto ]. Qed.
+
+Lemma bctx_add A C : bcd A -> bctx C -> bctx (fun ξ => badd A (C ξ)).
+Proof.
+  intros HA [H1 H2]. split; intros.
+  - apply bcd_badd; auto.
+  - apply bslt_badd_r; auto.
+Qed.
+
+Lemma bctx_mul P C : bcd P -> bpos P -> bctx C -> bctx (fun ξ => bmul P (C ξ)).
+Proof.
+  intros HP Hp [H1 H2]. split; intros.
+  - apply bcd_bmul; auto.
+  - apply bslt_bmul_r; auto.
+Qed.
+
+Lemma bctx_exp C : bctx C -> bctx (fun ξ => bexpΩ (C ξ)).
+Proof.
+  intros [H1 H2]. split; intros.
+  - apply bcd_bexpΩ; auto.
+  - apply bslt_bexpΩ; auto.
+Qed.

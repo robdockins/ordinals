@@ -1285,3 +1285,315 @@ Qed.
     ordinal (at the base 1+x). *)
 Corollary BS_bounded x : BS_nf x -> BS_denote x < BHO1.
 Proof. apply BNotation_bounded. Qed.
+
+(** * Dominance: coefficients lie at or below φ_T(0)
+
+Every coefficient k of a normal index T, at any depth, sits in a
+strict context C with C k ⊑ ⟦T⟧ (@bctx@): the hole runs through the
+right summand of an addition, the coefficient of Ω^e·_, or an
+exponent.  So k ≤ φ_{C k}(0) ≤ φ_T(0).  Equality can occur, e.g.
+φ_{Ω^d}(0) = d for d the Large Veblen Ordinal. *)
+
+Lemma idx_term_bcd e c : bcd (bmul (bexpΩ (BI_denote e)) (embed (BS_denote c))).
+Proof. apply (proj1 (idx_ok_term _ _ (BI_ok e) (BS_complete c))). Qed.
+
+(** All coefficients, at any depth, are positive. *)
+Fixpoint BI_pos (T:BIdx) : Prop :=
+  match T with
+  | BIZ => True
+  | BIC e c r => BI_pos e /\ 0 < BS_denote c /\ BI_pos r
+  end.
+
+Lemma BI_nf_pos T : BI_nf T -> BI_pos T.
+Proof.
+  induction T as [|e IHe c r IHr]; simpl; auto.
+  intros [He [_ [Hc [Hr _]]]]. auto.
+Qed.
+
+Lemma Kge_ctx : forall T, BI_pos T -> forall z, Kge z T ->
+  exists C ζ, bctx C /\ complete ζ /\ z ≤ ζ /\ bsub (C ζ) (BI_denote T).
+Proof.
+  induction T as [|e IHe c r IHr]; simpl; [ tauto | ].
+  intros [He [Hc0 Hr]] z [Hz|[Hz|Hz]].
+  - destruct (IHe He z Hz) as [C [ζ [HC [Hζ [Hzζ Hsub]]]]].
+    exists (fun ξ => bexpΩ (C ξ)), ζ. split; [ apply bctx_exp; auto | split; [ auto | split; [ auto | ] ] ].
+    eapply bsub_trans; [ apply bsub_bexpΩ, Hsub | ].
+    eapply bsub_trans; [ apply bsub_P_Pz, Hc0 | apply bsub_le_badd ].
+  - exists (fun ξ => bmul (bexpΩ (BI_denote e)) (embed ξ)), (BS_denote c).
+    split; [ | split; [ apply BS_complete | split; [ auto | apply bsub_le_badd ] ] ].
+    apply bctx_mul; [ apply bcd_bexpΩ, BI_ok | apply bpos_bexpΩ | apply bctx_embed ].
+  - destruct (IHr Hr z Hz) as [C [ζ [HC [Hζ [Hzζ Hsub]]]]].
+    exists (fun ξ => badd (bmul (bexpΩ (BI_denote e)) (embed (BS_denote c))) (C ξ)), ζ.
+    split; [ apply bctx_add; [ apply idx_term_bcd | auto ] | split; [ auto | split; [ auto | ] ] ].
+    apply bsub_badd_r; auto.
+Qed.
+
+Theorem dominance T y z : BI_pos T -> Kge z T -> z ≤ BS_denote (BN T y).
+Proof.
+  intros HT Hz.
+  destruct (Kge_ctx T HT z Hz) as [C [ζ [HC [Hζ [Hzζ Hsub]]]]].
+  transitivity ζ; auto.
+  transitivity (bphi (addOrd 1) (C ζ) 0); [ apply (bctx_dom (addOrd 1) onePlus_normal C HC ζ Hζ) | ].
+  transitivity (bphi (addOrd 1) (BI_denote T) 0).
+  - apply (proj2 (bphi_mono_index (addOrd 1) (normal_monotone _ onePlus_normal) _ (BI_bfam T))); auto.
+  - simpl. apply normal_monotone; auto using BI_normal, zero_least.
+Qed.
+
+(** * Normalization by rewriting
+
+Terms are required to be proper: indices are Ω-Cantor normal forms
+(exponents strictly decreasing, coefficients positive), hereditarily.
+As with @SchutteMatrix@'s properness, this is a precondition rather
+than something to rewrite: with tree semantics, an index such as
+Ω^0·c + Ω does not denote the same hierarchy as Ω, so absorption of
+summands is not sound.  On proper terms there are two redexes, both
+collapsing φ_T(y) to a proper subterm:
+
+ - the argument is a fixpoint: φ_T(y) ≤ y, so φ_T(y) = y;
+ - a coefficient k of T dominates: φ_T(y) ≤ k, so (by @dominance@)
+   φ_T(y) = k.
+
+Every reduction step strictly decreases size, so the system is
+strongly normalizing, and its normal forms are exactly @BS_nf@. *)
+
+(** ** Proper terms *)
+
+Fixpoint BS_proper (x:BSmall) : Prop :=
+  match x with
+  | BZ => True
+  | BN T y => BI_proper T /\ BS_proper y
+  end
+with BI_proper (T:BIdx) : Prop :=
+  match T with
+  | BIZ => True
+  | BIC e c r => BI_proper e /\ BS_proper c /\ 0 < BS_denote c /\ BI_proper r /\ lead_below r e
+  end.
+
+Lemma BI_proper_pos T : BI_proper T -> BI_pos T.
+Proof.
+  induction T as [|e IHe c r IHr]; simpl; auto.
+  intros [He [_ [Hc [Hr _]]]]. auto.
+Qed.
+
+Lemma nf_proper : (forall x, BS_nf x -> BS_proper x) /\ (forall T, BI_nf T -> BI_proper T).
+Proof.
+  apply BNotation_mut; simpl; auto.
+  - intros T IHT y IHy [HT [Hy _]]. auto.
+  - intros e IHe c IHc r IHr [He [Hc [Hc0 [Hr Hl]]]]. auto 10.
+Qed.
+
+(** Coefficient occurrences, at any depth. *)
+Fixpoint Kin (k:BSmall) (T:BIdx) : Prop :=
+  match T with
+  | BIZ => False
+  | BIC e c r => Kin k e \/ k = c \/ Kin k r
+  end.
+
+Lemma Kin_Kge k T : Kin k T -> Kge (BS_denote k) T.
+Proof.
+  induction T as [|e IHe c r IHr]; simpl; [ tauto | ].
+  intros [H|[H|H]]; [ left; auto | subst; right; left; reflexivity | right; right; auto ].
+Qed.
+
+Lemma Kin_proper k T : Kin k T -> BI_proper T -> BS_proper k.
+Proof.
+  induction T as [|e IHe c r IHr]; simpl; [ tauto | ].
+  intros [H|[H|H]] [He [Hc [_ [Hr _]]]]; [ auto | subst; auto | auto ].
+Qed.
+
+Lemma Kin_size k T : Kin k T -> (BS_size k < BI_size T)%nat.
+Proof.
+  induction T as [|e IHe c r IHr]; simpl; [ tauto | ].
+  intros [H|[H|H]]; [ specialize (IHe H) | subst | specialize (IHr H) ]; lia.
+Qed.
+
+(** ** The index equivalence *)
+
+Lemma ieq_refl T : ieq T T.
+Proof. induction T as [|e IHe c r IHr]; constructor; auto. reflexivity. Qed.
+
+Lemma ieq_trans a b c : ieq a b -> ieq b c -> ieq a c.
+Proof.
+  intro H. revert c. induction H as [|e x r e' x' r' He IHe Hx Hr IHr]; intros c Hbc; inversion Hbc; subst; constructor; auto.
+  transitivity (BS_denote x'); auto.
+Qed.
+
+Lemma ilt_ieq : forall a b, ilt a b -> forall a' b', ieq a a' -> ieq b b' -> ilt a' b'.
+Proof.
+  intros a b H. induction H as [e c r | e c r e' c' r' Hee IH | e c r e' c' r' Hee Hcc | e c r e' c' r' Hee Hcc Hrr IH];
+    intros a' b' Ha Hb.
+  - inversion Ha; inversion Hb; subst. constructor.
+  - inversion Ha as [|? ? ? e1 c1 r1 He1 Hc1 Hr1]; inversion Hb as [|? ? ? e2 c2 r2 He2 Hc2 Hr2]; subst.
+    apply ilt_exp. apply IH; auto.
+  - inversion Ha as [|? ? ? e1 c1 r1 He1 Hc1 Hr1]; inversion Hb as [|? ? ? e2 c2 r2 He2 Hc2 Hr2]; subst.
+    apply ilt_coef.
+    + apply ieq_trans with e; [ apply ieq_sym; exact He1 | apply ieq_trans with e'; auto ].
+    + rewrite <- Hc1, <- Hc2. auto.
+  - inversion Ha as [|? ? ? e1 c1 r1 He1 Hc1 Hr1]; inversion Hb as [|? ? ? e2 c2 r2 He2 Hc2 Hr2]; subst.
+    apply ilt_tail.
+    + apply ieq_trans with e; [ apply ieq_sym; exact He1 | apply ieq_trans with e'; auto ].
+    + rewrite <- Hc1, <- Hc2. auto.
+    + apply IH; auto.
+Qed.
+
+(** ** The rewrite relation *)
+
+Inductive redex : BSmall -> BSmall -> Prop :=
+| redex_arg : forall T y, BS_denote (BN T y) ≤ BS_denote y -> redex (BN T y) y
+| redex_coef : forall T y k, Kin k T -> BS_denote (BN T y) ≤ BS_denote k -> redex (BN T y) k.
+
+Inductive red_S : BSmall -> BSmall -> Prop :=
+| red_top : forall x x', redex x x' -> red_S x x'
+| red_idx : forall T T' y, red_I T T' -> red_S (BN T y) (BN T' y)
+| red_arg : forall T y y', red_S y y' -> red_S (BN T y) (BN T y')
+with red_I : BIdx -> BIdx -> Prop :=
+| red_exp : forall e e' c r, red_I e e' -> red_I (BIC e c r) (BIC e' c r)
+| red_coef : forall e c c' r, red_S c c' -> red_I (BIC e c r) (BIC e c' r)
+| red_rest : forall e c r r', red_I r r' -> red_I (BIC e c r) (BIC e c r').
+
+Scheme red_S_mut := Induction for red_S Sort Prop
+with red_I_mut := Induction for red_I Sort Prop.
+Combined Scheme red_mut from red_S_mut, red_I_mut.
+
+Lemma redex_sound x x' : redex x x' -> BS_proper x -> BS_denote x ≈ BS_denote x'.
+Proof.
+  intros H Hx. destruct H as [T y H | T y k Hk H]; split; auto.
+  - apply normal_inflationary; auto using BI_normal, BS_complete.
+  - destruct Hx as [HT _]. apply dominance; auto using BI_proper_pos, Kin_Kge.
+Qed.
+
+Theorem red_sound :
+  (forall x x', red_S x x' -> BS_proper x -> BS_denote x ≈ BS_denote x') /\
+  (forall T T', red_I T T' -> BI_proper T -> ieq T T').
+Proof.
+  apply red_mut.
+  - intros x x' H Hx. apply redex_sound; auto.
+  - intros T T' y H IH [HT _]. apply bphi_ieq; auto.
+  - intros T y y' H IH [_ Hy]. apply ord_eq_normal; auto using BI_normal.
+  - intros e e' c r H IH [He _]. constructor; auto using ieq_refl. reflexivity.
+  - intros e c c' r H IH [_ [Hc _]]. constructor; auto using ieq_refl.
+  - intros e c r r' H IH [_ [_ [_ [Hr _]]]]. constructor; auto using ieq_refl. reflexivity.
+Qed.
+
+Lemma lead_below_ieq r r' e e' : ieq r r' -> ieq e e' -> lead_below r e -> lead_below r' e'.
+Proof.
+  intros Hr He. destruct Hr as [|e2 c2 r2 e2' c2' r2' He2 _ _]; simpl; auto.
+  intro H. apply (ilt_ieq _ _ H); auto.
+Qed.
+
+Theorem red_proper :
+  (forall x x', red_S x x' -> BS_proper x -> BS_proper x') /\
+  (forall T T', red_I T T' -> BI_proper T -> BI_proper T').
+Proof.
+  apply red_mut.
+  - intros x x' H Hx. destruct H as [T y H | T y k Hk H]; [ apply Hx | ].
+    apply (Kin_proper k T); auto. apply Hx.
+  - intros T T' y H IH [HT Hy]. split; auto.
+  - intros T y y' H IH [HT Hy]. split; auto.
+  - intros e e' c r H IH [He [Hc [Hc0 [Hr Hl]]]].
+    assert (Hee := proj2 red_sound e e' H He).
+    split; auto. split; auto. split; auto. split; auto.
+    apply (lead_below_ieq r r e e'); auto using ieq_refl.
+  - intros e c c' r H IH [He [Hc [Hc0 [Hr Hl]]]].
+    assert (Hcc := proj1 red_sound c c' H Hc).
+    split; auto. split; auto. split; [ rewrite <- Hcc; auto | auto ].
+  - intros e c r r' H IH [He [Hc [Hc0 [Hr Hl]]]].
+    assert (Hrr := proj2 red_sound r r' H Hr).
+    split; auto. split; auto. split; auto. split; auto.
+    apply (lead_below_ieq r r' e e); auto using ieq_refl.
+Qed.
+
+(** ** Strong normalization *)
+
+Theorem red_size :
+  (forall x x', red_S x x' -> (BS_size x' < BS_size x)%nat) /\
+  (forall T T', red_I T T' -> (BI_size T' < BI_size T)%nat).
+Proof.
+  apply red_mut; simpl; intros; try lia.
+  destruct r as [T y H | T y k Hk H]; simpl; [ lia | ].
+  pose proof (Kin_size k T Hk). lia.
+Qed.
+
+Theorem strongly_normalizing : well_founded (fun y x => red_S x y).
+Proof.
+  apply (Wf_nat.well_founded_lt_compat _ BS_size).
+  intros y x H. apply (proj1 red_size); auto.
+Qed.
+
+(** ** Deciding the argument redex *)
+
+Lemma Klt_mono z z' T : z ≤ z' -> Klt z T -> Klt z' T.
+Proof.
+  intro Hz. induction T as [|e IHe c r IHr]; simpl; auto.
+  intros [H1 [H2 H3]]. split; auto. split; auto. eapply ord_lt_le_trans; eauto.
+Qed.
+
+(** Bachmann's rule, needing only the indices to be normal. *)
+Lemma nest_lt_idx T a T' b :
+  BI_nf T -> BI_nf T' -> ilt T T' ->
+  BS_denote a < BS_denote (BN T' b) -> Klt (BS_denote (BN T' b)) T ->
+  BS_denote (BN T a) < BS_denote (BN T' b).
+Proof.
+  intros HT HT' Hlt Ha Hc.
+  set (z := BS_denote (BN T' b)) in *.
+  assert (Hne : T' <> BIZ) by (intro E; subst; inversion Hlt).
+  assert (Hz : zlt z (BI_denote T) (BI_denote T')).
+  { apply (proj1 (nest z (BN_inf T' b HT' Hne) (S (BI_size T)) T ltac:(lia) HT Hc)); auto. }
+  assert (Hi : inhabited (bsmall (BI_denote T') + bbig (BI_denote T'))).
+  { destruct T' as [|e' c' r']; [ tauto | ]. apply BI_inh. apply HT'. }
+  assert (Hfix := zlt_value (addOrd 1) onePlus_normal (BI_denote T) (BI_denote T') (BS_denote b)
+                    Hz (BI_good T') (BI_bfam T') Hi (BS_complete b)).
+  eapply ord_lt_le_trans; [ | exact Hfix ].
+  apply normal_increasing; auto using BI_normal.
+  apply (BS_complete (BN T' b)).
+Qed.
+
+(** y is a fixpoint of φ_T iff y = φ_{T''}(y'') with T < T'' and every
+    coefficient of T below y. *)
+Definition fix_test (n:nat) (T:BIdx) (y:BSmall) : bool :=
+  match y with
+  | BZ => false
+  | BN T'' _ => match cmpI n T T'' with LT => coefs_below n T y | _ => false end
+  end.
+
+Theorem fix_test_correct T y : BI_nf T -> BS_nf y ->
+  let n := S (BI_size T + BS_size y) in
+  (fix_test n T y = true -> BS_denote (BN T y) ≤ BS_denote y) /\
+  (fix_test n T y = false -> BS_denote y < BS_denote (BN T y)).
+Proof.
+  intros HT Hy n.
+  destruct y as [|T'' y'']; [ split; [ discriminate | intros _; apply (BS_pos T BZ) ] | ].
+  change (fix_test n T (BN T'' y'')) with
+    (match cmpI n T T'' with LT => coefs_below n T (BN T'' y'') | _ => false end).
+  assert (Hy' := Hy). destruct Hy' as [HT'' [Hy'' [Hlt'' HK'']]].
+  assert (HI := proj2 (cmp_correct n) T T'' ltac:(unfold n; simpl; lia) HT HT'').
+  set (y := BN T'' y'') in *.
+  assert (Hyinf : T'' <> BIZ -> oinf (BS_denote y)) by (intro; apply BN_inf; auto).
+  destruct (cmpI n T T'') eqn:E; simpl in HI.
+  - destruct (coefs_below_spec n y T (fun c Hc Hcn => proj1 (cmp_correct n) c y ltac:(unfold n; lia) Hcn Hy) HT)
+      as [C1 C2].
+    destruct (coefs_below n T y) eqn:E2; split; intro H; try discriminate.
+    + (* a fixpoint *)
+      assert (HK := C1 eq_refl).
+      assert (Hne : T'' <> BIZ) by (intro Ez; subst; inversion HI).
+      assert (Hz : zlt (BS_denote y) (BI_denote T) (BI_denote T'')).
+      { apply (proj1 (nest _ (Hyinf Hne) (S (BI_size T)) T ltac:(lia) HT HK)); auto. }
+      assert (Hi : inhabited (bsmall (BI_denote T'') + bbig (BI_denote T''))).
+      { destruct T'' as [|e' c' r']; [ tauto | ]. apply BI_inh. apply HT''. }
+      exact (zlt_value (addOrd 1) onePlus_normal (BI_denote T) (BI_denote T'') (BS_denote y'')
+               Hz (BI_good T'') (BI_bfam T'') Hi (BS_complete y'')).
+    + (* a coefficient at least y: y ≤ φ_T(0) < φ_T(y) *)
+      apply ord_le_lt_trans with (BS_denote (BN T BZ)).
+      * apply dominance; [ apply BI_nf_pos; auto | apply C2; reflexivity ].
+      * apply (normal_increasing _ (BI_normal T) 0 (BS_denote y) (BS_complete y) (BS_pos T'' y'')).
+  - split; intro H; try discriminate.
+    change (BS_denote y < bphi (addOrd 1) (BI_denote T) (BS_denote y)).
+    rewrite (bphi_ieq T T'' (BS_denote y) HI).
+    apply normal_increasing; auto using BI_normal, BS_complete.
+  - split; intro H; try discriminate.
+    apply nest_lt_idx; auto.
+    + eapply ord_lt_le_trans; [ exact Hlt'' | ].
+      apply normal_inflationary; auto using BI_normal, BS_complete.
+    + apply Klt_mono with (BS_denote y); auto.
+      apply normal_inflationary; auto using BI_normal, BS_complete.
+Qed.
