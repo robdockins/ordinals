@@ -18,9 +18,10 @@ delete the scratch, `make -j4`, commit (one commit per milestone).
 
 DONE: merge identities; offset algorithm; one-step absorption at the top
 (`absorb`, unconditional); `nest_le` generalized; H1 (normal forms of
-improper sums); H2 (`coverX`, without coefficient tracking yet); H3
-`nestX`.  DESIGN COMPLETE (on paper) for hereditary absorption; NEXT:
-H3' (coefficient tracking in `coverX`).
+improper sums); H2 (`coverX`); H3 `nestX`; H3' (coefficient tracking
+in `cover`/`coverX`, `Klt_normX`).  DESIGN COMPLETE (on paper) for
+hereditary absorption; NEXT: P1/P2 position lemmas (C) and the
+absorbed-coefficient bookkeeping (F).
 Out of scope: absorption inside exponents (exponents must be normal).
 
 ## Background facts
@@ -80,7 +81,13 @@ Out of scope: absorption inside exponents (exponents must be normal).
   (bsub both ways) between imp_ok notations K' with
   ilt (normX K') (normX X); P's children reuse `cover`;
 - H3: `nestX` (oinf z, imp_ok X, nf T', Klt z T', ilt T' (normX X) ⇒
-  zlt z ⟦T'⟧ ⟦X⟧), helpers `Klt_smartC`, `ilt_lead`, `merge_bsub`.
+  zlt z ⟦T'⟧ ⟦X⟧), helpers `Klt_smartC`, `ilt_lead`, `merge_bsub`;
+- H3': `icov` and `icovX` now carry tracking: a small cover T satisfies
+  ∀ z, oinf z → Kend z T0 → Klt z T; a family cover at x satisfies
+  ∀ z, oinf z → Kend z T0 → ⟦x⟧ < z → Klt z T (strict in x, which is all
+  (D)/(E) need: family arguments are interpolants below z).  Helpers
+  `Kend_rest`, `Kend_head`, `Klt_smartC_coef`, `ilt_ne`, `oinf_one`,
+  `normX_ne`; `Klt_addT`, `Klt_normX` (z with a < z → a + z ≤ z).
 
 ## Final design: hereditary absorption
 
@@ -187,7 +194,7 @@ Ingredients:
 ## Implementation order
 
 1. H3 `nestX` (self-contained; design (A)). DONE.
-2. H3' tracking in `coverX` (B).
+2. H3' tracking in `coverX` (B). DONE.
 3. P1/P2 (C) and the absorbed-coefficient bookkeeping (F).
 4. Joint induction (D) + (E).
 5. Normalizer (G), then Schütte matrices.
