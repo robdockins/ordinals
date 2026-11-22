@@ -74,8 +74,19 @@ for Schütte matrices.
 
 1. DONE: merge identities (`bequiv_embed_add`, `bequiv_bmul_badd`,
    `bequiv_merge`).
-2. Enumeration/offset lemma for `cfe` (Fix(A) = Fix(B) ∩ region ⇒
-   φ_A(y) = φ_B(t+y)), and the offset algorithm on normal forms.
+2. DONE. `cfe_offset` (`BachmannFacts.v`): if the common fixpoints of
+   (f,F) are those of (f,G) in an upward-closed region U containing all
+   values of the first enumerator, the fixpoints of (f,G) are additively
+   principal, and t is least with φ_G(t) ∈ U and t < φ_G(t), then
+   φ_F(y) = φ_G(t + y).  Helpers: `bphi_succ_le` (φ_T(a+1) is the least
+   common fixpoint above φ_T(a)), `zlt_embed_Ω`.
+   `BS_offset R m` (`Notation/BachmannNotation.v`), for normal R with a
+   nonzero leading exponent (`lead_big`): `BS_offset_correct` gives
+   `OffSpec` — t normal, m < φ_R(t), t < φ_R(t), and φ_R(t) lies below
+   every common fixpoint of ⟦R⟧'s components above m.  Supporting facts:
+   `fix_principal` (those fixpoints are additively principal),
+   `fix_succ_lt`, `off_max_spec`.  Computed examples included.
+   Axiom-free.
 3. One-step absorption theorem (P term, R normal), at notation level.
 4. Normalizer for indices with normal exponents (merge + absorption,
    bottom-up on summands) and for `BS` terms; correctness.

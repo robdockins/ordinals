@@ -2824,3 +2824,244 @@ Qed.
 
 Corollary BS_order_type_BH : NFOrd ≈ BachmannHoward.
 Proof. rewrite BS_order_type. apply BHO1_BachmannHoward. Qed.
+
+(** * The offset of a threshold
+
+For a normal index R with a nonzero leading exponent and a normal
+notation m, @BS_offset R m@ is the least t with m < φ_R(t): the least
+value of φ_R above m is φ_R(t).  It is computed by recursion on m:
+if m < φ_R(0) then t = 0; otherwise m = φ_{T'}(y') with
+ - T' = R: t = y' + 1;
+ - T' > R: if R's coefficients lie below m, m is a fixpoint of φ_R and
+   t = m + 1; otherwise m = φ_R(0) and t = 1;
+ - T' < R: the values of φ_R above max(y', coefficients of T') are the
+   values above m, so recurse on that maximum. *)
+
+Abbreviation PHI R := (bphi (addOrd 1) (BI_denote R)).
+
+Definition lead_big (R:BIdx) : Prop :=
+  match R with BIC e _ _ => e <> BIZ | BIZ => False end.
+
+Lemma Ω_le_R R : BI_nf R -> lead_big R -> bsub bOmega (BI_denote R).
+Proof.
+  destruct R as [|e c r]; [ contradiction | ]. destruct e as [|e1 c1 r1]; [ contradiction | ].
+  intros [He [_ [Hc0 _]]] _. destruct He as [_ [_ [Hc10 _]]].
+  change (bsub bOmega (badd (bmul (bexpΩ (BI_denote (BIC e1 c1 r1))) (embed (BS_denote c))) (BI_denote r))).
+  eapply bsub_trans; [ | apply bsub_le_badd ].
+  eapply bsub_trans; [ | apply bsub_P_Pz; auto ].
+  destruct (bsmall_mul_embed_inh (BI_denote e1) (BS_denote c1) Hc10) as [t].
+  destruct (badd_small_l (bmul (bexpΩ (BI_denote e1)) (embed (BS_denote c1))) (BI_denote r1) t) as [a _].
+  apply (Ω_le_bexp _ a).
+Qed.
+
+(** Common fixpoints of the components of such an R are additively principal. *)
+Lemma fix_principal R z a : BI_nf R -> lead_big R -> complete z -> bfix (addOrd 1) (BI_denote R) z ->
+  a < z -> a + z ≤ z.
+Proof.
+  intros HR Hl Hz Hfix Ha.
+  assert (Ha' := Ha). rewrite ord_lt_unfold in Ha'. destruct Ha' as [j Hj].
+  assert (Hc : complete (z j)) by (apply complete_subord; auto).
+  transitivity (z j + z); [ apply addOrd_monotone; [ exact Hj | reflexivity ] | ].
+  transitivity (expOrd ω (z j) + z); [ apply addOrd_monotone; [ apply le_expOmega | reflexivity ] | ].
+  transitivity (bphi (addOrd 1) (embed (z j)) z); [ apply (proj2 (bphi_onePlus_embed _ _ Hc Hz)) | ].
+  apply (zlt_nest _ onePlus_normal z (embed (z j)) (BI_denote R)); auto using BI_good, BI_bfam.
+  apply zlt_mono_r with bOmega; [ apply zlt_embed_Ω, index_lt | apply Ω_le_R; auto ].
+Qed.
+
+Lemma fix_succ_lt R z a : BI_nf R -> lead_big R -> complete z -> bfix (addOrd 1) (BI_denote R) z ->
+  a < z -> succOrd a < z.
+Proof.
+  intros HR Hl Hz Hfix Ha.
+  assert (Hinf := fix_onePlus_finite _ onePlus_normal z Hz (proj1 Hfix)).
+  apply ord_le_lt_trans with (a + 1).
+  { rewrite addOrd_succ. apply succ_monotone, addOrd_le1. }
+  eapply ord_lt_le_trans; [ apply addOrd_increasing | apply (fix_principal R z a); auto ].
+  apply ord_lt_le_trans with (natOrdSize 2); [ apply succ_lt | apply Hinf ].
+Qed.
+
+Definition off_max (y':BSmall) (T':BIdx) : BSmall :=
+  match kmax (S (BI_size T' + BI_size T')) T' with
+  | None => y'
+  | Some k => match BS_compare k y' with LT => y' | _ => k end
+  end.
+
+Lemma off_max_spec T' y' : BS_nf (BN T' y') ->
+  BS_nf (off_max y' T') /\ (BS_size (off_max y' T') < BS_size (BN T' y'))%nat /\
+  BS_denote (off_max y' T') < BS_denote (BN T' y') /\
+  (forall z, BS_denote (off_max y' T') < z -> BS_denote y' < z /\ Klt z T').
+Proof.
+  intro Hm. assert (Hm' := Hm). destruct Hm' as [HT' [Hy' [Hylt HK]]].
+  assert (Hk := kmax_spec (S (BI_size T' + BI_size T')) T' HT' ltac:(lia)).
+  unfold off_max. destruct (kmax (S (BI_size T' + BI_size T')) T') as [k|]; simpl in Hk.
+  - destruct Hk as [Hkin HKle].
+    assert (Hkn := Kin_nf k T' Hkin HT').
+    assert (Hkm : BS_denote k < BS_denote (BN T' y')) by (apply (Kge_lt _ _ T' (Kin_Kge k T' Hkin) HK)).
+    assert (Hks := Kin_size' k T' Hkin).
+    assert (Hc := BS_compare_correct k y' Hkn Hy').
+    destruct (BS_compare k y'); simpl in Hc.
+    + split; [ auto | split; [ simpl; lia | split; [ auto | ] ] ].
+      intros w Hw. split; auto. apply Kle_lt with (BS_denote k); auto. eapply ord_lt_trans; eauto.
+    + split; [ auto | split; [ simpl; lia | split; [ auto | ] ] ].
+      intros w Hw. split; [ rewrite <- Hc; auto | ]. apply Kle_lt with (BS_denote k); auto.
+    + split; [ auto | split; [ simpl; lia | split; [ auto | ] ] ].
+      intros w Hw. split; [ eapply ord_lt_trans; eauto | ]. apply Kle_lt with (BS_denote k); auto.
+  - subst T'. split; [ auto | split; [ simpl; lia | split; [ auto | ] ] ].
+    intros w Hw. split; [ auto | exact I ].
+Qed.
+
+Definition offStep (rec:BSmall -> BSmall) (R:BIdx) (m:BSmall) : BSmall :=
+  match m with
+  | BZ => BZ
+  | BN T' y' =>
+    match cmpI (S (BI_size T' + BI_size R)) T' R with
+    | EQ => BS_succ y'
+    | LT => rec (off_max y' T')
+    | GT => if coefs_below (S (BI_size R + BS_size m)) R m then BS_succ m else BS_one
+    end
+  end.
+
+Fixpoint offN (fuel:nat) (R:BIdx) (m:BSmall) : BSmall :=
+  match fuel with
+  | O => BZ
+  | S fuel' =>
+    match BS_compare m (normS (BN R BZ)) with
+    | LT => BZ
+    | _ => offStep (offN fuel' R) R m
+    end
+  end.
+
+Definition BS_offset (R:BIdx) (m:BSmall) : BSmall := offN (S (BS_size m)) R m.
+
+Definition OffSpec (R:BIdx) (m t:BSmall) : Prop :=
+  BS_nf t /\ BS_denote m < PHI R (BS_denote t) /\ BS_denote t < PHI R (BS_denote t) /\
+  (forall z, complete z -> bfix (addOrd 1) (BI_denote R) z -> BS_denote m < z -> PHI R (BS_denote t) ≤ z).
+
+Lemma Hinh_of T : BI_nf T -> T <> BIZ -> inhabited (bsmall (BI_denote T) + bbig (BI_denote T)).
+Proof. destruct T as [|e c r]; [ tauto | ]. intros HT _. apply BI_inh, HT. Qed.
+
+Section offset.
+  Variable R : BIdx.
+  Hypothesis HR : BI_nf R.
+  Hypothesis HRl : lead_big R.
+
+  Let HRpos : BI_pos R := BI_nf_pos R HR.
+  Let Hinh : inhabited (bsmall (BI_denote R) + bbig (BI_denote R)).
+  Proof. destruct R as [|e c r]; [ contradiction | ]. apply BI_inh, HR. Qed.
+
+  Let Hvfix x : complete x -> bfix (addOrd 1) (BI_denote R) (PHI R x).
+  Proof. intro Hx. apply bfix_value_full; auto using onePlus_normal, BI_good. Qed.
+
+  Let Hvc x : complete x -> complete (PHI R x).
+  Proof. intro Hx. apply normal_complete; auto using BI_normal. Qed.
+
+  Let Hinc x y : complete y -> x < y -> PHI R x < PHI R y.
+  Proof. intros. apply (normal_increasing _ (BI_normal R)); auto. Qed.
+
+  (** If φ_R(a) lies below m, then φ_R(a+1) is the least common fixpoint above m. *)
+  Let succ_case m a t : BS_nf t -> BS_denote t ≈ succOrd a -> complete a ->
+    PHI R a ≤ BS_denote m -> BS_denote m < PHI R (succOrd a) -> OffSpec R m t.
+  Proof.
+    intros Ht Et Ha Hle Hlt.
+    assert (E : PHI R (BS_denote t) ≈ PHI R (succOrd a)) by (apply ord_eq_normal; auto using BI_normal).
+    split; [ exact Ht | split; [ rewrite E; exact Hlt | split ] ].
+    - rewrite E, Et. apply (fix_succ_lt R); auto using succ_complete.
+      eapply ord_le_lt_trans; [ | apply Hinc; [ apply succ_complete; auto | apply succ_lt ] ].
+      apply normal_inflationary; auto using BI_normal.
+    - intros z Hz Hfix Hmz. rewrite E.
+      apply bphi_succ_le; auto using onePlus_normal, BI_good.
+      eapply ord_le_lt_trans; eauto.
+  Qed.
+
+  Lemma offStep_correct rec m : BS_nf m -> PHI R 0 ≤ BS_denote m ->
+    (forall m', BS_nf m' -> (BS_size m' < BS_size m)%nat -> OffSpec R m' (rec m')) ->
+    OffSpec R m (offStep rec R m).
+  Proof.
+    intros Hm Hge IH.
+    destruct m as [|T' y'].
+    { elim (ord_lt_irreflexive 0). eapply ord_lt_le_trans; [ apply bphi_nonzero, onePlus_normal | exact Hge ]. }
+    assert (Hm' := Hm). destruct Hm' as [HT' [Hy' [Hylt HK]]].
+    unfold offStep.
+    assert (Hc := proj2 (cmp_correct (S (BI_size T' + BI_size R))) T' R ltac:(lia) HT' HR).
+    destruct (cmpI (S (BI_size T' + BI_size R)) T' R); simpl in Hc.
+    - (* T' < R: recurse on the maximum of y' and the coefficients of T' *)
+      destruct (off_max_spec T' y' Hm) as [Hmx [Hsz [Hlt Habove]]].
+      destruct (IH _ Hmx Hsz) as [Nt [Hm1 [Ht1 Hmin]]].
+      assert (Lz : forall z, complete z -> bfix (addOrd 1) (BI_denote R) z ->
+                     BS_denote (off_max y' T') < z -> BS_denote (BN T' y') < z).
+      { intros z Hz Hfix Hxz. destruct (Habove z Hxz) as [Hyz HKz].
+        assert (Hinf := fix_onePlus_finite _ onePlus_normal z Hz (proj1 Hfix)).
+        assert (Hzlt := proj1 (nest z Hinf (S (BI_size T')) T' ltac:(lia) HT' HKz) R HR Hc).
+        assert (Hfz := zlt_nest _ onePlus_normal z _ _ Hzlt (BI_good R) (BI_bfam R) Hz Hfix).
+        eapply ord_lt_le_trans; [ | exact Hfz ].
+        apply (normal_increasing _ (BI_normal T')); auto. }
+      split; [ exact Nt | split; [ | split; [ exact Ht1 | ] ] ].
+      + apply Lz; auto using BS_complete.
+      + intros z Hz Hfix Hmz. apply Hmin; auto. exact (ord_lt_trans _ _ _ Hlt Hmz).
+    - (* T' = R *)
+      destruct (BS_succ_reflects (BS_denote y') y' (conj (ord_eq_refl _) Hy')) as [E1 N1].
+      apply (succ_case _ (BS_denote y') _ N1 ltac:(symmetry; exact E1) (BS_complete y')).
+      + apply (proj2 (bphi_ieq _ _ _ Hc)).
+      + eapply ord_le_lt_trans; [ apply (proj1 (bphi_ieq _ _ _ Hc)) | ].
+        apply Hinc; [ apply succ_complete, BS_complete | apply succ_lt ].
+    - (* R < T' *)
+      assert (HT'ne : T' <> BIZ) by (intro E; subst; inversion Hc).
+      assert (Hcb := coefs_below_spec (S (BI_size R + BS_size (BN T' y'))) (BN T' y') R
+                       (fun c Hs Hcn => proj1 (cmp_correct (S (BI_size R + BS_size (BN T' y')))) c (BN T' y') ltac:(lia) Hcn Hm) HR).
+      destruct (coefs_below (S (BI_size R + BS_size (BN T' y'))) R (BN T' y')).
+      + assert (HK' := proj1 Hcb eq_refl).
+        assert (Hz := proj1 (nest _ (BN_inf T' y' HT' HT'ne) (S (BI_size R)) R ltac:(lia) HR HK') T' HT' Hc).
+        assert (Hfix := zlt_value _ onePlus_normal _ _ (BS_denote y') Hz (BI_good T') (BI_bfam T')
+                          (Hinh_of T' HT' HT'ne) (BS_complete y')).
+        destruct (BS_succ_reflects _ _ (conj (ord_eq_refl _) Hm)) as [E1 N1].
+        apply (succ_case _ (BS_denote (BN T' y')) _ N1 ltac:(symmetry; exact E1) (BS_complete _)).
+        * exact Hfix.
+        * eapply ord_le_lt_trans; [ apply normal_inflationary; auto using BI_normal, BS_complete | ].
+          apply Hinc; [ apply succ_complete, BS_complete | apply succ_lt ].
+      + assert (Hd := dominance R BZ _ HRpos (proj2 Hcb eq_refl)).
+        apply (succ_case _ 0 _ BS_one_nf BS_one_denote zero_complete Hge).
+        eapply ord_le_lt_trans; [ exact Hd | ].
+        apply Hinc; [ apply succ_complete, zero_complete | apply succ_lt ].
+  Qed.
+
+  Theorem offN_correct : forall fuel m, (BS_size m < fuel)%nat -> BS_nf m -> OffSpec R m (offN fuel R m).
+  Proof.
+    induction fuel as [|fuel IH]; intros m Hsz Hm; [ lia | ].
+    assert (Hp : BS_proper (BN R BZ)) by (split; [ apply (proj2 nf_proper); auto | exact I ]).
+    assert (Hm0 := normS_nf _ Hp). assert (E0 := normS_equal _ Hp).
+    assert (Hc := BS_compare_correct m _ Hm Hm0).
+    change (OffSpec R m (match BS_compare m (normS (BN R BZ)) with
+                         | LT => BZ | _ => offStep (offN fuel R) R m end)).
+    destruct (BS_compare m (normS (BN R BZ))); cbv beta iota delta [ordering_correct] in Hc.
+    - split; [ exact I | split; [ eapply ord_lt_le_trans; [ exact Hc | apply E0 ] | split ] ].
+      + apply bphi_nonzero, onePlus_normal.
+      + intros z Hz Hfix _. apply bphi_le_fix; auto using onePlus_normal, BI_good.
+    - apply offStep_correct; auto.
+      + transitivity (BS_denote (normS (BN R BZ))); [ apply E0 | apply Hc ].
+      + intros m' Hm' Hs. apply IH; auto. lia.
+    - apply offStep_correct; auto.
+      + transitivity (BS_denote (normS (BN R BZ))); [ apply E0 | apply ord_lt_le, Hc ].
+      + intros m' Hm' Hs. apply IH; auto. lia.
+  Qed.
+
+  Corollary BS_offset_correct m : BS_nf m -> OffSpec R m (BS_offset R m).
+  Proof. intro Hm. apply offN_correct; auto. Qed.
+End offset.
+
+(** ** Examples, by computation *)
+
+(** Above 1, the first ε-number is ε₀ = φ_Ω(0). *)
+Example offset_one : BS_offset BI_Ω BS_one = BZ.
+Proof. reflexivity. Qed.
+
+(** Above ε₀ = φ_Ω(0), the next one is φ_Ω(1). *)
+Example offset_eps0 : BS_offset BI_Ω (BN BI_Ω BZ) = BS_succ BZ.
+Proof. reflexivity. Qed.
+
+(** Above ε₀ + 1 = ω^{ε₀} + 1, still φ_Ω(1). *)
+Example offset_eps0_plus1 : BS_offset BI_Ω BS_ε0_plus1 = BS_succ BZ.
+Proof. reflexivity. Qed.
+
+(** φ_{Ω·2}(0) is a fixpoint of φ_Ω, so the least φ_Ω-value above it is φ_Ω(φ_{Ω·2}(0) + 1). *)
+Example offset_fix : BS_offset BI_Ω (BN (BIC BI_one (BN BIZ BS_one) BIZ) BZ) =
+                     BS_succ (BN (BIC BI_one (BN BIZ BS_one) BIZ) BZ).
+Proof. reflexivity. Qed.

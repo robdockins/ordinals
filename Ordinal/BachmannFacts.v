@@ -945,3 +945,123 @@ Proof.
   eapply bequiv_trans; [ apply bequiv_sym, bequiv_bmul_badd | ].
   apply bequiv_bmul; [ apply bequiv_refl | apply bequiv_sym, bequiv_embed_add ].
 Qed.
+
+(** ** Shifted enumerations *)
+
+Lemma addOrd_lt_cases t y a : a < t + y -> a < t \/ exists j:y, a ≤ t + y j.
+Proof.
+  rewrite addOrd_unfold. intro H. apply lub_lt in H. destruct H as [H|H]; [ left; auto | right ].
+  apply sup_lt in H. destruct H as [j Hj]. exists j.
+  rewrite ord_lt_unfold in Hj. destruct Hj as [[] Hj]. exact Hj.
+Qed.
+
+(** ** Enumerating a class cut off above a threshold
+
+If the common fixpoints of (f, F) are exactly those of (f, G) that lie
+in an upward-closed region U, and the region contains all values of
+the first enumerator, then the first enumerator is the second shifted
+by the least argument t landing in U.  The shift needs the fixpoints of
+(f, G) to be additively principal. *)
+
+Section cfe_offset.
+  Variable f : Ord -> Ord.
+  Hypothesis Hf : normal_function f.
+  Variables I J : Type.
+  Variable F : I -> Ord -> Ord.
+  Variable G : J -> Ord -> Ord.
+  Hypothesis HF : forall i, normal_function (F i).
+  Hypothesis HG : forall j, normal_function (G j).
+  Variable i0 : I.
+  Variable j0 : J.
+
+  Let fixI z := f z ≤ z /\ forall i, F i z ≤ z.
+  Let fixJ z := f z ≤ z /\ forall j, G j z ≤ z.
+
+  Variable U : Ord -> Prop.
+  Hypothesis HU : forall a b, a ≤ b -> U a -> U b.
+  Hypothesis H1 : forall z, complete z -> fixI z -> fixJ z.
+  Hypothesis H2 : forall z, complete z -> fixJ z -> U z -> fixI z.
+  Hypothesis H3 : forall y, complete y -> U (cfe f I F y).
+  Hypothesis Hp : forall z, complete z -> fixJ z -> forall a, a < z -> a + z ≤ z.
+
+  Variable t : Ord.
+  Hypothesis Ht0 : complete t.
+  Hypothesis Ht1 : U (cfe f J G t).
+  Hypothesis Ht2 : forall z, complete z -> fixJ z -> U z -> cfe f J G t ≤ z.
+  Hypothesis Ht3 : t < cfe f J G t.
+
+  Let decJ : inhabited J \/ ~ inhabited J := or_introl (inhabits j0).
+  Let decI : inhabited I \/ ~ inhabited I := or_introl (inhabits i0).
+
+  Lemma fixJ_value x : complete x -> fixJ (cfe f J G x).
+  Proof. intro Hx. split; [ apply (cfe_fix_f f Hf J G HG j0); auto | intro j; apply cfe_fix_F; auto ]. Qed.
+
+  Lemma fixI_value x : complete x -> fixI (cfe f I F x).
+  Proof. intro Hx. split; [ apply (cfe_fix_f f Hf I F HF i0); auto | intro i; apply cfe_fix_F; auto ]. Qed.
+
+  Theorem cfe_offset : forall y, complete y -> cfe f I F y ≈ cfe f J G (t + y).
+  Proof.
+    induction y as [y IH] using ordinal_induction. intro Hy.
+    assert (Hty : complete (t + y)) by (apply addOrd_complete; auto).
+    split.
+    - apply (cfe_least f Hf I F HF).
+      + transitivity (f (t + y)); [ apply normal_monotone; auto; apply addOrd_le2 | apply cfe_ge_f ].
+      + apply limit_least. intro j.
+        assert (Hj : complete (y j)) by (apply complete_subord; auto).
+        eapply ord_le_lt_trans; [ apply (proj1 (IH (y j) (index_lt y j) Hj)) | ].
+        apply (cfe_increasing f Hf J G HG decJ); auto. apply addOrd_increasing, index_lt.
+      + intro i. destruct (H2 _ (cfe_complete f Hf J G HG _ Hty) (fixJ_value _ Hty)) as [Hf1 Hf2].
+        * apply HU with (cfe f J G t); auto. apply cfe_monotone; auto. apply addOrd_le1.
+        * split; auto.
+    - set (z := cfe f I F y).
+      assert (Hz : complete z) by (apply cfe_complete; auto).
+      assert (HzJ : fixJ z) by (apply H1; auto; apply fixI_value; auto).
+      assert (HzI := fixI_value y Hy). fold z in HzI.
+      assert (Htz : cfe f J G t ≤ z) by (apply Ht2; auto; apply H3; auto).
+      apply (cfe_least f Hf J G HG).
+      + transitivity (f z); [ apply normal_monotone; auto | apply HzI ].
+        transitivity (t + z); [ apply addOrd_monotone; [ reflexivity | apply cfe_inflationary; auto ] | ].
+        apply Hp; auto. eapply ord_lt_le_trans; eauto.
+      + apply limit_least. intro k.
+        assert (Hk : (t + y) k < t + y) by apply index_lt.
+        assert (Hkc : complete ((t + y) k)) by (apply complete_subord; auto).
+        destruct (addOrd_lt_cases t y _ Hk) as [Hk1|[j Hk1]].
+        * eapply ord_lt_le_trans; [ | exact Htz ].
+          apply (cfe_increasing f Hf J G HG decJ); auto.
+        * assert (Hj : complete (y j)) by (apply complete_subord; auto).
+          eapply ord_le_lt_trans; [ apply cfe_monotone; eauto | ].
+          eapply ord_le_lt_trans; [ apply (proj2 (IH (y j) (index_lt y j) Hj)) | ].
+          apply (cfe_increasing f Hf I F HF decI); auto. apply index_lt.
+      + intro j. split; [ apply HzJ | apply HzJ ].
+  Qed.
+End cfe_offset.
+
+(** The least value of φ_T at a successor lies below every common
+    fixpoint above the previous value. *)
+Lemma bphi_succ_le f (Hf : normal_function f) T z a : bgood f T -> complete z -> bfix f T z ->
+  complete a -> bphi f T a < z -> bphi f T (succOrd a) ≤ z.
+Proof.
+  intros HT Hz [H1 [H2 H3]] Ha Hlt.
+  rewrite bphi_unfold.
+  apply (cfe_least f Hf _ _ (bphi_fam_normal'' f Hf T HT)).
+  - transitivity (f z); auto. apply normal_monotone; auto.
+    apply succ_least. eapply ord_le_lt_trans; [ | exact Hlt ].
+    apply normal_inflationary; auto. apply bphi_normal; auto.
+  - apply limit_least. intros []. rewrite <- bphi_unfold. exact Hlt.
+  - intros [k|k]; simpl; split; auto.
+Qed.
+
+Lemma bsmall_mul_embed_inh y x : 0 < x -> inhabited (bsmall (bmul (bexpΩ y) (embed x))).
+Proof.
+  destruct x as [X g]. intro H. rewrite ord_lt_unfold in H. destruct H as [q _].
+  destruct (bexpΩ_small_zero y) as [t0 _].
+  destruct (badd_small_r (bmul (bexpΩ y) (embed (g q))) (bexpΩ y) t0) as [s _].
+  destruct (bmul_small_r (bexpΩ y) (embed (ord X g)) q s) as [t _].
+  exact (inhabits t).
+Qed.
+
+Lemma zlt_embed_Ω z a : a < z -> zlt z (embed a) bOmega.
+Proof.
+  intro Ha. exists (embed (succOrd a)). split; [ apply bslt_embed, succ_lt | ].
+  apply (LZ_big z _ bOmega tt (succOrd a)); [ apply succ_least; auto | apply LZ_sub, bsub_refl ].
+Qed.
