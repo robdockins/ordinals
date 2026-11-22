@@ -157,7 +157,12 @@ column (exactly one step of `schutte_matrix`).
      Then `interp_aux` (induction on `blt` of the index tree, then on
      the argument) gives `BS_has_all_interpolants` and, under EM,
      `BS_has_enough_notations`. Axiom-free.
-   - 5d. Assembly: order type ≈ BHO₁, the natural product.
+   - 5d. DONE. `BS_order_type : NFOrd ≈ BHO₁` (the limit of the
+     normal forms is a common fixpoint of 1+x and the components
+     φ_{tower n} of ε_{Ω+1}, each bounded via `bsub_tower` by φ of a
+     notation index `BI_tower n` = Ω+1, Ω^(Ω+1), …; then `cfe_least`),
+     and `BS_nmul_reflects` (natural product from `CantorProduct` and
+     the interpolants). Axiom-free.
    - 5e (optional). Base change: BHO₁ ≈ `BachmannHoward` (powOmega
      base), a tree-level absorption problem.
 
