@@ -147,3 +147,49 @@ for Schütte matrices.
 5. Transfer to `SchutteMatrix`: extend `Kl_correct` to improper
    matrices and normalize via `Kinv`.
 6. (Research) absorption inside exponents.
+
+## Hereditary absorption: design (2026-11-22)
+
+Goal: for every index notation X with positive coefficients and normal
+exponents, with N(X) its ordinal normal form,
+Fix(X) = Fix(N(X)) ∩ {z above the coefficients absorbed in X}, hence
+φ_X(y) = φ_{N(X)}(t + y) (generalize `absorb_enum`: it only used ⊆,
+the region lemma, ⊇ at notation values, principality and the offset).
+
+N on summand lists: N(BIZ) = BIZ, N(BIC e c r) = addT e c (N r) with
+addT e c A = A if lead(A) > e; Ω^e·(c ⊕ c₂) + r₂ if A = Ω^e·c₂ + r₂;
+BIC e c A otherwise.  Ordinal addition is strictly monotone in its right
+argument, so addT is strictly monotone in A (ilt); this replaces any
+need for blt/ordinal arithmetic on trees.
+
+Key idea, avoiding the circular "Fix(X) ⊆ Fix(N X)": characterize Fix by
+the normal form alone (Bachmann's rule).  For a notation value z with
+z above X's non-end coefficients (Kend-style), conjecture
+
+  BachChar(X): bfix ⟦X⟧ z ⟺ f z ≤ z ∧
+     (∀ T' nf, ilt T' (N X), Klt z T' → φ_{T'}(z) ≤ z) ∧
+     (∀ T' nf, ilt T' (N X), Kend z T' → φ_{T'}(0) ≤ z).
+
+The right side depends only on N(X), so Fix(X) and Fix(N X) agree on
+such z.  Proof by induction on ⟦X⟧ (blt):
+- (⇐): cover the components of ⟦X⟧ by (improper) notations K' with
+  ilt (N K') (N X) (generalize `cover`; N(P + K) for a lower K is
+  addT, strictly monotone).  Small components: by IH and the offset,
+  φ_{K'}(z) = φ_{N K'}(t + z) ≤ φ_{N K'}(z) ≤ z (z principal, t < z).
+  Families: IH gives z ∈ Fix(K') since BachChar(K') reduces to
+  BachChar(X)'s clauses for T' < N K' < N X; then `bphi_le_fix`.
+- (⇒): one-step cofinality: every nf T' < N(X) with Klt z T' satisfies
+  T' ≤ N(K') (ilt or ieq) for some component K' of ⟦X⟧, a small child
+  or a family member at an argument ξ ≤ z (members at ξ ≤ z are in
+  Fix by `bfix_member` + `bfix_bsub` + monotone families).  Then IH on
+  K' (z ∈ Fix(K') ⇒ z ∈ Fix(N K')) and `nest` (T' < N K') or the
+  offset (T' ieq N K').  Cofinality itself needs an induction through
+  exponents, like `nest`'s proof.
+- Normal X is the special case N X = X (gives a Bachmann-rule
+  characterization of Fix for normal indices, of independent interest).
+
+Sub-milestones: (H1) N/addT, nf and ieq/ilt lemmas; (H2) generalized
+cover with N-monotonicity; (H3) cofinality; (H4) BachChar by induction;
+(H5) generalized offset/enumeration theorem; (H6) BS normalizer
+BN X y → BN (N X) (t ⊕ y) and correctness; then step 5 (matrices).
+Absorption inside exponents stays out of scope (exponents normal).
