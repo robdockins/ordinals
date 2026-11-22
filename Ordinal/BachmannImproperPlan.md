@@ -20,8 +20,8 @@ DONE: merge identities; offset algorithm; one-step absorption at the top
 (`absorb`, unconditional); `nest_le` generalized; H1 (normal forms of
 improper sums); H2 (`coverX`); H3 `nestX`; H3' (coefficient tracking
 in `cover`/`coverX`, `Klt_normX`).  DESIGN COMPLETE (on paper) for
-hereditary absorption; NEXT: P1/P2 position lemmas (C) and the
-absorbed-coefficient bookkeeping (F).
+hereditary absorption; (C) P1/P2 and (F) bookkeeping DONE; NEXT: the
+joint induction (D) + (E).
 Out of scope: absorption inside exponents (exponents must be normal).
 
 ## Background facts
@@ -87,7 +87,17 @@ Out of scope: absorption inside exponents (exponents must be normal).
   ∀ z, oinf z → Kend z T0 → ⟦x⟧ < z → Klt z T (strict in x, which is all
   (D)/(E) need: family arguments are interpolants below z).  Helpers
   `Kend_rest`, `Kend_head`, `Klt_smartC_coef`, `ilt_ne`, `oinf_one`,
-  `normX_ne`; `Klt_addT`, `Klt_normX` (z with a < z → a + z ≤ z).
+  `normX_ne`; `Klt_addT`, `Klt_normX` (z with a < z → a + z ≤ z);
+- (C)/(F), simpler than the paper design (plain structural inductions
+  along addT, no "sum of coefficients" reasoning):
+  `Kend_normX` (P2: oinf z, z principal, Kend z X ⇒ Kend z (normX X)),
+  `AbsLt v X` (absorbed terms have all coefficients < v), `Kend_back`
+  (P1: oinf z, AbsLt z X, Kend z (normX X) ⇒ Kend z X),
+  `Kend_ofX`/`Kend_of_valueX` (PHI X 0 ≤ z ⇒ Kend z X for imp_ok X),
+  `imp_ok_pos`, `normX_BIZ`; bookkeeping `absb`, `absX`/`absM` (largest
+  absorbed coefficient, via kmax/omax), `absM_spec` (nf, Kgs m X, and
+  m < v ⇒ AbsLt v X; None ⇒ AbsLt v X for all v), `offX X` (BZ or
+  BS_offset (normX X) m), `absM_lead_big` (needed by BS_offset_correct).
 
 ## Final design: hereditary absorption
 
@@ -195,7 +205,7 @@ Ingredients:
 
 1. H3 `nestX` (self-contained; design (A)). DONE.
 2. H3' tracking in `coverX` (B). DONE.
-3. P1/P2 (C) and the absorbed-coefficient bookkeeping (F).
+3. P1/P2 (C) and the absorbed-coefficient bookkeeping (F). DONE.
 4. Joint induction (D) + (E).
 5. Normalizer (G), then Schütte matrices.
 
