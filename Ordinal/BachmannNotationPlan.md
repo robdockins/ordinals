@@ -136,6 +136,20 @@ column (exactly one step of `schutte_matrix`).
    there; reproduce the LVO result as a sanity check.
 3. Full indices: comparison and normal forms up to ε_{Ω+1}.
 4. Cantor decomposition and arithmetic.
-5. Normalizer, fundamental sequences, interpolants, order type.
+5. Split into:
+   - 5a. Upper bound: every normal notation lies below
+     BHO₁ := `bphi (addOrd 1) bεΩ1 0` (height lemma via part (B) of
+     `nest`, then `zlt_value` at the ε_{Ω+1} node).
+   - 5b. Normalizer (highest risk): small-level collapse of fixpoint
+     arguments and coefficient repair; index-level merging and
+     absorption, justified by `bequiv` or domination (needs e.g.
+     distributivity of `bmul` over `badd` up to `bequiv`, and 0(d)).
+   - 5c. Syntactic fundamental sequences `T[ξ]` matching the families
+     of `⟦T⟧`, and the semantic interpolation lemma for `cfe`/`bphi`
+     (Phase 0(e)).
+   - 5d. Assembly: `has_all_interpolants`, order type ≈ BHO₁,
+     `has_enough_notations` under EM, the natural product.
+   - 5e (optional). Base change: BHO₁ ≈ `BachmannHoward` (powOmega
+     base), a tree-level absorption problem.
 
 Each milestone ends in a commit.
