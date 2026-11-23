@@ -20,8 +20,9 @@ DONE: merge identities; offset algorithm; one-step absorption at the top
 (`absorb`, unconditional); `nest_le` generalized; H1 (normal forms of
 improper sums); H2 (`coverX`); H3 `nestX`; H3' (coefficient tracking
 in `cover`/`coverX`, `Klt_normX`).  DESIGN COMPLETE (on paper) for
-hereditary absorption; (C) P1/P2 and (F) bookkeeping DONE; NEXT: the
-joint induction (D) + (E).
+hereditary absorption; (C) P1/P2 and (F) bookkeeping DONE; (D)+(E) DONE:
+`hereditary_absorption` (closed under the global context, no axioms).
+NEXT: the normalizer (G), then Schütte matrices.
 Out of scope: absorption inside exponents (exponents must be normal).
 
 ## Background facts
@@ -97,9 +98,26 @@ Out of scope: absorption inside exponents (exponents must be normal).
   `imp_ok_pos`, `normX_BIZ`; bookkeeping `absb`, `absX`/`absM` (largest
   absorbed coefficient, via kmax/omax), `absM_spec` (nf, Kgs m X, and
   m < v ⇒ AbsLt v X; None ⇒ AbsLt v X for all v), `offX X` (BZ or
-  BS_offset (normX X) m), `absM_lead_big` (needed by BS_offset_correct).
+  BS_offset (normX X) m), `absM_lead_big` (needed by BS_offset_correct);
+- (D)+(E), as actually proved (simpler than the paper design below):
+  `shift_enum` (section `shift`: `absorb_enum` abstracted over a region
+  U, an offset t and hypotheses Hsub/Hreg/Hup/Hleast/Hprin/ABS);
+  `bsub_normX` (⟦normX X⟧ ⊑ ⟦X⟧, so Fix(X) ⊆ Fix(normX X) by
+  `bfix_bsub` and no interpolants of improper values are needed);
+  `bequiv_normX` (nothing absorbed ⇒ ⟦normX X⟧ ≈ ⟦X⟧), `merge_bequiv`;
+  `ClX`, `JX` (⇐ at notation values w: Kend, z principal, ClX ⇒
+  bfix), `EX`; `EX_of_JX` (None: bphi_bequiv; Some m: shift_enum with
+  U z := m < z, ABS via JX at w := normS (BN N s), Kend_back, nest);
+  `JE_all` (blt-induction: small children via coverX + E of the cover at
+  z + offset minimality + principality; family children at the notation
+  w itself via coverX + J of the cover + bphi_le_fix);
+  `hereditary_absorption`: imp_ok X ⇒ PHI X y ≈ PHI (normX X) (offX X + y).
+  Family tracking in `icov`/`icovX` was switched to the Kend form
+  (⟦x⟧ ≤ z ⇒ Kend z T) for this; helpers `Kend_cons`,
+  `Kend_smartC_coef`, `Kend_smartC_end`, `imp_ok_KHI`, `Kgs_Kge`,
+  `omax_some_l/r`, `kmax_some`.  `nestX` turned out not to be needed.
 
-## Final design: hereditary absorption
+## Final design: hereditary absorption (historical; see Done for what was proved)
 
 Target theorem E(X): for imp_ok X and every nf y,
   PHI X ⟦y⟧ ≈ PHI (normX X) (⟦t_X⟧ + ⟦y⟧),
@@ -206,7 +224,7 @@ Ingredients:
 1. H3 `nestX` (self-contained; design (A)). DONE.
 2. H3' tracking in `coverX` (B). DONE.
 3. P1/P2 (C) and the absorbed-coefficient bookkeeping (F). DONE.
-4. Joint induction (D) + (E).
+4. Joint induction (D) + (E). DONE (`hereditary_absorption`).
 5. Normalizer (G), then Schütte matrices.
 
 ## Superseded ideas (do not revisit)
