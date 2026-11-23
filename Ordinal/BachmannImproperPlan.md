@@ -24,7 +24,12 @@ hereditary absorption; (C) P1/P2 and (F) bookkeeping DONE; (D)+(E) DONE:
 `hereditary_absorption` (closed under the global context, no axioms).
 (G) normalizer DONE (`normSX`, `normalizeX_correct`).  NEXT: Schütte
 matrices, see "Step 5" below (designed, not started).
-Out of scope: absorption inside exponents (exponents must be normal).
+UPDATE (deep version): `imp_ok`/`normX` are now hereditary through
+exponents (normX (Ω^e·c + r) = addT (normX e) c (normX r)); absorption
+inside exponents is handled, and `normSX` normalizes EVERY notation
+(no hypotheses): `normalizeX_correct`, `normSX_nf`, `normSX_equal`,
+`normSX_complete` (equal values ⇒ identical normal forms).  Example
+`normSX_exp_absorb`: φ_{Ω^{Γ₀+Ω}}(0) ↦ φ_{Ω^Ω}(0).
 
 ## Background facts
 
@@ -90,6 +95,13 @@ Out of scope: absorption inside exponents (exponents must be normal).
   (D)/(E) need: family arguments are interpolants below z).  Helpers
   `Kend_rest`, `Kend_head`, `Klt_smartC_coef`, `ilt_ne`, `oinf_one`,
   `normX_ne`; `Klt_addT`, `Klt_normX` (z with a < z → a + z ≤ z);
+- Deep generalization (exponents): `coverX` rebuilt with exponent covers
+  from the IH (helpers `imp_ok_smartC`, `ilt_below_head`,
+  `ilt_cover_term`, `lead_cover_small`); `nestX` lifted via
+  `bsub_normX` on exponents (moved after it); `Klt_back`; `AbsLt`,
+  `absX` include exponent absorptions (`ospec`, `ospec_mono`,
+  `omax_join`, `kmax_specX`, `Kin_nfX`, `Kgs_exp`, `omax_none`,
+  `lead_big_addT_e`, `lead_big_ne`).
 - (C)/(F), simpler than the paper design (plain structural inductions
   along addT, no "sum of coefficients" reasoning):
   `Kend_normX` (P2: oinf z, z principal, Kend z X ⇒ Kend z (normX X)),
@@ -117,19 +129,19 @@ Out of scope: absorption inside exponents (exponents must be normal).
   (⟦x⟧ ≤ z ⇒ Kend z T) for this; helpers `Kend_cons`,
   `Kend_smartC_coef`, `Kend_smartC_end`, `imp_ok_KHI`, `Kgs_Kge`,
   `omax_some_l/r`, `kmax_some`.  `nestX` turned out not to be needed.
-- (G): accepted inputs `BS_okX`/`BI_okX`/`BI_okE` (top-level index sums
-  improper, zero coefficients allowed; exponents of proper term
-  structure; coefficients/arguments recursively accepted inputs, by
-  value); `normSX`/`normTX`/`normEX` (BN T y ↦ smartN (normX X)
-  (offX X ⊕ y'), X = normTX T, zero terms dropped by smartC);
-  `normalizeX_correct` (nf + same value; normTX: imp_ok + bequiv;
-  normEX: nf + ieq), `normSX_nf`, `normSX_equal`, `offX_nf`,
-  `proper_okX` (proper notations are accepted); examples
+- (G): `normSX`/`normTX` (BN T y ↦ smartN (normX X) (offX X ⊕ y'),
+  X = normTX T; normTX normalizes coefficients by value, drops zero
+  terms with smartC, recurses into exponents); `normalizeX_correct` (for
+  all x: nf + same value; normTX: imp_ok + bequiv), `normSX_nf`,
+  `normSX_equal`, `normSX_complete`, `offX_nf`; examples
+  `normSX_exp_absorb`,
   `normSX_Γ0_Ω` (Γ₀+Ω ↦ φ_Ω(1)), `normSX_Γ0_Ω_Ω2`, `normSX_Ω_Γ0_Ω`.
 
 ## Step 5: improper Schütte matrices (design, not started)
 
-Scope: matrices whose height-0 columns occur only at the end.  A
+Exponents are no longer a restriction (heights become exponents, which
+may now be improper).  Remaining scope question: matrices whose
+height-0 columns occur only at the end.  A
 height-0 column (0, a) in the middle changes the base function of the
 remaining columns to x ↦ G(a + x), which Bachmann's φ (fixed base 1+x)
 cannot express; such matrices stay out of scope.  Columns of nonzero
