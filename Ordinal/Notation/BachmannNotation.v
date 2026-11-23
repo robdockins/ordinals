@@ -3228,7 +3228,7 @@ Section absorb.
 
   (** The hard direction, at notation values: common fixpoints for R above
       the coefficients of P are common fixpoints for P + R.  Assumed here;
-      see BachmannImproperPlan.md for the status of its proof. *)
+      it is proved below (@ABS_all@). *)
   Hypothesis ABS : forall s, BS_nf s -> Klt (PHI R (BS_denote s)) P ->
     bfix (addOrd 1) (BI_denote X) (PHI R (BS_denote s)).
 

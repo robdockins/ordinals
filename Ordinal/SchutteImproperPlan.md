@@ -4,8 +4,8 @@ Goal: a normalizer for arbitrary `VForm` matrices (columns in any order,
 repeated heights, zero entries, height-0 columns anywhere) that returns
 the normal form of the same ordinal, built directly on `schutte_column`
 / `schutte_matrix` rather than by translating to and from the Bachmann
-notation.  The Bachmann development (`BachmannImproperPlan.md`,
-`hereditary_absorption`, `normSX`) supplies the ideas, not the code.
+notation.  The Bachmann development (`hereditary_absorption`, `normSX` in
+`Notation/BachmannNotation.v`) supplies the ideas, not the code.
 
 Status (2026-11-22): PLAN ONLY, nothing formalized.  Do not start until
 the user gives the go-ahead.
