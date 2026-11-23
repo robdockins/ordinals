@@ -23,7 +23,7 @@ in `cover`/`coverX`, `Klt_normX`).  DESIGN COMPLETE (on paper) for
 hereditary absorption; (C) P1/P2 and (F) bookkeeping DONE; (D)+(E) DONE:
 `hereditary_absorption` (closed under the global context, no axioms).
 (G) normalizer DONE (`normSX`, `normalizeX_correct`).  NEXT: Schütte
-matrices (extend `Kl_correct` to improper matrices, normalize via `Kinv`).
+matrices, see "Step 5" below (designed, not started).
 Out of scope: absorption inside exponents (exponents must be normal).
 
 ## Background facts
@@ -126,6 +126,42 @@ Out of scope: absorption inside exponents (exponents must be normal).
   normEX: nf + ieq), `normSX_nf`, `normSX_equal`, `offX_nf`,
   `proper_okX` (proper notations are accepted); examples
   `normSX_Γ0_Ω` (Γ₀+Ω ↦ φ_Ω(1)), `normSX_Γ0_Ω_Ω2`, `normSX_Ω_Γ0_Ω`.
+
+## Step 5: improper Schütte matrices (design, not started)
+
+Scope: matrices whose height-0 columns occur only at the end.  A
+height-0 column (0, a) in the middle changes the base function of the
+remaining columns to x ↦ G(a + x), which Bachmann's φ (fixed base 1+x)
+cannot express; such matrices stay out of scope.  Columns of nonzero
+height may come in any order, with repeated heights; zero coefficients
+(a = Z) are allowed.
+
+Pipeline: VF_normalizeX x := VF_normalize (Kinv (normSX (KlX x))).
+1. `KlX`: like `Kl`, but skip columns with a = Z (schutte_column G b 0
+   = G up to ≈) and use exponent BIZ when pred1 of the height is BZ
+   (height 1), so the output is `BS_okX` and `BS_frag`.  Heights must
+   first be normalized (pred1 is only correct on normal forms with a
+   positive head coefficient): exponent := smart_small (BS_pred1
+   (normSX (KlX b))), with a lemma BS_nf s, s ≠ BZ ⇒ 1 + pred1 s ≈ s
+   (`BS_denote_onePlus`, `BS_denote_absorb`).
+2. `KmatrixX`: `Kmatrix` for VF_okX lists.  Its proof uses properness
+   only to place the height-0 column last, so the generalization is
+   direct; `BI_rep` needs only `idx_shape`, and `ofold_rep` holds for
+   any column order.  Then `KlX_correct` as `Kl_correct`.
+3. The normal output stays in the fragment.  Two options:
+   (a) syntactic: normSX preserves BS_frag.  Needs a generic lemma in
+       CantorDecomposition (a predicate closed under decompose and
+       recompose is preserved by cantor_succ/cantor_add) plus
+       BS_offset/off_max/smartN/addT (all built from subterms,
+       BS_succ, BS_one);
+   (b) semantic: BS_nf x ∧ ⟦x⟧ < φ_{Ω^Ω}(0) ⇒ BS_frag x (a non-small
+       leading exponent gives Ω^Ω ≤ T in ilt; `nest_lt_idx` with the
+       coefficients of Ω^Ω all 1), plus the calibration
+       LVO ≤ φ_{Ω^Ω}(0), which is not yet proved.
+   Prefer (a): no new calibration needed.
+4. `Kinv` of a normal fragment notation is `VF_proper` (exponents
+   strictly decreasing ⇒ heights 1+s strictly decreasing, the argument
+   column last), so `VF_normalize_correct` finishes.
 
 ## Final design: hereditary absorption (historical; see Done for what was proved)
 
