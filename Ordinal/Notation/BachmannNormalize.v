@@ -20,6 +20,8 @@ From Ordinal Require Import VeblenFacts.
 From Ordinal Require Import SchutteColumn.
 From Ordinal Require Import SchutteColumnFacts.
 From Ordinal Require Import BachmannDefs.
+From Ordinal Require Import BachmannAssoc.
+From Ordinal Require Import BachmannPower.
 From Ordinal Require Import BachmannNormal.
 From Ordinal Require Import BachmannFacts.
 From Ordinal Require Import Notation.SchutteMatrix.

@@ -18,6 +18,8 @@ From Ordinal Require Import VeblenFacts.
 From Ordinal Require Import SchutteColumn.
 From Ordinal Require Import SchutteColumnFacts.
 From Ordinal Require Import BachmannDefs.
+From Ordinal Require Import BachmannAssoc.
+From Ordinal Require Import BachmannPower.
 From Ordinal Require Import BachmannNormal.
 
 Open Scope ord_scope.

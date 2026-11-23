@@ -16,12 +16,14 @@ From Ordinal Require Import VeblenCon.
 From Ordinal Require Import VeblenFacts.
 From Ordinal Require Import SchutteColumn.
 From Ordinal Require Import BachmannDefs.
+From Ordinal Require Import BachmannAssoc.
+From Ordinal Require Import BachmannPower.
 
 Open Scope ord_scope.
 
 (** * Normality of Bachmann's hierarchy, proved directly
 
-In @BachmannDefs@ the hierarchy is calibrated against known normal
+In @BachmannCalibration@ the hierarchy is calibrated against known normal
 functions (Veblen, Schütte's columns), which takes us as far as the
 Large Veblen Ordinal.  Beyond that there is nothing to calibrate
 against, so here we prove normality of φ directly.

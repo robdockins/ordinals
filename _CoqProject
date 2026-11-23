@@ -38,6 +38,9 @@ Ordinal/AckermannTower.v
 Ordinal/SchutteColumn.v
 Ordinal/SchutteColumnFacts.v
 Ordinal/BachmannDefs.v
+Ordinal/BachmannAssoc.v
+Ordinal/BachmannPower.v
+Ordinal/BachmannCalibration.v
 Ordinal/BachmannNormal.v
 Ordinal/BachmannFacts.v
 
