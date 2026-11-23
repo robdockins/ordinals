@@ -22,8 +22,11 @@ From Ordinal Require Import SchutteColumnFacts.
 From Ordinal Require Import BachmannDefs.
 From Ordinal Require Import BachmannAssoc.
 From Ordinal Require Import BachmannPower.
+From Ordinal Require Import BachmannCfe.
 From Ordinal Require Import BachmannNormal.
+From Ordinal Require Import BachmannAgree.
 From Ordinal Require Import BachmannFacts.
+From Ordinal Require Import BachmannEnumeration.
 From Ordinal Require Import Notation.SchutteMatrix.
 From Ordinal Require Import Notation.CantorDecomposition.
 From Ordinal Require Import Notation.Interpolants.

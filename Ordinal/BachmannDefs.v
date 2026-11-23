@@ -64,9 +64,13 @@ function @bach@ is defined by plain structural recursion.
    canonical trees.
  - @BachmannCalibration.v@: φ against known hierarchies: Γ₀, Ackermann,
    the Small and Large Veblen Ordinals.
- - @BachmannNormal.v@: φ is normal, proved directly, up to the
-   Bachmann–Howard ordinal.
- - @BachmannFacts.v@: semantic facts used by the notation system.
+ - @BachmannCfe.v@: the enumerator of common fixpoints and the hierarchy
+   @bphi@, normal by construction.
+ - @BachmannNormal.v@: @bphi@ is normal on the canonical trees.
+ - @BachmannAgree.v@: Bachmann's @bach@ agrees with @bphi@ up to
+   ε_{Ω+1}; certification of the Bachmann–Howard ordinal.
+ - @BachmannFacts.v@, @BachmannEnumeration.v@: semantic facts used by
+   the notation system.
  - @Notation/Bachmann*.v@: the notation system (see
    @Notation/BachmannNotation.v@).
 *)

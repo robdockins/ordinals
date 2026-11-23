@@ -41,8 +41,11 @@ Ordinal/BachmannDefs.v
 Ordinal/BachmannAssoc.v
 Ordinal/BachmannPower.v
 Ordinal/BachmannCalibration.v
+Ordinal/BachmannCfe.v
 Ordinal/BachmannNormal.v
+Ordinal/BachmannAgree.v
 Ordinal/BachmannFacts.v
+Ordinal/BachmannEnumeration.v
 
 Ordinal/Countable.v
 
