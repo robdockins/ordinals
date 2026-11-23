@@ -139,6 +139,9 @@ inside exponents is handled, and `normSX` normalizes EVERY notation
 
 ## Step 5: improper Schütte matrices (design, not started)
 
+SUPERSEDED by `SchutteImproperPlan.md` (native matrix normalization; the
+user prefers no Bachmann translation).  Kept for reference.
+
 Exponents are no longer a restriction (heights become exponents, which
 may now be improper).  Remaining scope question: matrices whose
 height-0 columns occur only at the end.  A
