@@ -79,7 +79,7 @@ are presentational:
   `ρ' = ρ + 1` in place of Rocq's `S ρ`. Both are the forms the structural
   recursion of the proofs needs.
 
-470 statements.
+592 statements.
 
 ## Defs
 
@@ -3015,6 +3015,1425 @@ klammersymbol_characterization_unique_EM : ExcludedMiddle →
       ∀ (Ψ : List (Ordinal × Ordinal) → Ordinal),
         (∀ (γ : Ordinal), KlSpecClassical f γ Ψ) →
           ∀ (γ : Ordinal) (n : List (Ordinal × Ordinal)), γ.KlProperClassical n → Ψ n ≈ schutteMatrix f n 0
+```
+
+## SchutteAbsorb
+
+### `schutte_column_merge_le`
+
+Rocq:
+```
+SchutteAbsorb.schutte_column_merge_le
+     : forall (c x y a : Defs.Ord) (P : Defs.Ord -> Defs.Ord),
+       VeblenCon.normal_function P ->
+       Operators.complete c ->
+       Operators.complete a ->
+       Operators.complete x ->
+       Operators.complete y ->
+       Defs.ord_le (SchutteColumn.schutte_column (SchutteColumn.schutte_column P c a) c x y)
+         (SchutteColumn.schutte_column P c (Arith.addOrd a x) y)
+```
+Lean:
+```
+schutte_column_merge_le : ∀ (c x y a : Ordinal) (P : Ordinal → Ordinal),
+  NormalFunction P →
+    c.Complete →
+      a.Complete → x.Complete → y.Complete → schutteColumn (schutteColumn P c a) c x y ≤ schutteColumn P c (a + x) y
+```
+
+### `absorb_critical`
+
+Rocq:
+```
+SchutteAbsorb.absorb_critical
+     : forall β : Defs.Ord,
+       Operators.complete β ->
+       forall α : Defs.Ord,
+       Operators.complete α ->
+       forall (P : Defs.Ord -> Defs.Ord) (b a z : Defs.Ord),
+       VeblenCon.normal_function P ->
+       Operators.complete b ->
+       Operators.complete a ->
+       Operators.complete z ->
+       Defs.ord_lt b β ->
+       SchutteAbsorb.Reg P β ->
+       SchutteAbsorb.principal z ->
+       Defs.ord_lt (Operators.succOrd Operators.zeroOrd) z ->
+       Defs.ord_lt a z ->
+       SchutteColumnFacts.schutte_critical P β α z ->
+       SchutteColumnFacts.schutte_critical (SchutteColumn.schutte_column P b a) β α z
+```
+Lean:
+```
+absorb_critical : ∀ (β : Ordinal),
+  β.Complete →
+    ∀ (α : Ordinal),
+      α.Complete →
+        ∀ (P : Ordinal → Ordinal) (b a z : Ordinal),
+          NormalFunction P →
+            b.Complete →
+              a.Complete →
+                z.Complete →
+                  b < β →
+                    Reg P β →
+                      z.Principal →
+                        1 < z → a < z → SchutteCritical P β α z → SchutteCritical (schutteColumn P b a) β α z
+```
+
+### `absorb_shift`
+
+Rocq:
+```
+SchutteAbsorb.absorb_shift
+     : forall (P : Defs.Ord -> Defs.Ord) (β α b a s : Defs.Ord),
+       VeblenCon.normal_function P ->
+       Operators.complete β ->
+       Operators.complete α ->
+       Operators.complete b ->
+       Operators.complete a ->
+       Operators.complete s ->
+       Defs.ord_lt b β ->
+       Defs.ord_lt Operators.zeroOrd α ->
+       SchutteAbsorb.Reg P β ->
+       Defs.ord_lt a (SchutteColumn.schutte_column P β α s) ->
+       (forall z : Defs.Ord,
+        Operators.complete z ->
+        SchutteColumnFacts.schutte_critical P β α z ->
+        Defs.ord_lt a z -> Defs.ord_le (SchutteColumn.schutte_column P β α s) z) ->
+       forall x : Defs.Ord,
+       Operators.complete x ->
+       Defs.ord_eq (SchutteColumn.schutte_column (SchutteColumn.schutte_column P b a) β α x)
+         (SchutteColumn.schutte_column P β α (Arith.addOrd s x))
+```
+Lean:
+```
+absorb_shift : ∀ (P : Ordinal → Ordinal) (β α b a s : Ordinal),
+  NormalFunction P →
+    β.Complete →
+      α.Complete →
+        b.Complete →
+          a.Complete →
+            s.Complete →
+              b < β →
+                0 < α →
+                  Reg P β →
+                    a < schutteColumn P β α s →
+                      (∀ (z : Ordinal), z.Complete → SchutteCritical P β α z → a < z → schutteColumn P β α s ≤ z) →
+                        ∀ (x : Ordinal),
+                          x.Complete → schutteColumn (schutteColumn P b a) β α x ≈ schutteColumn P β α (s + x)
+```
+
+### `schutte_column_merge_ge`
+
+Rocq:
+```
+SchutteAbsorb.schutte_column_merge_ge
+     : forall (c x y a : Defs.Ord) (P : Defs.Ord -> Defs.Ord),
+       VeblenCon.normal_function P ->
+       Operators.complete c ->
+       Operators.complete a ->
+       Operators.complete x ->
+       Operators.complete y ->
+       Defs.ord_le (SchutteColumn.schutte_column P c (Arith.addOrd a x) y)
+         (SchutteColumn.schutte_column (SchutteColumn.schutte_column P c a) c x y)
+```
+Lean:
+```
+schutte_column_merge_ge : ∀ (c x y a : Ordinal) (P : Ordinal → Ordinal),
+  NormalFunction P →
+    c.Complete →
+      a.Complete → x.Complete → y.Complete → schutteColumn P c (a + x) y ≤ schutteColumn (schutteColumn P c a) c x y
+```
+
+### `shift_gen`
+
+Rocq:
+```
+SchutteAbsorb.shift_gen
+     : forall (P Q : Defs.Ord -> Defs.Ord) (β α s : Defs.Ord) (U : Defs.Ord -> Prop),
+       VeblenCon.normal_function P ->
+       VeblenCon.normal_function Q ->
+       Operators.complete β ->
+       Operators.complete α ->
+       Operators.complete s ->
+       Defs.ord_lt Operators.zeroOrd β ->
+       Defs.ord_lt Operators.zeroOrd α ->
+       SchutteAbsorb.Reg P β ->
+       (forall a b : Defs.Ord, Defs.ord_le a b -> U a -> U b) ->
+       (forall z : Defs.Ord,
+        Operators.complete z ->
+        SchutteColumnFacts.schutte_critical Q β α z ->
+        SchutteColumnFacts.schutte_critical P β α z /\ U z) ->
+       (forall z : Defs.Ord,
+        Operators.complete z ->
+        SchutteAbsorb.principal z ->
+        Defs.ord_lt (Operators.succOrd Operators.zeroOrd) z ->
+        SchutteColumnFacts.schutte_critical P β α z ->
+        U z -> SchutteColumnFacts.schutte_critical Q β α z) ->
+       U (SchutteColumn.schutte_column P β α s) ->
+       (forall z : Defs.Ord,
+        Operators.complete z ->
+        SchutteColumnFacts.schutte_critical P β α z ->
+        U z -> Defs.ord_le (SchutteColumn.schutte_column P β α s) z) ->
+       forall x : Defs.Ord,
+       Operators.complete x ->
+       Defs.ord_eq (SchutteColumn.schutte_column Q β α x)
+         (SchutteColumn.schutte_column P β α (Arith.addOrd s x))
+```
+Lean:
+```
+shift_gen : ∀ (P Q : Ordinal → Ordinal) (β α s : Ordinal) (U : Ordinal → Prop),
+  NormalFunction P →
+    NormalFunction Q →
+      β.Complete →
+        α.Complete →
+          s.Complete →
+            0 < β →
+              0 < α →
+                Reg P β →
+                  (∀ (a b : Ordinal), a ≤ b → U a → U b) →
+                    (∀ (z : Ordinal), z.Complete → SchutteCritical Q β α z → SchutteCritical P β α z ∧ U z) →
+                      (∀ (z : Ordinal),
+                          z.Complete → z.Principal → 1 < z → SchutteCritical P β α z → U z → SchutteCritical Q β α z) →
+                        U (schutteColumn P β α s) →
+                          (∀ (z : Ordinal), z.Complete → SchutteCritical P β α z → U z → schutteColumn P β α s ≤ z) →
+                            ∀ (x : Ordinal), x.Complete → schutteColumn Q β α x ≈ schutteColumn P β α (s + x)
+```
+
+### `absorb_shift_list`
+
+Rocq:
+```
+SchutteAbsorb.absorb_shift_list
+     : forall (G : Defs.Ord -> Defs.Ord) (L : list (Defs.Ord * Defs.Ord)) (β α m s : Defs.Ord),
+       VeblenCon.normal_function G ->
+       SchutteColumnFacts.all_complete L ->
+       Operators.complete β ->
+       Operators.complete α ->
+       Operators.complete m ->
+       Operators.complete s ->
+       Defs.ord_lt Operators.zeroOrd β ->
+       Defs.ord_lt Operators.zeroOrd α ->
+       SchutteAbsorb.Reg G β ->
+       (forall b a : Defs.Ord, List.In (b, a) L -> Defs.ord_lt b β) ->
+       (forall z : Defs.Ord,
+        (forall b a : Defs.Ord, List.In (b, a) L -> Defs.ord_lt a z) <-> Defs.ord_lt m z) ->
+       Defs.ord_lt m (SchutteColumn.schutte_column G β α s) ->
+       (forall y : Defs.Ord,
+        Defs.ord_lt y s -> Defs.ord_le (SchutteColumn.schutte_column G β α y) m) ->
+       forall x : Defs.Ord,
+       Operators.complete x ->
+       Defs.ord_eq (SchutteColumn.schutte_column (SchutteColumnFacts.schutte_matrix G L) β α x)
+         (SchutteColumn.schutte_column G β α (Arith.addOrd s x))
+```
+Lean:
+```
+absorb_shift_list : ∀ (G : Ordinal → Ordinal) (L : List (Ordinal × Ordinal)) (β α m s : Ordinal),
+  NormalFunction G →
+    AllComplete L →
+      β.Complete →
+        α.Complete →
+          m.Complete →
+            s.Complete →
+              0 < β →
+                0 < α →
+                  Reg G β →
+                    (∀ (b a : Ordinal), (b, a) ∈ L → b < β) →
+                      (∀ (z : Ordinal), (∀ (b a : Ordinal), (b, a) ∈ L → a < z) ↔ m < z) →
+                        m < schutteColumn G β α s →
+                          (∀ (y : Ordinal), y < s → schutteColumn G β α y ≤ m) →
+                            ∀ (x : Ordinal),
+                              x.Complete → schutteColumn (schutteMatrix G L) β α x ≈ schutteColumn G β α (s + x)
+```
+
+### `nest`
+
+Rocq:
+```
+SchutteAbsorb.nest
+     : forall Y X : list (Defs.Ord * Defs.Ord),
+       SchutteAbsorb.mlt Y X ->
+       forall (G : Defs.Ord -> Defs.Ord) (w y : Defs.Ord),
+       VeblenCon.normal_function G ->
+       SchutteColumnFacts.all_complete X ->
+       SchutteColumnFacts.all_complete Y ->
+       Operators.complete w ->
+       Operators.complete y ->
+       SchutteAbsorb.desc X ->
+       SchutteAbsorb.poscols X ->
+       SchutteAbsorb.desc Y ->
+       SchutteAbsorb.poscols Y ->
+       (forall b a : Defs.Ord,
+        List.In (b, a) Y -> Defs.ord_lt a (SchutteColumnFacts.schutte_matrix G X w)) ->
+       Defs.ord_lt y (SchutteColumnFacts.schutte_matrix G X w) ->
+       Defs.ord_lt (SchutteColumnFacts.schutte_matrix G Y y)
+         (SchutteColumnFacts.schutte_matrix G X w)
+```
+Lean:
+```
+@nest : ∀ {Y X : List (Ordinal × Ordinal)},
+  Mlt Y X →
+    ∀ (G : Ordinal → Ordinal) (w y : Ordinal),
+      NormalFunction G →
+        AllComplete X →
+          AllComplete Y →
+            w.Complete →
+              y.Complete →
+                Ordinal.Desc X →
+                  PosCols X →
+                    Ordinal.Desc Y →
+                      PosCols Y →
+                        (∀ (b a : Ordinal), (b, a) ∈ Y → a < schutteMatrix G X w) →
+                          y < schutteMatrix G X w → schutteMatrix G Y y < schutteMatrix G X w
+```
+
+### `fix_gt`
+
+Rocq:
+```
+SchutteAbsorb.fix_gt
+     : forall X Y : list (Defs.Ord * Defs.Ord),
+       SchutteAbsorb.mlt X Y ->
+       forall (G : Defs.Ord -> Defs.Ord) (y : Defs.Ord),
+       VeblenCon.normal_function G ->
+       SchutteColumnFacts.all_complete X ->
+       SchutteColumnFacts.all_complete Y ->
+       Operators.complete y ->
+       SchutteAbsorb.desc X ->
+       SchutteAbsorb.poscols X ->
+       SchutteAbsorb.desc Y ->
+       SchutteAbsorb.poscols Y ->
+       (forall b a : Defs.Ord,
+        List.In (b, a) X -> Defs.ord_lt a (SchutteColumnFacts.schutte_matrix G Y y)) ->
+       Defs.ord_le
+         (SchutteColumnFacts.schutte_matrix G X (SchutteColumnFacts.schutte_matrix G Y y))
+         (SchutteColumnFacts.schutte_matrix G Y y)
+```
+Lean:
+```
+@fix_gt : ∀ {X Y : List (Ordinal × Ordinal)},
+  Mlt X Y →
+    ∀ (G : Ordinal → Ordinal) (y : Ordinal),
+      NormalFunction G →
+        AllComplete X →
+          AllComplete Y →
+            y.Complete →
+              Ordinal.Desc X →
+                PosCols X →
+                  Ordinal.Desc Y →
+                    PosCols Y →
+                      (∀ (b a : Ordinal), (b, a) ∈ X → a < schutteMatrix G Y y) →
+                        schutteMatrix G X (schutteMatrix G Y y) ≤ schutteMatrix G Y y
+```
+
+## BachmannDefs
+
+### `blt_wf`
+
+Rocq:
+```
+BachmannDefs.blt_wf
+     : well_founded BachmannDefs.blt
+```
+Lean:
+```
+Bachmann.blt_wf : WellFounded Bachmann.blt
+```
+
+### `embed_le`
+
+Rocq:
+```
+BachmannDefs.embed_le
+     : forall x y : Defs.Ord,
+       Defs.ord_le x y <-> BachmannDefs.ble (BachmannDefs.embed x) (BachmannDefs.embed y)
+```
+Lean:
+```
+Bachmann.embed_le : ∀ (x y : Ordinal), x ≤ y ↔ Bachmann.ble (Bachmann.embed x) (Bachmann.embed y)
+```
+
+### `embed_lt`
+
+Rocq:
+```
+BachmannDefs.embed_lt
+     : forall x y : Defs.Ord,
+       Defs.ord_lt x y <-> BachmannDefs.blt (BachmannDefs.embed x) (BachmannDefs.embed y)
+```
+Lean:
+```
+Bachmann.embed_lt : ∀ (x y : Ordinal), x < y ↔ Bachmann.blt (Bachmann.embed x) (Bachmann.embed y)
+```
+
+### `bach_embed`
+
+Rocq:
+```
+BachmannDefs.bach_embed
+     : forall f : Defs.Ord -> Defs.Ord,
+       (forall x y : Defs.Ord, Defs.ord_le x y -> Defs.ord_le (f x) (f y)) ->
+       forall β y : Defs.Ord,
+       Defs.ord_eq (BachmannDefs.bach f (BachmannDefs.embed β) y) (VeblenDefs.veblen f β y)
+```
+Lean:
+```
+Bachmann.bach_embed : ∀ (f : Ordinal → Ordinal),
+  (∀ (x y : Ordinal), x ≤ y → f x ≤ f y) → ∀ (β y : Ordinal), Bachmann.bach f (Bachmann.embed β) y ≈ veblen f β y
+```
+
+### `bach_mono_index`
+
+Rocq:
+```
+BachmannDefs.bach_mono_index
+     : forall f : Defs.Ord -> Defs.Ord,
+       (forall x y : Defs.Ord, Defs.ord_le x y -> Defs.ord_le (f x) (f y)) ->
+       forall x y : BachmannDefs.BOrd,
+       BachmannDefs.bsub x y ->
+       BachmannDefs.bmono f y ->
+       forall z : Defs.Ord, Defs.ord_le (BachmannDefs.bach f x z) (BachmannDefs.bach f y z)
+```
+Lean:
+```
+Bachmann.bach_mono_index : ∀ (f : Ordinal → Ordinal),
+  (∀ (x y : Ordinal), x ≤ y → f x ≤ f y) →
+    ∀ (x y : Bachmann.BOrd),
+      Bachmann.bsub x y → Bachmann.BMono f y → ∀ (z : Ordinal), Bachmann.bach f x z ≤ Bachmann.bach f y z
+```
+
+### `bach_enum_step`
+
+Rocq:
+```
+BachmannDefs.bach_enum_step
+     : forall (f : Defs.Ord -> Defs.Ord) (T : BachmannDefs.BOrd) (G : Defs.Ord -> Defs.Ord)
+         (k0 : BachmannDefs.bsmall T + BachmannDefs.bbig T),
+       VeblenCon.normal_function G ->
+       (forall (k : BachmannDefs.bsmall T + BachmannDefs.bbig T) (x y : Defs.Ord),
+        Defs.ord_le x y -> Defs.ord_le (BachmannDefs.bcomp f T k x) (BachmannDefs.bcomp f T k y)) ->
+       (forall x : Defs.Ord,
+        Operators.complete x -> Defs.ord_eq (BachmannDefs.bcomp f T k0 x) (G x)) ->
+       (forall x : Defs.Ord, Operators.complete x -> Defs.ord_le (f x) (G x)) ->
+       (forall (k : BachmannDefs.bsmall T + BachmannDefs.bbig T) (y : Defs.Ord),
+        Operators.complete y ->
+        Defs.ord_le (BachmannDefs.bcomp f T k (Fixpoints.enum_fixpoints G y))
+          (Fixpoints.enum_fixpoints G y)) ->
+       BachmannDefs.BRep f T (Fixpoints.enum_fixpoints G)
+```
+Lean:
+```
+Bachmann.bach_enum_step : ∀ (f : Ordinal → Ordinal) (T : Bachmann.BOrd) (G : Ordinal → Ordinal)
+  (k0 : Bachmann.bsmall T ⊕ Bachmann.bbig T),
+  NormalFunction G →
+    (∀ (k : Bachmann.bsmall T ⊕ Bachmann.bbig T) (x y : Ordinal),
+        x ≤ y → Bachmann.bcomp f T k x ≤ Bachmann.bcomp f T k y) →
+      (∀ (x : Ordinal), x.Complete → Bachmann.bcomp f T k0 x ≈ G x) →
+        (∀ (x : Ordinal), x.Complete → f x ≤ G x) →
+          (∀ (k : Bachmann.bsmall T ⊕ Bachmann.bbig T) (y : Ordinal),
+              y.Complete → Bachmann.bcomp f T k (enumFixpoints G y) ≤ enumFixpoints G y) →
+            Bachmann.BRep f T (enumFixpoints G)
+```
+
+### `bach_Ωlim_step`
+
+Rocq:
+```
+BachmannDefs.bach_Ωlim_step
+     : forall (f : Defs.Ord -> Defs.Ord) (H : Defs.Ord -> BachmannDefs.BOrd)
+         (G : Defs.Ord -> Defs.Ord),
+       VeblenCon.normal_function G ->
+       (forall ξ ξ' : Defs.Ord,
+        Defs.ord_le ξ ξ' ->
+        Defs.ord_le (BachmannDefs.bach f (H ξ) Operators.zeroOrd)
+          (BachmannDefs.bach f (H ξ') Operators.zeroOrd)) ->
+       (forall x : Defs.Ord,
+        Operators.complete x -> Defs.ord_eq (BachmannDefs.bach f (H x) Operators.zeroOrd) (G x)) ->
+       (forall x : Defs.Ord, Operators.complete x -> Defs.ord_le (f x) (G x)) ->
+       BachmannDefs.BRep f (BachmannDefs.blimΩ H) (Fixpoints.enum_fixpoints G)
+```
+Lean:
+```
+Bachmann.bach_Ωlim_step : ∀ (f : Ordinal → Ordinal) (H : Ordinal → Bachmann.BOrd) (G : Ordinal → Ordinal),
+  NormalFunction G →
+    (∀ (ξ ξ' : Ordinal), ξ ≤ ξ' → Bachmann.bach f (H ξ) 0 ≤ Bachmann.bach f (H ξ') 0) →
+      (∀ (x : Ordinal), x.Complete → Bachmann.bach f (H x) 0 ≈ G x) →
+        (∀ (x : Ordinal), x.Complete → f x ≤ G x) → Bachmann.BRep f (Bachmann.blimΩ H) (enumFixpoints G)
+```
+
+### `bach_succ_step`
+
+Rocq:
+```
+BachmannDefs.bach_succ_step
+     : forall f : Defs.Ord -> Defs.Ord,
+       (forall x y : Defs.Ord, Defs.ord_le x y -> Defs.ord_le (f x) (f y)) ->
+       forall (α : BachmannDefs.BOrd) (G : Defs.Ord -> Defs.Ord),
+       BachmannDefs.bmono f α ->
+       BachmannDefs.BRep f α G ->
+       BachmannDefs.BRep f (BachmannDefs.badd α (BachmannDefs.bsucc BachmannDefs.bzero))
+         (Fixpoints.enum_fixpoints G)
+```
+Lean:
+```
+Bachmann.bach_succ_step : ∀ (f : Ordinal → Ordinal),
+  (∀ (x y : Ordinal), x ≤ y → f x ≤ f y) →
+    ∀ (α : Bachmann.BOrd) (G : Ordinal → Ordinal),
+      Bachmann.BMono f α →
+        Bachmann.BRep f α G → Bachmann.BRep f (Bachmann.badd α (Bachmann.bsucc Bachmann.bzero)) (enumFixpoints G)
+```
+
+### `bach_veblen_step`
+
+Rocq:
+```
+BachmannDefs.bach_veblen_step
+     : forall f : Defs.Ord -> Defs.Ord,
+       (forall x y : Defs.Ord, Defs.ord_le x y -> Defs.ord_le (f x) (f y)) ->
+       forall (α : BachmannDefs.BOrd) (G : Defs.Ord -> Defs.Ord),
+       BachmannDefs.bmono f α ->
+       BachmannDefs.BRep f α G ->
+       forall ξ : Defs.Ord,
+       Operators.complete ξ ->
+       BachmannDefs.BRep f (BachmannDefs.badd α (BachmannDefs.embed ξ)) (VeblenDefs.veblen G ξ)
+```
+Lean:
+```
+Bachmann.bach_veblen_step : ∀ (f : Ordinal → Ordinal),
+  (∀ (x y : Ordinal), x ≤ y → f x ≤ f y) →
+    ∀ (α : Bachmann.BOrd) (G : Ordinal → Ordinal),
+      Bachmann.BMono f α →
+        Bachmann.BRep f α G →
+          ∀ (ξ : Ordinal), ξ.Complete → Bachmann.BRep f (Bachmann.badd α (Bachmann.embed ξ)) (veblen G ξ)
+```
+
+### `bach_plusΩ_step`
+
+Rocq:
+```
+BachmannDefs.bach_plusΩ_step
+     : forall f : Defs.Ord -> Defs.Ord,
+       (forall x y : Defs.Ord, Defs.ord_le x y -> Defs.ord_le (f x) (f y)) ->
+       forall (α : BachmannDefs.BOrd) (G : Defs.Ord -> Defs.Ord),
+       BachmannDefs.bmono f α ->
+       BachmannDefs.BRep f α G ->
+       BachmannDefs.BRep f (BachmannDefs.badd α BachmannDefs.bOmega)
+         (Fixpoints.enum_fixpoints (fun ξ : Defs.Ord => VeblenDefs.veblen G ξ Operators.zeroOrd))
+```
+Lean:
+```
+Bachmann.bach_plusΩ_step : ∀ (f : Ordinal → Ordinal),
+  (∀ (x y : Ordinal), x ≤ y → f x ≤ f y) →
+    ∀ (α : Bachmann.BOrd) (G : Ordinal → Ordinal),
+      Bachmann.BMono f α →
+        Bachmann.BRep f α G → Bachmann.BRep f (Bachmann.badd α Bachmann.bOmega) (enumFixpoints fun ξ => veblen G ξ 0)
+```
+
+### `bach_zero_rep`
+
+Rocq:
+```
+BachmannDefs.bach_zero_rep
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f -> BachmannDefs.BRep f BachmannDefs.bzero f
+```
+Lean:
+```
+Bachmann.bach_zero_rep : ∀ (f : Ordinal → Ordinal), NormalFunction f → Bachmann.BRep f Bachmann.bzero f
+```
+
+## BachmannAssoc
+
+### `bach_badd_assoc`
+
+Rocq:
+```
+BachmannAssoc.bach_badd_assoc
+     : forall f : Defs.Ord -> Defs.Ord,
+       (forall x y : Defs.Ord, Defs.ord_le x y -> Defs.ord_le (f x) (f y)) ->
+       forall α β γ : BachmannDefs.BOrd,
+       BachmannAssoc.bfam α ->
+       BachmannAssoc.bfam β ->
+       BachmannAssoc.bfam γ ->
+       forall z : Defs.Ord,
+       Defs.ord_eq (BachmannDefs.bach f (BachmannDefs.badd α (BachmannDefs.badd β γ)) z)
+         (BachmannDefs.bach f (BachmannDefs.badd (BachmannDefs.badd α β) γ) z)
+```
+Lean:
+```
+Bachmann.bach_badd_assoc : ∀ (f : Ordinal → Ordinal),
+  (∀ (x y : Ordinal), x ≤ y → f x ≤ f y) →
+    ∀ (α β γ : Bachmann.BOrd),
+      Bachmann.BFam α →
+        Bachmann.BFam β →
+          Bachmann.BFam γ →
+            ∀ (z : Ordinal),
+              Bachmann.bach f (Bachmann.badd α (Bachmann.badd β γ)) z ≈
+                Bachmann.bach f (Bachmann.badd (Bachmann.badd α β) γ) z
+```
+
+## BachmannPower
+
+### `bach_bPow_rep`
+
+Rocq:
+```
+BachmannPower.bach_bPow_rep
+     : forall f : Defs.Ord -> Defs.Ord,
+       (forall x y : Defs.Ord, Defs.ord_le x y -> Defs.ord_le (f x) (f y)) ->
+       forall ζ : Defs.Ord,
+       Operators.complete ζ ->
+       forall (β : BachmannDefs.BOrd) (G : Defs.Ord -> Defs.Ord),
+       BachmannAssoc.bfam β ->
+       BachmannDefs.BRep f β G ->
+       forall ξ : Defs.Ord,
+       Operators.complete ξ ->
+       BachmannDefs.BRep f
+         (BachmannDefs.badd β (BachmannDefs.bmul (BachmannPower.bPow ζ) (BachmannDefs.embed ξ)))
+         (SchutteColumn.schutte_column G (Arith.addOrd (Operators.succOrd Operators.zeroOrd) ζ) ξ)
+```
+Lean:
+```
+Bachmann.bach_bPow_rep : ∀ (f : Ordinal → Ordinal),
+  (∀ (x y : Ordinal), x ≤ y → f x ≤ f y) →
+    ∀ (ζ : Ordinal),
+      ζ.Complete →
+        ∀ (β : Bachmann.BOrd) (G : Ordinal → Ordinal),
+          Bachmann.BFam β →
+            Bachmann.BRep f β G →
+              ∀ (ξ : Ordinal),
+                ξ.Complete →
+                  Bachmann.BRep f (Bachmann.badd β (Bachmann.bmul (Bachmann.bPow ζ) (Bachmann.embed ξ)))
+                    (schutteColumn G (1 + ζ) ξ)
+```
+
+### `bach_bexpΩ_rep`
+
+Rocq:
+```
+BachmannPower.bach_bexpΩ_rep
+     : forall f : Defs.Ord -> Defs.Ord,
+       (forall x y : Defs.Ord, Defs.ord_le x y -> Defs.ord_le (f x) (f y)) ->
+       forall ζ : Defs.Ord,
+       Operators.complete ζ ->
+       forall (β : BachmannDefs.BOrd) (G : Defs.Ord -> Defs.Ord),
+       BachmannAssoc.bfam β ->
+       BachmannDefs.BRep f β G ->
+       forall ξ : Defs.Ord,
+       Operators.complete ξ ->
+       BachmannDefs.BRep f
+         (BachmannDefs.badd β
+            (BachmannDefs.bmul (BachmannDefs.bexpΩ (BachmannDefs.embed ζ)) (BachmannDefs.embed ξ)))
+         (SchutteColumn.schutte_column G (Arith.addOrd (Operators.succOrd Operators.zeroOrd) ζ) ξ)
+```
+Lean:
+```
+Bachmann.bach_bexpΩ_rep : ∀ (f : Ordinal → Ordinal),
+  (∀ (x y : Ordinal), x ≤ y → f x ≤ f y) →
+    ∀ (ζ : Ordinal),
+      ζ.Complete →
+        ∀ (β : Bachmann.BOrd) (G : Ordinal → Ordinal),
+          Bachmann.BFam β →
+            Bachmann.BRep f β G →
+              ∀ (ξ : Ordinal),
+                ξ.Complete →
+                  Bachmann.BRep f
+                    (Bachmann.badd β (Bachmann.bmul (Bachmann.bexpΩ (Bachmann.embed ζ)) (Bachmann.embed ξ)))
+                    (schutteColumn G (1 + ζ) ξ)
+```
+
+### `bach_bexpΩ_zero`
+
+Rocq:
+```
+BachmannPower.bach_bexpΩ_zero
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall ζ : Defs.Ord,
+       Operators.complete ζ ->
+       Defs.ord_eq
+         (BachmannDefs.bach f (BachmannDefs.bexpΩ (BachmannDefs.embed ζ)) Operators.zeroOrd)
+         (SchutteColumn.schutte_column f (Arith.addOrd (Operators.succOrd Operators.zeroOrd) ζ)
+            (Operators.succOrd Operators.zeroOrd) Operators.zeroOrd)
+```
+Lean:
+```
+Bachmann.bach_bexpΩ_zero : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (ζ : Ordinal), ζ.Complete → Bachmann.bach f (Bachmann.bexpΩ (Bachmann.embed ζ)) 0 ≈ schutteColumn f (1 + ζ) 1 0
+```
+
+## BachmannCalibration
+
+### `bach_Ω_rep`
+
+Rocq:
+```
+BachmannCalibration.bach_Ω_rep
+     : BachmannDefs.BRep Arith.powOmega BachmannDefs.bOmega VeblenCon.Γ
+```
+Lean:
+```
+Bachmann.bach_Ω_rep : Bachmann.BRep powOmega Bachmann.bOmega Γ
+```
+
+### `bach_Ω_plus_rep`
+
+Rocq:
+```
+BachmannCalibration.bach_Ω_plus_rep
+     : forall ξ : Defs.Ord,
+       Operators.complete ξ ->
+       BachmannDefs.BRep Arith.powOmega
+         (BachmannDefs.badd BachmannDefs.bOmega (BachmannDefs.embed ξ))
+         (VeblenDefs.veblen VeblenCon.Γ ξ)
+```
+Lean:
+```
+Bachmann.bach_Ω_plus_rep : ∀ (ξ : Ordinal),
+  ξ.Complete → Bachmann.BRep powOmega (Bachmann.badd Bachmann.bOmega (Bachmann.embed ξ)) (veblen Γ ξ)
+```
+
+### `bach_Ω1_rep`
+
+Rocq:
+```
+BachmannCalibration.bach_Ω1_rep
+     : BachmannDefs.BRep Arith.powOmega
+         (BachmannDefs.badd BachmannDefs.bOmega (BachmannDefs.bsucc BachmannDefs.bzero))
+         (Fixpoints.enum_fixpoints VeblenCon.Γ)
+```
+Lean:
+```
+Bachmann.bach_Ω1_rep : Bachmann.BRep powOmega (Bachmann.badd Bachmann.bOmega (Bachmann.bsucc Bachmann.bzero))
+  (enumFixpoints Γ)
+```
+
+### `bach_Ω2_rep`
+
+Rocq:
+```
+BachmannCalibration.bach_Ω2_rep
+     : BachmannDefs.BRep Arith.powOmega BachmannCalibration.bOmega2 BachmannCalibration.Γ2
+```
+Lean:
+```
+Bachmann.bach_Ω2_rep : Bachmann.BRep powOmega Bachmann.bOmega2 Bachmann.Γ2
+```
+
+### `bach_Ωmul_rep`
+
+Rocq:
+```
+BachmannCalibration.bach_Ωmul_rep
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall n : nat,
+       BachmannDefs.bmono f (BachmannCalibration.bOmegaMul n) /\
+       BachmannDefs.BRep f (BachmannCalibration.bOmegaMul n) (BachmannCalibration.Γiter f n)
+```
+Lean:
+```
+Bachmann.bach_Ωmul_rep : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (n : Nat), Bachmann.BMono f (Bachmann.bOmegaMul n) ∧ Bachmann.BRep f (Bachmann.bOmegaMul n) (Bachmann.Γiter f n)
+```
+
+### `bach_Ωtimes_rep`
+
+Rocq:
+```
+BachmannCalibration.bach_Ωtimes_rep
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall ξ : Defs.Ord,
+       Operators.complete ξ ->
+       BachmannDefs.BRep f (BachmannDefs.bmul BachmannDefs.bOmega (BachmannDefs.embed ξ))
+         (BachmannDefs.S2 f ξ)
+```
+Lean:
+```
+Bachmann.bach_Ωtimes_rep : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (ξ : Ordinal), ξ.Complete → Bachmann.BRep f (Bachmann.bmul Bachmann.bOmega (Bachmann.embed ξ)) (Bachmann.S2 f ξ)
+```
+
+### `bach_Ωsq_rep`
+
+Rocq:
+```
+BachmannCalibration.bach_Ωsq_rep
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       BachmannDefs.BRep f BachmannCalibration.bOmegaSq
+         (Fixpoints.enum_fixpoints (fun ξ : Defs.Ord => BachmannDefs.S2 f ξ Operators.zeroOrd))
+```
+Lean:
+```
+Bachmann.bach_Ωsq_rep : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f → Bachmann.BRep f Bachmann.bOmegaSq (enumFixpoints fun ξ => Bachmann.S2 f ξ 0)
+```
+
+### `bach_Ωsq_Ackermann`
+
+Rocq:
+```
+BachmannCalibration.bach_Ωsq_Ackermann
+     : Defs.ord_eq
+         (BachmannDefs.bach (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            BachmannCalibration.bOmegaSq Operators.zeroOrd)
+         AckermannTower.AckermannOrdinal
+```
+Lean:
+```
+Bachmann.bach_Ωsq_Ackermann : Bachmann.bach (fun y => 1 + y) Bachmann.bOmegaSq 0 ≈ AckermannOrdinal
+```
+
+### `bach_SVO`
+
+Rocq:
+```
+BachmannCalibration.bach_SVO
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       Defs.ord_eq
+         (BachmannDefs.bach f (BachmannDefs.bexpΩ (BachmannDefs.embed Operators.ω))
+            Operators.zeroOrd)
+         (SchutteColumn.schutte_column f Operators.ω (Operators.succOrd Operators.zeroOrd)
+            Operators.zeroOrd)
+```
+Lean:
+```
+Bachmann.bach_SVO : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f → Bachmann.bach f (Bachmann.bexpΩ (Bachmann.embed ω)) 0 ≈ schutteColumn f ω 1 0
+```
+
+### `bach_LVO`
+
+Rocq:
+```
+BachmannCalibration.bach_LVO
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       Defs.ord_eq (BachmannDefs.bach f (BachmannDefs.bexpΩ BachmannDefs.bOmega) Operators.zeroOrd)
+         (Fixpoints.fixOrd
+            (fun β : Defs.Ord =>
+             SchutteColumn.schutte_column f β (Operators.succOrd Operators.zeroOrd)
+               Operators.zeroOrd)
+            Operators.zeroOrd)
+```
+Lean:
+```
+Bachmann.bach_LVO : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f → Bachmann.bach f (Bachmann.bexpΩ Bachmann.bOmega) 0 ≈ fixOrd (fun β => schutteColumn f β 1 0) 0
+```
+
+## BachmannCfe
+
+### `cfe_normal`
+
+Rocq:
+```
+BachmannCfe.cfe_normal
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall (I : Type) (F : I -> Defs.Ord -> Defs.Ord),
+       (forall i : I, VeblenCon.normal_function (F i)) ->
+       inhabited I \/ ~ inhabited I -> VeblenCon.normal_function (BachmannCfe.cfe f I F)
+```
+Lean:
+```
+Bachmann.cfe_normal : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (I : Type u_1) (F : I → Ordinal → Ordinal),
+      (∀ (i : I), NormalFunction (F i)) → Nonempty I ∨ ¬Nonempty I → NormalFunction (Bachmann.cfe f I F)
+```
+
+### `bphi_normal`
+
+Rocq:
+```
+BachmannCfe.bphi_normal
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall T : BachmannDefs.BOrd,
+       BachmannCfe.bgood f T -> VeblenCon.normal_function (BachmannCfe.bphi f T)
+```
+Lean:
+```
+@Bachmann.bphi_normal : ∀ {f : Ordinal → Ordinal},
+  NormalFunction f → ∀ (T : Bachmann.BOrd), Bachmann.BGood f T → NormalFunction (Bachmann.bphi f T)
+```
+
+## BachmannNormal
+
+### `bphi_mono_index`
+
+Rocq:
+```
+BachmannNormal.bphi_mono_index
+     : forall f : Defs.Ord -> Defs.Ord,
+       (forall x y : Defs.Ord, Defs.ord_le x y -> Defs.ord_le (f x) (f y)) ->
+       forall y : BachmannDefs.BOrd,
+       BachmannAssoc.bfam y ->
+       (forall a b : Defs.Ord,
+        Defs.ord_le a b -> Defs.ord_le (BachmannCfe.bphi f y a) (BachmannCfe.bphi f y b)) /\
+       (forall x : BachmannDefs.BOrd,
+        BachmannDefs.bsub x y ->
+        forall z : Defs.Ord, Defs.ord_le (BachmannCfe.bphi f x z) (BachmannCfe.bphi f y z))
+```
+Lean:
+```
+Bachmann.bphi_mono_index : ∀ (f : Ordinal → Ordinal),
+  (∀ (x y : Ordinal), x ≤ y → f x ≤ f y) →
+    ∀ (y : Bachmann.BOrd),
+      Bachmann.BFam y →
+        (∀ (a b : Ordinal), a ≤ b → Bachmann.bphi f y a ≤ Bachmann.bphi f y b) ∧
+          ∀ (x : Bachmann.BOrd), Bachmann.bsub x y → ∀ (z : Ordinal), Bachmann.bphi f x z ≤ Bachmann.bphi f y z
+```
+
+### `bphi_strict`
+
+Rocq:
+```
+BachmannNormal.bphi_strict
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall x y : BachmannDefs.BOrd,
+       BachmannNormal.bslt x y ->
+       BachmannCfe.bgood f y ->
+       BachmannAssoc.bfam y ->
+       Defs.ord_lt (BachmannCfe.bphi f x Operators.zeroOrd)
+         (BachmannCfe.bphi f y Operators.zeroOrd)
+```
+Lean:
+```
+Bachmann.bphi_strict : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (x y : Bachmann.BOrd),
+      Bachmann.bslt x y → Bachmann.BGood f y → Bachmann.BFam y → Bachmann.bphi f x 0 < Bachmann.bphi f y 0
+```
+
+### `bphi_diag_cont`
+
+Rocq:
+```
+BachmannNormal.bphi_diag_cont
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall h : Defs.Ord -> BachmannDefs.BOrd,
+       (forall ξ : Defs.Ord, Operators.complete ξ -> BachmannCfe.bgood f (h ξ)) ->
+       (forall ξ : Defs.Ord, BachmannAssoc.bfam (h ξ)) ->
+       (forall ξ ξ' : Defs.Ord, Defs.ord_le ξ ξ' -> BachmannDefs.bsub (h ξ) (h ξ')) ->
+       (forall (A : Type) (g : A -> Defs.Ord),
+        A ->
+        Operators.directed A g ->
+        (forall a : A, Operators.complete (g a)) ->
+        BachmannDefs.bsub (h (Operators.supOrd g)) (BachmannDefs.bsup (fun a : A => h (g a)))) ->
+       VeblenCon.scott_continuous (fun ξ : Defs.Ord => BachmannCfe.bphi f (h ξ) Operators.zeroOrd)
+```
+Lean:
+```
+Bachmann.bphi_diag_cont : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (h : Ordinal → Bachmann.BOrd),
+      (∀ (ξ : Ordinal), ξ.Complete → Bachmann.BGood f (h ξ)) →
+        (∀ (ξ : Ordinal), Bachmann.BFam (h ξ)) →
+          (∀ (ξ ξ' : Ordinal), ξ ≤ ξ' → Bachmann.bsub (h ξ) (h ξ')) →
+            (∀ (A : Type u_1) (g : A → Ordinal) (x : A),
+                Directed A g →
+                  (∀ (a : A), (g a).Complete) → Bachmann.bsub (h (sup g)) (Bachmann.bsup fun a => h (g a))) →
+              ScottContinuous fun ξ => Bachmann.bphi f (h ξ) 0
+```
+
+### `bcanon_good`
+
+Rocq:
+```
+BachmannNormal.bcanon_good
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall T : BachmannDefs.BOrd,
+       BachmannNormal.bcanon T ->
+       BachmannNormal.bdec T -> BachmannAssoc.bfam T /\ BachmannCfe.bgood f T
+```
+Lean:
+```
+Bachmann.bcanon_good : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f → ∀ (T : Bachmann.BOrd), Bachmann.BCanon T → Bachmann.BDec T → Bachmann.BFam T ∧ Bachmann.BGood f T
+```
+
+### `bphi_εΩ1_normal`
+
+Rocq:
+```
+BachmannNormal.bphi_εΩ1_normal
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       VeblenCon.normal_function (BachmannCfe.bphi f BachmannDefs.bεΩ1)
+```
+Lean:
+```
+Bachmann.bphi_εΩ1_normal : ∀ (f : Ordinal → Ordinal), NormalFunction f → NormalFunction (Bachmann.bphi f Bachmann.bεΩ1)
+```
+
+## BachmannAgree
+
+### `bphi_embed`
+
+Rocq:
+```
+BachmannAgree.bphi_embed
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall β : Defs.Ord,
+       Operators.complete β ->
+       forall y : Defs.Ord,
+       Operators.complete y ->
+       Defs.ord_eq (BachmannCfe.bphi f (BachmannDefs.embed β) y) (VeblenDefs.veblen f β y)
+```
+Lean:
+```
+Bachmann.bphi_embed : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (β : Ordinal), β.Complete → ∀ (y : Ordinal), y.Complete → Bachmann.bphi f (Bachmann.embed β) y ≈ veblen f β y
+```
+
+### `bphi_Ω`
+
+Rocq:
+```
+BachmannAgree.bphi_Ω
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall y : Defs.Ord,
+       Operators.complete y ->
+       Defs.ord_eq (BachmannCfe.bphi f BachmannDefs.bOmega y)
+         (Fixpoints.enum_fixpoints (fun ξ : Defs.Ord => VeblenDefs.veblen f ξ Operators.zeroOrd) y)
+```
+Lean:
+```
+Bachmann.bphi_Ω : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (y : Ordinal), y.Complete → Bachmann.bphi f Bachmann.bOmega y ≈ enumFixpoints (fun ξ => veblen f ξ 0) y
+```
+
+### `bnest`
+
+Rocq:
+```
+BachmannAgree.bnest
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall x y : BachmannDefs.BOrd,
+       BachmannNormal.bslt x y ->
+       BachmannCfe.bgood f y ->
+       BachmannAssoc.bfam y ->
+       forall z : Defs.Ord,
+       Operators.complete z -> BachmannAgree.bfix f y z -> Defs.ord_le (BachmannCfe.bphi f x z) z
+```
+Lean:
+```
+Bachmann.bnest : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (x y : Bachmann.BOrd),
+      Bachmann.bslt x y →
+        Bachmann.BGood f y →
+          Bachmann.BFam y → ∀ (z : Ordinal), z.Complete → Bachmann.BFix f y z → Bachmann.bphi f x z ≤ z
+```
+
+### `bach_bphi`
+
+Rocq:
+```
+BachmannAgree.bach_bphi
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall T : BachmannDefs.BOrd,
+       BachmannCfe.bgood f T ->
+       BachmannAssoc.bfam T ->
+       BachmannAgree.bdirH f T -> BachmannDefs.BRep f T (BachmannCfe.bphi f T)
+```
+Lean:
+```
+Bachmann.bach_bphi : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (T : Bachmann.BOrd),
+      Bachmann.BGood f T → Bachmann.BFam T → Bachmann.BDirH f T → Bachmann.BRep f T (Bachmann.bphi f T)
+```
+
+### `bsdirH_bdirH`
+
+Rocq:
+```
+BachmannAgree.bsdirH_bdirH
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall T : BachmannDefs.BOrd,
+       BachmannNormal.bcd T -> BachmannAgree.bsdirH T -> BachmannAgree.bdirH f T
+```
+Lean:
+```
+Bachmann.bsdirH_bdirH : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f → ∀ (T : Bachmann.BOrd), Bachmann.BCd T → Bachmann.BSdirH T → Bachmann.BDirH f T
+```
+
+### `bsdirH_badd`
+
+Rocq:
+```
+BachmannAgree.bsdirH_badd
+     : forall x y : BachmannDefs.BOrd,
+       BachmannNormal.bcd x ->
+       BachmannAgree.bsdirH x ->
+       BachmannNormal.bcd y ->
+       BachmannAgree.bsdirH y -> BachmannAgree.bsdirH (BachmannDefs.badd x y)
+```
+Lean:
+```
+Bachmann.bsdirH_badd : ∀ (x y : Bachmann.BOrd),
+  Bachmann.BCd x → Bachmann.BSdirH x → Bachmann.BCd y → Bachmann.BSdirH y → Bachmann.BSdirH (Bachmann.badd x y)
+```
+
+### `bsdirH_bmul`
+
+Rocq:
+```
+BachmannAgree.bsdirH_bmul
+     : forall x y : BachmannDefs.BOrd,
+       BachmannNormal.bcd x ->
+       BachmannNormal.bpos x ->
+       BachmannAgree.bsdirH x ->
+       BachmannNormal.bcd y ->
+       BachmannAgree.bsdirH y -> BachmannAgree.bsdirH (BachmannDefs.bmul x y)
+```
+Lean:
+```
+Bachmann.bsdirH_bmul : ∀ (x y : Bachmann.BOrd),
+  Bachmann.BCd x →
+    Bachmann.bpos x → Bachmann.BSdirH x → Bachmann.BCd y → Bachmann.BSdirH y → Bachmann.BSdirH (Bachmann.bmul x y)
+```
+
+### `bsdirH_bexpΩ`
+
+Rocq:
+```
+BachmannAgree.bsdirH_bexpΩ
+     : forall y : BachmannDefs.BOrd,
+       BachmannNormal.bcd y ->
+       BachmannAgree.bsdirH y -> BachmannAgree.bsdirH (BachmannDefs.bexpΩ y)
+```
+Lean:
+```
+Bachmann.bsdirH_bexpΩ : ∀ (y : Bachmann.BOrd), Bachmann.BCd y → Bachmann.BSdirH y → Bachmann.BSdirH (Bachmann.bexpΩ y)
+```
+
+### `bach_bphi_tower`
+
+Rocq:
+```
+BachmannAgree.bach_bphi_tower
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall n : nat,
+       BachmannDefs.BRep f (BachmannDefs.btower n) (BachmannCfe.bphi f (BachmannDefs.btower n))
+```
+Lean:
+```
+Bachmann.bach_bphi_tower : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f → ∀ (n : Nat), Bachmann.BRep f (Bachmann.btower n) (Bachmann.bphi f (Bachmann.btower n))
+```
+
+### `bach_bphi_εΩ1`
+
+Rocq:
+```
+BachmannAgree.bach_bphi_εΩ1
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       BachmannDefs.BRep f BachmannDefs.bεΩ1 (BachmannCfe.bphi f BachmannDefs.bεΩ1)
+```
+Lean:
+```
+Bachmann.bach_bphi_εΩ1 : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f → Bachmann.BRep f Bachmann.bεΩ1 (Bachmann.bphi f Bachmann.bεΩ1)
+```
+
+## BachmannFacts
+
+### `bphi_onePlus_embed`
+
+Rocq:
+```
+BachmannFacts.bphi_onePlus_embed
+     : forall α y : Defs.Ord,
+       Operators.complete α ->
+       Operators.complete y ->
+       Defs.ord_eq
+         (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannDefs.embed α) y)
+         (Arith.addOrd (Arith.expOrd Operators.ω α) y)
+```
+Lean:
+```
+Bachmann.bphi_onePlus_embed : ∀ (α y : Ordinal),
+  α.Complete → y.Complete → Bachmann.bphi (fun x => 1 + x) (Bachmann.embed α) y ≈ ω ^ α + y
+```
+
+### `ofold_rep`
+
+Rocq:
+```
+BachmannFacts.ofold_rep
+     : forall f : Defs.Ord -> Defs.Ord,
+       (forall x y : Defs.Ord, Defs.ord_le x y -> Defs.ord_le (f x) (f y)) ->
+       forall (l : list (Defs.Ord * Defs.Ord)) (acc : BachmannDefs.BOrd) (G : Defs.Ord -> Defs.Ord),
+       BachmannAssoc.bfam acc ->
+       BachmannDefs.BRep f acc G ->
+       Defs.each
+         (fun p : Defs.Ord * Defs.Ord => Operators.complete (fst p) /\ Operators.complete (snd p))
+         l ->
+       BachmannDefs.BRep f (BachmannFacts.ofold acc l)
+         (SchutteColumnFacts.schutte_matrix G (BachmannFacts.ocols l))
+```
+Lean:
+```
+Bachmann.ofold_rep : ∀ (f : Ordinal → Ordinal),
+  (∀ (x y : Ordinal), x ≤ y → f x ≤ f y) →
+    ∀ (l : List (Ordinal × Ordinal)) (acc : Bachmann.BOrd) (G : Ordinal → Ordinal),
+      Bachmann.BFam acc →
+        Bachmann.BRep f acc G →
+          Each (fun p => p.fst.Complete ∧ p.snd.Complete) l →
+            Bachmann.BRep f (Bachmann.ofold acc l) (schutteMatrix G (Bachmann.ocols l))
+```
+
+### `bctx_dom`
+
+Rocq:
+```
+BachmannFacts.bctx_dom
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall C : Defs.Ord -> BachmannDefs.BOrd,
+       BachmannFacts.bctx C ->
+       forall ξ : Defs.Ord,
+       Operators.complete ξ -> Defs.ord_le ξ (BachmannCfe.bphi f (C ξ) Operators.zeroOrd)
+```
+Lean:
+```
+Bachmann.bctx_dom : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (C : Ordinal → Bachmann.BOrd), Bachmann.BCtx C → ∀ (ξ : Ordinal), ξ.Complete → ξ ≤ Bachmann.bphi f (C ξ) 0
+```
+
+## BachmannEnumeration
+
+### `cfe_interp`
+
+Rocq:
+```
+BachmannEnumeration.cfe_interp
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall (I : Type) (F : I -> Defs.Ord -> Defs.Ord),
+       (forall i : I, VeblenCon.normal_function (F i)) ->
+       forall y i : Defs.Ord,
+       Operators.complete y ->
+       Defs.ord_lt i (BachmannCfe.cfe f I F y) ->
+       Defs.ord_lt i (f y) \/
+       inhabited I /\
+       (exists (o : option (Defs.ordCarrier y)) (w : list (option I)),
+          Defs.ord_lt i (BachmannEnumeration.wev f I F w (BachmannEnumeration.cstart f I F y o)) /\
+          Defs.ord_le (BachmannEnumeration.cstart f I F y o) (BachmannCfe.cfe f I F y))
+```
+Lean:
+```
+Bachmann.cfe_interp : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (I : Type u_1) (F : I → Ordinal → Ordinal),
+      (∀ (i : I), NormalFunction (F i)) →
+        ∀ (y i : Ordinal),
+          y.Complete →
+            i < Bachmann.cfe f I F y →
+              i < f y ∨
+                Nonempty I ∧
+                  ∃ o w,
+                    i < Bachmann.wev f I F w (Bachmann.cstart f I F y o) ∧
+                      Bachmann.cstart f I F y o ≤ Bachmann.cfe f I F y
+```
+
+### `cfe_dom`
+
+Rocq:
+```
+BachmannEnumeration.cfe_dom
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall (I : Type) (F : I -> Defs.Ord -> Defs.Ord),
+       (forall i : I, VeblenCon.normal_function (F i)) ->
+       forall f' : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f' ->
+       forall (J : Type) (F' : J -> Defs.Ord -> Defs.Ord),
+       (forall j : J, VeblenCon.normal_function (F' j)) ->
+       (forall x : Defs.Ord,
+        Operators.complete x ->
+        Defs.ord_le (f x) (f' x) \/ (exists j : J, Defs.ord_le (f x) (F' j x))) ->
+       (forall i : I,
+        exists j : J, forall x : Defs.Ord, Operators.complete x -> Defs.ord_le (F i x) (F' j x)) ->
+       inhabited J \/ ~ inhabited I ->
+       forall y : Defs.Ord,
+       Operators.complete y -> Defs.ord_le (BachmannCfe.cfe f I F y) (BachmannCfe.cfe f' J F' y)
+```
+Lean:
+```
+Bachmann.cfe_dom : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (I : Type u_1) (F : I → Ordinal → Ordinal),
+      (∀ (i : I), NormalFunction (F i)) →
+        ∀ (f' : Ordinal → Ordinal),
+          NormalFunction f' →
+            ∀ (J : Type u_1) (F' : J → Ordinal → Ordinal),
+              (∀ (j : J), NormalFunction (F' j)) →
+                (∀ (x : Ordinal), x.Complete → f x ≤ f' x ∨ ∃ j, f x ≤ F' j x) →
+                  (∀ (i : I), ∃ j, ∀ (x : Ordinal), x.Complete → F i x ≤ F' j x) →
+                    Nonempty J ∨ ¬Nonempty I →
+                      ∀ (y : Ordinal), y.Complete → Bachmann.cfe f I F y ≤ Bachmann.cfe f' J F' y
+```
+
+### `bphi_powOmega_shift`
+
+Rocq:
+```
+BachmannEnumeration.bphi_powOmega_shift
+     : forall T : BachmannDefs.BOrd,
+       BachmannNormal.bcd T ->
+       forall y : Defs.Ord,
+       Operators.complete y ->
+       Defs.ord_le (BachmannCfe.bphi Arith.powOmega T y)
+         (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannDefs.badd BachmannDefs.bOmega T) y)
+```
+Lean:
+```
+Bachmann.bphi_powOmega_shift : ∀ (T : Bachmann.BOrd),
+  Bachmann.BCd T →
+    ∀ (y : Ordinal),
+      y.Complete → Bachmann.bphi powOmega T y ≤ Bachmann.bphi (fun x => 1 + x) (Bachmann.badd Bachmann.bOmega T) y
+```
+
+### `bphi_base_mono`
+
+Rocq:
+```
+BachmannEnumeration.bphi_base_mono
+     : forall T : BachmannDefs.BOrd,
+       BachmannNormal.bcd T ->
+       forall y : Defs.Ord,
+       Operators.complete y ->
+       Defs.ord_le (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd)) T y)
+         (BachmannCfe.bphi Arith.powOmega T y)
+```
+Lean:
+```
+Bachmann.bphi_base_mono : ∀ (T : Bachmann.BOrd),
+  Bachmann.BCd T → ∀ (y : Ordinal), y.Complete → Bachmann.bphi (fun x => 1 + x) T y ≤ Bachmann.bphi powOmega T y
+```
+
+### `bequiv_bmul_badd`
+
+Rocq:
+```
+BachmannEnumeration.bequiv_bmul_badd
+     : forall P x y : BachmannDefs.BOrd,
+       BachmannFacts.bequiv (BachmannDefs.bmul P (BachmannDefs.badd x y))
+         (BachmannDefs.badd (BachmannDefs.bmul P x) (BachmannDefs.bmul P y))
+```
+Lean:
+```
+Bachmann.bequiv_bmul_badd : ∀ (P x y : Bachmann.BOrd),
+  Bachmann.BEquiv (Bachmann.bmul P (Bachmann.badd x y)) (Bachmann.badd (Bachmann.bmul P x) (Bachmann.bmul P y))
+```
+
+### `bequiv_merge`
+
+Rocq:
+```
+BachmannEnumeration.bequiv_merge
+     : forall (E : BachmannDefs.BOrd) (c c' : Defs.Ord) (r : BachmannDefs.BOrd),
+       BachmannFacts.bequiv
+         (BachmannDefs.badd (BachmannDefs.bmul E (BachmannDefs.embed c))
+            (BachmannDefs.badd (BachmannDefs.bmul E (BachmannDefs.embed c')) r))
+         (BachmannDefs.badd (BachmannDefs.bmul E (BachmannDefs.embed (Arith.addOrd c c'))) r)
+```
+Lean:
+```
+Bachmann.bequiv_merge : ∀ (E : Bachmann.BOrd) (c c' : Ordinal) (r : Bachmann.BOrd),
+  Bachmann.BEquiv
+    (Bachmann.badd (Bachmann.bmul E (Bachmann.embed c)) (Bachmann.badd (Bachmann.bmul E (Bachmann.embed c')) r))
+    (Bachmann.badd (Bachmann.bmul E (Bachmann.embed (c + c'))) r)
+```
+
+### `cfe_offset`
+
+Rocq:
+```
+BachmannEnumeration.cfe_offset
+     : forall f : Defs.Ord -> Defs.Ord,
+       VeblenCon.normal_function f ->
+       forall (I J : Type) (F : I -> Defs.Ord -> Defs.Ord) (G : J -> Defs.Ord -> Defs.Ord),
+       (forall i : I, VeblenCon.normal_function (F i)) ->
+       (forall j : J, VeblenCon.normal_function (G j)) ->
+       I ->
+       J ->
+       forall U : Defs.Ord -> Prop,
+       (forall a b : Defs.Ord, Defs.ord_le a b -> U a -> U b) ->
+       (forall z : Defs.Ord,
+        Operators.complete z ->
+        Defs.ord_le (f z) z /\ (forall i : I, Defs.ord_le (F i z) z) ->
+        Defs.ord_le (f z) z /\ (forall j : J, Defs.ord_le (G j z) z)) ->
+       (forall z : Defs.Ord,
+        Operators.complete z ->
+        Defs.ord_le (f z) z /\ (forall j : J, Defs.ord_le (G j z) z) ->
+        U z -> Defs.ord_le (f z) z /\ (forall i : I, Defs.ord_le (F i z) z)) ->
+       (forall y : Defs.Ord, Operators.complete y -> U (BachmannCfe.cfe f I F y)) ->
+       (forall z : Defs.Ord,
+        Operators.complete z ->
+        Defs.ord_le (f z) z /\ (forall j : J, Defs.ord_le (G j z) z) ->
+        forall a : Defs.Ord, Defs.ord_lt a z -> Defs.ord_le (Arith.addOrd a z) z) ->
+       forall t : Defs.Ord,
+       Operators.complete t ->
+       U (BachmannCfe.cfe f J G t) ->
+       (forall z : Defs.Ord,
+        Operators.complete z ->
+        Defs.ord_le (f z) z /\ (forall j : J, Defs.ord_le (G j z) z) ->
+        U z -> Defs.ord_le (BachmannCfe.cfe f J G t) z) ->
+       Defs.ord_lt t (BachmannCfe.cfe f J G t) ->
+       forall y : Defs.Ord,
+       Operators.complete y ->
+       Defs.ord_eq (BachmannCfe.cfe f I F y) (BachmannCfe.cfe f J G (Arith.addOrd t y))
+```
+Lean:
+```
+Bachmann.cfe_offset : ∀ (f : Ordinal → Ordinal),
+  NormalFunction f →
+    ∀ (I J : Type u_1) (F : I → Ordinal → Ordinal) (G : J → Ordinal → Ordinal),
+      (∀ (i : I), NormalFunction (F i)) →
+        (∀ (j : J), NormalFunction (G j)) →
+          ∀ (i0 : I) (j0 : J) (U : Ordinal → Prop),
+            (∀ (a b : Ordinal), a ≤ b → U a → U b) →
+              (∀ (z : Ordinal), z.Complete → (f z ≤ z ∧ ∀ (i : I), F i z ≤ z) → f z ≤ z ∧ ∀ (j : J), G j z ≤ z) →
+                (∀ (z : Ordinal),
+                    z.Complete → (f z ≤ z ∧ ∀ (j : J), G j z ≤ z) → U z → f z ≤ z ∧ ∀ (i : I), F i z ≤ z) →
+                  (∀ (y : Ordinal), y.Complete → U (Bachmann.cfe f I F y)) →
+                    (∀ (z : Ordinal),
+                        z.Complete → (f z ≤ z ∧ ∀ (j : J), G j z ≤ z) → ∀ (a : Ordinal), a < z → a + z ≤ z) →
+                      ∀ (t : Ordinal),
+                        t.Complete →
+                          U (Bachmann.cfe f J G t) →
+                            (∀ (z : Ordinal),
+                                z.Complete → (f z ≤ z ∧ ∀ (j : J), G j z ≤ z) → U z → Bachmann.cfe f J G t ≤ z) →
+                              t < Bachmann.cfe f J G t →
+                                ∀ (y : Ordinal), y.Complete → Bachmann.cfe f I F y ≈ Bachmann.cfe f J G (t + y)
 ```
 
 ## Notation.CantorNotation
@@ -6363,6 +7782,1347 @@ SchutteMatrixNotation.VForm.has_enough_notations : ExcludedMiddle →
   ∀ (x : Ordinal),
     x < LargeVeblenOrdinal →
       ∃ a, (a.IsNormal ∧ a.denote ≈ x) ∧ ∀ (a' : SchutteMatrixNotation.VForm), a'.IsNormal ∧ a'.denote ≈ x → a' = a
+```
+
+## Notation.SchutteImproper
+
+### `offN_correct`
+
+Rocq:
+```
+SchutteImproper.offN_correct
+     : forall X : list (SchutteMatrix.VForm * SchutteMatrix.VForm),
+       SchutteImproper.nfL X ->
+       SchutteMatrix.VF_matrix_proper X ->
+       SchutteImproper.posL X ->
+       forall (fuel : nat) (m : SchutteMatrix.VForm),
+       SchutteMatrix.VF_termSize m < fuel ->
+       SchutteMatrix.VF_normal m -> SchutteImproper.OffSpec X m (SchutteImproper.offN fuel X m)
+```
+Lean:
+```
+SchutteMatrixNotation.VForm.offN_correct : ∀ (X : List (SchutteMatrixNotation.VForm × SchutteMatrixNotation.VForm)),
+  SchutteMatrixNotation.VForm.NfL X →
+    SchutteMatrixNotation.VForm.MatrixProper X →
+      SchutteMatrixNotation.VForm.PosL X →
+        ∀ (fuel : Nat) (m : SchutteMatrixNotation.VForm),
+          m.termSize < fuel →
+            m.IsNormal → SchutteMatrixNotation.VForm.OffSpec X m (SchutteMatrixNotation.VForm.offN fuel X m)
+```
+
+### `step_correct`
+
+Rocq:
+```
+SchutteImproper.step_correct
+     : forall (I L : list (SchutteMatrix.VForm * SchutteMatrix.VForm))
+         (T h e : SchutteMatrix.VForm),
+       SchutteImproper.Good (L, T) ->
+       SchutteImproper.Sem I (L, T) ->
+       SchutteMatrix.VF_normal h ->
+       SchutteMatrix.VF_normal e ->
+       SchutteImproper.Good (SchutteImproper.step (L, T) (h, e)) /\
+       SchutteImproper.Sem (I ++ (h, e) :: nil) (SchutteImproper.step (L, T) (h, e))
+```
+Lean:
+```
+SchutteMatrixNotation.VForm.step_correct : ∀ (I L : List (SchutteMatrixNotation.VForm × SchutteMatrixNotation.VForm))
+  (T h e : SchutteMatrixNotation.VForm),
+  SchutteMatrixNotation.VForm.Good (L, T) →
+    SchutteMatrixNotation.VForm.Sem I (L, T) →
+      h.IsNormal →
+        e.IsNormal →
+          SchutteMatrixNotation.VForm.Good (SchutteMatrixNotation.VForm.step (L, T) (h, e)) ∧
+            SchutteMatrixNotation.VForm.Sem (I ++ [(h, e)]) (SchutteMatrixNotation.VForm.step (L, T) (h, e))
+```
+
+### `process_correct`
+
+Rocq:
+```
+SchutteImproper.process_correct
+     : forall I : list (SchutteMatrix.VForm * SchutteMatrix.VForm),
+       SchutteImproper.nfL I ->
+       SchutteImproper.Good (SchutteImproper.process I) /\
+       SchutteImproper.Sem I (SchutteImproper.process I)
+```
+Lean:
+```
+SchutteMatrixNotation.VForm.process_correct : ∀ (I : List (SchutteMatrixNotation.VForm × SchutteMatrixNotation.VForm)),
+  SchutteMatrixNotation.VForm.NfL I →
+    SchutteMatrixNotation.VForm.Good (SchutteMatrixNotation.VForm.process I) ∧
+      SchutteMatrixNotation.VForm.Sem I (SchutteMatrixNotation.VForm.process I)
+```
+
+### `VF_normalizeX_correct`
+
+Rocq:
+```
+SchutteImproper.VF_normalizeX_correct
+     : forall x : SchutteMatrix.VForm,
+       Defs.ord_eq (SchutteMatrix.VF_denote (SchutteImproper.VF_normalizeX x))
+         (SchutteMatrix.VF_denote x) /\
+       SchutteMatrix.VF_normal (SchutteImproper.VF_normalizeX x)
+```
+Lean:
+```
+SchutteMatrixNotation.VForm.normalizeX_correct : ∀ (x : SchutteMatrixNotation.VForm),
+  x.normalizeX.denote ≈ x.denote ∧ x.normalizeX.IsNormal
+```
+
+## Notation.BachmannNotation
+
+### `BNotation_ok`
+
+Rocq:
+```
+BachmannNotation.BNotation_ok
+     : (forall x : BachmannNotation.BSmall, Operators.complete (BachmannNotation.BS_denote x)) /\
+       (forall T : BachmannNotation.BIdx, BachmannNotation.idx_ok (BachmannNotation.BI_denote T))
+```
+Lean:
+```
+BachmannNotation.BNotation_ok : (∀ (x : BachmannNotation.BSmall), (BachmannNotation.BS_denote x).Complete) ∧
+  ∀ (T : BachmannNotation.BIdx), BachmannNotation.idx_ok (BachmannNotation.BI_denote T)
+```
+
+### `BI_normal`
+
+Rocq:
+```
+BachmannNotation.BI_normal
+     : forall T : BachmannNotation.BIdx,
+       VeblenCon.normal_function
+         (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannNotation.BI_denote T))
+```
+Lean:
+```
+BachmannNotation.BI_normal : ∀ (T : BachmannNotation.BIdx),
+  NormalFunction (Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote T))
+```
+
+### `BS_denote_bach`
+
+Rocq:
+```
+BachmannNotation.BS_denote_bach
+     : forall (T : BachmannNotation.BIdx) (y : BachmannNotation.BSmall),
+       Defs.ord_eq (BachmannNotation.BS_denote (BachmannNotation.BN T y))
+         (BachmannDefs.bach (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannNotation.BI_denote T) (BachmannNotation.BS_denote y))
+```
+Lean:
+```
+BachmannNotation.BS_denote_bach : ∀ (T : BachmannNotation.BIdx) (y : BachmannNotation.BSmall),
+  BachmannNotation.BS_denote (BachmannNotation.BSmall.BN T y) ≈
+    Bachmann.bach (fun x => 1 + x) (BachmannNotation.BI_denote T) (BachmannNotation.BS_denote y)
+```
+
+### `nest`
+
+Rocq:
+```
+BachmannNotation.nest
+     : forall z : Defs.Ord,
+       BachmannFacts.oinf z ->
+       forall (n : nat) (T : BachmannNotation.BIdx),
+       BachmannNotation.BI_size T < n ->
+       BachmannNotation.BI_nf T ->
+       BachmannNotation.Klt z T ->
+       (forall T' : BachmannNotation.BIdx,
+        BachmannNotation.BI_nf T' ->
+        BachmannNotation.ilt T T' ->
+        BachmannFacts.zlt z (BachmannNotation.BI_denote T) (BachmannNotation.BI_denote T')) /\
+       (forall a : BachmannDefs.BOrd,
+        match T with
+        | BachmannNotation.BIZ => True
+        | BachmannNotation.BIC e _ _ => BachmannFacts.zlt z (BachmannNotation.BI_denote e) a
+        end -> BachmannFacts.zlt z (BachmannNotation.BI_denote T) (BachmannDefs.bexpΩ a))
+```
+Lean:
+```
+BachmannNotation.nest : ∀ (z : Ordinal),
+  Bachmann.OInf z →
+    ∀ (n : Nat) (T : BachmannNotation.BIdx),
+      BachmannNotation.BI_size T < n →
+        BachmannNotation.BI_nf T →
+          BachmannNotation.Klt z T →
+            (∀ (T' : BachmannNotation.BIdx),
+                BachmannNotation.BI_nf T' →
+                  BachmannNotation.ilt T T' →
+                    Bachmann.zlt z (BachmannNotation.BI_denote T) (BachmannNotation.BI_denote T')) ∧
+              ∀ (a : Bachmann.BOrd),
+                BachmannNotation.leadZlt z T a → Bachmann.zlt z (BachmannNotation.BI_denote T) (Bachmann.bexpΩ a)
+```
+
+### `cmp_correct`
+
+Rocq:
+```
+BachmannNotation.cmp_correct
+     : forall n : nat,
+       (forall x y : BachmannNotation.BSmall,
+        BachmannNotation.BS_size x + BachmannNotation.BS_size y < n ->
+        BachmannNotation.BS_nf x ->
+        BachmannNotation.BS_nf y ->
+        Defs.ordering_correct (BachmannNotation.cmpS n x y) (BachmannNotation.BS_denote x)
+          (BachmannNotation.BS_denote y)) /\
+       (forall T T' : BachmannNotation.BIdx,
+        BachmannNotation.BI_size T + BachmannNotation.BI_size T' < n ->
+        BachmannNotation.BI_nf T ->
+        BachmannNotation.BI_nf T' -> BachmannNotation.cmpI_ok (BachmannNotation.cmpI n T T') T T')
+```
+Lean:
+```
+BachmannNotation.cmp_correct : ∀ (n : Nat),
+  (∀ (x y : BachmannNotation.BSmall),
+      BachmannNotation.BS_size x + BachmannNotation.BS_size y < n →
+        BachmannNotation.BS_nf x →
+          BachmannNotation.BS_nf y →
+            OrderingCorrect (BachmannNotation.cmpS n x y) (BachmannNotation.BS_denote x)
+              (BachmannNotation.BS_denote y)) ∧
+    ∀ (T T' : BachmannNotation.BIdx),
+      BachmannNotation.BI_size T + BachmannNotation.BI_size T' < n →
+        BachmannNotation.BI_nf T →
+          BachmannNotation.BI_nf T' → BachmannNotation.cmpI_ok (BachmannNotation.cmpI n T T') T T'
+```
+
+### `BS_compare_correct`
+
+Rocq:
+```
+BachmannNotation.BS_compare_correct
+     : forall x y : BachmannNotation.BSmall,
+       BachmannNotation.BS_nf x ->
+       BachmannNotation.BS_nf y ->
+       Defs.ordering_correct (BachmannNotation.BS_compare x y) (BachmannNotation.BS_denote x)
+         (BachmannNotation.BS_denote y)
+```
+Lean:
+```
+BachmannNotation.BS_compare_correct : ∀ (x y : BachmannNotation.BSmall),
+  BachmannNotation.BS_nf x →
+    BachmannNotation.BS_nf y →
+      OrderingCorrect (BachmannNotation.BS_compare x y) (BachmannNotation.BS_denote x) (BachmannNotation.BS_denote y)
+```
+
+### `BS_decide_order`
+
+Rocq:
+```
+BachmannNotation.BS_decide_order
+     : forall x y : BachmannNotation.BSmall,
+       BachmannNotation.BS_nf x ->
+       BachmannNotation.BS_nf y ->
+       {Defs.ord_lt (BachmannNotation.BS_denote x) (BachmannNotation.BS_denote y)} +
+       {Defs.ord_le (BachmannNotation.BS_denote y) (BachmannNotation.BS_denote x)}
+```
+Lean:
+```
+BachmannNotation.BS_decide_order : (x y : BachmannNotation.BSmall) →
+  BachmannNotation.BS_nf x →
+    BachmannNotation.BS_nf y →
+      BachmannNotation.BS_denote x < BachmannNotation.BS_denote y ⊕'
+        BachmannNotation.BS_denote y ≤ BachmannNotation.BS_denote x
+```
+
+### `cmp_eq`
+
+Rocq:
+```
+BachmannNotation.cmp_eq
+     : forall n : nat,
+       (forall x y : BachmannNotation.BSmall,
+        BachmannNotation.BS_size x + BachmannNotation.BS_size y < n ->
+        BachmannNotation.BS_nf x ->
+        BachmannNotation.BS_nf y -> BachmannNotation.cmpS n x y = Defs.EQ -> x = y) /\
+       (forall T T' : BachmannNotation.BIdx,
+        BachmannNotation.BI_size T + BachmannNotation.BI_size T' < n ->
+        BachmannNotation.BI_nf T ->
+        BachmannNotation.BI_nf T' -> BachmannNotation.cmpI n T T' = Defs.EQ -> T = T')
+```
+Lean:
+```
+BachmannNotation.cmp_eq : ∀ (n : Nat),
+  (∀ (x y : BachmannNotation.BSmall),
+      BachmannNotation.BS_size x + BachmannNotation.BS_size y < n →
+        BachmannNotation.BS_nf x → BachmannNotation.BS_nf y → BachmannNotation.cmpS n x y = Ordering.eq → x = y) ∧
+    ∀ (T T' : BachmannNotation.BIdx),
+      BachmannNotation.BI_size T + BachmannNotation.BI_size T' < n →
+        BachmannNotation.BI_nf T → BachmannNotation.BI_nf T' → BachmannNotation.cmpI n T T' = Ordering.eq → T = T'
+```
+
+### `BS_nf_unique`
+
+Rocq:
+```
+BachmannNotation.BS_nf_unique
+     : forall x y : BachmannNotation.BSmall,
+       BachmannNotation.BS_nf x ->
+       BachmannNotation.BS_nf y ->
+       Defs.ord_eq (BachmannNotation.BS_denote x) (BachmannNotation.BS_denote y) -> x = y
+```
+Lean:
+```
+BachmannNotation.BS_nf_unique : ∀ (x y : BachmannNotation.BSmall),
+  BachmannNotation.BS_nf x →
+    BachmannNotation.BS_nf y → BachmannNotation.BS_denote x ≈ BachmannNotation.BS_denote y → x = y
+```
+
+## Notation.BachmannFragment
+
+### `Kl_correct`
+
+Rocq:
+```
+BachmannFragment.Kl_correct
+     : forall x : SchutteMatrix.VForm,
+       SchutteMatrix.VF_normal x ->
+       Defs.ord_eq (SchutteMatrix.VF_denote x) (BachmannNotation.BS_denote (BachmannFragment.Kl x))
+```
+Lean:
+```
+BachmannNotation.Kl_correct : ∀ (x : SchutteMatrixNotation.VForm),
+  x.IsNormal → x.denote ≈ BachmannNotation.BS_denote (BachmannNotation.Kl x)
+```
+
+### `Kinv_correct`
+
+Rocq:
+```
+BachmannFragment.Kinv_correct
+     : (forall x : BachmannNotation.BSmall,
+        BachmannFragment.BS_frag x ->
+        Defs.ord_eq (SchutteMatrix.VF_denote (BachmannFragment.Kinv x))
+          (BachmannNotation.BS_denote x)) /\
+       (forall T : BachmannNotation.BIdx,
+        BachmannFragment.BI_frag T ->
+        BachmannFacts.meq (SchutteMatrix.matrix_denote (BachmannFragment.Kinv_cols T))
+          (BachmannFacts.ocols (BachmannNotation.olist T)))
+```
+Lean:
+```
+BachmannNotation.Kinv_correct : (∀ (x : BachmannNotation.BSmall),
+    BachmannNotation.BS_frag x → (BachmannNotation.Kinv x).denote ≈ BachmannNotation.BS_denote x) ∧
+  ∀ (T : BachmannNotation.BIdx),
+    BachmannNotation.BI_frag T →
+      Bachmann.meq (SchutteMatrixNotation.VForm.matrixDenote (BachmannNotation.Kinv_cols T))
+        (Bachmann.ocols (BachmannNotation.olist T))
+```
+
+### `frag_bounded`
+
+Rocq:
+```
+BachmannFragment.frag_bounded
+     : forall x : BachmannNotation.BSmall,
+       BachmannFragment.BS_frag x ->
+       Defs.ord_lt (BachmannNotation.BS_denote x) SchutteColumnFacts.LargeVeblenOrdinal
+```
+Lean:
+```
+BachmannNotation.frag_bounded : ∀ (x : BachmannNotation.BSmall),
+  BachmannNotation.BS_frag x → BachmannNotation.BS_denote x < LargeVeblenOrdinal
+```
+
+### `FragOrd_LVO`
+
+Rocq:
+```
+BachmannFragment.FragOrd_LVO
+     : Defs.ord_eq BachmannFragment.FragOrd SchutteColumnFacts.LargeVeblenOrdinal
+```
+Lean:
+```
+BachmannNotation.FragOrd_LVO : BachmannNotation.FragOrd ≈ LargeVeblenOrdinal
+```
+
+## Notation.BachmannCantor
+
+### `decompose_correct`
+
+Rocq:
+```
+BachmannCantor.decompose_correct
+     : forall x : BachmannNotation.BSmall,
+       BachmannNotation.BS_nf x ->
+       Defs.each BachmannNotation.BS_nf (BachmannCantor.BS_decompose x) /\
+       CantorDecomposition.cantor_ordered BachmannNotation.BS_denote
+         (BachmannCantor.BS_decompose x) /\
+       Defs.ord_eq (BachmannNotation.BS_denote x)
+         (CantorDecomposition.cantor_denote BachmannNotation.BS_denote
+            (BachmannCantor.BS_decompose x))
+```
+Lean:
+```
+BachmannNotation.decompose_correct : ∀ (x : BachmannNotation.BSmall),
+  BachmannNotation.BS_nf x →
+    Each BachmannNotation.BS_nf (BachmannNotation.BS_decompose x) ∧
+      CantorDecomposition.CantorOrdered BachmannNotation.BS_denote (BachmannNotation.BS_decompose x) ∧
+        BachmannNotation.BS_denote x ≈
+          CantorDecomposition.cantorDenote BachmannNotation.BS_denote (BachmannNotation.BS_decompose x)
+```
+
+### `recompose_correct`
+
+Rocq:
+```
+BachmannCantor.recompose_correct
+     : forall xs : list BachmannNotation.BSmall,
+       Defs.each BachmannNotation.BS_nf xs ->
+       CantorDecomposition.cantor_ordered BachmannNotation.BS_denote xs ->
+       BachmannNotation.BS_nf (BachmannCantor.BS_recompose xs) /\
+       Defs.ord_eq (CantorDecomposition.cantor_denote BachmannNotation.BS_denote xs)
+         (BachmannNotation.BS_denote (BachmannCantor.BS_recompose xs))
+```
+Lean:
+```
+BachmannNotation.recompose_correct : ∀ (xs : List BachmannNotation.BSmall),
+  Each BachmannNotation.BS_nf xs →
+    CantorDecomposition.CantorOrdered BachmannNotation.BS_denote xs →
+      BachmannNotation.BS_nf (BachmannNotation.BS_recompose xs) ∧
+        CantorDecomposition.cantorDenote BachmannNotation.BS_denote xs ≈
+          BachmannNotation.BS_denote (BachmannNotation.BS_recompose xs)
+```
+
+### `BS_succ_reflects`
+
+Rocq:
+```
+BachmannCantor.BS_succ_reflects
+     : Reflection.reflects BachmannNotation.BSmall BachmannNotation.BS_denote
+         BachmannNotation.BS_nf (Reflection.ARROW Reflection.ORD Reflection.ORD) Operators.succOrd
+         BachmannCantor.BS_succ
+```
+Lean:
+```
+BachmannNotation.BS_succ_reflects : Reflects BachmannNotation.BSmall BachmannNotation.BS_denote BachmannNotation.BS_nf
+  (Shape.ord ==> Shape.ord) succ BachmannNotation.BS_succ
+```
+
+### `BS_add_reflects`
+
+Rocq:
+```
+BachmannCantor.BS_add_reflects
+     : Reflection.reflects BachmannNotation.BSmall BachmannNotation.BS_denote
+         BachmannNotation.BS_nf
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         Arith.addOrd BachmannCantor.BS_add
+```
+Lean:
+```
+BachmannNotation.BS_add_reflects : Reflects BachmannNotation.BSmall BachmannNotation.BS_denote BachmannNotation.BS_nf
+  (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 + x2) BachmannNotation.BS_add
+```
+
+### `BS_mul_reflects`
+
+Rocq:
+```
+BachmannCantor.BS_mul_reflects
+     : Reflection.reflects BachmannNotation.BSmall BachmannNotation.BS_denote
+         BachmannNotation.BS_nf
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         Arith.mulOrd BachmannCantor.BS_mul
+```
+Lean:
+```
+BachmannNotation.BS_mul_reflects : Reflects BachmannNotation.BSmall BachmannNotation.BS_denote BachmannNotation.BS_nf
+  (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 * x2) BachmannNotation.BS_mul
+```
+
+### `BS_exp_reflects`
+
+Rocq:
+```
+BachmannCantor.BS_exp_reflects
+     : Reflection.reflects BachmannNotation.BSmall BachmannNotation.BS_denote
+         BachmannNotation.BS_nf
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         Arith.expOrd BachmannCantor.BS_exp
+```
+Lean:
+```
+BachmannNotation.BS_exp_reflects : Reflects BachmannNotation.BSmall BachmannNotation.BS_denote BachmannNotation.BS_nf
+  (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 ^ x2) BachmannNotation.BS_exp
+```
+
+### `BS_nadd_reflects`
+
+Rocq:
+```
+BachmannCantor.BS_nadd_reflects
+     : Reflection.reflects BachmannNotation.BSmall BachmannNotation.BS_denote
+         BachmannNotation.BS_nf
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalArith.naddOrd BachmannCantor.BS_nadd
+```
+Lean:
+```
+BachmannNotation.BS_nadd_reflects : Reflects BachmannNotation.BSmall BachmannNotation.BS_denote BachmannNotation.BS_nf
+  (Shape.ord ==> Shape.ord ==> Shape.ord) (fun x1 x2 => x1 ♯ x2) BachmannNotation.BS_nadd
+```
+
+## Notation.BachmannBound
+
+### `BNotation_bounded`
+
+Rocq:
+```
+BachmannBound.BNotation_bounded
+     : (forall x : BachmannNotation.BSmall,
+        BachmannNotation.BS_nf x -> Defs.ord_lt (BachmannNotation.BS_denote x) BachmannBound.BHO1) /\
+       (forall T : BachmannNotation.BIdx,
+        BachmannNotation.BI_nf T -> BachmannNotation.Klt BachmannBound.BHO1 T)
+```
+Lean:
+```
+BachmannNotation.BNotation_bounded : (∀ (x : BachmannNotation.BSmall),
+    BachmannNotation.BS_nf x → BachmannNotation.BS_denote x < BachmannNotation.BHO1) ∧
+  ∀ (T : BachmannNotation.BIdx), BachmannNotation.BI_nf T → BachmannNotation.Klt BachmannNotation.BHO1 T
+```
+
+### `dominance`
+
+Rocq:
+```
+BachmannBound.dominance
+     : forall (T : BachmannNotation.BIdx) (y : BachmannNotation.BSmall) (z : Defs.Ord),
+       BachmannBound.BI_pos T ->
+       BachmannNotation.Kge z T ->
+       Defs.ord_le z (BachmannNotation.BS_denote (BachmannNotation.BN T y))
+```
+Lean:
+```
+BachmannNotation.dominance : ∀ (T : BachmannNotation.BIdx) (y : BachmannNotation.BSmall) (z : Ordinal),
+  BachmannNotation.BI_pos T → BachmannNotation.Kge z T → z ≤ BachmannNotation.BS_denote (BachmannNotation.BSmall.BN T y)
+```
+
+## Notation.BachmannNormalize
+
+### `red_sound`
+
+Rocq:
+```
+BachmannNormalize.red_sound
+     : (forall x x' : BachmannNotation.BSmall,
+        BachmannNormalize.red_S x x' ->
+        BachmannNormalize.BS_proper x ->
+        Defs.ord_eq (BachmannNotation.BS_denote x) (BachmannNotation.BS_denote x')) /\
+       (forall T T' : BachmannNotation.BIdx,
+        BachmannNormalize.red_I T T' -> BachmannNormalize.BI_proper T -> BachmannNotation.ieq T T')
+```
+Lean:
+```
+BachmannNotation.red_sound : (∀ (x x' : BachmannNotation.BSmall),
+    BachmannNotation.red_S x x' →
+      BachmannNotation.BS_proper x → BachmannNotation.BS_denote x ≈ BachmannNotation.BS_denote x') ∧
+  ∀ (T T' : BachmannNotation.BIdx),
+    BachmannNotation.red_I T T' → BachmannNotation.BI_proper T → BachmannNotation.ieq T T'
+```
+
+### `red_proper`
+
+Rocq:
+```
+BachmannNormalize.red_proper
+     : (forall x x' : BachmannNotation.BSmall,
+        BachmannNormalize.red_S x x' ->
+        BachmannNormalize.BS_proper x -> BachmannNormalize.BS_proper x') /\
+       (forall T T' : BachmannNotation.BIdx,
+        BachmannNormalize.red_I T T' ->
+        BachmannNormalize.BI_proper T -> BachmannNormalize.BI_proper T')
+```
+Lean:
+```
+BachmannNotation.red_proper : (∀ (x x' : BachmannNotation.BSmall),
+    BachmannNotation.red_S x x' → BachmannNotation.BS_proper x → BachmannNotation.BS_proper x') ∧
+  ∀ (T T' : BachmannNotation.BIdx),
+    BachmannNotation.red_I T T' → BachmannNotation.BI_proper T → BachmannNotation.BI_proper T'
+```
+
+### `red_size`
+
+Rocq:
+```
+BachmannNormalize.red_size
+     : (forall x x' : BachmannNotation.BSmall,
+        BachmannNormalize.red_S x x' -> BachmannNotation.BS_size x' < BachmannNotation.BS_size x) /\
+       (forall T T' : BachmannNotation.BIdx,
+        BachmannNormalize.red_I T T' -> BachmannNotation.BI_size T' < BachmannNotation.BI_size T)
+```
+Lean:
+```
+BachmannNotation.red_size : (∀ (x x' : BachmannNotation.BSmall),
+    BachmannNotation.red_S x x' → BachmannNotation.BS_size x' < BachmannNotation.BS_size x) ∧
+  ∀ (T T' : BachmannNotation.BIdx),
+    BachmannNotation.red_I T T' → BachmannNotation.BI_size T' < BachmannNotation.BI_size T
+```
+
+### `strongly_normalizing`
+
+Rocq:
+```
+BachmannNormalize.strongly_normalizing
+     : well_founded (fun y x : BachmannNotation.BSmall => BachmannNormalize.red_S x y)
+```
+Lean:
+```
+BachmannNotation.strongly_normalizing : WellFounded fun y x => BachmannNotation.red_S x y
+```
+
+### `fix_test_correct`
+
+Rocq:
+```
+BachmannNormalize.fix_test_correct
+     : forall (T : BachmannNotation.BIdx) (y : BachmannNotation.BSmall),
+       BachmannNotation.BI_nf T ->
+       BachmannNotation.BS_nf y ->
+       let n := S (BachmannNotation.BI_size T + BachmannNotation.BS_size y) in
+       (BachmannNormalize.fix_test n T y = true ->
+        Defs.ord_le (BachmannNotation.BS_denote (BachmannNotation.BN T y))
+          (BachmannNotation.BS_denote y)) /\
+       (BachmannNormalize.fix_test n T y = false ->
+        Defs.ord_lt (BachmannNotation.BS_denote y)
+          (BachmannNotation.BS_denote (BachmannNotation.BN T y)))
+```
+Lean:
+```
+BachmannNotation.fix_test_correct : ∀ (T : BachmannNotation.BIdx) (y : BachmannNotation.BSmall),
+  BachmannNotation.BI_nf T →
+    BachmannNotation.BS_nf y →
+      (BachmannNotation.fix_test (BachmannNotation.BI_size T + BachmannNotation.BS_size y + 1) T y = true →
+          BachmannNotation.BS_denote (BachmannNotation.BSmall.BN T y) ≤ BachmannNotation.BS_denote y) ∧
+        (BachmannNotation.fix_test (BachmannNotation.BI_size T + BachmannNotation.BS_size y + 1) T y = false →
+          BachmannNotation.BS_denote y < BachmannNotation.BS_denote (BachmannNotation.BSmall.BN T y))
+```
+
+### `nest_le`
+
+Rocq:
+```
+BachmannNormalize.nest_le
+     : forall z : Defs.Ord,
+       BachmannFacts.oinf z ->
+       forall (n : nat) (T : BachmannNotation.BIdx),
+       BachmannNotation.BI_size T < n ->
+       BachmannNotation.BI_nf T ->
+       BachmannNormalize.Kend z T ->
+       (forall T' : BachmannNotation.BIdx,
+        BachmannNotation.BI_nf T' ->
+        BachmannNormalize.Kend z T' ->
+        BachmannNotation.ilt T T' ->
+        BachmannAgree.bleZ z (BachmannNotation.BI_denote T) (BachmannNotation.BI_denote T')) /\
+       (forall a : BachmannDefs.BOrd,
+        match T with
+        | BachmannNotation.BIZ => True
+        | BachmannNotation.BIC e _ _ =>
+            (BachmannNotation.Klt z e -> BachmannFacts.zlt z (BachmannNotation.BI_denote e) a) /\
+            (BachmannNormalize.Kend z e -> BachmannAgree.bleZ z (BachmannNotation.BI_denote e) a)
+        end -> BachmannAgree.bleZ z (BachmannNotation.BI_denote T) (BachmannDefs.bexpΩ a))
+```
+Lean:
+```
+BachmannNotation.nest_le : ∀ (z : Ordinal),
+  Bachmann.OInf z →
+    ∀ (n : Nat) (T : BachmannNotation.BIdx),
+      BachmannNotation.BI_size T < n →
+        BachmannNotation.BI_nf T →
+          BachmannNotation.Kend z T →
+            (∀ (T' : BachmannNotation.BIdx),
+                BachmannNotation.BI_nf T' →
+                  BachmannNotation.Kend z T' →
+                    BachmannNotation.ilt T T' →
+                      Bachmann.bleZ z (BachmannNotation.BI_denote T) (BachmannNotation.BI_denote T')) ∧
+              ∀ (a : Bachmann.BOrd),
+                BachmannNotation.leadLe z T a → Bachmann.bleZ z (BachmannNotation.BI_denote T) (Bachmann.bexpΩ a)
+```
+
+### `coll_test_correct`
+
+Rocq:
+```
+BachmannNormalize.coll_test_correct
+     : forall T : BachmannNotation.BIdx,
+       BachmannNotation.BI_nf T ->
+       let n := S (4 * BachmannNotation.BI_size T + 4) in
+       (forall m : BachmannNotation.BSmall,
+        BachmannNormalize.coll_test n T = Some m ->
+        BachmannNormalize.Kin m T /\
+        Defs.ord_le (BachmannNotation.BS_denote (BachmannNotation.BN T BachmannNotation.BZ))
+          (BachmannNotation.BS_denote m)) /\
+       (BachmannNormalize.coll_test n T = None ->
+        BachmannNotation.Klt
+          (BachmannNotation.BS_denote (BachmannNotation.BN T BachmannNotation.BZ)) T)
+```
+Lean:
+```
+BachmannNotation.coll_test_correct : ∀ (T : BachmannNotation.BIdx),
+  BachmannNotation.BI_nf T →
+    (∀ (m : BachmannNotation.BSmall),
+        BachmannNotation.coll_test (4 * BachmannNotation.BI_size T + 4 + 1) T = some m →
+          BachmannNotation.Kin m T ∧
+            BachmannNotation.BS_denote (BachmannNotation.BSmall.BN T BachmannNotation.BSmall.BZ) ≤
+              BachmannNotation.BS_denote m) ∧
+      (BachmannNotation.coll_test (4 * BachmannNotation.BI_size T + 4 + 1) T = none →
+        BachmannNotation.Klt (BachmannNotation.BS_denote (BachmannNotation.BSmall.BN T BachmannNotation.BSmall.BZ)) T)
+```
+
+### `normalize_correct`
+
+Rocq:
+```
+BachmannNormalize.normalize_correct
+     : (forall x : BachmannNotation.BSmall,
+        BachmannNormalize.BS_proper x ->
+        BachmannNotation.BS_nf (BachmannNormalize.normS x) /\
+        Defs.ord_eq (BachmannNotation.BS_denote (BachmannNormalize.normS x))
+          (BachmannNotation.BS_denote x)) /\
+       (forall T : BachmannNotation.BIdx,
+        BachmannNormalize.BI_proper T ->
+        BachmannNotation.BI_nf (BachmannNormalize.normI T) /\
+        BachmannNotation.ieq (BachmannNormalize.normI T) T)
+```
+Lean:
+```
+BachmannNotation.normalize_correct : (∀ (x : BachmannNotation.BSmall),
+    BachmannNotation.BS_proper x →
+      BachmannNotation.BS_nf (BachmannNotation.normS x) ∧
+        BachmannNotation.BS_denote (BachmannNotation.normS x) ≈ BachmannNotation.BS_denote x) ∧
+  ∀ (T : BachmannNotation.BIdx),
+    BachmannNotation.BI_proper T →
+      BachmannNotation.BI_nf (BachmannNotation.normI T) ∧ BachmannNotation.ieq (BachmannNotation.normI T) T
+```
+
+### `normalize_reds`
+
+Rocq:
+```
+BachmannNormalize.normalize_reds
+     : (forall x : BachmannNotation.BSmall,
+        BachmannNormalize.BS_proper x -> BachmannNormalize.reds x (BachmannNormalize.normS x)) /\
+       (forall T : BachmannNotation.BIdx,
+        BachmannNormalize.BI_proper T -> BachmannNormalize.redsI T (BachmannNormalize.normI T))
+```
+Lean:
+```
+BachmannNotation.normalize_reds : (∀ (x : BachmannNotation.BSmall),
+    BachmannNotation.BS_proper x → BachmannNotation.reds x (BachmannNotation.normS x)) ∧
+  ∀ (T : BachmannNotation.BIdx), BachmannNotation.BI_proper T → BachmannNotation.redsI T (BachmannNotation.normI T)
+```
+
+### `nf_irreducible`
+
+Rocq:
+```
+BachmannNormalize.nf_irreducible
+     : (forall x x' : BachmannNotation.BSmall,
+        BachmannNormalize.red_S x x' -> ~ BachmannNotation.BS_nf x) /\
+       (forall T T' : BachmannNotation.BIdx,
+        BachmannNormalize.red_I T T' -> ~ BachmannNotation.BI_nf T)
+```
+Lean:
+```
+BachmannNotation.nf_irreducible : (∀ (x x' : BachmannNotation.BSmall),
+    BachmannNotation.red_S x x' → ¬BachmannNotation.BS_nf x) ∧
+  ∀ (T T' : BachmannNotation.BIdx), BachmannNotation.red_I T T' → ¬BachmannNotation.BI_nf T
+```
+
+### `nf_iff_irreducible`
+
+Rocq:
+```
+BachmannNormalize.nf_iff_irreducible
+     : forall x : BachmannNotation.BSmall,
+       BachmannNormalize.BS_proper x ->
+       BachmannNotation.BS_nf x <->
+       ~ (exists x' : BachmannNotation.BSmall, BachmannNormalize.red_S x x')
+```
+Lean:
+```
+BachmannNotation.nf_iff_irreducible : ∀ (x : BachmannNotation.BSmall),
+  BachmannNotation.BS_proper x → (BachmannNotation.BS_nf x ↔ ¬∃ x', BachmannNotation.red_S x x')
+```
+
+### `reds_sound`
+
+Rocq:
+```
+BachmannNormalize.reds_sound
+     : forall x y : BachmannNotation.BSmall,
+       BachmannNormalize.BS_proper x ->
+       BachmannNormalize.reds x y ->
+       BachmannNormalize.BS_proper y /\
+       Defs.ord_eq (BachmannNotation.BS_denote x) (BachmannNotation.BS_denote y)
+```
+Lean:
+```
+BachmannNotation.reds_sound : ∀ (x y : BachmannNotation.BSmall),
+  BachmannNotation.BS_proper x →
+    BachmannNotation.reds x y →
+      BachmannNotation.BS_proper y ∧ BachmannNotation.BS_denote x ≈ BachmannNotation.BS_denote y
+```
+
+### `normalizes_iff`
+
+Rocq:
+```
+BachmannNormalize.normalizes_iff
+     : forall x y : BachmannNotation.BSmall,
+       BachmannNormalize.BS_proper x ->
+       BachmannNormalize.normalizes x y <->
+       BachmannNotation.BS_nf y /\
+       Defs.ord_eq (BachmannNotation.BS_denote x) (BachmannNotation.BS_denote y)
+```
+Lean:
+```
+BachmannNotation.normalizes_iff : ∀ (x y : BachmannNotation.BSmall),
+  BachmannNotation.BS_proper x →
+    (BachmannNotation.normalizes x y ↔
+      BachmannNotation.BS_nf y ∧ BachmannNotation.BS_denote x ≈ BachmannNotation.BS_denote y)
+```
+
+### `normalizes_unique`
+
+Rocq:
+```
+BachmannNormalize.normalizes_unique
+     : forall x : BachmannNotation.BSmall,
+       BachmannNormalize.BS_proper x ->
+       exists ! y : BachmannNotation.BSmall, BachmannNormalize.normalizes x y
+```
+Lean:
+```
+BachmannNotation.normalizes_unique : ∀ (x : BachmannNotation.BSmall),
+  BachmannNotation.BS_proper x →
+    ∃ y,
+      BachmannNotation.normalizes x y ∧
+        ∀ (y' : BachmannNotation.BSmall), BachmannNotation.normalizes x y' → y' = BachmannNotation.normS x
+```
+
+### `reduce_confluent`
+
+Rocq:
+```
+BachmannNormalize.reduce_confluent
+     : forall x y1 y2 : BachmannNotation.BSmall,
+       BachmannNormalize.BS_proper x ->
+       BachmannNormalize.reds x y1 ->
+       BachmannNormalize.reds x y2 ->
+       exists w : BachmannNotation.BSmall,
+         BachmannNormalize.reds y1 w /\ BachmannNormalize.reds y2 w
+```
+Lean:
+```
+BachmannNotation.reduce_confluent : ∀ (x y1 y2 : BachmannNotation.BSmall),
+  BachmannNotation.BS_proper x →
+    BachmannNotation.reds x y1 →
+      BachmannNotation.reds x y2 → ∃ w, BachmannNotation.reds y1 w ∧ BachmannNotation.reds y2 w
+```
+
+## Notation.BachmannInterpolants
+
+### `BS_onePlus_reflects`
+
+Rocq:
+```
+BachmannInterpolants.BS_onePlus_reflects
+     : Reflection.reflects BachmannNotation.BSmall BachmannNotation.BS_denote
+         BachmannNotation.BS_nf (Reflection.ARROW Reflection.ORD Reflection.ORD)
+         (Arith.addOrd (Operators.succOrd Operators.zeroOrd)) BachmannInterpolants.BS_onePlus
+```
+Lean:
+```
+BachmannNotation.BS_onePlus_reflects : Reflects BachmannNotation.BSmall BachmannNotation.BS_denote
+  BachmannNotation.BS_nf (Shape.ord ==> Shape.ord) (fun x => 1 + x) BachmannNotation.BS_onePlus
+```
+
+### `cover`
+
+Rocq:
+```
+BachmannInterpolants.cover
+     : forall T0 : BachmannNotation.BIdx,
+       BachmannNotation.BI_nf T0 -> BachmannInterpolants.KHI T0 -> BachmannInterpolants.icov T0
+```
+Lean:
+```
+BachmannNotation.cover : ∀ (T0 : BachmannNotation.BIdx),
+  BachmannNotation.BI_nf T0 → BachmannNotation.KHI T0 → BachmannNotation.icov T0
+```
+
+### `interp_aux`
+
+Rocq:
+```
+BachmannInterpolants.interp_aux
+     : forall (U : BachmannDefs.BOrd) (T : BachmannNotation.BIdx),
+       BachmannNotation.BI_nf T ->
+       BachmannInterpolants.KHI T ->
+       BachmannDefs.ble (BachmannNotation.BI_denote T) U ->
+       forall u : Defs.Ord,
+       Operators.complete u ->
+       Interpolants.has_interpolants BachmannNotation.BS_denote BachmannNotation.BS_nf u ->
+       Interpolants.has_interpolants BachmannNotation.BS_denote BachmannNotation.BS_nf
+         (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannNotation.BI_denote T) u)
+```
+Lean:
+```
+BachmannNotation.interp_aux : ∀ (U : Bachmann.BOrd) (T : BachmannNotation.BIdx),
+  BachmannNotation.BI_nf T →
+    BachmannNotation.KHI T →
+      Bachmann.ble (BachmannNotation.BI_denote T) U →
+        ∀ (u : Ordinal),
+          u.Complete →
+            BachmannNotation.HI u →
+              BachmannNotation.HI (Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote T) u)
+```
+
+### `BS_has_all_interpolants`
+
+Rocq:
+```
+BachmannInterpolants.BS_has_all_interpolants
+     : Interpolants.has_all_interpolants BachmannNotation.BS_denote BachmannNotation.BS_nf
+```
+Lean:
+```
+BachmannNotation.BS_has_all_interpolants : Interpolants.HasAllInterpolants BachmannNotation.BS_denote
+  BachmannNotation.BS_nf
+```
+
+### `BS_has_enough_notations`
+
+Rocq:
+```
+BachmannInterpolants.BS_has_enough_notations
+     : ClassicalFacts.excluded_middle ->
+       Interpolants.has_enough_notations BachmannNotation.BS_denote BachmannNotation.BS_nf
+```
+Lean:
+```
+BachmannNotation.BS_has_enough_notations : ExcludedMiddle →
+  Interpolants.HasEnoughNotations BachmannNotation.BS_denote BachmannNotation.BS_nf
+```
+
+## Notation.BachmannOrderType
+
+### `BS_nmul_reflects`
+
+Rocq:
+```
+BachmannOrderType.BS_nmul_reflects
+     : Reflection.reflects BachmannNotation.BSmall BachmannNotation.BS_denote
+         BachmannNotation.BS_nf
+         (Reflection.ARROW Reflection.ORD (Reflection.ARROW Reflection.ORD Reflection.ORD))
+         NaturalProduct.nmulOrd BachmannOrderType.BS_nmul
+```
+Lean:
+```
+BachmannNotation.BS_nmul_reflects : Reflects BachmannNotation.BSmall BachmannNotation.BS_denote BachmannNotation.BS_nf
+  (Shape.ord ==> Shape.ord ==> Shape.ord) NaturalProduct.nmul BachmannNotation.BS_nmul
+```
+
+### `BS_order_type`
+
+Rocq:
+```
+BachmannOrderType.BS_order_type
+     : Defs.ord_eq BachmannOrderType.NFOrd BachmannBound.BHO1
+```
+Lean:
+```
+BachmannNotation.BS_order_type : BachmannNotation.NFOrd ≈ BachmannNotation.BHO1
+```
+
+### `BHO1_BachmannHoward`
+
+Rocq:
+```
+BachmannOrderType.BHO1_BachmannHoward
+     : Defs.ord_eq BachmannBound.BHO1 BachmannNormal.BachmannHoward
+```
+Lean:
+```
+BachmannNotation.BHO1_BachmannHoward : BachmannNotation.BHO1 ≈ Bachmann.BachmannHoward
+```
+
+## Notation.BachmannAbsorb
+
+### `offN_correct`
+
+Rocq:
+```
+BachmannAbsorb.offN_correct
+     : forall R : BachmannNotation.BIdx,
+       BachmannNotation.BI_nf R ->
+       BachmannAbsorb.lead_big R ->
+       forall (fuel : nat) (m : BachmannNotation.BSmall),
+       BachmannNotation.BS_size m < fuel ->
+       BachmannNotation.BS_nf m -> BachmannAbsorb.OffSpec R m (BachmannAbsorb.offN fuel R m)
+```
+Lean:
+```
+BachmannNotation.offN_correct : ∀ (R : BachmannNotation.BIdx),
+  BachmannNotation.BI_nf R →
+    BachmannNotation.lead_big R →
+      ∀ (fuel : Nat) (m : BachmannNotation.BSmall),
+        BachmannNotation.BS_size m < fuel →
+          BachmannNotation.BS_nf m → BachmannNotation.OffSpec R m (BachmannNotation.offN fuel R m)
+```
+
+### `absorb_enum`
+
+Rocq:
+```
+BachmannAbsorb.absorb_enum
+     : forall (e : BachmannNotation.BIdx) (c : BachmannNotation.BSmall) (R : BachmannNotation.BIdx),
+       BachmannNotation.BI_nf (BachmannNotation.BIC e c BachmannNotation.BIZ) ->
+       BachmannNotation.BI_nf R ->
+       BachmannAbsorb.lead_gt R e ->
+       (forall s : BachmannNotation.BSmall,
+        BachmannNotation.BS_nf s ->
+        BachmannNotation.Klt
+          (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+             (BachmannNotation.BI_denote R) (BachmannNotation.BS_denote s))
+          (BachmannNotation.BIC e c BachmannNotation.BIZ) ->
+        BachmannAgree.bfix (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+          (BachmannNotation.BI_denote (BachmannNotation.BIC e c R))
+          (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+             (BachmannNotation.BI_denote R) (BachmannNotation.BS_denote s))) ->
+       forall y : BachmannNotation.BSmall,
+       BachmannNotation.BS_nf y ->
+       Defs.ord_eq
+         (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannNotation.BI_denote (BachmannNotation.BIC e c R))
+            (BachmannNotation.BS_denote y))
+         (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannNotation.BI_denote R)
+            (Arith.addOrd (BachmannNotation.BS_denote (BachmannAbsorb.absorb_offset e c R))
+               (BachmannNotation.BS_denote y)))
+```
+Lean:
+```
+BachmannNotation.absorb_enum : ∀ (e : BachmannNotation.BIdx) (c : BachmannNotation.BSmall) (R : BachmannNotation.BIdx),
+  BachmannNotation.BI_nf (e.BIC c BachmannNotation.BIdx.BIZ) →
+    BachmannNotation.BI_nf R →
+      BachmannNotation.lead_gt R e →
+        (∀ (s : BachmannNotation.BSmall),
+            BachmannNotation.BS_nf s →
+              BachmannNotation.Klt
+                  (Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote R) (BachmannNotation.BS_denote s))
+                  (e.BIC c BachmannNotation.BIdx.BIZ) →
+                Bachmann.BFix (fun x => 1 + x) (BachmannNotation.BI_denote (e.BIC c R))
+                  (Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote R) (BachmannNotation.BS_denote s))) →
+          ∀ (y : BachmannNotation.BSmall),
+            BachmannNotation.BS_nf y →
+              Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote (e.BIC c R)) (BachmannNotation.BS_denote y) ≈
+                Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote R)
+                  (BachmannNotation.BS_denote (BachmannNotation.absorb_offset e c R) + BachmannNotation.BS_denote y)
+```
+
+### `ABS_all`
+
+Rocq:
+```
+BachmannAbsorb.ABS_all
+     : forall (e : BachmannNotation.BIdx) (c : BachmannNotation.BSmall),
+       BachmannNotation.BI_nf (BachmannNotation.BIC e c BachmannNotation.BIZ) ->
+       forall (U : BachmannDefs.BOrd) (R : BachmannNotation.BIdx),
+       BachmannDefs.ble (BachmannNotation.BI_denote R) U ->
+       BachmannNotation.BI_nf R -> BachmannAbsorb.lead_gt R e -> BachmannAbsorb.ABSw e c R
+```
+Lean:
+```
+BachmannNotation.ABS_all : ∀ (e : BachmannNotation.BIdx) (c : BachmannNotation.BSmall),
+  BachmannNotation.BI_nf (e.BIC c BachmannNotation.BIdx.BIZ) →
+    ∀ (U : Bachmann.BOrd) (R : BachmannNotation.BIdx),
+      Bachmann.ble (BachmannNotation.BI_denote R) U →
+        BachmannNotation.BI_nf R → BachmannNotation.lead_gt R e → BachmannNotation.ABSw e c R
+```
+
+### `absorb`
+
+Rocq:
+```
+BachmannAbsorb.absorb
+     : forall (e : BachmannNotation.BIdx) (c : BachmannNotation.BSmall),
+       BachmannNotation.BI_nf (BachmannNotation.BIC e c BachmannNotation.BIZ) ->
+       forall R : BachmannNotation.BIdx,
+       BachmannNotation.BI_nf R ->
+       BachmannAbsorb.lead_gt R e ->
+       forall y : BachmannNotation.BSmall,
+       BachmannNotation.BS_nf y ->
+       Defs.ord_eq
+         (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannNotation.BI_denote (BachmannNotation.BIC e c R))
+            (BachmannNotation.BS_denote y))
+         (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannNotation.BI_denote R)
+            (Arith.addOrd (BachmannNotation.BS_denote (BachmannAbsorb.absorb_offset e c R))
+               (BachmannNotation.BS_denote y)))
+```
+Lean:
+```
+BachmannNotation.absorb : ∀ (e : BachmannNotation.BIdx) (c : BachmannNotation.BSmall),
+  BachmannNotation.BI_nf (e.BIC c BachmannNotation.BIdx.BIZ) →
+    ∀ (R : BachmannNotation.BIdx),
+      BachmannNotation.BI_nf R →
+        BachmannNotation.lead_gt R e →
+          ∀ (y : BachmannNotation.BSmall),
+            BachmannNotation.BS_nf y →
+              Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote (e.BIC c R)) (BachmannNotation.BS_denote y) ≈
+                Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote R)
+                  (BachmannNotation.BS_denote (BachmannNotation.absorb_offset e c R) + BachmannNotation.BS_denote y)
+```
+
+## Notation.BachmannImproper
+
+### `coverX`
+
+Rocq:
+```
+BachmannImproper.coverX
+     : forall T0 : BachmannNotation.BIdx,
+       BachmannImproper.imp_ok T0 -> BachmannInterpolants.KHI T0 -> BachmannImproper.icovX T0
+```
+Lean:
+```
+BachmannNotation.coverX : ∀ (T0 : BachmannNotation.BIdx),
+  BachmannNotation.imp_ok T0 → BachmannNotation.KHI T0 → BachmannNotation.icovX T0
+```
+
+### `Kend_normX`
+
+Rocq:
+```
+BachmannImproper.Kend_normX
+     : forall z : Defs.Ord,
+       BachmannFacts.oinf z ->
+       (forall a : Defs.Ord, Defs.ord_lt a z -> Defs.ord_le (Arith.addOrd a z) z) ->
+       forall X : BachmannNotation.BIdx,
+       BachmannImproper.imp_ok X ->
+       BachmannNormalize.Kend z X -> BachmannNormalize.Kend z (BachmannImproper.normX X)
+```
+Lean:
+```
+BachmannNotation.Kend_normX : ∀ (z : Ordinal),
+  Bachmann.OInf z →
+    (∀ (a : Ordinal), a < z → a + z ≤ z) →
+      ∀ (X : BachmannNotation.BIdx),
+        BachmannNotation.imp_ok X → BachmannNotation.Kend z X → BachmannNotation.Kend z (BachmannNotation.normX X)
+```
+
+### `Kend_back`
+
+Rocq:
+```
+BachmannImproper.Kend_back
+     : forall z : Defs.Ord,
+       BachmannFacts.oinf z ->
+       forall X : BachmannNotation.BIdx,
+       BachmannImproper.imp_ok X ->
+       BachmannImproper.AbsLt z X ->
+       BachmannNormalize.Kend z (BachmannImproper.normX X) -> BachmannNormalize.Kend z X
+```
+Lean:
+```
+BachmannNotation.Kend_back : ∀ (z : Ordinal),
+  Bachmann.OInf z →
+    ∀ (X : BachmannNotation.BIdx),
+      BachmannNotation.imp_ok X →
+        BachmannNotation.AbsLt z X → BachmannNotation.Kend z (BachmannNotation.normX X) → BachmannNotation.Kend z X
+```
+
+### `shift_enum`
+
+Rocq:
+```
+BachmannImproper.shift_enum
+     : forall (X R : BachmannNotation.BIdx) (U : Defs.Ord -> Prop) (t : BachmannNotation.BSmall),
+       inhabited
+         (BachmannDefs.bsmall (BachmannNotation.BI_denote X) +
+          BachmannDefs.bbig (BachmannNotation.BI_denote X)) ->
+       (forall z : Defs.Ord,
+        Operators.complete z ->
+        BachmannAgree.bfix (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+          (BachmannNotation.BI_denote X) z ->
+        BachmannAgree.bfix (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+          (BachmannNotation.BI_denote R) z) ->
+       (forall y : Defs.Ord,
+        Operators.complete y ->
+        U
+          (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+             (BachmannNotation.BI_denote X) y)) ->
+       (forall a b : Defs.Ord, Defs.ord_le a b -> U a -> U b) ->
+       BachmannNotation.BS_nf t ->
+       U
+         (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannNotation.BI_denote R) (BachmannNotation.BS_denote t)) ->
+       (forall z : Defs.Ord,
+        Operators.complete z ->
+        BachmannAgree.bfix (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+          (BachmannNotation.BI_denote R) z ->
+        U z ->
+        Defs.ord_le
+          (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+             (BachmannNotation.BI_denote R) (BachmannNotation.BS_denote t))
+          z) ->
+       (forall z : Defs.Ord,
+        Operators.complete z ->
+        BachmannAgree.bfix (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+          (BachmannNotation.BI_denote R) z ->
+        U z -> Defs.ord_le (Arith.addOrd (BachmannNotation.BS_denote t) z) z) ->
+       (forall s : BachmannNotation.BSmall,
+        BachmannNotation.BS_nf s ->
+        U
+          (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+             (BachmannNotation.BI_denote R) (BachmannNotation.BS_denote s)) ->
+        BachmannAgree.bfix (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+          (BachmannNotation.BI_denote X)
+          (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+             (BachmannNotation.BI_denote R) (BachmannNotation.BS_denote s))) ->
+       forall y : BachmannNotation.BSmall,
+       BachmannNotation.BS_nf y ->
+       Defs.ord_eq
+         (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannNotation.BI_denote X) (BachmannNotation.BS_denote y))
+         (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannNotation.BI_denote R)
+            (Arith.addOrd (BachmannNotation.BS_denote t) (BachmannNotation.BS_denote y)))
+```
+Lean:
+```
+BachmannNotation.shift_enum : ∀ (X R : BachmannNotation.BIdx) (U : Ordinal → Prop) (t : BachmannNotation.BSmall),
+  Nonempty (Bachmann.bsmall (BachmannNotation.BI_denote X) ⊕ Bachmann.bbig (BachmannNotation.BI_denote X)) →
+    (∀ (z : Ordinal),
+        z.Complete →
+          Bachmann.BFix (fun x => 1 + x) (BachmannNotation.BI_denote X) z →
+            Bachmann.BFix (fun x => 1 + x) (BachmannNotation.BI_denote R) z) →
+      (∀ (y : Ordinal), y.Complete → U (Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote X) y)) →
+        (∀ (a b : Ordinal), a ≤ b → U a → U b) →
+          BachmannNotation.BS_nf t →
+            U (Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote R) (BachmannNotation.BS_denote t)) →
+              (∀ (z : Ordinal),
+                  z.Complete →
+                    Bachmann.BFix (fun x => 1 + x) (BachmannNotation.BI_denote R) z →
+                      U z →
+                        Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote R) (BachmannNotation.BS_denote t) ≤
+                          z) →
+                (∀ (z : Ordinal),
+                    z.Complete →
+                      Bachmann.BFix (fun x => 1 + x) (BachmannNotation.BI_denote R) z →
+                        U z → BachmannNotation.BS_denote t + z ≤ z) →
+                  (∀ (s : BachmannNotation.BSmall),
+                      BachmannNotation.BS_nf s →
+                        U
+                            (Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote R)
+                              (BachmannNotation.BS_denote s)) →
+                          Bachmann.BFix (fun x => 1 + x) (BachmannNotation.BI_denote X)
+                            (Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote R)
+                              (BachmannNotation.BS_denote s))) →
+                    ∀ (y : BachmannNotation.BSmall),
+                      BachmannNotation.BS_nf y →
+                        Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote X) (BachmannNotation.BS_denote y) ≈
+                          Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote R)
+                            (BachmannNotation.BS_denote t + BachmannNotation.BS_denote y)
+```
+
+### `JE_all`
+
+Rocq:
+```
+BachmannImproper.JE_all
+     : forall (U : BachmannDefs.BOrd) (X : BachmannNotation.BIdx),
+       BachmannDefs.ble (BachmannNotation.BI_denote X) U ->
+       BachmannImproper.imp_ok X -> BachmannImproper.JX X /\ BachmannImproper.EX X
+```
+Lean:
+```
+BachmannNotation.JE_all : ∀ (U : Bachmann.BOrd) (X : BachmannNotation.BIdx),
+  Bachmann.ble (BachmannNotation.BI_denote X) U →
+    BachmannNotation.imp_ok X → BachmannNotation.JX X ∧ BachmannNotation.EX X
+```
+
+### `hereditary_absorption`
+
+Rocq:
+```
+BachmannImproper.hereditary_absorption
+     : forall X : BachmannNotation.BIdx,
+       BachmannImproper.imp_ok X ->
+       forall y : BachmannNotation.BSmall,
+       BachmannNotation.BS_nf y ->
+       Defs.ord_eq
+         (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannNotation.BI_denote X) (BachmannNotation.BS_denote y))
+         (BachmannCfe.bphi (Arith.addOrd (Operators.succOrd Operators.zeroOrd))
+            (BachmannNotation.BI_denote (BachmannImproper.normX X))
+            (Arith.addOrd (BachmannNotation.BS_denote (BachmannImproper.offX X))
+               (BachmannNotation.BS_denote y)))
+```
+Lean:
+```
+BachmannNotation.hereditary_absorption : ∀ (X : BachmannNotation.BIdx),
+  BachmannNotation.imp_ok X →
+    ∀ (y : BachmannNotation.BSmall),
+      BachmannNotation.BS_nf y →
+        Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote X) (BachmannNotation.BS_denote y) ≈
+          Bachmann.bphi (fun x => 1 + x) (BachmannNotation.BI_denote (BachmannNotation.normX X))
+            (BachmannNotation.BS_denote (BachmannNotation.offX X) + BachmannNotation.BS_denote y)
+```
+
+### `normalizeX_correct`
+
+Rocq:
+```
+BachmannImproper.normalizeX_correct
+     : (forall x : BachmannNotation.BSmall,
+        BachmannNotation.BS_nf (BachmannImproper.normSX x) /\
+        Defs.ord_eq (BachmannNotation.BS_denote (BachmannImproper.normSX x))
+          (BachmannNotation.BS_denote x)) /\
+       (forall T : BachmannNotation.BIdx,
+        BachmannImproper.imp_ok (BachmannImproper.normTX T) /\
+        BachmannFacts.bequiv (BachmannNotation.BI_denote (BachmannImproper.normTX T))
+          (BachmannNotation.BI_denote T))
+```
+Lean:
+```
+BachmannNotation.normalizeX_correct : (∀ (x : BachmannNotation.BSmall),
+    BachmannNotation.BS_nf (BachmannNotation.normSX x) ∧
+      BachmannNotation.BS_denote (BachmannNotation.normSX x) ≈ BachmannNotation.BS_denote x) ∧
+  ∀ (T : BachmannNotation.BIdx),
+    BachmannNotation.imp_ok (BachmannNotation.normTX T) ∧
+      Bachmann.BEquiv (BachmannNotation.BI_denote (BachmannNotation.normTX T)) (BachmannNotation.BI_denote T)
+```
+
+### `BS_bounded_all`
+
+Rocq:
+```
+BachmannImproper.BS_bounded_all
+     : forall x : BachmannNotation.BSmall,
+       Defs.ord_lt (BachmannNotation.BS_denote x) BachmannBound.BHO1
+```
+Lean:
+```
+BachmannNotation.BS_bounded_all : ∀ (x : BachmannNotation.BSmall), BachmannNotation.BS_denote x < BachmannNotation.BHO1
+```
+
+### `BS_all_order_type`
+
+Rocq:
+```
+BachmannImproper.BS_all_order_type
+     : Defs.ord_eq BachmannImproper.AllOrd BachmannBound.BHO1
+```
+Lean:
+```
+BachmannNotation.BS_all_order_type : BachmannNotation.AllOrd ≈ BachmannNotation.BHO1
 ```
 
 ## Notation.NaturalExpNotation
