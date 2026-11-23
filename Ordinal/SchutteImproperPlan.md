@@ -5,122 +5,123 @@ repeated heights, zero entries, height-0 columns anywhere) that returns
 the normal form of the same ordinal, built directly on `schutte_column`
 / `schutte_matrix` rather than by translating to and from the Bachmann
 notation.  The Bachmann development (`hereditary_absorption`, `normSX` in
-`Notation/BachmannNotation.v`) supplies the ideas, not the code.
+`Notation/BachmannImproper.v`) supplies the ideas, not the code.
 
-Status (2026-11-22): PLAN ONLY, nothing formalized.  Do not start until
-the user gives the go-ahead.
+Target theorem: for every VForm x, `VF_normal (VF_normalizeX x)` and
+`VF_denote (VF_normalizeX x) ≈ VF_denote x`.
+
+## Status (2026-11-22)
+
+Milestone 1 (ordinal level) DONE, axiom-free, `Ordinal/SchutteAbsorb.v`:
+
+- `schutte_column_merge` (≤ and ≥ halves):
+  `col (col P c a) c x y ≈ col P c (a + x) y`.
+- `absorb_critical` (⇐) and `absorb_critical_inv` (⇒): for b < β, in the
+  principal regime `Reg P β := Prin P ∨ 1 < β` (`Prin P`: fixpoints of P
+  are additively principal), and z principal with 1 < z:
+  `crit_{col P b a}(β,α) z  ⟺  crit_P(β,α) z ∧ a < z`.
+- `absorb_shift`: given s with a < col P β α s and col P β α s below every
+  critical point above a, `col (col P b a) β α x ≈ col P β α (s + x)`.
+- `low_regime_veblen`: for ω^m ≤ d < ω^(m+1) and e > 0,
+  `veblen (d + ·) e y ≈ ω^(m+e) + y` (the case Reg excludes).
+
+Milestone 2 (notation level): NOT STARTED.  Design below.
 
 ## Conventions
 
 `schutte_matrix f (c :: l) x = schutte_matrix (schutte_column f b a) l x`
 for c = (b, a): the first column modifies the base innermost, and later
-columns are built over it.  `schutte_matrix_app`:
-`schutte_matrix f (m1 ++ m2) x = schutte_matrix (schutte_matrix f m1) m2 x`.
-`schutte_column G 0 a x = G (a + x)` (`schutte_column0`).  A proper
-matrix has strictly decreasing heights with the height-0 column last.
-Under `Kl`, list order matches Bachmann index order, so "an earlier
-column followed by a strictly higher one" is exactly Bachmann absorption
-(P + R with lead R > e).
+columns are built over it.  `VF_denote (N l)` is the matrix at argument 0.
+A normal matrix (`VF_normal`) is sparse, has strictly decreasing heights
+(so at most a final height-0 column), normal entries, and entries below
+its value.  `crit_P(β,α)` is `schutte_critical P β α`.
 
-## Why the Bachmann route fails for middle 0-columns
+## How milestone 1 avoids the constructivity problems
 
-A 0-column (0, a) in the middle replaces the base function P of the later
-columns by P ∘ (a + ·).  A Bachmann index always uses the fixed base
-f = 1 + x, and a 0-column would be a term with "exponent −1", for which
-the index has no slot.
+The earlier plan worried about subtraction and least elements.  Both are
+avoided:
 
-## Key idea: a middle 0-column is a shift
+- Critical sets, not ranges.  The invariant is stated on the predicates
+  `schutte_critical`, which `schutte_column_enumerates` relates to the
+  columns constructively.  No preimages are ever computed.
+- U = (a < ·), not (a + · ≤ ·).  In the principal regime the upward closed
+  region is "above a", which is trivially upward closed.  The low regime
+  (where a + z ≤ z is not equivalent to a < z) is a separate closed-form
+  lemma.
+- The shift s is supplied by the caller (notations compute it); the shift
+  theorem then follows from the two enumerations and `addOrd_lt_cases'`.
+- No comparison of ordinals: where the proof would compare two heights b,
+  b' < β, it uses a common child of β above both (`below_join`) and the
+  merge lemma instead.
+- The induction for `absorb_critical` is on β, then α, quantified over all
+  bases.  For a' < α it uses the bound
+  `col (col P b a) β a' y ≤ col P β a' (succ a + y)` (from the inductive
+  hypothesis at a'), which makes the lower column a 0-column absorbed at
+  a smaller height b' < β.
 
-Let P := schutte_matrix f pre (a normal function).
+## Milestone 2: the normalizer (design)
 
-1. Base level.  z = P(a + z) implies z ≥ a + z, so a + z = z and P(z) = z.
-   Conversely, P(z) = z and a + z ≤ z give P(a + z) = z.  Hence
-   Fix(P ∘ (a+·)) = Fix(P) ∩ U_a with U_a = {z | a + z ≤ z}, which is
-   upward closed.  So the fixpoints form a final segment of Fix(P).
-2. Final segments shift enumerations.  A final segment of a club C with
-   enumeration e is enumerated by y ↦ e(t + y), where t is the first
-   index with e(t) in the segment.
-3. Propagation.  If a level function satisfies L' = L ∘ (t + ·), then
-   Fix(L') = Fix(L) ∩ {z | t + z ≤ z} (same argument as step 1), so the
-   next level is again a shift.  At limit stages an intersection of
-   final segments (⋂ U_j is upward closed) is a final segment of the
-   intersection of the fixpoint sets.  The `schutte_column` recursion
-   rebuilds the base inside each column (`inner_α`), so the induction
-   on (β, α) must be quantified over all base functions.
+State: (N, T) with N a normal-entried list of strictly decreasing
+heights ≥ 1, and T a normal pending shift; invariant
+`M_input(x) ≈ M_N(T + x)` for complete x (M_L = schutte_matrix (1+·) L).
+Process the input columns left to right after normalizing all heights
+and entries:
 
-Consequence (the 0-column identity):
+- (0, a): T := T ⊕ a.
+- (h, Z): skip.
+- (h, e), h ≥ 1, e ≠ 0: split N = N_keep ++ Popped (Popped = maximal
+  suffix with heights < h).
+  - Nothing absorbed (Popped = [], T = 0): push (h,e), or merge with an
+    equal last height (`schutte_column_merge`); T' := 0.
+  - Low regime (h = 1, T ≠ 0, N has no height ≥ 2; then N ∈ {[], [(1,c)]}):
+    M_N(T + ·) = d + · with d = value of N ++ [(0,T)]; result
+    N' := [(1, lead(d) ⊕ e)], T' := 0 (`low_regime_veblen`, lead via the
+    Cantor decomposition).
+  - Principal regime (h ≥ 2, or N has a height ≥ 2 column): every popped
+    column and T is absorbed.  N_new := N_keep ++ [(h,e)], merged if the
+    last height of N_keep is h; T' := off_{N_new}(max of the popped entries
+    and T).  Correctness: iterate `absorb_critical`/`_inv` over
+    Popped ++ [(0,T)] (all heights < h) to get "crit over the state =
+    crit over M_{N_keep} ∩ above every absorbed entry", then a list
+    version of `absorb_shift`.
 
-    [pre; (0,a); post; (0,y)]  ≈  [pre; post; (0, t + y)]
+Final: `Nnorm (N ++ [(0,T)])` (dropping (0,T) if T = 0).
 
-for an offset t depending on a, P and post.  Trailing 0-columns merge:
-(0,a), (0,b) ↦ (0, a+b), since G(a + (b + x)) = G((a + b) + x).
+Offset off_X(m) for a normal list X (heights ≥ 1, last entry > 0,
+principal values): least t with m < M_X(t); spec used:
+`m < M_X(t) ∧ ∀ y < t, M_X(y) ≤ m` (implies the `absorb_shift` hypothesis
+via `enumerates_least`).  Recursion on the size of m:
+- m < M_X(0): t = 0.
+- else m = N ys, ys = Y (++ [(0,y')]); compare Y with X lexicographically
+  (heights, then entries, columnwise from the first column):
+  - Y = X: t = succ y'.
+  - Y > X: m is a fixpoint of M_X (lemma FIXGT), t = succ m.
+  - Y < X: t = off_X(u), u = max of y' and Y's entries (lemma NEST: every
+    value of M_X above u is above m).
 
-## Offsets
+Ordinal-level lemmas still needed for milestone 2:
+- `Prin` propagation: Prin P ⇒ Prin (col P b a); Prin (col P b a) for
+  1 < b, 0 < a.  Hence Prin M_N when N has a column of height ≥ 2.
+- Iterated absorption over a list of columns (heights < β, entries < z):
+  crit_G(β,·) z preserved, and its converse.
+- List version of `absorb_shift`.
+- NEST and FIXGT for lexicographically ordered proper matrices (both
+  reduce to iterated absorption at the first differing column; the
+  regime holds because the relevant height is ≥ 2 whenever a column is
+  actually absorbed).
+- Entries of a proper nonzero matrix lie below its value
+  (`nontrivial_matrix_member_lt` may suffice).
 
-- Principal regime (post contains a column of height ≥ 2).  The values
-  of the relevant levels are additively principal, so a + z ≤ z iff
-  a < z.  As in Bachmann, t is the least index whose value exceeds every
-  absorbed entry (the analogue of `BS_offset` / `OffSpec`).  Check
-  carefully that intermediate height-1 levels inside post do not add
-  conditions beyond "every absorbed entry < z" in this regime.
-- Low regime (post has only height-1 and height-0 columns).  Values are
-  ω^c + y, which are not principal, and offsets compound.  Example:
-  [(0,ω); (1,1); (0,y)] = ω² + y, not ω·2 + y (via (1+a)·ω^c-style
-  products).  This regime is plain Cantor normal form arithmetic and
-  should be computed directly with the existing VForm/Cantor machinery.
+Notation-level pieces: lexicographic compare of column lists via
+`VF_compare`; `off` with fuel; the append step and fold; lead exponent
+from `VF_decompose`; `VF_normalizeX`; correctness and normality (finish
+with `Nnorm_eq`, `Nnorm_normal`).
 
-## Generalization: all column absorption as a shift
+## Not needed after all
 
-Conjecture: whenever an earlier column is followed by a strictly higher
-one, the higher columns built over it enumerate a final segment of what
-they would enumerate without it.  So absorption of any column, not only
-0-columns, is "post over Q = post over P, shifted".  If this holds, it
-may give a direct proof of matrix-level hereditary absorption without
-the cover machinery (`coverX`, `JE_all`) of the Bachmann proof.  If it
-does not, fall back to porting the Bachmann argument:
-- the Bachmann-rule clause;
-- covers of matrix children with coefficient tracking;
-- the joint (⇐)/enumeration induction;
-- shifted enumeration (`shift_enum`).
-
-## Planned normalizer (matrix-native)
-
-On a column list, bottom-up (entries and heights normalized first, by
-value):
-1. drop columns with entry Z (schutte_column G b 0 = G up to ≈);
-2. merge adjacent equal heights: (b,a),(b,a') ↦ (b, a + a') (matrix
-   analogue of `bequiv_merge`; to be proved);
-3. absorb any column, including height 0, that is followed later by a
-   strictly higher column (right-to-left pass, like `normX`), recording
-   the largest absorbed entry (like `absM`);
-4. compute the offset (principal regime: least t with value > m; low
-   regime: Cantor arithmetic) and shift the final argument;
-5. finish with the existing `VF_normalize` (`Nnorm`) on the now-proper
-   matrix.
-Target theorem: for every VForm x, VF_normal (VF_normalizeX x) and
-VF_denote (VF_normalizeX x) ≈ VF_denote x.
-
-## Implementation order (when approved)
-
-1. Shift-propagation lemma in the `SchutteColumn` setting: for any
-   normal base G and any t, at every (β, α), the column over G ∘ (t + ·)
-   is the column over G shifted.  Self-contained; the core of the
-   0-column result and a test of the whole approach.
-2. 0-column identity for matrices, via `schutte_matrix_app`.
-3. Merge lemma for equal adjacent heights.
-4. Test the general "absorption = shift" conjecture on positive heights;
-   otherwise port the Bachmann J/E argument.
-5. Offset computation in both regimes; normalizer; correctness.
-
-## Risks
-
-- Constructivity.  Already at height 0 the propagation needs t' with
-  α + t' ≈ t + α (ordinal subtraction), and "least index in a final
-  segment" is a minimization.  Neither is obviously available on
-  Brouwer trees without classical logic.  Option: state "is a shift of"
-  relationally (every value of one function is a value of the other,
-  and vice versa, order-preservingly), or with offsets only for
-  notations, where they are computed.
-- The low regime's compounding offsets need their own arithmetic.
-- The general absorption conjecture may fail or need hypotheses; the
-  fallback (porting the cover-based proof) is substantial.
+- The general "absorption = shift for any base" conjecture: only the
+  principal regime and the explicit low-regime formula are used.
+- Ordinal subtraction: the state keeps one pending shift T, and each
+  absorption recomputes the offset from the maximum absorbed entry against
+  the new list (crit sets intersect to "above the maximum"), so shifts are
+  never composed.
