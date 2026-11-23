@@ -23,9 +23,10 @@ The development has two goals:
    "size" measure, written `x ◃ y` (strictly smaller measure) and `x ⊴ y`.
 2. **A climb into "Cantor's attic".** The development builds the Veblen
    hierarchy, the Feferman–Schütte ordinal Γ₀, the finite-tower Ackermann
-   ordinal, the Ackermann ordinal, and the small and large Veblen ordinals
-   (SVO and LVO). It also gives ordinal notation systems up to each of these,
-   with decidable ordering and constructive Cantor normal forms.
+   ordinal, the Ackermann ordinal, the small and large Veblen ordinals
+   (SVO and LVO), and the Bachmann–Howard ordinal. It also gives ordinal
+   notation systems up to each of these, with decidable ordering and
+   constructive Cantor normal forms.
 
 ## Constructivity
 
@@ -107,6 +108,29 @@ Files are listed roughly in dependency order. All paths are relative to
 | `SchutteColumn.v` | Schütte's "Klammersymbol" functions in column form (`schutte_column f β α x`), which generalize Veblen functions to more arguments, and their monotonicity, continuity and normality. Defines `E_number`. |
 | `SchutteColumnFacts.v` | Critical, supercritical, hypercritical and unreachable ordinals for Schütte functions. Defines the `SmallVeblenOrdinal` and `LargeVeblenOrdinal`. Also defines finitary Schütte *stacks* and transfinite Schütte *matrices*, with the enumeration, normal-form and lexicographic comparison results that the SVO and LVO notation systems use. Schütte's characterization by critical sets determines the functions on Klammersymbole (`klammersymbol_characterization_unique`, constructively; `klammersymbol_characterization_unique_EM`). |
 
+### Bachmann's hierarchy (`Bachmann*.v`)
+
+Bachmann's hierarchy of normal functions φ_α, indexed by ordinals that may
+exceed Ω, reaching the Bachmann–Howard ordinal. Indices are trees `BOrd` whose
+nodes carry small children (treated by the Veblen "intersect" rule) and
+Ω-families `C → Ord → BOrd` (treated by Bachmann's "diagonalize" rule); Ω is
+the type `Ord` itself, so its regularity comes from universe stratification
+rather than choice. Everything is constructive and axiom-free. The design
+choices, and why a type of large ordinals is not enough, are explained in
+[`BachmannNotes.md`](Ordinal/BachmannNotes.md).
+
+| File | Contents |
+|------|----------|
+| `BachmannDefs.v` | The trees `BOrd`, Bachmann's `bach` by structural recursion, the order `bsub`, the arithmetic on trees, the representation invariant `BRep`, and the general step theorems (enumeration, Ω-limit, successor, Veblen, +Ω). Agreement with the Veblen hierarchy below Ω. |
+| `BachmannAssoc.v` | Tree addition is associative up to φ; the invariant `bfam` (every Ω-family is `bsub`-monotone). φ is monotone in `bsub` but not in the index order `ble`. |
+| `BachmannPower.v` | β + Ω^ζ·ξ as the Schütte column 1+ζ, for every complete ζ (`bach_bPow_rep`); the canonical trees. |
+| `BachmannCalibration.v` | φ against known hierarchies: φ_Ω = Γ, φ_{Ω+ξ} as a Veblen hierarchy over Γ, φ_{Ω·ξ} as ternary Veblen, φ_{Ω²}(0) = the Ackermann ordinal (`bach_Ωsq_Ackermann`), and the SVO and LVO (`bach_SVO_SmallVeblen`, `bach_LVO_LargeVeblen`). |
+| `BachmannCfe.v` | The enumerator `cfe` of the common fixpoints of a normal function and a family of normal functions, and the hierarchy `bphi`, which applies it at each node and is normal by construction. |
+| `BachmannNormal.v` | `bphi` is normal on canonical, decided trees (`bcanon`, `bgood`), including φ_{ε_{Ω+1}} (`bphi_εΩ1_normal`); calibrations of `bphi`. |
+| `BachmannAgree.v` | Bachmann's one-component-at-a-time φ agrees with `bphi` under structural directedness (`bach_bphi_canon`), up to ε_{Ω+1}. Certifies the Bachmann–Howard ordinal: `BachmannHoward := bphi powOmega bεΩ1 0` and `bach_BachmannHoward`. |
+| `BachmannFacts.v` | Semantic facts used by the notation system: identities between canonical trees up to `bsub`, the base 1+x, z-relative reachability, indices below Ω^Ω and Klammersymbols, dominance. |
+| `BachmannEnumeration.v` | Facts about `cfe`/`bphi`: interpolation, comparing enumerators over different bases, merging equal exponents, and shifted enumerations. |
+
 ### Ordinal notation systems (`Notation/`)
 
 Each system is an inductive type of terms (`VForm` or `CantorForm`). Each
@@ -132,6 +156,15 @@ notation is itself denoted by some notation.
 | `GrimmT3.v` | Ackermann ordinal | Grimm's syntactic presentation of Ackermann's 1951 system (from GAIA), translated into `ATowerNotation`. On normal forms Grimm's comparison agrees with the semantic order, and the translation is a bijection with the `ATowerNotation` normal forms (the inverse is `VF_to_T3`), so the normal forms have order type `AckermannOrdinal` (`T3_AO`) and inherit Cantor decomposition, interpolants, ordinary and natural arithmetic, and the impossibility of natural exponentiation. |
 | `SchutteStack.v` | Small Veblen ordinal | Finitary Schütte stacks (`VF ≈ SmallVeblenOrdinal`). |
 | `SchutteMatrix.v` | Large Veblen ordinal | Transfinite Schütte matrices (`VF ≈ LargeVeblenOrdinal`). |
+| `BachmannNotation.v` | Bachmann–Howard ordinal | Terms `BN T y` (φ_T(y)) over Ω-Cantor normal form indices `Ω^e·c + r`; denotation via `bphi` at base 1+x, decidable comparison (`BS_compare_correct`) by Bachmann's nesting rule, and unique normal forms. The files below build on it. |
+| `BachmannFragment.v` | Large Veblen ordinal | Indices below Ω^Ω embed Schütte's Klammersymbols (`Kl_correct`); the fragment has order type the LVO (`FragOrd_LVO`). |
+| `BachmannCantor.v` | — | Cantor decomposition (`BS_has_cantor_decomposition`), hence successor, addition, multiplication, exponentiation and natural sum. |
+| `BachmannBound.v` | — | Every normal form lies below BHO₁; coefficients lie below φ_T(0) (dominance). |
+| `BachmannNormalize.v` | — | Confluent, strongly normalizing rewrite system on proper terms (`strongly_normalizing`, `reduce_confluent`), with normal forms exactly the irreducible terms. |
+| `BachmannInterpolants.v` | — | Fundamental sequences as `bsub`-sandwiches and all interpolants (`BS_has_all_interpolants`); under EM, enough notations. |
+| `BachmannOrderType.v` | Bachmann–Howard ordinal | The natural product (`BS_nmul_reflects`) and the order type of the normal forms (`BS_order_type`, `BS_order_type_BH`). |
+| `BachmannAbsorb.v` | — | Offsets and absorption of a leading summand: φ_{Ω^e·c + R}(y) = φ_R(t + y). |
+| `BachmannImproper.v` | Bachmann–Howard ordinal | Hereditary absorption (`hereditary_absorption`) and a normalizer `normSX` for *every* term, including improper indices and zero coefficients (`normalizeX_correct`, `normSX_complete`); every notation lies below BHO₁ (`BS_all_order_type_BH`). Improper terms are normalized by a function rather than a rewrite system. |
 | `NaturalExpNotation.v` | — | No natural exponentiation on notation systems, constructively: for any notation system with a Cantor decomposition and interpolants (all of the above), no operation on its notations satisfies the laws of a natural exponentiation restricted to them (`natural_exp_impossible_notation`; e.g. `natural_exp_impossible_schutte_matrix`). The `e`-free ratio lemma of `NaturalExp.v` holds constructively for notation-denoted ordinals (`no_log23_ratio_notation`). |
 
 ### Proof theory and termination (`Analysis/`)
