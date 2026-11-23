@@ -46,12 +46,19 @@ Open Scope bool_scope.
 
 (** * Normalization by rewriting
 
-Terms are required to be proper: indices are Ω-Cantor normal forms
-(exponents strictly decreasing, coefficients positive), hereditarily.
-As with @SchutteMatrix@'s properness, this is a precondition rather
-than something to rewrite: with tree semantics, an index such as
-Ω^0·c + Ω does not denote the same hierarchy as Ω, so absorption of
-summands is not sound.  On proper terms there are two redexes, both
+The rewrite system is defined on proper terms: indices are Ω-Cantor
+normal forms (exponents strictly decreasing, coefficients positive),
+hereditarily.  Properness is a precondition of the rewrite theorems
+only; the rest of the development uses @BS_nf@ and the smart
+constructor @smartN@ (@smartN_nf@, @smartN_equal@), and arbitrary
+notations, with improper indices, are normalized by @normSX@ in
+@BachmannImproper@.  The two are not unified here because absorbing a
+summand of an index is sound only together with a shift of the
+argument (@hereditary_absorption@, whose proof needs the interpolants
+and absorption theory built on this file); the index equivalences
+(merging equal exponents, dropping zero terms) are sound locally.  See
+@BachmannRewritePlan.md@ for what folding improper terms into this
+system would involve.  On proper terms there are two redexes, both
 collapsing φ_T(y) to a proper subterm:
 
  - the argument is a fixpoint: φ_T(y) ≤ y, so φ_T(y) = y;
@@ -829,6 +836,13 @@ Proof.
     simpl. split; auto. split; auto. split; [ rewrite Hce; auto | split; auto ].
     apply (lead_below_ieq r (normI r) e (normI e)); auto using ieq_sym.
 Qed.
+
+Corollary smartN_nf T y : BI_nf T -> BS_nf y -> BS_nf (smartN T y).
+Proof. intros. apply smartN_correct; auto. Qed.
+
+Corollary smartN_equal T y : BI_nf T -> BS_nf y ->
+  BS_denote (smartN T y) ≈ BS_denote (BN T y).
+Proof. intros. apply smartN_correct; auto. Qed.
 
 Corollary normS_nf x : BS_proper x -> BS_nf (normS x).
 Proof. apply normalize_correct. Qed.

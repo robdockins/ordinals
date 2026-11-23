@@ -145,7 +145,7 @@ Fixpoint offN (fuel:nat) (R:BIdx) (m:BSmall) : BSmall :=
   match fuel with
   | O => BZ
   | S fuel' =>
-    match BS_compare m (normS (BN R BZ)) with
+    match BS_compare m (smartN R BZ) with
     | LT => BZ
     | _ => offStep (offN fuel' R) R m
     end
@@ -247,20 +247,20 @@ Section offset.
   Theorem offN_correct : forall fuel m, (BS_size m < fuel)%nat -> BS_nf m -> OffSpec R m (offN fuel R m).
   Proof.
     induction fuel as [|fuel IH]; intros m Hsz Hm; [ lia | ].
-    assert (Hp : BS_proper (BN R BZ)) by (split; [ apply (proj2 nf_proper); auto | exact I ]).
-    assert (Hm0 := normS_nf _ Hp). assert (E0 := normS_equal _ Hp).
+    assert (Hm0 : BS_nf (smartN R BZ)) by (apply smartN_nf; auto; exact I).
+    assert (E0 := smartN_equal R BZ HR I).
     assert (Hc := BS_compare_correct m _ Hm Hm0).
-    change (OffSpec R m (match BS_compare m (normS (BN R BZ)) with
+    change (OffSpec R m (match BS_compare m (smartN R BZ) with
                          | LT => BZ | _ => offStep (offN fuel R) R m end)).
-    destruct (BS_compare m (normS (BN R BZ))); cbv beta iota delta [ordering_correct] in Hc.
+    destruct (BS_compare m (smartN R BZ)); cbv beta iota delta [ordering_correct] in Hc.
     - split; [ exact I | split; [ eapply ord_lt_le_trans; [ exact Hc | apply E0 ] | split ] ].
       + apply bphi_nonzero, onePlus_normal.
       + intros z Hz Hfix _. apply bphi_le_fix; auto using onePlus_normal, BI_good.
     - apply offStep_correct; auto.
-      + transitivity (BS_denote (normS (BN R BZ))); [ apply E0 | apply Hc ].
+      + transitivity (BS_denote (smartN R BZ)); [ apply E0 | apply Hc ].
       + intros m' Hm' Hs. apply IH; auto. lia.
     - apply offStep_correct; auto.
-      + transitivity (BS_denote (normS (BN R BZ))); [ apply E0 | apply ord_lt_le, Hc ].
+      + transitivity (BS_denote (smartN R BZ)); [ apply E0 | apply ord_lt_le, Hc ].
       + intros m' Hm' Hs. apply IH; auto. lia.
   Qed.
 
@@ -515,11 +515,10 @@ Section abs_all.
     bfix (addOrd 1) (BI_denote (BIC e c R)) (PHI R (BS_denote s)).
   Proof.
     intros HR HRe HA s Hs HK.
-    assert (Hp := nf_BN_proper R s HR Hs).
-    assert (Ew : BS_denote (normS (BN R s)) ≈ PHI R (BS_denote s)) by (apply normS_equal; auto).
+    assert (Ew : BS_denote (smartN R s) ≈ PHI R (BS_denote s)) by (apply smartN_equal; auto).
     assert (Hne : R <> BIZ) by (intro E; subst; contradiction).
-    apply bfix_eq with (BS_denote (normS (BN R s))); auto using BI_good, BI_bfam.
-    apply HA; [ apply normS_nf; auto | | ].
+    apply bfix_eq with (BS_denote (smartN R s)); auto using BI_good, BI_bfam.
+    apply HA; [ apply smartN_nf; auto | | ].
     - apply bfix_eq with (PHI R (BS_denote s)); auto using BI_good, BI_bfam.
       + symmetry; auto.
       + apply bfix_value_full; auto using onePlus_normal, BI_good, BS_complete. apply Hinh_of; auto.

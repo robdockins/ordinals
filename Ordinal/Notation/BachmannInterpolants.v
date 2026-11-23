@@ -79,14 +79,13 @@ Proof.
   exists m. split; auto. split; auto. split; auto. apply succ_lt.
 Qed.
 
-Definition BS_onePlus (a:BSmall) : BSmall := normS (BN BIZ a).
+Definition BS_onePlus (a:BSmall) : BSmall := smartN BIZ a.
 
 Lemma BS_onePlus_reflects : reflects BSmall BS_denote BS_nf (ORD ==> ORD) (addOrd 1) BS_onePlus.
 Proof.
   intros x a [Hx Ha].
-  assert (Hp : BS_proper (BN BIZ a)) by (split; [ exact I | apply (proj1 nf_proper); auto ]).
-  split; [ | apply normS_nf; auto ].
-  unfold BS_onePlus. rewrite normS_equal; auto. rewrite BS_denote_onePlus. rewrite Hx. reflexivity.
+  split; [ | apply smartN_nf; auto; exact I ].
+  unfold BS_onePlus. rewrite smartN_equal; auto; [ | exact I ]. rewrite BS_denote_onePlus. rewrite Hx. reflexivity.
 Qed.
 
 Lemma HI_onePlus x : HI x -> HI (1 + x).
@@ -380,8 +379,6 @@ component. *)
 Lemma onePlus_mono : forall x y, x ≤ y -> 1 + x ≤ 1 + y.
 Proof. apply normal_monotone, onePlus_normal. Qed.
 
-Lemma nf_BN_proper T y : BI_nf T -> BS_nf y -> BS_proper (BN T y).
-Proof. intros. split; [ apply (proj2 nf_proper) | apply (proj1 nf_proper) ]; auto. Qed.
 
 Theorem interp_aux : forall U T, BI_nf T -> KHI T -> ble (BI_denote T) U ->
   forall u, complete u -> HI u -> HI (bphi (addOrd 1) (BI_denote T) u).
@@ -412,9 +409,8 @@ Proof.
       - exists m; auto.
       - destruct (IHw x0 m Hm L0 U0 HI0) as [m1 [Hm1 [L1 [U1 HI1]]]].
         destruct (CS a) as [T' [HT' [HK' [_ [_ [Hlo [a' Hup]]]]]]].
-        assert (Hp := nf_BN_proper T' m1 HT' Hm1).
-        exists (normS (BN T' m1)). split; [ apply normS_nf; auto | ].
-        rewrite (normS_equal _ Hp). simpl.
+        exists (smartN T' m1). split; [ apply smartN_nf; auto | ].
+        rewrite (smartN_equal _ _ HT' Hm1). simpl.
         split; [ | split ].
         + transitivity (bphi (addOrd 1) (bsmallSz X a) (BS_denote m1)).
           * apply (proj1 (bphi_mono_index _ onePlus_mono _ (bfam_small _ Hfam a))); auto.
@@ -426,9 +422,8 @@ Proof.
         + apply Hcomp; auto. apply (bsub_child_blt _ X (inl a')). auto.
       - destruct (IHw x0 m Hm L0 U0 HI0) as [m1 [Hm1 [L1 [U1 HI1]]]].
         destruct (CF c m1 Hm1 HI1) as [T' [HT' [HK' [_ [_ [Hlo [c' Hup]]]]]]].
-        assert (Hp := nf_BN_proper T' BZ HT' I).
-        exists (normS (BN T' BZ)). split; [ apply normS_nf; auto | ].
-        rewrite (normS_equal _ Hp). simpl.
+        exists (smartN T' BZ). split; [ apply smartN_nf; auto; exact I | ].
+        rewrite (smartN_equal T' BZ HT' I). simpl.
         split; [ | split ].
         + transitivity (bphi (addOrd 1) (bbigSz X c (BS_denote m1)) 0).
           * apply (proj2 (bphi_mono_index _ onePlus_mono _ (bfam_big _ Hfam c _))).
@@ -453,10 +448,9 @@ Proof.
     { destruct o as [j|].
       - assert (Hj : u j < u) by apply index_lt.
         destruct (HI_below _ _ HIu Hj) as [n [Hn [HIn [H1 H2]]]].
-        assert (Hp := nf_BN_proper T n HT Hn).
-        set (m0 := normS (BN T n)).
-        assert (Hm0 : BS_nf m0) by (apply normS_nf; auto).
-        assert (E0 : BS_denote m0 ≈ bphi (addOrd 1) X (BS_denote n)) by (apply normS_equal; auto).
+        set (m0 := smartN T n).
+        assert (Hm0 : BS_nf m0) by (apply smartN_nf; auto).
+        assert (E0 : BS_denote m0 ≈ bphi (addOrd 1) X (BS_denote n)) by (apply smartN_equal; auto).
         destruct (BS_succ_reflects (BS_denote m0) m0 (conj (ord_eq_refl _) Hm0)) as [E1 N1].
         exists (BS_succ m0). split; auto.
         rewrite <- E1. split; [ | split ].

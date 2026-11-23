@@ -66,17 +66,14 @@ Fixpoint BI_tower (n:nat) : BIdx :=
   | S n' => BIC (BI_tower n') BS_one BIZ
   end.
 
-Lemma BS_one_proper : BS_proper BS_one.
-Proof. apply (proj1 nf_proper), BS_one_nf. Qed.
-
 Lemma BS_one_pos : 0 < BS_denote BS_one.
 Proof. rewrite BS_one_denote. apply succ_lt. Qed.
 
-Lemma BI_tower_proper n : BI_proper (BI_tower n).
+Lemma BI_tower_nf n : BI_nf (BI_tower n).
 Proof.
   induction n as [|n IH]; simpl.
-  - repeat split; auto using BS_one_proper, BS_one_pos; constructor.
-  - repeat split; auto using BS_one_proper, BS_one_pos.
+  - repeat split; auto using BS_one_nf, BS_one_pos; constructor.
+  - repeat split; auto using BS_one_nf, BS_one_pos.
 Qed.
 
 Lemma bequiv_mul_one P : bequiv (bmul P (embed (BS_denote BS_one))) P.
@@ -167,9 +164,8 @@ Proof.
       intros [n|[]]. split; auto.
       apply NF_closed; [ apply (HF (inl n)) | ].
       intros x Hx.
-      assert (Hp : BS_proper (BN (BI_tower n) x)) by (split; [ apply BI_tower_proper | apply (proj1 nf_proper); auto ]).
-      exists (normS (BN (BI_tower n) x)). split; [ apply normS_nf; auto | ].
-      rewrite (normS_equal _ Hp). simpl.
+      exists (smartN (BI_tower n) x). split; [ apply smartN_nf; auto using BI_tower_nf | ].
+      rewrite (smartN_equal _ _ (BI_tower_nf n) Hx). simpl.
       apply (proj2 (bphi_mono_index _ (normal_monotone _ onePlus_normal) _ (BI_bfam _))).
       apply bsub_tower.
 Qed.

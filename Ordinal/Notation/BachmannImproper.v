@@ -997,10 +997,9 @@ Proof.
   - intros z Hz Hf Hmz. apply (fix_principal N z _ HN Hlb Hz Hf).
     eapply ord_lt_le_trans; [ exact Htt | apply Hleast; auto ].
   - intros s Hs Hms.
-    assert (Hp := nf_BN_proper N s HN Hs).
-    set (w := normS (BN N s)).
-    assert (Hw : BS_nf w) by (apply normS_nf; auto).
-    assert (Ew : BS_denote w ≈ PHI N (BS_denote s)) by (apply normS_equal; auto).
+    set (w := smartN N s).
+    assert (Hw : BS_nf w) by (apply smartN_nf; auto).
+    assert (Ew : BS_denote w ≈ PHI N (BS_denote s)) by (apply smartN_equal; auto).
     assert (Hvfix : bfix (addOrd 1) (BI_denote N) (PHI N (BS_denote s))).
     { apply bfix_value_full; auto using onePlus_normal, BI_good, BS_complete. apply Hinh_of; auto. }
     set (z := BS_denote w) in *.
