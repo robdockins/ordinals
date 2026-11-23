@@ -22,7 +22,8 @@ improper sums); H2 (`coverX`); H3 `nestX`; H3' (coefficient tracking
 in `cover`/`coverX`, `Klt_normX`).  DESIGN COMPLETE (on paper) for
 hereditary absorption; (C) P1/P2 and (F) bookkeeping DONE; (D)+(E) DONE:
 `hereditary_absorption` (closed under the global context, no axioms).
-NEXT: the normalizer (G), then Schütte matrices.
+(G) normalizer DONE (`normSX`, `normalizeX_correct`).  NEXT: Schütte
+matrices (extend `Kl_correct` to improper matrices, normalize via `Kinv`).
 Out of scope: absorption inside exponents (exponents must be normal).
 
 ## Background facts
@@ -116,6 +117,15 @@ Out of scope: absorption inside exponents (exponents must be normal).
   (⟦x⟧ ≤ z ⇒ Kend z T) for this; helpers `Kend_cons`,
   `Kend_smartC_coef`, `Kend_smartC_end`, `imp_ok_KHI`, `Kgs_Kge`,
   `omax_some_l/r`, `kmax_some`.  `nestX` turned out not to be needed.
+- (G): accepted inputs `BS_okX`/`BI_okX`/`BI_okE` (top-level index sums
+  improper, zero coefficients allowed; exponents of proper term
+  structure; coefficients/arguments recursively accepted inputs, by
+  value); `normSX`/`normTX`/`normEX` (BN T y ↦ smartN (normX X)
+  (offX X ⊕ y'), X = normTX T, zero terms dropped by smartC);
+  `normalizeX_correct` (nf + same value; normTX: imp_ok + bequiv;
+  normEX: nf + ieq), `normSX_nf`, `normSX_equal`, `offX_nf`,
+  `proper_okX` (proper notations are accepted); examples
+  `normSX_Γ0_Ω` (Γ₀+Ω ↦ φ_Ω(1)), `normSX_Γ0_Ω_Ω2`, `normSX_Ω_Γ0_Ω`.
 
 ## Final design: hereditary absorption (historical; see Done for what was proved)
 
@@ -225,7 +235,7 @@ Ingredients:
 2. H3' tracking in `coverX` (B). DONE.
 3. P1/P2 (C) and the absorbed-coefficient bookkeeping (F). DONE.
 4. Joint induction (D) + (E). DONE (`hereditary_absorption`).
-5. Normalizer (G), then Schütte matrices.
+5. Normalizer (G) DONE; then Schütte matrices.
 
 ## Superseded ideas (do not revisit)
 

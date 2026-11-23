@@ -4427,3 +4427,125 @@ Qed.
 Theorem hereditary_absorption X : imp_ok X -> forall y, BS_nf y ->
   PHI X (BS_denote y) ≈ PHI (normX X) (BS_denote (offX X) + BS_denote y).
 Proof. intro HX. apply (proj2 (JE_all (BI_denote X) X (ble_refl _) HX)). Qed.
+
+
+(** ** Normalizing improper notations
+
+Accepted inputs: index sums at the top of a φ may be improper (terms in
+any order, zero coefficients); exponents must have proper term
+structure (absorption inside exponents changes the index tree, not just
+its value); coefficients and arguments anywhere are again accepted
+inputs, normalized by value. *)
+
+Fixpoint BS_okX (x:BSmall) : Prop :=
+  match x with
+  | BZ => True
+  | BN T y => BI_okX T /\ BS_okX y
+  end
+with BI_okX (T:BIdx) : Prop :=
+  match T with
+  | BIZ => True
+  | BIC e c r => BI_okE e /\ BS_okX c /\ BI_okX r
+  end
+with BI_okE (T:BIdx) : Prop :=
+  match T with
+  | BIZ => True
+  | BIC e c r => BI_okE e /\ BS_okX c /\ 0 < BS_denote c /\ BI_okE r /\ lead_below r e
+  end.
+
+Fixpoint normSX (x:BSmall) : BSmall :=
+  match x with
+  | BZ => BZ
+  | BN T y => let X := normTX T in smartN (normX X) (BS_add (offX X) (normSX y))
+  end
+with normTX (T:BIdx) : BIdx :=
+  match T with
+  | BIZ => BIZ
+  | BIC e c r => smartC (normEX e) (normSX c) (normTX r)
+  end
+with normEX (T:BIdx) : BIdx :=
+  match T with
+  | BIZ => BIZ
+  | BIC e c r => BIC (normEX e) (normSX c) (normEX r)
+  end.
+
+Lemma offX_nf X : imp_ok X -> BS_nf (offX X).
+Proof.
+  intro HX. unfold offX. destruct (absM X) as [m|] eqn:Em; [ | exact I ].
+  assert (HA := absM_spec X HX). rewrite Em in HA. destruct HA as [Hm _].
+  apply (BS_offset_correct (normX X) (normX_nf X HX)); auto.
+  apply absM_lead_big; auto. rewrite Em; discriminate.
+Qed.
+
+Theorem normalizeX_correct :
+  (forall x, BS_okX x -> BS_nf (normSX x) /\ BS_denote (normSX x) ≈ BS_denote x) /\
+  (forall T, (BI_okX T -> imp_ok (normTX T) /\ bequiv (BI_denote (normTX T)) (BI_denote T)) /\
+             (BI_okE T -> BI_nf (normEX T) /\ ieq (normEX T) T)).
+Proof.
+  apply BNotation_mut.
+  - intros _. split; [ exact I | reflexivity ].
+  - intros T IHT y IHy [HT Hy].
+    destruct (proj1 IHT HT) as [HX HXe]. destruct (IHy Hy) as [Hy' Hye].
+    cbn [normSX]. set (X := normTX T) in *.
+    assert (Ht := offX_nf X HX).
+    destruct (BS_add_reflects _ (offX X) (conj (ord_eq_refl _) Ht) _ (normSX y) (conj (ord_eq_refl _) Hy'))
+      as [Es Ns].
+    destruct (smartN_correct (normX X) _ (normX_nf X HX) Ns) as [N1 N2].
+    split; auto. rewrite N2.
+    change (PHI (normX X) (BS_denote (BS_add (offX X) (normSX y))) ≈ PHI T (BS_denote y)).
+    transitivity (PHI (normX X) (BS_denote (offX X) + BS_denote (normSX y))).
+    { apply ord_eq_normal; [ apply BI_normal | symmetry; exact Es ]. }
+    rewrite <- (hereditary_absorption X HX (normSX y) Hy').
+    transitivity (PHI X (BS_denote y)); [ apply ord_eq_normal; [ apply BI_normal | exact Hye ] | ].
+    apply bphi_bequiv; auto using onePlus_mono, BI_bfam.
+  - split; intros _; [ split; [ exact I | apply bequiv_refl ] | split; [ exact I | constructor ] ].
+  - intros e IHe c IHc r IHr. split.
+    + intros [He [Hc Hr]].
+      destruct (proj2 IHe He) as [He' Hee]. destruct (IHc Hc) as [Hc' Hce].
+      destruct (proj1 IHr Hr) as [Hr' Hre].
+      cbn [normTX]. split.
+      * destruct (normSX c) as [|Tc yc] eqn:Ec; [ exact Hr' | ].
+        split; [ exact He' | split; [ exact Hc' | split; [ apply BS_pos | exact Hr' ] ] ].
+      * eapply bequiv_trans; [ apply smartC_bequiv | ].
+        change (bequiv (badd (bmul (bexpΩ (BI_denote (normEX e))) (embed (BS_denote (normSX c)))) (BI_denote (normTX r)))
+                       (badd (bmul (bexpΩ (BI_denote e)) (embed (BS_denote c))) (BI_denote r))).
+        apply bequiv_badd; auto.
+        apply bequiv_bmul; [ apply bequiv_bexpΩ, ieq_bequiv; auto | apply bequiv_embed; auto ].
+    + intros [He [Hc [Hc0 [Hr Hl]]]].
+      destruct (proj2 IHe He) as [He' Hee]. destruct (IHc Hc) as [Hc' Hce].
+      destruct (proj2 IHr Hr) as [Hr' Hre].
+      split; [ | constructor; auto ].
+      cbn [normEX]. split; auto. split; auto. split; [ rewrite Hce; auto | split; auto ].
+      apply (lead_below_ieq r (normEX r) e (normEX e)); auto using ieq_sym.
+Qed.
+
+Corollary normSX_nf x : BS_okX x -> BS_nf (normSX x).
+Proof. apply normalizeX_correct. Qed.
+
+Corollary normSX_equal x : BS_okX x -> BS_denote (normSX x) ≈ BS_denote x.
+Proof. apply normalizeX_correct. Qed.
+
+(** Every proper notation is accepted. *)
+Lemma proper_okX :
+  (forall x, BS_proper x -> BS_okX x) /\
+  (forall T, BI_proper T -> BI_okX T /\ BI_okE T).
+Proof. apply BNotation_mut; simpl; tauto. Qed.
+
+(** Examples (Γ₀ = φ_Ω(0)).  Γ₀ + Ω absorbs Γ₀ with offset 1, since
+    Γ₀ = φ_Ω(0) is not above Γ₀: φ_{Γ₀+Ω}(0) = φ_Ω(1) = Γ₁. *)
+Definition BS_Γ0 : BSmall := BN BI_Ω BZ.
+
+Example normSX_Γ0_Ω : normSX (BN (BIC BIZ BS_Γ0 BI_Ω) BZ) = BN BI_Ω (BS_succ BZ).
+Proof. vm_compute. reflexivity. Qed.
+
+(** Hereditary: Γ₀ + Ω + Ω² at 0 is φ_{Ω²}(0) (both lower terms absorbed,
+    offset 0 since Γ₀ < φ_{Ω²}(0)). *)
+Example normSX_Γ0_Ω_Ω2 :
+  normSX (BN (BIC BIZ BS_Γ0 (BIC BI_one BS_one (BIC (BIC BIZ (BS_succ BS_one) BIZ) BS_one BIZ))) BZ)
+  = BN (BIC (BIC BIZ (BS_succ BS_one) BIZ) BS_one BIZ) BZ.
+Proof. vm_compute. reflexivity. Qed.
+
+(** Absorption below a merge: Ω + Γ₀ + Ω = Ω·2 as an index, offset 0. *)
+Example normSX_Ω_Γ0_Ω :
+  normSX (BN (BIC BI_one BS_one (BIC BIZ BS_Γ0 BI_Ω)) BZ) = BN (BIC BI_one (BS_succ BS_one) BIZ) BZ.
+Proof. vm_compute. reflexivity. Qed.
