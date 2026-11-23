@@ -279,32 +279,6 @@ Proof.
   apply bsub_bmul_r, bsub_embed; auto.
 Qed.
 
-(** The nesting theorem below Ω^Ω: a lexicographically smaller index is
-    z-reachably below a larger one, provided its coefficients are below z. *)
-Theorem olt_zlt l l' z : olt l l' -> onormal l -> onormal l' -> ocoef_lt z l ->
-  zlt z (osum l) (osum l').
-Proof.
-  intro H. induction H as [p l | e c l e' c' l' He | e c l e' c' l' He Hc | e c l e' c' l' He Hc H IH];
-    intros Hn Hn' Hz.
-  - destruct p as [e c]. apply zlt_bslt, osum_pos. apply Hn'.
-  - simpl in Hn, Hn'. destruct Hn' as [Hc' _].
-    apply zlt_mono_r with (bexpΩ (embed e')).
-    + apply (osum_below ((e, c) :: l)); simpl; intuition.
-    + eapply bsub_trans; [ apply bsub_P_Pz, Hc' | apply bsub_le_badd ].
-  - simpl in Hn, Hn'. destruct Hz as [_ Hz].
-    simpl. apply zlt_mono_r with (badd (oterm (e, c)) (bexpΩ (embed e))).
-    + apply zlt_shift, osum_below; intuition.
-    + eapply bsub_trans; [ apply bsub_mul_succ | ].
-      eapply bsub_trans; [ apply (bsub_oterm e (succOrd c) e' c'); [ apply He | apply succ_least, Hc ] | ].
-      apply bsub_le_badd.
-  - simpl in Hn, Hn'. destruct Hz as [_ Hz].
-    simpl. apply zlt_mono_r with (badd (oterm (e, c)) (osum l')).
-    + apply zlt_shift, IH; auto.
-      * apply odesc_onormal with e; apply Hn.
-      * apply odesc_onormal with e'; apply Hn'.
-    + apply bsub_badd_l, bsub_oterm; [ apply He | apply Hc ].
-Qed.
-
 (** ** Semantic consequences *)
 
 (** Values of a node with a component are common fixpoints of f and the
@@ -341,13 +315,6 @@ Qed.
 Inductive oeq : list (Ord * Ord) -> list (Ord * Ord) -> Prop :=
 | oeq_nil : oeq [] []
 | oeq_cons : forall e c l e' c' l', e ≈ e' -> c ≈ c' -> oeq l l' -> oeq ((e, c) :: l) ((e', c') :: l').
-
-Lemma oeq_osum l l' : oeq l l' -> bequiv (osum l) (osum l').
-Proof.
-  intro H. induction H as [|e c l e' c' l' He Hc H IH]; simpl; [ apply bequiv_refl | ].
-  apply bequiv_badd; auto.
-  unfold oterm; simpl. apply bequiv_bmul; [ apply bequiv_bexpΩ | ]; apply bequiv_embed; auto.
-Qed.
 
 Lemma bfam_oterm p : bfam (oterm p).
 Proof. unfold oterm. apply bfam_bmul; [ apply bfam_bexpΩ | ]; apply bfam_embed. Qed.
@@ -529,13 +496,6 @@ Section cfe_interp.
 
   Lemma wev_app w1 w2 x : wev (w1 ++ w2) x = wev w1 (wev w2 x).
   Proof. induction w1 as [|[i|] w1 IH]; simpl; auto; rewrite IH; auto. Qed.
-
-  Lemma wev_fix w z x : f z ≤ z -> (forall i, F i z ≤ z) -> x ≤ z -> wev w x ≤ z.
-  Proof.
-    intros H1 H2 Hx. induction w as [|[i|] w IH]; simpl; auto.
-    - transitivity (F i z); auto. apply normal_monotone; auto.
-    - transitivity (f z); auto. apply normal_monotone; auto.
-  Qed.
 
   Definition word (p:(I * list I)%type) : list (option I) :=
     Some (fst p) :: map Some (snd p) ++ [None].

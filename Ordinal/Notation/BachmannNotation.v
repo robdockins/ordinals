@@ -129,9 +129,6 @@ Proof.
   apply (bach_bphi_canon (addOrd 1) onePlus_normal _ H1 H2). apply BS_complete.
 Qed.
 
-Corollary BS_denote_bach0 T : BS_denote (BN T BZ) ≈ bach (addOrd 1) (BI_denote T) 0.
-Proof. apply BS_denote_bach. Qed.
-
 (** ** Basic calibrations *)
 
 Lemma BS_denote_onePlus y : BS_denote (BN BIZ y) ≈ 1 + BS_denote y.
@@ -1025,9 +1022,6 @@ Fixpoint BS_decompose (x:BSmall) : list BSmall :=
   | _ => [x]
   end.
 
-Definition head_le (z:Ord) (xs:list BSmall) : Prop :=
-  match xs with [] => True | b :: _ => BS_denote b ≤ z end.
-
 
 Theorem decompose_correct : forall x, BS_nf x ->
   each BS_nf (BS_decompose x) /\ cantor_ordered BS_denote (BS_decompose x) /\
@@ -1632,9 +1626,6 @@ Proof. intros H1 H2. eapply bleZ_trans; [ apply LZ_sub, H1 | exact H2 ]. Qed.
 
 Lemma bsub_badd_zero x : bsub (badd x bzero) x.
 Proof. apply bequiv_badd_zero_r. Qed.
-
-Lemma lead_pos_bs e c r : BI_nf (BIC e c r) -> bpos (BI_denote (BIC e c r)).
-Proof. intro H. apply lead_pos. apply H. Qed.
 
 Lemma BI_denote_cons e c r :
   BI_denote (BIC e c r) = badd (bmul (bexpΩ (BI_denote e)) (embed (BS_denote c))) (BI_denote r).
@@ -2416,12 +2407,6 @@ Definition KHI (T:BIdx) : Prop := forall k, Kin k T -> HI (BS_denote k).
     any infinite z that bounds the coefficients of T₀ in the Kend sense. *)
 Lemma Kend_rest z e c r : r <> BIZ -> Kend z (BIC e c r) -> Klt z e /\ BS_denote c < z /\ Kend z r.
 Proof. intros Hne H. destruct r as [|e2 c2 r2]; [ tauto | exact H ]. Qed.
-
-Lemma Kend_head z e c r : Kend z (BIC e c r) -> Kend z (BIC e c BIZ).
-Proof.
-  intro H. destruct r as [|e2 c2 r2]; [ exact H | ].
-  destruct H as [He [Hc _]]. left. split; auto. apply ord_lt_le; auto.
-Qed.
 
 Lemma Klt_smartC_coef z e c r n R : Kend z (BIC e c r) -> BS_denote n < BS_denote c -> Klt z R ->
   Klt z (smartC e n R).
@@ -3730,9 +3715,6 @@ Definition icovX (T0:BIdx) : Prop :=
      bsub (bbigSz (BI_denote T0) d (BS_denote x)) (BI_denote T) /\
      exists d', bsub (BI_denote T) (bbigSz (BI_denote T0) d' (BS_denote x))).
 
-Lemma imp_ok_KHI_nf e c : BI_nf e -> BS_nf c -> 0 < BS_denote c -> BI_nf (BIC e c BIZ).
-Proof. intros. repeat split; auto. Qed.
-
 Lemma normX_ne K r : ilt (normX K) (normX r) -> r <> BIZ.
 Proof. intros H E. subst. inversion H. Qed.
 
@@ -4420,74 +4402,6 @@ Proof.
   - rewrite addT_eq; auto. eapply bsub_trans; [ apply (proj1 (merge_bequiv E c e2 c2 r2 H Hc Hc2)) | ].
     apply bsub_badd_r; auto.
   - rewrite addT_gt; auto. apply bsub_badd_r; auto.
-Qed.
-
-(** Bachmann's nesting rule, for an improper larger index: a normal T'
-    below the normal form of X, with coefficients below z, is z-reachably
-    below X itself. *)
-Theorem nestX z : oinf z -> forall X, imp_ok X ->
-  forall T', BI_nf T' -> Klt z T' -> ilt T' (normX X) -> zlt z (BI_denote T') (BI_denote X).
-Proof.
-  intros Hz X. induction X as [|e _ c r IH]; intros HX T' HT' HK Hlt; [ inversion Hlt | ].
-  destruct HX as [He0 [Hc [Hc0 Hr]]]. simpl normX in Hlt.
-  apply zlt_mono_r with (BI_denote (BIC (normX e) c r)).
-  2: { change (bsub (badd (bmul (bexpΩ (BI_denote (normX e))) (embed (BS_denote c))) (BI_denote r))
-                    (badd (bmul (bexpΩ (BI_denote e)) (embed (BS_denote c))) (BI_denote r))).
-       apply bsub_badd_l, bsub_term_mono; [ apply bsub_normX; auto | reflexivity ]. }
-  assert (He := normX_nf e He0). set (E := normX e) in *. clearbody E. clear He0. clear e. rename E into e.
-  set (Pt := bmul (bexpΩ (BI_denote e)) (embed (BS_denote c))).
-  assert (Below : ilt T' (BIC e c BIZ) -> zlt z (BI_denote T') (BI_denote (BIC e c r))).
-  { intro H. apply zlt_mono_r with (BI_denote (BIC e c BIZ)).
-    - apply (proj1 (nest z Hz (S (BI_size T')) T' ltac:(lia) HT' HK)); auto. repeat split; auto.
-    - change (bsub (badd Pt (BI_denote BIZ)) (badd Pt (BI_denote r))). apply bsub_badd_r, bsub_bzero_l. }
-  assert (Shift : forall D, BI_nf D -> Klt z D -> ilt D (normX r) ->
-             bsub (BI_denote T') (badd Pt (BI_denote D)) -> zlt z (BI_denote T') (BI_denote (BIC e c r))).
-  { intros D HD HKD HlD Hs. apply zlt_mono_l with (badd Pt (BI_denote D)); auto.
-    apply zlt_shift. apply IH; auto. }
-  assert (Zero : zlt z (BI_denote BIZ) (BI_denote (BIC e c r))) by (apply zlt_bslt, lead_pos; auto).
-  assert (HN := normX_nf r Hr).
-  destruct (normX r) as [|e2 c2 r2] eqn:EN; [ apply Below; exact Hlt | ].
-  destruct HN as [He2 [Hc2 [Hc20 [Hr2 Hl2]]]].
-  destruct (cmpIX_total e e2 He He2) as [H|[H|H]].
-  - (* absorbed *)
-    rewrite addT_lt in Hlt; auto.
-    apply zlt_mono_r with (BI_denote r); [ apply IH; auto; rewrite EN; auto | apply bsub_absorb ].
-  - (* merged *)
-    rewrite addT_eq in Hlt; auto. destruct (add_reflect c Hc c2 Hc2) as [Ecc _].
-    inversion Hlt as [ ? ? ? | e1 c1 r1 ? ? ? H1 | e1 c1 r1 ? ? ? H1 H2 | e1 c1 r1 ? ? ? H1 H2 H3 ]; subst;
-      [ exact Zero | apply Below, ilt_exp; auto | | ].
-    + destruct HT' as [He1 [Hc1 [Hc10 [Hr1 Hl1]]]]. destruct HK as [HKe1 [Hc1z HKr1]].
-      assert (H12 : ieq e1 e2) by (eapply ieq_trans; eauto).
-      destruct (BS_decide_order c1 c2 Hc1 Hc2) as [Hlt12|Hge12].
-      * (* c1 < c2: T' itself is below the normal form of r *)
-        apply (Shift (BIC e1 c1 r1)); [ repeat split; auto | simpl; auto | apply ilt_coef; auto | apply bsub_absorb ].
-      * rewrite Ecc in H2. destruct (addOrd_lt_cases _ _ _ H2) as [Hc1c|[j Hj]];
-          [ apply Below, ilt_coef; auto | ].
-        destruct (coef_approx c2 (BS_denote c2 j) (proj1 notation_KHI c2 Hc2) (index_lt _ j))
-          as [n [Hn [_ [Hjn [Hnc2 _]]]]].
-        apply (Shift (smartC e1 n r1)).
-        { apply smartC_nf; auto. }
-        { apply Klt_smartC; auto. apply ord_lt_trans with (BS_denote c1); auto. eapply ord_lt_le_trans; [ exact Hnc2 | exact Hge12 ]. }
-        { apply ilt_smartC; [ apply ilt_coef; auto | eapply ilt_lead; eauto ]. }
-        eapply bsub_trans; [ | apply bsub_badd_r, (proj2 (smartC_bequiv e1 n r1)) ].
-        apply merge_bsub; [ apply ieq_bequiv; auto | ].
-        rewrite Hj. apply addOrd_monotone; auto with ord.
-    + destruct HT' as [He1 [Hc1 [Hc10 [Hr1 Hl1]]]]. destruct HK as [HKe1 [Hc1z HKr1]].
-      assert (H12 : ieq e1 e2) by (eapply ieq_trans; eauto).
-      rewrite Ecc in H2.
-      apply (Shift (BIC e1 c2 r1)).
-      { repeat split; auto. }
-      { simpl. split; [ auto | split; auto ]. eapply ord_le_lt_trans; [ | exact Hc1z ].
-        rewrite H2. apply addOrd_le2. }
-      { apply ilt_tail; auto. reflexivity. }
-      apply merge_bsub; [ apply ieq_bequiv; auto | rewrite H2; reflexivity ].
-  - (* prepended *)
-    rewrite addT_gt in Hlt; auto.
-    inversion Hlt as [ ? ? ? | e1 c1 r1 ? ? ? H1 | e1 c1 r1 ? ? ? H1 H2 | e1 c1 r1 ? ? ? H1 H2 H3 ]; subst;
-      [ exact Zero | apply Below, ilt_exp; auto | apply Below, ilt_coef; auto | ].
-    destruct HT' as [He1 [Hc1 [Hc10 [Hr1 Hl1]]]]. destruct HK as [HKe1 [Hc1z HKr1]].
-    apply (Shift r1); auto.
-    apply bsub_badd_l, bsub_term_mono; [ apply (proj1 (ieq_bequiv _ _ H1)) | apply H2 ].
 Qed.
 
 Lemma omax_some_l n u b : omax n (Some u) b <> None.

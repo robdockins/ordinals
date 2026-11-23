@@ -74,9 +74,6 @@ Section common_fixpoints.
     apply compose_normal; auto.
   Qed.
 
-  Lemma comps_monotone L : forall x y, x ≤ y -> comps L x ≤ comps L y.
-  Proof. apply normal_monotone, comps_normal. Qed.
-
   Lemma comps_complete L : forall x, complete x -> complete (comps L x).
   Proof. apply normal_complete, comps_normal. Qed.
 
@@ -564,9 +561,6 @@ Section good0.
 
   Lemma bgood_pos x c ξ : bgood f x -> complete ξ -> 0 < ξ ->
     inhabited (bsmall (bbigSz x c ξ) + bbig (bbigSz x c ξ)).
-  Proof. destruct x; simpl; intuition. Qed.
-
-  Lemma bgood_dec x : bgood f x -> inhabited (bsmall x + bbig x) \/ ~ inhabited (bsmall x + bbig x).
   Proof. destruct x; simpl; intuition. Qed.
 
   Lemma bphi_fam_normal' A g C h : bgood f (bnode A g C h) ->
@@ -2145,21 +2139,6 @@ Lemma cov_member_eq U t n V : bcd U -> bbigSz U t (natOrdSize n) = V -> Cov V U.
 Proof.
   intros HU E. subst V. intro k. exists (inr t).
   apply (cov_member (bbigSz U t) n (dcan_ndesc U (inr t) HU)).
-Qed.
-
-Lemma cov_bslt T U : bslt T U -> bcd U -> Cov T U.
-Proof.
-  intro H. induction H as [T U j Hj | T U d n H IH | T U j H IH]; intros HU.
-  - intro k.
-    destruct (cov_bsub _ _ Hj (bcd_small U j HU) k) as [k' Hk'].
-    exists (inl j). eapply Dstar_trans; [ exact Hk' | apply cov_small_child; auto ].
-  - intro k.
-    destruct (IH (bcd_big U d _ HU (natOrdSize_complete n)) k) as [k' Hk'].
-    exists (inr d). eapply Dstar_trans; [ exact Hk' | ].
-    apply (cov_member (bbigSz U d) n (dcan_ndesc U (inr d) HU)).
-  - intro k.
-    destruct (IH (bcd_small U j HU) k) as [k' Hk'].
-    exists (inl j). eapply Dstar_trans; [ exact Hk' | apply cov_small_child; auto ].
 Qed.
 
 Lemma cov_bmul_step x t u : bcd x -> bpos x -> bcd u -> bslt t u ->
