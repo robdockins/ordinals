@@ -4756,3 +4756,24 @@ Proof. vm_compute. reflexivity. Qed.
 Example normSX_Ω_Γ0_Ω :
   normSX (BN (BIC BI_one BS_one (BIC BIZ BS_Γ0 BI_Ω)) BZ) = BN (BIC BI_one (BS_succ BS_one) BIZ) BZ.
 Proof. vm_compute. reflexivity. Qed.
+
+(** ** All notations, proper or not, lie below BHO₁
+
+Every term denotes the value of its normal form, so the full term
+algebra has the same order type as the normal forms. *)
+
+Theorem BS_bounded_all x : BS_denote x < BHO1.
+Proof. rewrite <- (normSX_equal x). apply BS_bounded, normSX_nf. Qed.
+
+Definition AllOrd : Ord := ord BSmall BS_denote.
+
+Theorem BS_all_order_type : AllOrd ≈ BHO1.
+Proof.
+  split.
+  - rewrite ord_le_unfold. intro x. apply BS_bounded_all.
+  - rewrite <- BS_order_type. rewrite ord_le_unfold. intros [x Hx]. simpl.
+    apply (index_lt AllOrd x).
+Qed.
+
+Corollary BS_all_order_type_BH : AllOrd ≈ BachmannHoward.
+Proof. rewrite BS_all_order_type. apply BHO1_BachmannHoward. Qed.

@@ -171,7 +171,12 @@ column (exactly one step of `schutte_matrix`).
 
 ## Follow-up items
 
-- **Bounding improper notations.** Show every term, proper or not,
+- DONE (2026-11-22). **Bounding improper notations.** Solved via the
+  normalizer for arbitrary terms (`normSX`, see BachmannImproperPlan.md):
+  `BS_bounded_all` (every term lies below BHO₁, by `normSX_equal` and
+  `BS_bounded`), `BS_all_order_type : ord BSmall BS_denote ≈ BHO1`,
+  `BS_all_order_type_BH`.  Axiom-free.  The original analysis follows.
+  Show every term, proper or not,
   denotes an ordinal below BHO₁ (analogue of `VForm_bounded` /
   `VF_LVO`), e.g. `ord BSmall BS_denote ≈ BHO1`; this would also let the
   normalizer accept improper input. `SchutteMatrix`'s trick (one proper
