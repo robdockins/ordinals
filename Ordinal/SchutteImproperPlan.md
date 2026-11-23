@@ -10,7 +10,7 @@ notation.  The Bachmann development (`hereditary_absorption`, `normSX` in
 Target theorem: for every VForm x, `VF_normal (VF_normalizeX x)` and
 `VF_denote (VF_normalizeX x) ≈ VF_denote x`.
 
-## Status (2026-11-22)
+## Status (2026-11-22, both milestones done)
 
 Milestone 1 (ordinal level) DONE, axiom-free, `Ordinal/SchutteAbsorb.v`:
 
@@ -25,7 +25,20 @@ Milestone 1 (ordinal level) DONE, axiom-free, `Ordinal/SchutteAbsorb.v`:
 - `low_regime_veblen`: for ω^m ≤ d < ω^(m+1) and e > 0,
   `veblen (d + ·) e y ≈ ω^(m+e) + y` (the case Reg excludes).
 
-Milestone 2 (notation level): NOT STARTED.  Design below.
+Milestone 2 (notation level) DONE, axiom-free, `Ordinal/Notation/SchutteImproper.v`:
+`VF_normalizeX_correct : VF_denote (VF_normalizeX x) ≈ VF_denote x /\ VF_normal (VF_normalizeX x)`
+for every VForm x, with computed examples.  The ordinal-level lemmas listed
+under "still needed" below were added to `SchutteAbsorb.v` (`Prin_matrix`,
+`absorb_critical_list(_inv)`, `shift_gen`, `absorb_shift_list`, `nest`,
+`fix_gt`).  The design below is what was implemented, with one change:
+the offset algorithm also tests m = M_X(0) (giving t = 1) before the
+lexicographic comparison, because an entry of X can equal M_X(0) (e.g.
+X = [(1,ε₀)]) and `fix_gt` needs the entries of X strictly below m.
+
+Possible follow-ups (not started): a rewrite system on all VForms with
+SN and confluence (as `BachmannRewritePlan.md` discusses for Bachmann).
+`VF_normalizeX_proper` / `VF_normalizeX_normal`: it agrees with
+`VF_normalize` on proper terms and fixes normal forms.
 
 ## Conventions
 

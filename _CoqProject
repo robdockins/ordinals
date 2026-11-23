@@ -61,6 +61,7 @@ Ordinal/Notation/ATowerNotation.v
 Ordinal/Notation/GrimmT3.v
 Ordinal/Notation/SchutteStack.v
 Ordinal/Notation/SchutteMatrix.v
+Ordinal/Notation/SchutteImproper.v
 Ordinal/Notation/NaturalExpNotation.v
 Ordinal/Notation/BachmannNotation.v
 Ordinal/Notation/BachmannFragment.v
