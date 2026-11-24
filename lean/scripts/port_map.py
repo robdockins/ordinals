@@ -56,6 +56,16 @@ MODULES = {
     "AckermannTower": "AckermannTower.lean",
     "SchutteColumn": "Schutte/Column.lean",
     "SchutteColumnFacts": "Schutte/ColumnFacts.lean",
+    "SchutteAbsorb": "Schutte/Absorb.lean",
+    "BachmannDefs": "Bachmann/Defs.lean",
+    "BachmannAssoc": "Bachmann/Assoc.lean",
+    "BachmannPower": "Bachmann/Power.lean",
+    "BachmannCalibration": "Bachmann/Calibration.lean",
+    "BachmannCfe": "Bachmann/Cfe.lean",
+    "BachmannNormal": "Bachmann/Normal.lean",
+    "BachmannAgree": "Bachmann/Agree.lean",
+    "BachmannFacts": "Bachmann/Facts.lean",
+    "BachmannEnumeration": "Bachmann/Enumeration.lean",
     "Notation.CantorNotation": "Notation/Cantor.lean",
     "Notation.Interpolants": "Notation/Interpolants.lean",
     "Notation.CantorProduct": "Notation/CantorProduct.lean",
@@ -67,7 +77,32 @@ MODULES = {
     "Notation.GrimmT3": "Notation/GrimmT3.lean",
     "Notation.SchutteStack": "Notation/SchutteStack.lean",
     "Notation.SchutteMatrix": "Notation/SchutteMatrix.lean",
+    "Notation.SchutteImproper": "Notation/SchutteImproper.lean",
+    "Notation.BachmannNotation": "Notation/Bachmann/Notation.lean",
+    "Notation.BachmannFragment": "Notation/Bachmann/Fragment.lean",
+    "Notation.BachmannCantor": "Notation/Bachmann/Cantor.lean",
+    "Notation.BachmannBound": "Notation/Bachmann/Bound.lean",
+    "Notation.BachmannNormalize": "Notation/Bachmann/Normalize.lean",
+    "Notation.BachmannInterpolants": "Notation/Bachmann/Interpolants.lean",
+    "Notation.BachmannOrderType": "Notation/Bachmann/OrderType.lean",
+    "Notation.BachmannAbsorb": "Notation/Bachmann/Absorb.lean",
+    "Notation.BachmannImproper": "Notation/Bachmann/Improper.lean",
     "Notation.NaturalExpNotation": "Notation/NaturalExpNotation.lean",
+    "Analysis.PeanoArith": "Analysis/PeanoArith.lean",
+    "Analysis.SystemTCL": "Analysis/SystemTCL.lean",
+    "Analysis.Dialectica": "Analysis/Dialectica.lean",
+    "Analysis.HereditarySubst": "Analysis/HereditarySubst.lean",
+    "Analysis.HereditarySubstLF": "Analysis/HereditarySubstLF.lean",
+    "Analysis.HereditarySubstF": "Analysis/HereditarySubstF.lean",
+    "Analysis.HereditarySubstFNorm": "Analysis/HereditarySubstFNorm.lean",
+    "Analysis.SystemT": "Analysis/SystemT.lean",
+    "Analysis.Hardy": "Analysis/Hardy.lean",
+    "Analysis.Cichon": "Analysis/Cichon.lean",
+    "Analysis.OmegaLogic": "Analysis/OmegaLogic.lean",
+    "Analysis.Embedding": "Analysis/Embedding.lean",
+    "Analysis.GoodsteinIndependence": "Analysis/GoodsteinIndependence.lean",
+    "Analysis.GoodsteinFormula": "Analysis/GoodsteinFormula.lean",
+    "Analysis.ProvableTI": "Analysis/ProvableTI.lean",
 }
 
 STATUSES = {"ported", "merged", "dropped"}
@@ -126,7 +161,7 @@ LEAN_DECL_RE = re.compile(
 )
 NS_RE = re.compile(r"^\s*(namespace|section|mutual)(?:\s+(\S+))?\s*$")
 END_RE = re.compile(r"^\s*end(?:\s+(\S+))?\s*$")
-CITE_RE = re.compile(r"`((?:Notation\.)?[A-Z][A-Za-z0-9]*)\.([^`\s]+)`")
+CITE_RE = re.compile(r"`((?:Notation\.|Analysis\.)?[A-Z][A-Za-z0-9]*)\.([^`\s]+)`")
 
 
 def lean_citations():

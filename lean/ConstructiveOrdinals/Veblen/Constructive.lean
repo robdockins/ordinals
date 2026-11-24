@@ -1,5 +1,6 @@
 import ConstructiveOrdinals.Veblen.Defs
 import ConstructiveOrdinals.Cantor
+import ConstructiveOrdinals.Veblen.Classical
 
 /-!
 # Normal functions and the Veblen hierarchy, constructively
@@ -45,6 +46,39 @@ structure NormalFunction (f : Ordinal.{u} → Ordinal.{u}) : Prop where
   nonzero : ∀ x, 0 < f x
 
 attribute [ord_hint] NormalFunction.monotone NormalFunction.complete NormalFunction.nonzero
+
+/-! ## Scott continuity and strong continuity
+
+Strong continuity (preserving all inhabited suprema) implies Scott continuity
+(preserving directed suprema of complete ordinals), constructively.
+Classically every family is directed and every ordinal is complete, so the two
+coincide for every function, and the normal functions of this file are exactly
+those of `VeblenClassical` (`normal_function_classical_iff`). -/
+
+/-- Rocq: `VeblenCon.strongly_scott_continuous`. -/
+theorem strongly_scott_continuous {s : Ordinal.{u} → Ordinal.{u}} (h : StronglyContinuous s) :
+    ScottContinuous s := fun A g a₀ _ _ => h A g a₀
+
+/-- Rocq: `VeblenCon.classical_directed`. -/
+theorem classical_directed (em : ExcludedMiddle) (A : Type u) (g : A → Ordinal.{u}) :
+    Directed A g := fun a₁ a₂ =>
+  match order_total em (g a₁) (g a₂) with
+  | .inl h => ⟨a₂, h, le_refl _⟩
+  | .inr h => ⟨a₁, le_refl _, le_of_lt h⟩
+
+/-- Rocq: `VeblenCon.scott_strongly_continuous_EM`. -/
+theorem scott_strongly_continuous_EM (em : ExcludedMiddle) (s : Ordinal.{u} → Ordinal.{u}) :
+    ScottContinuous s ↔ StronglyContinuous s :=
+  ⟨fun h A g a₀ => h A g a₀ (classical_directed em A g) fun _ => ord_complete em _,
+    strongly_scott_continuous⟩
+
+/-- Rocq: `VeblenCon.normal_function_classical_iff`. -/
+theorem normal_function_classical_iff (em : ExcludedMiddle) (g : Ordinal.{u} → Ordinal.{u}) :
+    NormalFunction g ↔ VeblenClassical.NormalFunction g :=
+  ⟨fun h => ⟨h.monotone, fun x y hxy => h.increasing x y (ord_complete em y) hxy,
+      (scott_strongly_continuous_EM em g).1 h.continuous, h.nonzero⟩,
+    fun h => ⟨h.monotone, fun x y _ hxy => h.increasing x y hxy,
+      strongly_scott_continuous h.continuous, fun x _ => ord_complete em (g x), h.nonzero⟩⟩
 
 variable {f : Ordinal.{u} → Ordinal.{u}}
 
@@ -829,6 +863,84 @@ theorem Γ_enumerates : Con.Enumerates (Γ : Ordinal.{u} → Ordinal.{u})
       fun h => equiv_symm ((strongly_critical_fixpoint powOmega_normal x hx).1 h)⟩)
     (Con.enum_fixpoints_enumerates (normal_inflationary (veblen_first_normal powOmega_normal))
       (veblen_first_normal powOmega_normal).monotone (veblen_first_normal powOmega_normal))
+
+/-! ## Uniqueness of the Veblen hierarchy's characterization
+
+The literature defines the Veblen hierarchy over a normal `f` by its critical
+sets: `φ_0 = f`, and for `β > 0`, `φ_β` enumerates the common fixed points of
+the `φ_α` with `α < β`. `veblen_enumerates_critical` shows that `veblen f`
+meets this specification; the specification also determines the hierarchy
+(`veblen_characterization_unique`), constructively, for complete arguments,
+given that the candidate preserves completeness and equals `f` at every
+`β ≤ 0`. Classically the side conditions vanish
+(`veblen_characterization_unique_EM`). -/
+
+/-- Two enumerations of the same complete ordinals agree on complete
+arguments, provided their values are complete.
+Rocq: `VeblenCon.enumerates_unique_con`. -/
+theorem Con.enumerates_unique {g h : Ordinal.{u} → Ordinal.{u}} {P Q : Ordinal.{u} → Prop}
+    (hg : Con.Enumerates g P) (hh : Con.Enumerates h Q) (hPQ : ∀ x, Complete x → (P x ↔ Q x))
+    (hgc : ∀ x, Complete x → Complete (g x)) (hhc : ∀ x, Complete x → Complete (h x)) :
+    ∀ x, Complete x → g x ≈ h x :=
+  ltRec (motive := fun x => Complete x → g x ≈ h x) fun x ih hx =>
+    have hgh : ∀ y, y < x → g y < h x := fun _ hy =>
+      let ⟨i, hi⟩ := lt_elim hy
+      lt_of_le_of_lt (hg.monotone _ _ hi)
+        (lt_of_le_of_lt (ih (x i) (index_lt x i) (complete_subord hx i)).le
+          (hh.increasing _ _ hx (index_lt x i)))
+    have hhg : ∀ y, y < x → h y < g x := fun _ hy =>
+      let ⟨i, hi⟩ := lt_elim hy
+      lt_of_le_of_lt (hh.monotone _ _ hi)
+        (lt_of_le_of_lt (ih (x i) (index_lt x i) (complete_subord hx i)).ge
+          (hg.increasing _ _ hx (index_lt x i)))
+    equiv_intro
+      (hg.least x (h x) hx (hhc x hx) ((hPQ _ (hhc x hx)).2 (hh.included x hx)) hgh)
+      (hh.least x (g x) hx (hgc x hx) ((hPQ _ (hgc x hx)).1 (hg.included x hx)) hhg)
+
+/-- Rocq: `VeblenCon.veblen_le_zero`. -/
+theorem veblen_le_zero (g : Ordinal.{u} → Ordinal.{u}) {β x : Ordinal.{u}} (hβ : β ≤ 0) :
+    veblen g β x ≈ g x := by
+  rw [veblen_unroll]
+  exact equiv_intro (lub_least (le_refl _) (sup_least fun b =>
+      (lt_irrefl 0 (lt_of_le_of_lt (zero_least _)
+        (lt_of_lt_of_le (index_lt β b) hβ))).elim))
+    (lub_le1 _ _)
+
+/-- The critical-set specification determines the Veblen hierarchy.
+Rocq: `VeblenCon.veblen_characterization_unique`. -/
+theorem veblen_characterization_unique (hf : NormalFunction f) (φ : Ordinal.{u} → Ordinal.{u} → Ordinal.{u})
+    (hzero : ∀ β x, β ≤ 0 → Complete x → φ β x ≈ f x)
+    (henum : ∀ β, Complete β → 0 < β →
+      Con.Enumerates (φ β) fun x => ∀ α, Complete α → α < β → x ≈ φ α x)
+    (hcomp : ∀ β x, Complete β → Complete x → Complete (φ β x)) :
+    ∀ β, Complete β → ∀ x, Complete x → φ β x ≈ veblen f β x :=
+  ltRec (motive := fun β => Complete β → ∀ x, Complete x → φ β x ≈ veblen f β x) fun β ih hβ =>
+    match complete_zeroDec hβ with
+    | .inl h0 => fun x hx => equiv_trans (hzero β x h0 hx) (equiv_symm (veblen_le_zero f h0))
+    | .inr h0 =>
+      Con.enumerates_unique (henum β hβ h0) (veblen_enumerates_critical hf β h0 hβ)
+        (fun x hx => ⟨fun h α hα hlt => equiv_trans (h α hα hlt) (ih α hlt hα x hx),
+          fun h α hα hlt => equiv_trans (h α hα hlt) (equiv_symm (ih α hlt hα x hx))⟩)
+        (fun x hx => hcomp β x hβ hx) (fun x hx => veblen_complete hf hf.complete β hβ x hx)
+
+/-- A classical enumeration is in particular a constructive one.
+Rocq: `VeblenCon.enumerates_of_classical`. -/
+theorem enumerates_of_classical {g : Ordinal.{u} → Ordinal.{u}} {P P' : Ordinal.{u} → Prop}
+    (hP : ∀ x, P x ↔ P' x) (h : Enumerates g P) : Con.Enumerates g P' :=
+  ⟨fun x _ => (hP _).1 (h.included x), h.monotone, fun x y _ hxy => h.increasing x y hxy,
+    fun x z _ _ hz hlt => h.least x z ((hP z).2 hz) hlt⟩
+
+/-- Classically the side conditions vanish.
+Rocq: `VeblenCon.veblen_characterization_unique_EM`. -/
+theorem veblen_characterization_unique_EM (em : ExcludedMiddle) (hf : NormalFunction f)
+    (φ : Ordinal.{u} → Ordinal.{u} → Ordinal.{u}) (hzero : ∀ β x, β ≤ 0 → φ β x ≈ f x)
+    (henum : ∀ β, 0 < β → Enumerates (φ β) fun x => ∀ α, α < β → x ≈ φ α x) :
+    ∀ β x, φ β x ≈ veblen f β x := fun β x =>
+  veblen_characterization_unique hf φ (fun β x h _ => hzero β x h)
+    (fun β _ hpos => enumerates_of_classical
+      (fun _ => ⟨fun h α _ hlt => h α hlt, fun h α hlt => h α (ord_complete em α) hlt⟩)
+      (henum β hpos))
+    (fun _ _ _ _ => ord_complete em _) β (ord_complete em β) x (ord_complete em x)
 
 end Ordinal
 

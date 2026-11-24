@@ -6,7 +6,8 @@ import ConstructiveOrdinals.Enumerate
 # The Veblen hierarchy, classically
 
 Port of `Ordinal/VeblenClassical.v`. This is a standalone alternative to
-`Veblen/Constructive.lean`; nothing else imports it.
+`Veblen/Constructive.lean`, which imports it only to compare the two notions
+of normal function (`normal_function_classical_iff`).
 
 Here normal functions are strictly increasing and strongly continuous, with no
 completeness side conditions. In place of completeness, the Veblen results

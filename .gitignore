@@ -7,4 +7,6 @@
 Makefile.conf
 .Makefile.d
 *.lia.cache
+*.nia.cache
 tools/kripke/*_progress.log
+lean/.scratch

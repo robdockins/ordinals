@@ -14,6 +14,21 @@ Ordinal/Examples.v
 Ordinal/Fixpoints.v
 Ordinal/Reflection.v
 Ordinal/GoodsteinSequences.v
+Ordinal/Analysis/HereditarySubst.v
+Ordinal/Analysis/HereditarySubstLF.v
+Ordinal/Analysis/HereditarySubstF.v
+Ordinal/Analysis/HereditarySubstFNorm.v
+Ordinal/Analysis/SystemT.v
+Ordinal/Analysis/SystemTCL.v
+Ordinal/Analysis/PeanoArith.v
+Ordinal/Analysis/Dialectica.v
+Ordinal/Analysis/Hardy.v
+Ordinal/Analysis/Cichon.v
+Ordinal/Analysis/OmegaLogic.v
+Ordinal/Analysis/Embedding.v
+Ordinal/Analysis/GoodsteinIndependence.v
+Ordinal/Analysis/GoodsteinFormula.v
+Ordinal/Analysis/ProvableTI.v
 
 Ordinal/VeblenDefs.v
 Ordinal/VeblenClassical.v
@@ -22,6 +37,16 @@ Ordinal/VeblenFacts.v
 Ordinal/AckermannTower.v
 Ordinal/SchutteColumn.v
 Ordinal/SchutteColumnFacts.v
+Ordinal/SchutteAbsorb.v
+Ordinal/BachmannDefs.v
+Ordinal/BachmannAssoc.v
+Ordinal/BachmannPower.v
+Ordinal/BachmannCalibration.v
+Ordinal/BachmannCfe.v
+Ordinal/BachmannNormal.v
+Ordinal/BachmannAgree.v
+Ordinal/BachmannFacts.v
+Ordinal/BachmannEnumeration.v
 
 Ordinal/Countable.v
 
@@ -36,4 +61,14 @@ Ordinal/Notation/ATowerNotation.v
 Ordinal/Notation/GrimmT3.v
 Ordinal/Notation/SchutteStack.v
 Ordinal/Notation/SchutteMatrix.v
+Ordinal/Notation/SchutteImproper.v
 Ordinal/Notation/NaturalExpNotation.v
+Ordinal/Notation/BachmannNotation.v
+Ordinal/Notation/BachmannFragment.v
+Ordinal/Notation/BachmannCantor.v
+Ordinal/Notation/BachmannBound.v
+Ordinal/Notation/BachmannNormalize.v
+Ordinal/Notation/BachmannInterpolants.v
+Ordinal/Notation/BachmannOrderType.v
+Ordinal/Notation/BachmannAbsorb.v
+Ordinal/Notation/BachmannImproper.v

@@ -18,6 +18,9 @@ From Ordinal Require Import Fixpoints.
 From Ordinal Require Import Reflection.
 From Ordinal Require Import VeblenDefs.
 From Ordinal Require Import VeblenCon.
+From Ordinal Require Enumerate.
+From Stdlib Require Import ClassicalFacts.
+From Ordinal Require Import Classical.
 From Ordinal Require Import VeblenFacts.
 From Ordinal Require Import AckermannTower.
 From Ordinal Require Import SchutteColumn.
@@ -2885,4 +2888,311 @@ Proof.
       apply schutte_matrix_lt2; eauto with ord.
       simpl; auto.
       eapply schutte_matrix_proper_monotone; try eassumption; auto with ord. apply H.
+Qed.
+
+(** * Uniqueness of the Klammersymbol characterization
+
+    Schütte defines the functions on Klammersymbole over a normal [f] by
+    their critical sets: the Klammersymbol with only an index-[0]
+    component [x] denotes [f x]; zero components may be dropped; and when
+    [β > 0] is the lowest nonzero index above [0], with component [α > 0],
+    the index-[0] argument [x ↦ φ(m, (β,α), (0,x))] enumerates the [δ] with
+    [φ(m, (β,a), (b,δ)) = δ] for all [b < β] and [a < α].
+    [schutte_matrix_enumerates] shows that [schutte_matrix] meets this
+    specification ([schutte_matrix_kl_spec]); here we show that the
+    specification determines the functions: any [Ψ] meeting it agrees with
+    [fun m => schutte_matrix f m 0] on proper Klammersymbole
+    ([klammersymbol_characterization_unique]).
+
+    A Klammersymbol is a list of (index, component) pairs with strictly
+    decreasing indices ([kl_proper]); its index-[0] component, if any, is
+    an ordinary last entry [(0,x)], and its value is
+    [schutte_matrix f m 0], as in the notation system.  The proof is
+    constructive.  It reads the specification
+    with the constructive [enumerates] and quantifies over complete
+    indices and components only; beyond the specification it needs that
+    [Ψ] preserves completeness, that components [≤ 0] count as zero, and
+    that indices [≤ 0] count as [0] (both follow if [Ψ] respects [≈]).
+
+    The induction is on the bound [γ] of the indices: the value with
+    leading pair [(β, α)] is determined, by induction on [α], from the
+    values with leading pairs [(β, a)], [a < α], and the rest of the
+    Klammersymbol is then handled by the induction hypothesis at [β], over
+    the base [schutte_column f β α].  Since the base changes, the internal
+    lemma [kl_spec_unique] separates the index-[0] component as an argument
+    and quantifies over the base. *)
+
+(** Positive, strictly decreasing, complete indices below [γ], with
+    complete components. *)
+Fixpoint kl_below (γ:Ord) (m:list (Ord * Ord)) : Prop :=
+  match m with
+  | [] => True
+  | (b,a)::m' => 0 < b /\ b < γ /\ complete b /\ complete a /\ kl_below b m'
+  end.
+
+(** Proper Klammersymbole: strictly decreasing, complete indices below
+    [γ], with complete components.  Index [0] may occur, as the last
+    entry. *)
+Fixpoint kl_proper (γ:Ord) (m:list (Ord * Ord)) : Prop :=
+  match m with
+  | [] => True
+  | (b,a)::m' => b < γ /\ complete b /\ complete a /\ kl_proper b m'
+  end.
+
+Lemma kl_proper_all_complete : forall γ m, kl_proper γ m -> all_complete m.
+Proof.
+  intros γ m. revert γ. induction m as [|[b a] m' IH]; simpl; auto.
+  intros γ [_ [Hb [Ha Hm]]]. split; auto. split; auto. apply (IH b Hm).
+Qed.
+
+(** A proper Klammersymbol either has only positive indices, or ends in
+    an entry with index [≤ 0]. *)
+Lemma kl_proper_split : forall m γ, kl_proper γ m ->
+  kl_below γ m \/
+  exists m0 b x, m = m0 ++ [(b,x)] /\ b ≤ 0 /\ complete b /\ complete x /\ kl_below γ m0.
+Proof.
+  induction m as [|[b a] m' IH]; intros γ Hm; simpl in Hm |- *; auto.
+  destruct Hm as [Hbγ [Hbc [Hac Hm']]].
+  destruct (complete_zeroDec b Hbc) as [Hb0|Hb0].
+  - right. exists [], b, a. destruct m' as [|[b' a'] m''].
+    + simpl. auto.
+    + elim (ord_lt_irreflexive 0). destruct Hm' as [Hb' _].
+      apply ord_le_lt_trans with b'; [apply zero_least|].
+      apply ord_lt_le_trans with b; auto.
+  - destruct (IH b Hm') as [H|[m0 [b' [x [-> [H1 [H2 [H3 H4]]]]]]]].
+    + left. auto.
+    + right. exists ((b,a)::m0), b', x. simpl. auto 10.
+Qed.
+
+Lemma kl_below_mono γ γ' m : γ ≤ γ' -> kl_below γ m -> kl_below γ' m.
+Proof.
+  destruct m as [|[b a] m']; simpl; auto.
+  intros Hγ [H1 [H2 H3]]. split; auto. split; auto. apply ord_lt_le_trans with γ; auto.
+Qed.
+
+Lemma kl_below_all_complete : forall γ m, kl_below γ m -> all_complete m.
+Proof.
+  intros γ m. revert γ. induction m as [|[b a] m' IH]; simpl; auto.
+  intros γ [_ [_ [Hb [Ha Hm]]]]. split; auto. split; auto. apply (IH b Hm).
+Qed.
+
+(** The specification, for Klammersymbole with indices below [γ] over
+    the base [g].  [Ψ m] is the value of the Klammersymbol [m], whose last
+    pair may have index [0]. *)
+Definition kl_spec (g:Ord -> Ord) (γ:Ord) (Ψ:list (Ord * Ord) -> Ord) : Prop :=
+  (forall x, complete x -> Ψ [(0,x)] ≈ g x) /\
+  (forall m b a n, all_complete m -> all_complete n -> complete b -> complete a ->
+                   a ≤ 0 -> Ψ (m ++ (b,a)::n) ≈ Ψ (m ++ n)) /\
+  (forall m b δ, all_complete m -> complete b -> complete δ ->
+                 b ≤ 0 -> Ψ (m ++ [(b,δ)]) ≈ Ψ (m ++ [(0,δ)])) /\
+  (forall m β α, kl_proper γ (m ++ [(β,α)]) -> 0 < β -> 0 < α ->
+     enumerates (fun x => Ψ (m ++ [(β,α);(0,x)]))
+                (fun δ => forall b a, complete b -> b < β -> complete a -> a < α ->
+                                      Ψ (m ++ [(β,a);(b,δ)]) ≈ δ)) /\
+  (forall n, kl_proper γ n -> complete (Ψ n)).
+
+(** Restricting to the Klammersymbole that begin with [(β,α)]. *)
+Lemma kl_spec_cons g g' γ β α Ψ :
+  kl_spec g γ Ψ ->
+  0 < β -> β < γ -> complete β -> complete α ->
+  (forall x, complete x -> Ψ [(β,α);(0,x)] ≈ g' x) ->
+  kl_spec g' β (fun n => Ψ ((β,α)::n)).
+Proof.
+  intros [HB [HZ [HI [HE HC]]]] Hβ0 Hβγ Hβc Hαc Hg'.
+  split; [|split; [|split; [|split]]].
+  - exact Hg'.
+  - intros m b a n Hm Hn Hb Ha H0.
+    apply (HZ ((β,α)::m) b a n); simpl; auto.
+  - intros m b δ Hm Hb Hδ H0.
+    apply (HI ((β,α)::m) b δ); simpl; auto.
+  - intros m b a Hm Hb Ha.
+    apply (HE ((β,α)::m) b a); simpl; auto.
+  - intros n Hn.
+    apply (HC ((β,α)::n)); simpl; auto.
+Qed.
+
+Lemma schutte_column_le0_index f β α x :
+  β ≤ 0 -> schutte_column f β α x ≈ f (α + x).
+Proof.
+  intro Hβ. rewrite schutte_column_unroll. split.
+  - apply lub_least; [reflexivity|].
+    apply sup_least; intro b. elim (ord_lt_irreflexive 0).
+    apply ord_le_lt_trans with (β b); [apply zero_least|].
+    apply ord_lt_le_trans with β; [apply index_lt | exact Hβ].
+  - apply lub_le1.
+Qed.
+
+Lemma schutte_column_le0_comp f β α x :
+  (forall a b, a ≤ b -> f a ≤ f b) ->
+  α ≤ 0 -> schutte_column f β α x ≈ f x.
+Proof.
+  intros Hf Hα. rewrite schutte_column_unroll. split.
+  - apply lub_least.
+    + apply Hf. transitivity (0 + x).
+      * apply addOrd_monotone; auto with ord.
+      * apply addOrd_zero_l.
+    + apply sup_least; intro b. apply sup_least; intro a.
+      elim (ord_lt_irreflexive 0).
+      apply ord_le_lt_trans with (α a); [apply zero_least|].
+      apply ord_lt_le_trans with α; [apply index_lt | exact Hα].
+  - rewrite <- lub_le1. apply Hf. apply addOrd_le2.
+Qed.
+
+Section kl_unique.
+
+  Theorem kl_spec_unique :
+    forall γ g Ψ, normal_function g -> kl_spec g γ Ψ ->
+      forall n, kl_below γ n -> forall x, complete x ->
+        Ψ (n ++ [(0,x)]) ≈ schutte_matrix g n x.
+  Proof.
+    intro γ. induction γ as [γ IHγ] using ordinal_induction.
+    intros g Ψ Hg HΨ n Hn.
+    pose proof HΨ as [HB [HZ [HI [HE HC]]]].
+    destruct n as [|[β α] n'].
+    { intros x Hx. apply HB; auto. }
+    destruct Hn as [Hβ0 [Hβγ [Hβc [Hαc Hn']]]].
+    (* The column claim, by induction on the component at [β]. *)
+    assert (Key : forall α, complete α ->
+               forall x, complete x -> Ψ [(β,α);(0,x)] ≈ schutte_column g β α x).
+    { clear α Hαc Hn'.
+      intro α. induction α as [α IHα] using ordinal_induction. intros Hαc.
+      (* the rest of the Klammersymbol, for components below [α] *)
+      assert (Tail : forall a, a < α -> complete a ->
+                 forall n, kl_below β n -> forall x, complete x ->
+                   Ψ ((β,a)::n ++ [(0,x)]) ≈ schutte_matrix (schutte_column g β a) n x).
+      { intros a Ha Hac n Hn x Hx.
+        apply (IHγ β Hβγ (schutte_column g β a) (fun n => Ψ ((β,a)::n))); auto with ord.
+        apply kl_spec_cons with g γ; auto. }
+      destruct (complete_zeroDec α Hαc) as [H0|H0].
+      - intros x Hx.
+        assert (Hn0 : all_complete [(0,x)]) by (cbn [all_complete]; split; [apply zero_complete|split; auto]).
+        rewrite (HZ [] β α [(0,x)] I Hn0 Hβc Hαc H0). cbn [app].
+        rewrite HB; auto.
+        symmetry. apply schutte_column_le0_comp; auto with ord.
+      - apply enumerates_unique_con
+          with (P := fun δ => forall b a, complete b -> b < β -> complete a -> a < α ->
+                                 Ψ ([] ++ [(β,a);(b,δ)]) ≈ δ)
+               (Q := schutte_critical g β α).
+        + apply (HE [] β α); simpl; auto.
+        + apply schutte_column_enumerates; auto.
+        + intros δ Hδ. unfold schutte_critical.
+          assert (Hval : forall b a, complete b -> b < β -> complete a -> a < α ->
+                    Ψ [(β,a);(b,δ)] ≈ schutte_column (schutte_column g β a) b δ 0).
+          { intros b a Hbc Hb Hac Ha.
+            destruct (complete_zeroDec b Hbc) as [Hb0|Hb0].
+            - assert (Hm1 : all_complete [(β,a)]) by (cbn [all_complete]; auto).
+              rewrite (HI [(β,a)] b δ Hm1 Hbc Hδ Hb0). cbn [app].
+              rewrite (IHα a Ha Hac δ Hδ).
+              rewrite (schutte_column_le0_index _ b δ 0 Hb0).
+              split; apply schutte_column_monotone; auto with ord; apply addOrd_zero_r.
+            - assert (Hm2 : all_complete [(β,a);(b,δ)]) by (cbn [all_complete]; auto).
+              rewrite <- (HZ [(β,a);(b,δ)] 0 0 [] Hm2 I zero_complete zero_complete (ord_le_refl 0)).
+              assert (Hkl : kl_below β [(b,δ)]) by (cbn [kl_below]; auto).
+              exact (Tail a Ha Hac [(b,δ)] Hkl 0 zero_complete). }
+          split; intros H b a Hbc Hac Hb Ha.
+          * rewrite <- Hval; auto. apply (H b a); auto.
+          * simpl. rewrite Hval; auto.
+        + intros x Hx. apply (HC [(β,α);(0,x)]). cbn [kl_proper].
+          split; [auto|split; [auto|split; [auto|split; [auto|split; [apply zero_complete|split; auto]]]]].
+        + intros x Hx. apply normal_complete; auto. apply schutte_column_normal; auto. }
+    intros x Hx.
+    apply (IHγ β Hβγ (schutte_column g β α) (fun n => Ψ ((β,α)::n))); auto with ord.
+    apply kl_spec_cons with g γ; auto.
+  Qed.
+
+End kl_unique.
+
+(** [schutte_matrix] meets the specification. *)
+Theorem schutte_matrix_kl_spec f γ :
+  normal_function f -> kl_spec f γ (fun m => schutte_matrix f m 0).
+Proof.
+  intro Hf. split; [|split; [|split; [|split]]].
+  - intros x Hx. simpl. rewrite schutte_column0.
+    split; apply normal_monotone; auto; apply addOrd_zero_r.
+  - intros m b a n Hm Hn Hb Ha H0.
+    rewrite !schutte_matrix_app. simpl.
+    assert (Hh : normal_function (schutte_matrix f m)) by (apply schutte_matrix_normal; auto).
+    split; apply schutte_matrix_monotone_func; intros; auto with ord;
+      try (apply schutte_column_monotone; auto with ord);
+      rewrite (schutte_column_le0_comp _ b a); auto with ord.
+  - intros m b δ Hm Hb Hδ H0.
+    rewrite !schutte_matrix_app. simpl.
+    rewrite schutte_column_le0_index; auto.
+    rewrite schutte_column0. reflexivity.
+  - intros m β α Hm Hβ0 Hα.
+    pose proof (kl_proper_all_complete γ _ Hm) as Hc.
+    apply all_complete_app in Hc as [Hc1 [Hβ [Hα' _]]].
+    apply schutte_matrix_enumerates; auto.
+  - intros n Hn.
+    apply normal_complete; [|apply zero_complete].
+    apply schutte_matrix_normal; auto.
+    apply (kl_proper_all_complete γ _ Hn).
+Qed.
+
+(** The specification determines the functions on Klammersymbole. *)
+Theorem klammersymbol_characterization_unique f Ψ :
+  normal_function f ->
+  (forall γ, kl_spec f γ Ψ) ->
+  forall γ n, kl_proper γ n -> Ψ n ≈ schutte_matrix f n 0.
+Proof.
+  intros Hf HΨ γ n Hn.
+  pose proof (HΨ γ) as HΨγ.
+  pose proof HΨγ as [_ [HZ [HI _]]].
+  destruct (kl_proper_split n γ Hn) as [H|[m0 [b [x [-> [Hb0 [Hbc [Hx Hm0]]]]]]]].
+  - pose proof (kl_below_all_complete γ _ H) as Hc.
+    rewrite <- (app_nil_r n) at 1.
+    rewrite <- (HZ n 0 0 [] Hc I zero_complete zero_complete (ord_le_refl 0)).
+    apply (kl_spec_unique γ f Ψ Hf HΨγ n H 0 zero_complete).
+  - pose proof (kl_below_all_complete γ _ Hm0) as Hc.
+    rewrite (HI m0 b x Hc Hbc Hx Hb0).
+    rewrite (kl_spec_unique γ f Ψ Hf HΨγ m0 Hm0 x Hx).
+    rewrite schutte_matrix_app. simpl.
+    rewrite schutte_column_le0_index; auto.
+    assert (Hh : normal_function (schutte_matrix f m0)) by (apply schutte_matrix_normal; auto).
+    split; apply normal_monotone; auto; apply addOrd_zero_r.
+Qed.
+
+(** ** The classical version
+
+    Classically every ordinal is complete, so the completeness conditions
+    can be dropped from the properness condition, from the specification,
+    and from [enumerates] ([Enumerate.enumerates]). *)
+
+Fixpoint kl_proper_classical (γ:Ord) (m:list (Ord * Ord)) : Prop :=
+  match m with
+  | [] => True
+  | (b,a)::m' => b < γ /\ kl_proper_classical b m'
+  end.
+
+Definition kl_spec_classical (g:Ord -> Ord) (γ:Ord) (Ψ:list (Ord * Ord) -> Ord) : Prop :=
+  (forall x, Ψ [(0,x)] ≈ g x) /\
+  (forall m b a n, a ≤ 0 -> Ψ (m ++ (b,a)::n) ≈ Ψ (m ++ n)) /\
+  (forall m b δ, b ≤ 0 -> Ψ (m ++ [(b,δ)]) ≈ Ψ (m ++ [(0,δ)])) /\
+  (forall m β α, kl_proper_classical γ (m ++ [(β,α)]) -> 0 < β -> 0 < α ->
+     Enumerate.enumerates (fun x => Ψ (m ++ [(β,α);(0,x)]))
+       (fun δ => forall b a, b < β -> a < α -> Ψ (m ++ [(β,a);(b,δ)]) ≈ δ)).
+
+Lemma kl_proper_classical_iff (EM:excluded_middle) :
+  forall m γ, kl_proper γ m <-> kl_proper_classical γ m.
+Proof.
+  pose proof (classical.ord_complete EM) as HC.
+  induction m as [|[b a] m IH]; intro γ; simpl; [tauto|].
+  rewrite IH. split; [tauto|]. intros [H1 H2]. auto.
+Qed.
+
+Theorem klammersymbol_characterization_unique_EM (EM:excluded_middle) f Ψ :
+  normal_function f ->
+  (forall γ, kl_spec_classical f γ Ψ) ->
+  forall γ n, kl_proper_classical γ n -> Ψ n ≈ schutte_matrix f n 0.
+Proof.
+  intros Hf HΨ γ n Hn.
+  pose proof (classical.ord_complete EM) as HC.
+  apply klammersymbol_characterization_unique with γ; auto.
+  - intro γ'. destruct (HΨ γ') as [HB [HZ [HI HE]]].
+    split; [|split; [|split; [|split]]]; intros; auto.
+    + apply enumerates_of_classical
+        with (fun δ => forall b a, b < β -> a < α -> Ψ (m ++ [(β,a);(b,δ)]) ≈ δ).
+      * intro δ. split; intros H' b a; auto.
+      * apply HE; auto. apply kl_proper_classical_iff; auto.
+  - apply kl_proper_classical_iff; auto.
 Qed.

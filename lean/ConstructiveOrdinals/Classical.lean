@@ -179,6 +179,64 @@ theorem truthOrd_true {P : Prop} (h : P) : truthOrd.{u} P ≈ 1 :=
   equiv_intro (le_intro fun _ => succ_lt 0)
     (le_intro fun _ => lt_intro (show (truthOrd.{u} P).Carrier from ⟨⟨h⟩⟩) (le_refl _))
 
+/-! ### The truth values inside the ordinals
+
+`truthOrd P` is the set `{0 | P}`, a subset of `1 = {0}`, and the truth values
+are exactly the subsets of `1`: `truthOrd` is the subobject classifier `Ω` of
+the ambient constructive universe, embedded as the initial segment `≤ 1` of the
+trees. It reflects implication (`truthOrd_le_iff`), and every tree `≤ 1` is a
+truth ordinal (`le_one_truthOrd`), so trees `≤ 1` up to `≈` are propositions up
+to `↔` (`truthOrd_omega`). Completeness picks out the decidable truth values
+(`truthOrd_complete_iff`): the complete trees `≤ 1` are, up to `≈`, just `0`
+and `1` (`complete_le_one`), the classifier `2` of decidable subobjects. -/
+
+/-- Rocq: `Classical.truth_ord_le_one`. -/
+theorem truthOrd_le_one (P : Prop) : truthOrd.{u} P ≤ 1 := le_intro fun _ => succ_lt 0
+
+/-- Rocq: `Classical.truth_ord_le_iff`. -/
+theorem truthOrd_le_iff (P Q : Prop) : truthOrd.{u} P ≤ truthOrd.{u} Q ↔ (P → Q) :=
+  ⟨fun h p =>
+    let ⟨⟨⟨q⟩⟩, _⟩ := lt_elim (lt_of_lt_of_le
+      (lt_intro (show (truthOrd.{u} P).Carrier from ⟨⟨p⟩⟩) (le_refl _)) h)
+    q,
+    fun h => le_intro fun ⟨⟨p⟩⟩ => lt_intro (show (truthOrd.{u} Q).Carrier from ⟨⟨h p⟩⟩) (le_refl _)⟩
+
+/-- Rocq: `Classical.le_one_truth_ord`. -/
+theorem le_one_truthOrd {x : Ordinal.{u}} (hx : x ≤ 1) : x ≈ truthOrd (0 < x) :=
+  equiv_intro
+    (le_intro fun i =>
+      have h0 : 0 < x := lt_intro i (zero_least _)
+      lt_intro (show (truthOrd.{u} (0 < x)).Carrier from ⟨⟨h0⟩⟩)
+        (let ⟨_, hi⟩ := lt_elim (lt_of_lt_of_le (index_lt x i) hx); hi))
+    (le_intro fun ⟨⟨h0⟩⟩ => h0)
+
+/-- The trees `≤ 1`, up to `≈`, are the propositions, up to `↔`.
+Rocq: `Classical.truth_ord_omega`. -/
+theorem truthOrd_omega :
+    (∀ P Q : Prop, truthOrd.{u} P ≈ truthOrd.{u} Q ↔ (P ↔ Q)) ∧
+    (∀ P : Prop, truthOrd.{u} P ≤ 1) ∧
+    (∀ x : Ordinal.{u}, x ≤ 1 → ∃ P : Prop, x ≈ truthOrd P) :=
+  ⟨fun P Q => ⟨fun h => ⟨(truthOrd_le_iff P Q).1 h.le, (truthOrd_le_iff Q P).1 h.ge⟩,
+      fun ⟨h1, h2⟩ => equiv_intro ((truthOrd_le_iff P Q).2 h1) ((truthOrd_le_iff Q P).2 h2)⟩,
+    truthOrd_le_one, fun x hx => ⟨0 < x, le_one_truthOrd hx⟩⟩
+
+/-- Rocq: `Classical.truth_ord_complete_iff`. -/
+theorem truthOrd_complete_iff (P : Prop) : Complete (truthOrd.{u} P) ↔ (P ∨ ¬P) :=
+  ⟨fun h => match h.elim.2.1 with
+      | .inl ⟨⟨⟨p⟩⟩⟩ => .inl p
+      | .inr hn => .inr fun p => hn ⟨⟨⟨p⟩⟩⟩,
+    fun hP => Complete.intro (fun a _ => ⟨a, le_refl _, le_refl _⟩)
+      (match hP with
+       | .inl p => .inl ⟨⟨⟨p⟩⟩⟩
+       | .inr np => .inr fun ⟨⟨⟨p⟩⟩⟩ => np p)
+      (fun _ => zero_complete)⟩
+
+/-- The complete trees `≤ 1` are `0` and `1`. Rocq: `Classical.complete_le_one`. -/
+theorem complete_le_one {x : Ordinal.{u}} (hc : Complete x) (hx : x ≤ 1) : x ≈ 0 ∨ x ≈ 1 :=
+  match complete_zeroDec hc with
+  | .inl h0 => .inl (equiv_intro h0 (zero_least _))
+  | .inr h0 => .inr (equiv_intro hx (succ_least h0))
+
 /-- Deciding zero-ness, even for ordinals below 1, implies the excluded
 middle. Rocq: `Classical.zero_dec_EM`. -/
 theorem zero_dec_EM (h : ∀ x : Ordinal.{u}, x ≤ 1 → x ≤ 0 ∨ 0 < x) : ExcludedMiddle := fun P =>

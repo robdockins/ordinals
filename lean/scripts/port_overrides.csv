@@ -36,3 +36,17 @@ NaturalExp,Dnmul,,dropped,section Let naming a projection of exp_domain; Lean us
 NaturalExp,De,,dropped,section Let naming a projection of exp_domain; Lean uses hD.2.2.2.2 directly
 Notation.NaturalExpNotation,take_eq,ConstructiveOrdinals.NaturalExpNotation.split_leading,merged,the splitting function and its specification become one existential lemma (avoids equation lemmas)
 Notation.NaturalExpNotation,take_eq_spec,ConstructiveOrdinals.NaturalExpNotation.split_leading,merged,the splitting function and its specification become one existential lemma (avoids equation lemmas)
+Analysis.HereditarySubstFNorm,spine_ind',,dropped,induction scheme; Lean proves the spine cases by mutual structural recursion
+Analysis.HereditarySubstFNorm,spine_mut,,dropped,induction scheme; Lean proves the spine cases by mutual structural recursion
+Analysis.Cichon,hbn_exp_dec_mut,,dropped,induction scheme; Lean proves hbn_dec_Pn by mutual structural recursion
+Analysis.GoodsteinFormula,coprime_moduli,ConstructiveOrdinals.GoodsteinFormula.inv_moduli,merged,explicit inverse modulo m_j instead of gcd (Lean gcd lemmas use propext)
+Analysis.GoodsteinFormula,coprime_mul,ConstructiveOrdinals.GoodsteinFormula.inv_prodm,merged,products of inverses; no gcd
+Analysis.GoodsteinFormula,coprime_prodm,ConstructiveOrdinals.GoodsteinFormula.inv_prodm,merged,products of inverses; no gcd
+Notation.SchutteImproper,VF_one_normal,ConstructiveOrdinals.SchutteMatrixNotation.VForm.one_normal,merged,already in Notation/SchutteMatrix (VF_one is N [])
+Notation.SchutteImproper,HdX,ConstructiveOrdinals.SchutteMatrixNotation.VForm.offN_correct,merged,section-local Let; a have inside offN_correct
+Notation.SchutteImproper,HpcX,ConstructiveOrdinals.SchutteMatrixNotation.VForm.offN_correct,merged,section-local Let; a have inside offN_correct
+Notation.SchutteImproper,HFn,ConstructiveOrdinals.SchutteMatrixNotation.VForm.offN_correct,merged,section-local Let; a have inside offN_correct
+BachmannFacts,schutte_matrix_app,ConstructiveOrdinals.Ordinal.schutte_matrix_app,merged,identical to SchutteColumnFacts.schutte_matrix_app
+Notation.BachmannNotation,BIdx_mut,,dropped,induction scheme; Lean proves BS_complete/BI_ok by mutual structural recursion
+Notation.BachmannNormalize,red_I_mut,,dropped,induction scheme; Lean proves the red_S/red_I cases by mutual structural recursion
+Notation.BachmannImproper,lead_big_ne,ConstructiveOrdinals.BachmannNotation.lead_big_ne,merged,defined in Notation/Bachmann/Absorb (used there first)

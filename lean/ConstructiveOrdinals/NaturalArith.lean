@@ -1689,6 +1689,88 @@ theorem complete_intensional_WEM
   tree_selection_complete_WEM fun x hx =>
     h _ _ (equiv_symm (tree_selection_eq_powOmega_complete x hx)) (pow_complete omega_gt0 omega_complete hx)
 
+/-! ## Strong continuity of `treeSelection`
+
+`treeSelection` is Scott-continuous (`tree_selection_scott_continuous`) and,
+classically, strongly continuous (it is `ω ^ x`). Constructively its strong
+continuity implies weak excluded middle, so Scott continuity does not imply
+strong continuity, even for a monotone, strictly increasing function. The
+witness is the pair `succ c`, `succ d` with `c = {0, 1 | P}` and
+`d = {0, 1 | ¬P}`, both complete: `treeSelection` of their supremum has the
+child `ω ^ c ♯ ω ^ d`, and strong continuity puts it below
+`treeSelection (succ c)` or below `treeSelection (succ d)`, that is, below a
+finite multiple of `ω ^ c` or of `ω ^ d`. The first rules out `¬P`, the second
+rules out `P`. -/
+
+/-- Everything below `treeSelection (succ c)` lies below `ω ^ (c + 1)`.
+Rocq: `NaturalArith.tree_selection_succ_bound`. -/
+theorem tree_selection_succ_bound (c w : Ordinal.{u}) (hc : Complete c)
+    (hw : w < treeSelection (succ c)) : w < ω ^ succ c := by
+  have hcs : Complete (succ c) := succ_complete hc
+  have h1 : treeSelection c < ω ^ succ c :=
+    lt_of_le_of_lt (tree_selection_eq_powOmega_complete c hc).le
+      (pow_lt_pow_right omega_gt1 (succ_lt c))
+  rw [tree_selection_unfold] at hw
+  obtain ⟨l, hl⟩ := lt_elim hw
+  refine lt_of_le_of_lt hl ?_
+  clear hl
+  show smashList _ l < _
+  induction l with
+  | nil => exact pow_pos ω _
+  | cons _ l ih => exact nadd_closed_con _ _ _ hcs h1 ih
+
+/-- Rocq: `NaturalArith.tree_selection_strongly_continuous_WEM`. -/
+theorem tree_selection_strongly_continuous_WEM
+    (h : StronglyContinuous (treeSelection : Ordinal.{u} → Ordinal.{u})) :
+    WeakExcludedMiddle := fun P => by
+  let c : Ordinal.{u} := optOrd P 0 1
+  let d : Ordinal.{u} := optOrd (¬P) 0 1
+  have hone : Complete (1 : Ordinal.{u}) := succ_complete zero_complete
+  have hc : Complete c := optOrd_complete (zero_least _) zero_complete hone
+  have hd : Complete d := optOrd_complete (zero_least _) zero_complete hone
+  let F : ULift.{u} Bool → Ordinal.{u} := fun b => cond b.down (succ c) (succ d)
+  let z := treeSelection c ♯ (treeSelection d ♯ 0)
+  have hz : z < treeSelection (sup F) := by
+    rw [tree_selection_unfold]
+    exact lt_intro (show (iteratedSmashSum (lim fun a : sup F => treeSelection (sup F a))).Carrier from
+      [⟨⟨true⟩, PUnit.unit⟩, ⟨⟨false⟩, PUnit.unit⟩]) (le_refl _)
+  obtain ⟨⟨b⟩, hb⟩ := sup_lt (lt_of_lt_of_le hz (h (ULift Bool) F ⟨true⟩))
+  cases b with
+  | true =>
+    -- below a multiple of `ω ^ c`: `¬P` is impossible
+    refine .inl fun np => ?_
+    have hdz : ω ^ d < ω ^ succ c :=
+      lt_of_le_of_lt (tree_selection_eq_powOmega_complete d hd).ge
+        (tree_selection_succ_bound c _ hc
+          (lt_of_le_of_lt (le_trans (nadd_zero_r _).ge (nadd_le2 _ _)) hb))
+    have hc1 : c ≤ 1 := le_intro fun ⟨o⟩ => by
+      cases o with
+      | none => exact succ_lt 0
+      | some p => exact (np p.down).elim
+    have hd1 : 1 < d := lt_intro (show d.Carrier from ⟨some ⟨np⟩⟩) (le_refl _)
+    exact lt_irrefl _ (lt_of_lt_of_le hdz
+      (pow_le_pow_right ω (succ_least (lt_of_le_of_lt hc1 hd1))))
+  | false =>
+    -- below a multiple of `ω ^ d`: `P` is impossible
+    refine .inr fun p => ?_
+    have hcz : ω ^ c < ω ^ succ d :=
+      lt_of_le_of_lt (tree_selection_eq_powOmega_complete c hc).ge
+        (tree_selection_succ_bound d _ hd (lt_of_le_of_lt (nadd_le1 _ _) hb))
+    have hd1 : d ≤ 1 := le_intro fun ⟨o⟩ => by
+      cases o with
+      | none => exact succ_lt 0
+      | some np => exact (np.down p).elim
+    have hc1 : 1 < c := lt_intro (show c.Carrier from ⟨some ⟨p⟩⟩) (le_refl _)
+    exact lt_irrefl _ (lt_of_lt_of_le hcz
+      (pow_le_pow_right ω (succ_least (lt_of_le_of_lt hd1 hc1))))
+
+/-- So the classical equivalence `scott_strongly_continuous_EM` needs at least
+weak excluded middle. Rocq: `NaturalArith.scott_strongly_continuous_WEM`. -/
+theorem scott_strongly_continuous_WEM
+    (h : ∀ s : Ordinal.{u} → Ordinal.{u}, ScottContinuous s → StronglyContinuous s) :
+    WeakExcludedMiddle :=
+  tree_selection_strongly_continuous_WEM (h _ tree_selection_scott_continuous)
+
 /-! ## Fixpoints of `treeSelection`
 
 The least fixpoints of `treeSelection` and `x ↦ ω ^ x` coincide, as `ε 0`,
